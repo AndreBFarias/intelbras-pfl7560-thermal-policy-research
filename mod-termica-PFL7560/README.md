@@ -3,19 +3,19 @@
 Objetivo: **reduzir o superaquecimento que está queimando o polarizador/LCD** (já trocados 2x em 18 meses),
 via alteração de software, sem brickar o aparelho.
 
-## Status (atualizado em 2026-07-05)
+## Status (atualizado em 2026-07-06)
 
 | Etapa | Estado |
 |---|---|
 | Teardown do firmware V1.0.0.9 (4 agentes) | CONCLUIDO |
 | Verificação manual dos valores térmicos (`ZYCustom.ini`) | CONFERIDO |
 | Pesquisa de viabilidade/segurança (adb, verity, container, recuperação de brick) | CONCLUIDO - todos os gates VERDES (ver 06) |
-| Diagnóstico ao vivo (ler NTC via `gtt` enquanto esquenta) | EM ANDAMENTO - conectado (adb 94.140.14.52:5555, root OK), baseline 24.5 C capturado; falta o teste de aquecimento. Ver artefatos/diagnostico/sessao-01-baseline.md |
+| Diagnóstico ao vivo (ler NTC via `gtt` enquanto esquenta) | CONCLUIDO - 2º sensor ativado, `gtt1` lê ~61 °C reais; fans 1000/1000 e brilho 100% medidos pós-reboot. Ver 14 |
 | Definir tier de deploy (runtime / edição persistente / reflash) | DEFINIDO - override em /atv/ini (reversível); ver 04/06 |
 | Config proposto (`ZYCustom.ini` agressivo) | DEFINITIVO - `artefatos/ZYCustom_390.ini` |
 | **Descoberta**: conserto da cegueira | ATIVAR 2o NTC (`Thermistor_1 HW_VIRTUAL_CHANNEL=1`) → `gtt1` lê 59 C real |
 | Gravar a build | **GRAVADA E VALIDADA** - fans máx no boot, mux-fix ativo, brilho 100%, proteção real a 75 C, aviso sumiu |
-| Entregáveis replicação | guia adb (10) + email Intelbras (11) prontos; `.bin` por pendrive: pendente |
+| Entregáveis replicação | guia adb (10) + email Intelbras (11) prontos; autorun por pendrive validado (idempotente); scripts auditados e endurecidos (17); `.bin` decifrado + construído, mas **EM QUARENTENA** (brica o boot, ver 16) |
 
 ## Veredito honesto (leia antes de tudo)
 
@@ -49,6 +49,9 @@ via alteração de software, sem brickar o aparelho.
 - `13-auditoria-outros-bugs.md` — Wi-Fi, xiri, PowerManager, postura de segurança da release.
 - `14-estado-final-aplicado.md` — o que **de fato** ficou no aparelho (método `/vendor`, validado).
 - `15-bin-definitivo.md` — o checksum do container decifrado e a receita do `.bin`. **AVISO: o `.bin` está em quarentena — trava o boot (rótulo SELinux ausente), não flashe. Ver doc 16.**
+- `16-recuperacao-brick.md` — como o `.bin` bricou o boot e a recuperação sem assistência (power-hold + `usb_update.bin`; plano B por UART).
+- `17-auditoria-e-hardening.md` — auditoria adversarial (28 agentes) das soluções de entrega e os 15 achados corrigidos; a config em si passou byte-a-byte.
+- `18-sprint-bin-futuro.md` — plano em formato de sprint para produzir um `.bin` que **boota** (corrigir os rótulos SELinux), com gate de proof-of-work em hardware.
 - `artefatos/` — `ZYCustom.ini.ORIGINAL` (stock), `ZYCustom_390.ini` (**a build**), `board.dtb`, `full_dts.txt`, logs, backups, `bin-build/` (receita do `.bin`).
 
 ## Regra de ouro do projeto

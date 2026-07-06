@@ -40,13 +40,32 @@ Resultado térmico medido antes: saída de ar 46,7 °C (stock) -> 37,2 °C (buil
 - Backups do stock em `mod-termica-PFL7560/artefatos/` e em `backups-projetor/` (criado pelo `.sh` no 1º apply):
   `ZYCustom.ini.STOCK`, `build.prop.STOCK`, `init.bigfish.rc.STOCK`.
 
-## Sobre o `.bin` distribuível (#2 - em investigação)
+## Sobre o `.bin` distribuível (#2 - decifrado, construído e EM QUARENTENA)
 
-O `.bin` modificado **não foi aceito** pelo updater. Motivo confirmado: além do CRC-32/MPEG-2 por partição
-(que recalculamos certo), o container "LOAD" tem **checksums de nível-container** (cabeçalho `@0x04` = `0x738ebd09`;
-rodapé `@0x2b8`/`@0x2bc`) que **não** recalculamos. Força-bruta descartou CRC/soma/xor simples sobre a imagem
-inteira e sobre os payloads — é um esquema específico do formato. Para fechar o `.bin` flashável (útil só para
-**distribuir a quem não usa adb**), o caminho é **reverter o updater on-device** (recovery ramdisk / scripts de
-update) e ver exatamente o que ele calcula. Investigação dedicada em andamento.
+Atualização (2026-07-06): a investigação avançou muito além do que dizia a versão anterior deste doc. O
+resumo do estado **real** hoje:
+
+- **Checksum do container FOI decifrado.** Revertendo o loader on-device, provou-se que o `checksum1` do
+  container "LOAD" (`@0x04`) é **CRC-32/MPEG-2 sobre o cabeçalho + tabela de partições** (cobre só os
+  metadados, não os payloads), e que os CRCs por partição também são CRC-32/MPEG-2. Detalhes e prova em
+  [`15-bin-definitivo.md`](15-bin-definitivo.md).
+- **O `.bin` foi CONSTRUÍDO e é byte-reproduzível.** A receita (`artefatos/bin-build/build_fix_bin.py`) edita
+  só a partição vendor mantendo o tamanho — a tabela não muda, o `checksum1` segue válido, e recalcula-se só o
+  CRC daquela partição. Rodar 2× dá o mesmo md5.
+- **Foi TESTADO em hardware — e TRAVA O BOOT.** O flash completou, mas o aparelho passou a travar na logo do
+  Android. Causa: os 3 arquivos reescritos via `debugfs write` ficaram **sem rótulo SELinux**
+  (`security.selinux` xattr) e sem o modo/owner exato do stock. A CONFIG e os checksums estão certos — o
+  defeito é o **metadado dos arquivos**. Por isso o `.bin` foi posto em **quarentena**:
+  `firmware/PFL7560-FIX.NAO-USAR-brica-SELinux.bin`. **Não flashe.** Ver [`16-recuperacao-brick.md`](16-recuperacao-brick.md).
+- **A recuperação do brick funcionou.** Power-hold ao ligar + `usb_update.bin` (firmware de fábrica) num
+  pendrive separado reflasha o stock pelo loader HiSilicon, sem abrir o aparelho. Passo a passo na
+  [`16-recuperacao-brick.md`](16-recuperacao-brick.md).
+- **O modelo de AUTONOMIA foi validado.** O autorun no pendrive reaplica o fix a cada boot de forma
+  idempotente; o `usb_update.bin` recupera qualquer brick. Mesmo assim, o método **`/vendor` continua sendo o
+  definitivo e seguro** para o seu aparelho — não precisa de `.bin`.
+- **Auditoria e hardening.** Os scripts de entrega (autorun + `pfl7560-fix.sh`) passaram por auditoria
+  adversarial e foram endurecidos; ver [`17-auditoria-e-hardening.md`](17-auditoria-e-hardening.md). O plano
+  para produzir um `.bin` que **boota** (corrigir os rótulos SELinux) está em
+  [`18-sprint-bin-futuro.md`](18-sprint-bin-futuro.md).
 
 Para o SEU aparelho, nada disso é necessário — o método `/vendor` já resolveu, permanente.

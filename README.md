@@ -88,7 +88,7 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
 │   └── LEIA-ME.txt            Instruções do pendrive
 └── mod-termica-PFL7560/      Documentação técnica + artefatos da pesquisa
     ├── README.md              Índice da pesquisa
-    ├── 01..16-*.md            Teardown, causa-raiz, build, replicação, recuperação, etc.
+    ├── 01..18-*.md            Teardown, causa-raiz, build, replicação, recuperação, auditoria, etc.
     ├── relatorio.html         Relatório consolidado (abre no navegador)
     └── artefatos/             ZYCustom.ini (a build), stock, DTB, perfis, bin-build/
 ```
