@@ -44,7 +44,7 @@ consertar o aparelho.)
 | Bug | Severidade | Conserto |
 |---|---|---|
 | Sensor termico desligado (mux) | CRITICO | FEITO (nossa build) |
-| Wi-Fi nao reconecta pos-boot | Alta | POSSIVEL: `wifi_disconnect_on_boot=0` em `/vendor/build.prop` |
-| Espelhamento xiri (retry + SELinux) | Baixa-media | opcional (remover retry / rotular dominio) |
+| Wi-Fi nao reconecta pos-boot | Alta | FEITO (fix2, ver doc 14): `wifi_disconnect_on_boot=0` em `/vendor/build.prop` |
+| Espelhamento xiri (retry + SELinux) | Baixa-media | FEITO (fix3, ver doc 14): `xiriservice` disabled (remover retry / rotular dominio) |
 | PowerManager / ActivityManager logs | Cosmetico | nada a fazer |
 | Postura de seguranca | Alta (design) | responsabilidade da Intelbras |

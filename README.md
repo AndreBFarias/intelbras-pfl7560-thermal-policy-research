@@ -17,13 +17,13 @@ deste projeto, trocados 2x em 18 meses).
 |---|---|---|
 | **2º sensor de temperatura** | desligado por um bug de config (`HW_VIRTUAL_CHANNEL=0`) → proteção cega | ativo → proteção real |
 | **Ventiladores** | só aceleram tarde, guiados pelo sensor cego | **100% desde o boot** |
-| **Brilho** | vinha represado (dimming atado ao sensor cego) → tela fraca | **100% de verdade** |
+| **Brilho** | já rodava a **100%** de fábrica (o sensor cego lia ~26 °C, abaixo do 1º degrau de dimming térmico, então o dimming nunca entrava) | **travado em 100%** (não depende mais do sensor cego; compensado por fans máx + shutdown a 75 °C) |
 | **Desligamento de proteção** | limiar que quase nunca dispara | **75 °C** (rede de segurança) |
 | **Wi-Fi** | não reconecta após reiniciar (`wifi_disconnect_on_boot=1`) | reconecta sozinho |
 | **Log** | spam do `xiriservice` ~1x/s | silenciado |
 
-**Resultado medido** na saída de ar: **46,7 °C (stock) → 37,2 °C** (com a correção) — e a tela ficou
-visivelmente mais clara.
+**Resultado medido** na saída de ar: **46,7 °C (stock) → 37,2 °C** (com a correção), **sem perder brilho** (o
+brilho já rodava a 100% de fábrica; a build só o trava nesse patamar).
 
 ## A descoberta central
 
@@ -88,7 +88,7 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
 │   └── LEIA-ME.txt            Instruções do pendrive
 └── mod-termica-PFL7560/      Documentação técnica + artefatos da pesquisa
     ├── README.md              Índice da pesquisa
-    ├── 01..18-*.md            Teardown, causa-raiz, build, replicação, recuperação, auditoria, etc.
+    ├── 01..20-*.md            Teardown, causa-raiz, build, replicação, recuperação, auditoria, etc.
     ├── relatorio.html         Relatório consolidado (abre no navegador)
     └── artefatos/             ZYCustom.ini (a build), stock, DTB, perfis, bin-build/
 ```

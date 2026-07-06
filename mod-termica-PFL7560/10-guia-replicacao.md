@@ -1,14 +1,19 @@
 # 10 - Guia de replicação (para outros donos do PFL7560)
 
-Este guia aplica a mesma correção térmica em qualquer PFL7560 com firmware V1.0.0.9. É **reversível**
-(apaga 1 arquivo) e **não toca no bootloader** (sem risco de brick). Dois métodos: via adb (técnico) ou via
-`.bin` por pendrive (leigo — ver seção final).
+Este guia aplica a mesma correção térmica em qualquer PFL7560 com firmware V1.0.0.9. Os métodos por `/vendor`
+(Método A, via adb) são **reversíveis** (apagam 1 arquivo) e **não tocam no bootloader** (sem risco de brick).
+Há também um `.bin` por pendrive (Método B), mas ele está **em quarentena** — foi testado e **trava o boot**;
+use o Método A.
 
 > **O que a correção faz:** ativa o 2º sensor de temperatura (desligado por bug de fábrica), força os fans a
 > 100% sempre, trava o brilho em 100% e instala um desligamento de proteção real a 75 °C. Resultado medido:
 > saída de ar de 46,7 °C → 37,2 °C.
 
 ## Método A — via adb (recomendado)
+
+> **SUPERADO (deploy por `/atv/ini`):** o método definitivo hoje é a **edição direta do `/vendor`** via
+> `pfl7560-fix.sh` (reversível) — ver [doc 14](14-estado-final-aplicado.md). O passo a passo por `/atv/ini`
+> abaixo continua funcional, mas o `/atv` é um override de precedência preterido pelo `/vendor`.
 
 ### Requisitos
 - PC com `adb` (Android platform-tools).
@@ -59,11 +64,13 @@ Se em outra unidade o `gtt 1` normal for bem diferente, ajuste em `[Thermal]` ma
 [Thermal]        WARNING_VALUE 43000 / EMERGENCY 45000 -> 70000 / 75000 (proteção real)
 ```
 
-## Método B — via `.bin` por pendrive (para quem não usa adb)
+## Método B — via `.bin` por pendrive — EM QUARENTENA, NÃO USE
 
-Um `.bin` modificado gravável pela "Atualização local do sistema" (pendrive FAT32), sem PC. Viável porque o
-container é só CRC (sem assinatura). **Este arquivo será gerado à parte** (repack da partição vendor + CRC).
-Enquanto não sair, o Método A resolve.
+Um `.bin` modificado gravável pela "Atualização local do sistema" (pendrive FAT32, sem PC) já foi **construído
+e testado**, mas ele **TRAVA O BOOT** (os 3 arquivos reescritos ficam sem rótulo SELinux/modo/owner do stock) —
+está **em quarentena, não flashe**. O brick e a recuperação estão na [doc 16](16-recuperacao-brick.md); o plano
+para um `.bin` que boota está na [doc 18](18-sprint-bin-futuro.md). **Enquanto ele não passar no gate de boot em
+hardware, use o Método A (`/vendor` via adb).**
 
 ## Avisos
 

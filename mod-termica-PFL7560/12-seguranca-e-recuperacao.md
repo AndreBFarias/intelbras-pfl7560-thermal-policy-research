@@ -18,7 +18,7 @@ ligar, e tudo é reversível.
 | `mod-termica-PFL7560/artefatos/ZYCustom.ini.ORIGINAL` | `.ini` de fábrica versionado (md5 `29d8ba36…`) | stock de referência p/ backup/revert |
 | `pendrive-autorun/` (`newlink_update.sh` + `ZYCustom.ini`) | autorun por pendrive | aplicar sem PC |
 | `Software PFL7560.zip` | **firmware de fábrica completo** | recuperação máxima (reflash oficial) |
-| `mod-termica-PFL7560/*.md` (01–16) | toda a pesquisa | conhecimento |
+| `mod-termica-PFL7560/*.md` (01–20) | toda a pesquisa | conhecimento |
 
 > **Faça HOJE:** copie a pasta inteira `Desktop/pfl7560/` para um **pen drive e/ou nuvem**. Esse é o seu seguro.
 > O `pfl7560-fix.sh` sozinho já reaplica a correção mesmo se você perder todo o resto.

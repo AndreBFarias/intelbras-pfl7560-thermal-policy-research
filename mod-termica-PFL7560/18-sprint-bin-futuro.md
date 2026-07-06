@@ -10,6 +10,12 @@ Um `.bin` de fábrica com a correção **embutida**, que **boota** e ativa os **
 fans/brilho 100% + shutdown 75 °C, wifi reconecta, xiri silenciado). Alvo: distribuir a quem **não** usa adb
 nem pendrive-autorun — bastaria "Atualização local do sistema" com este `.bin`.
 
+> **Dependência declarada — sprint [19](19-sprint-warning-tela.md) primeiro:** o `.bin` distribuível deve
+> **embarcar o vigia de tela** da sprint 19 (o aviso que aparece no boot quando a correção não está ativa). Como
+> este `.bin` vai justamente para quem **não** usa adb/pendrive, é o público que mais precisa do aviso embutido —
+> e um reflash total do stock apagaria um vigia que morasse só no `/vendor`. Logo a sprint 19 é **pré-requisito**:
+> fechá-la **antes** de graduar este `.bin`.
+
 ## Contexto (o que já sabemos — não recomeçar do zero)
 
 - **Checksum do container DECIFRADO** (ver [`15-bin-definitivo.md`](15-bin-definitivo.md)): o `checksum1`

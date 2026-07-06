@@ -15,6 +15,12 @@ Arquivo da build: `artefatos/ZYCustom_390.ini` (md5 `1ad641ed2dd99e61d8a987a675e
 | `[Thermal]` WARNING_VALUE | `43000` → **70000** | aviso só quando esquenta de verdade (não enche o saco a 59 °C) |
 | `[Thermal]` EMERGENCY_VALUE | `45000` → **75000** | **desligamento de proteção REAL** a 75 °C (antes nunca funcionava) |
 
+> **Por que travar o brilho em 100% (e não reduzi-lo, como o [doc 03](03-causa-raiz-e-limites.md) sugeria)?**
+> De fábrica o brilho já rodava a 100%: o sensor cego lia ~26 °C, abaixo do 1º degrau de dimming térmico, então o
+> dimming nunca entrava. Reduzir o brilho cortaria calor na fonte, mas escureceria a imagem. A build preferiu
+> **manter os 100%** e compensar o calor por outra via — fans no máximo desde o boot **+** sensor real destravado
+> **+** desligamento de proteção a 75 °C —, preservando a imagem sem deixar a óptica desprotegida.
+
 ## Resultados medidos (saída de ar, termômetro IR)
 
 | Cenário | Temperatura |
@@ -36,6 +42,10 @@ Arquivo da build: `artefatos/ZYCustom_390.ini` (md5 `1ad641ed2dd99e61d8a987a675e
 - **Conclusão:** a falha tem **conserto de software**. Um erro de 1 caractere de fábrica desligava a proteção térmica.
 
 ## Deploy (idempotente, reversível)
+
+> **SUPERADO:** este deploy por override `/atv/ini` foi preterido — o método definitivo hoje é a **edição
+> direta do `/vendor`** via `pfl7560-fix.sh` (reversível), que grava na partição que sobrevive a reset de
+> fábrica; ver [doc 14](14-estado-final-aplicado.md).
 
 Instalado como override de precedência máxima, **sem tocar `/vendor`** nem o bootloader:
 ```

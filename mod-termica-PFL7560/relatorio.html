@@ -200,11 +200,15 @@
         <p>Outro bug de config (<span class="mono">wifi_disconnect_on_boot=1→0</span>) que forçava reconexão manual a cada reboot.</p></div>
     </div>
     <div class="callout">
-      <div class="k">Reversível · sem risco de brick</div>
-      A correção é um arquivo de texto na partição <span class="mono">/vendor</span> (ou um override em
-      <span class="mono">/atv</span>). <b>Não toca no bootloader.</b> Dá pra aplicar por <span class="mono">adb</span>
-      (reversível apagando 1 arquivo) ou por um <span class="mono">.bin</span> gravável por pendrive — com o firmware
-      de fábrica guardado ao lado para recuperação.
+      <div class="k">Método /vendor · reversível, sem risco de brick</div>
+      A correção é um arquivo de texto na partição <span class="mono">/vendor</span>. <b>Não toca no
+      bootloader.</b> Aplica-se por <span class="mono">adb</span> (reversível apagando 1 arquivo) ou por
+      pendrive autorun — sempre no <span class="mono">/vendor</span>, com o firmware de fábrica guardado ao
+      lado para recuperação.
+      <div class="k" style="color:var(--crit);margin-top:16px">.bin por pendrive · em quarentena, não flashe</div>
+      Existe também um <span class="mono">.bin</span> que embute a correção no firmware inteiro, mas ele foi
+      testado e <b>trava o boot</b> (os 3 arquivos reescritos ficam sem rótulo SELinux/modo do stock) — está
+      <b>em quarentena</b>. Use os métodos <span class="mono">/vendor</span> acima. Detalhes nos docs 16 e 18.
     </div>
   </section>
 

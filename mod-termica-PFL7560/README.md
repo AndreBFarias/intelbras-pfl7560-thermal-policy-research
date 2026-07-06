@@ -11,7 +11,7 @@ via alteração de software, sem brickar o aparelho.
 | Verificação manual dos valores térmicos (`ZYCustom.ini`) | CONFERIDO |
 | Pesquisa de viabilidade/segurança (adb, verity, container, recuperação de brick) | CONCLUIDO - todos os gates VERDES (ver 06) |
 | Diagnóstico ao vivo (ler NTC via `gtt` enquanto esquenta) | CONCLUIDO - 2º sensor ativado, `gtt1` lê ~61 °C reais; fans 1000/1000 e brilho 100% medidos pós-reboot. Ver 14 |
-| Definir tier de deploy (runtime / edição persistente / reflash) | DEFINIDO - override em /atv/ini (reversível); ver 04/06 |
+| Definir tier de deploy (runtime / edição persistente / reflash) | DEFINIDO - edição direta do /vendor via pfl7560-fix.sh (reversível); ver 14 |
 | Config proposto (`ZYCustom.ini` agressivo) | DEFINITIVO - `artefatos/ZYCustom_390.ini` |
 | **Descoberta**: conserto da cegueira | ATIVAR 2o NTC (`Thermistor_1 HW_VIRTUAL_CHANNEL=1`) → `gtt1` lê 59 C real |
 | Gravar a build | **GRAVADA E VALIDADA** - fans máx no boot, mux-fix ativo, brilho 100%, proteção real a 75 C, aviso sumiu |
@@ -43,7 +43,7 @@ via alteração de software, sem brickar o aparelho.
 - `07-hardware-upgrade.md` — sopradores/ventiladores de troca, dissipadores, limpeza/duto, resfriamento externo.
 - `08-por-que-fica-cego.md` — a investigação da falha (mux morto + sensor desacoplado; a conta está certa).
 - `09-build-final-e-resultados.md` — **a build definitiva, o diff, os resultados medidos e a descoberta central.**
-- `10-guia-replicacao.md` — passo-a-passo para outros donos aplicarem (adb + `.bin`).
+- `10-guia-replicacao.md` — passo-a-passo para outros donos aplicarem (adb/`/vendor`; o `.bin` está em quarentena).
 - `11-email-intelbras.md` — rascunho pronto do report para a Intelbras.
 - `12-seguranca-e-recuperacao.md` — cenários de pânico (reset, queda de energia) e as 3 camadas de recuperação.
 - `13-auditoria-outros-bugs.md` — Wi-Fi, xiri, PowerManager, postura de segurança da release.

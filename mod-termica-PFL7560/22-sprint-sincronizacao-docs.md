@@ -1,8 +1,13 @@
 # 22 - Sprint: sincronização da documentação pública (H2 + M3 + M6 + B2)
 
-Status: **PRONTA PARA EXECUÇÃO**. Prioridade **ALTA** (H2 é risco de segurança para terceiros). Origem:
+Status: **CONCLUÍDA (2026-07-06)**. Era prioridade **ALTA** (H2 era risco de segurança para terceiros). Origem:
 auditoria [doc 20](20-auditoria-integral-2026-07-06.md). Fecha o achado crítico #1 da
 [doc 17](17-auditoria-e-hardening.md) ("sincronizar toda a documentação antes de qualquer publicação").
+
+> **Concluída:** T1-T5 aplicadas (relatorio.html e doc 10 com aviso de quarentena do `.bin`; `/atv` marcado
+> SUPERADO em 09/10/índice; doc 13 status "FEITO"; README brilho reconciliado; contagens de docs corrigidas;
+> dependência da sprint 19 declarada no doc 18). **Pendente de confirmação do dono:** a linha do README raiz
+> sobre "tela mais clara" (ver doc 20 / ressalva) — só o dono sabe se a tela pareceu mais clara na prática.
 
 ## Objetivo
 
