@@ -45,7 +45,7 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
    Também `status` e `revert`. Ou clique duas vezes em `PFL7560-Corrigir.desktop` (menu).
 3. **Manual (adb).** Comandos crus documentados em
    [`mod-termica-PFL7560/06-acesso-adb-e-comandos.md`](mod-termica-PFL7560/06-acesso-adb-e-comandos.md).
-4. **Firmware `.bin` completo (avançado/distribuição).** `PFL7560-FIX.bin` — o firmware de fábrica com a
+4. **Firmware `.bin` completo (avançado/distribuição).** `firmware/PFL7560-FIX.bin` — o firmware de fábrica com a
    correção embutida na partição vendor (só ela muda; `checksum1` do container permanece válido). Flasha
    pela "Atualização local do sistema" do menu (renomeie para `PFL7560.bin`). **Verificado internamente,
    ainda não testado em hardware** — ver [`mod-termica-PFL7560/15-bin-definitivo.md`](mod-termica-PFL7560/15-bin-definitivo.md).
@@ -62,19 +62,35 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
 ## Estrutura do repositório
 
 ```
-pfl7560-fix.sh              Script principal (status | apply | revert) via adb
-pfl7560-menu.sh            Menu amigavel (usado pelo atalho de duplo-clique)
-PFL7560-Corrigir.desktop   Atalho de duplo-clique (Linux)
-pendrive-autorun/          newlink_update.sh + ZYCustom.ini (metodo pendrive)
-mod-termica-PFL7560/       Documentacao tecnica completa (15 docs) + artefatos
-  README.md                Indice da pesquisa
-  01..14-*.md              Teardown, sistema termico, causa-raiz, build, replicacao, etc.
-  artefatos/               ZYCustom.ini (a build), stock, DTB, perfis
-INSTALL.md  REQUIREMENTS.md  LICENSE
+.
+├── pfl7560-fix.sh            Script principal (status | apply | revert) via adb
+├── pfl7560-menu.sh           Menu amigavel (usado pelo atalho de duplo-clique)
+├── PFL7560-Corrigir.desktop  Atalho de duplo-clique (Linux) → chama o menu
+├── INSTALL.md                Passo a passo dos 3 métodos de instalação
+├── REQUIREMENTS.md           Dependências por método (adb, nmap, pendrive…)
+├── LICENSE                   GPLv3
+├── firmware/                 Binários grandes (fora do Git — ver .gitignore)
+│   ├── PFL7560-FIX.bin        .bin flashável com a correção (renomeie p/ PFL7560.bin)
+│   └── Software PFL7560.zip   firmware de fábrica oficial (recuperação/reflash)
+├── referencia/               Manuais e PDFs da Intelbras (fora do Git)
+│   ├── Manual_PFL7560_03-26_site_0.pdf
+│   ├── Datasheet PFL7560.pdf
+│   ├── Changelog - PFL7560.pdf
+│   └── Procedimento atualização do sistema_0.pdf
+├── pendrive-autorun/         Método pendrive (o firmware roda no boot como root)
+│   ├── newlink_update.sh      Autoinstalador executado pelo firmware no boot
+│   ├── ZYCustom.ini           Config térmica corrigida → copiada p/ /vendor/etc
+│   └── LEIA-ME.txt            Instruções do pendrive
+└── mod-termica-PFL7560/      Documentação técnica + artefatos da pesquisa
+    ├── README.md              Índice da pesquisa
+    ├── 01..16-*.md            Teardown, causa-raiz, build, replicação, recuperação, etc.
+    ├── relatorio.html         Relatório consolidado (abre no navegador)
+    └── artefatos/             ZYCustom.ini (a build), stock, DTB, perfis, bin-build/
 ```
 
-> Os binários proprietários (firmware `.bin`/`.zip` e manuais `.pdf` da Intelbras) e os logs com dados
-> pessoais do aparelho **não** vão para o Git (ver `.gitignore`). Baixe o firmware oficial no site da Intelbras.
+> **Fora do Git (`.gitignore`):** os binários proprietários da Intelbras (`firmware/*.bin`, `firmware/*.zip`,
+> `referencia/*.pdf`) e os logs/dados pessoais do aparelho (`mod-termica-PFL7560/artefatos/diagnostico/`,
+> `backups-projetor/`). Baixe o firmware e os manuais oficiais no site da Intelbras.
 
 ## Aparelho-alvo
 
