@@ -52,6 +52,7 @@ via alteração de software, sem brickar o aparelho.
 - `16-recuperacao-brick.md` — como o `.bin` bricou o boot e a recuperação sem assistência (power-hold + `usb_update.bin`; plano B por UART).
 - `17-auditoria-e-hardening.md` — auditoria adversarial (28 agentes) das soluções de entrega e os 15 achados corrigidos; a config em si passou byte-a-byte.
 - `18-sprint-bin-futuro.md` — plano em formato de sprint para produzir um `.bin` que **boota** (corrigir os rótulos SELinux), com gate de proof-of-work em hardware.
+- `19-sprint-warning-tela.md` — sprint PLANEJADA de um aviso na tela quando a correção não estiver ativa. **Ordem: fazer antes da sprint do `.bin` (18).**
 - `artefatos/` — `ZYCustom.ini.ORIGINAL` (stock), `ZYCustom_390.ini` (**a build**), `board.dtb`, `full_dts.txt`, logs, backups, `bin-build/` (receita do `.bin`).
 
 ## Regra de ouro do projeto
