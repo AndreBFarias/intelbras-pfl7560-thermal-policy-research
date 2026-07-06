@@ -31,8 +31,12 @@ ok(){  printf '\033[1;32m[OK] %s\033[0m\n' "$*" >&2; }
 err(){ printf '\033[1;31m[ERRO] %s\033[0m\n' "$*" >&2; }
 RC="/vendor/etc/init/hw/init.bigfish.rc"; INI="/vendor/etc/ZYCustom.ini"; BP="/vendor/build.prop"
 INI_STOCK_MD5="29d8ba36149413e899563029df078f6d"   # md5 do ZYCustom.ini de fabrica (stock)
-INI_FIX_MD5="1ad641ed2dd99e61d8a987a675e9aced"      # md5 do ZYCustom.ini ja corrigido (a build)
-ORIG_INI="$HERE/mod-termica-PFL7560/artefatos/ZYCustom.ini.ORIGINAL"   # stock versionado no repo
+INI_FIX_MD5="1ad641ed2dd99e61d8a987a675e9aced"      # md5 do ZYCustom.ini ja corrigido (a build) - doc do md5 esperado
+BP_STOCK_MD5="fd8406c494c201e468a0401fa082027c"     # md5 do build.prop de fabrica (stock)
+RC_STOCK_MD5="0fe1b8fb087eb9f5d7fb89517f618124"     # md5 do init.bigfish.rc de fabrica (stock)
+ORIG_INI="$HERE/mod-termica-PFL7560/artefatos/ZYCustom.ini.ORIGINAL"        # stock versionado no repo
+BP_STOCK_ART="$HERE/mod-termica-PFL7560/artefatos/build.prop.STOCK"         # stock versionado no repo
+RC_STOCK_ART="$HERE/mod-termica-PFL7560/artefatos/init.bigfish.rc.STOCK"    # stock versionado no repo
 
 find_ip(){
   [ -n "${PFL_IP:-}" ] && { echo "$PFL_IP"; return 0; }
@@ -58,38 +62,41 @@ cmd_status(){
   "$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngfs 0\ngfs 1\nquit\n"|/vendor/bin/hidebug' 2>/dev/null|grep -E "NTC|fan speed" >&2
   "$ADB" -s "$d" shell "grep -aE 'HW_VIRTUAL_CHANNEL|POLICY_0_SPEED' $INI; grep -a wifi_disconnect_on_boot $BP; getprop init.svc.xiriservice" 2>/dev/null >&2
 }
+# backup_stock <d> <nome> <device_path> <stock_md5> <artefato_versionado>
+# Anti-envenenamento do backup do stock: se ja existe $BK/<nome>.STOCK nao-vazio, pula.
+# Puxa o arquivo do device (aborta se o pull falhar ou vier vazio). Se o md5 do puxado
+# casa o md5 stock conhecido, guarda o proprio pull como .STOCK. Senao (device ja
+# modificado/corrigido ou md5 divergente) usa o artefato stock VERSIONADO do repo, mas
+# so depois de validar que ele existe, e nao-vazio E tem o md5 stock esperado; se o
+# artefato faltar/for invalido, aborta (nunca salva a versao modificada como .STOCK).
+backup_stock(){
+  local d="$1" nome="$2" dpath="$3" smd5="$4" art="$5" tmp bm
+  [ -s "$BK/$nome.STOCK" ] && return 0
+  tmp="$(mktemp)"
+  "$ADB" -s "$d" pull "$dpath" "$tmp" >/dev/null 2>&1 || { err "falha ao puxar $nome ($dpath) - backup abortado"; rm -f "$tmp"; exit 1; }
+  [ -s "$tmp" ] || { err "backup de $nome veio vazio - abortando (nao gravo backup invalido)"; rm -f "$tmp"; exit 1; }
+  bm="$(md5sum "$tmp"|awk '{print $1}')"
+  if [ "$bm" = "$smd5" ]; then
+    mv "$tmp" "$BK/$nome.STOCK" && ok "backup $nome (stock md5 $bm)"
+  else
+    rm -f "$tmp"
+    say "o $nome do device NAO e o stock (md5 $bm) - usando o stock versionado do repo p/ o backup"
+    { [ -s "$art" ] && [ "$(md5sum "$art"|awk '{print $1}')" = "$smd5" ]; } \
+      || { err "device ja modificado e sem artefato stock valido ($art) - abortando p/ nao poluir o backup"; exit 1; }
+    cp "$art" "$BK/$nome.STOCK" && ok "backup $nome (stock versionado md5 $smd5)"
+  fi
+}
 cmd_apply(){
   local d tmp; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
   mkdir -p "$BK"
   say "remontando /vendor rw"; "$ADB" -s "$d" remount >/dev/null 2>&1
-  # backup do stock VALIDADO e FATAL (sem backup valido do stock nao tocamos no /vendor)
-  # ZYCustom.ini: recusa salvar a versao ja-corrigida (1ad641ed) como .STOCK; cai para o stock versionado do repo.
-  if [ ! -s "$BK/ZYCustom.ini.STOCK" ]; then
-    tmp="$(mktemp)"
-    "$ADB" -s "$d" pull "$INI" "$tmp" >/dev/null 2>&1 || { err "falha ao puxar $INI - backup abortado"; rm -f "$tmp"; exit 1; }
-    [ -s "$tmp" ] || { err "backup do ZYCustom.ini veio vazio - abortando (nao gravo backup invalido)"; rm -f "$tmp"; exit 1; }
-    bm="$(md5sum "$tmp"|awk '{print $1}')"
-    if [ "$bm" = "$INI_STOCK_MD5" ]; then
-      mv "$tmp" "$BK/ZYCustom.ini.STOCK" && ok "backup ZYCustom.ini (stock md5 $bm)"
-    elif [ "$bm" = "$INI_FIX_MD5" ]; then
-      rm -f "$tmp"
-      say "o ZYCustom.ini do device JA esta corrigido - usando o stock versionado do repo p/ o backup"
-      { [ -s "$ORIG_INI" ] && [ "$(md5sum "$ORIG_INI"|awk '{print $1}')" = "$INI_STOCK_MD5" ]; } \
-        || { err "device ja modificado e sem artefato stock valido ($ORIG_INI) - abortando p/ nao poluir o backup"; exit 1; }
-      cp "$ORIG_INI" "$BK/ZYCustom.ini.STOCK" && ok "backup ZYCustom.ini (stock versionado md5 $INI_STOCK_MD5)"
-    else
-      err "aviso: ZYCustom.ini do device tem md5 desconhecido ($bm) - nem stock nem fix; salvando como backup, confira."
-      mv "$tmp" "$BK/ZYCustom.ini.STOCK" && ok "backup ZYCustom.ini (md5 $bm)"
-    fi
-  fi
-  for pair in "build.prop:$BP" "init.bigfish.rc:$RC"; do
-    n="${pair%%:*}"; p="${pair##*:}"
-    [ -s "$BK/$n.STOCK" ] && continue
-    tmp="$(mktemp)"
-    "$ADB" -s "$d" pull "$p" "$tmp" >/dev/null 2>&1 || { err "falha ao puxar $n - backup abortado"; rm -f "$tmp"; exit 1; }
-    [ -s "$tmp" ] || { err "backup de $n veio vazio - abortando"; rm -f "$tmp"; exit 1; }
-    mv "$tmp" "$BK/$n.STOCK" && ok "backup $n"
-  done
+  # backup do stock VALIDADO e FATAL (sem backup valido do stock nao tocamos no /vendor).
+  # Anti-envenenamento p/ os 3 arquivos: se o md5 do device casa o stock, guarda o proprio
+  # pull; senao (device ja modificado/corrigido) cai para o artefato stock VERSIONADO do repo,
+  # nunca salvando a versao modificada como .STOCK (protege um revert futuro).
+  backup_stock "$d" "ZYCustom.ini"    "$INI" "$INI_STOCK_MD5" "$ORIG_INI"
+  backup_stock "$d" "build.prop"      "$BP"  "$BP_STOCK_MD5"   "$BP_STOCK_ART"
+  backup_stock "$d" "init.bigfish.rc" "$RC"  "$RC_STOCK_MD5"   "$RC_STOCK_ART"
   say "FIX 1: config termica -> $INI"
   tmp="$(mktemp)"; printf '%s' "$CONFIG_B64"|base64 -d >"$tmp"
   [ -s "$tmp" ] || { err "config vazia"; rm -f "$tmp"; exit 1; }
