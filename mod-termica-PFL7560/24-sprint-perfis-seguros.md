@@ -1,7 +1,12 @@
 # 24 - Sprint: perfis seguros (M2)
 
-Status: **PRONTA PARA EXECUÇÃO**. Prioridade **MÉDIA** (aplicar um perfil hoje reintroduz a cegueira térmica
-que causou o dano). Origem: auditoria [doc 20](20-auditoria-integral-2026-07-06.md).
+Status: **CONCLUÍDA (2026-07-06)** — escolhida a opção **T2 (quarentena)**. Origem: auditoria [doc 20](20-auditoria-integral-2026-07-06.md).
+
+> **Decisão T2 (não T1):** ao tentar o T1 (ligar `HW_VIRTUAL_CHANNEL=1` nos perfis), um check adversarial
+> revelou que os 4 mantêm `EMERGENCY_VALUE=45000` (stock) — com o sensor real (~59 °C) isso causaria
+> **desligamento imediato** (59 > 45). Os perfis são de uma estratégia anterior (reduzir brilho com o sensor
+> cego); torná-los seguros exigiria também elevar os limiares, virando outro build. Então foram **movidos para
+> `artefatos/historico/perfis/`** com um README de aviso; o único config seguro é `ZYCustom_390.ini`.
 
 ## Objetivo
 

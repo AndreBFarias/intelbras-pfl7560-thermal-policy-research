@@ -91,7 +91,7 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
     ├── README.md              Índice da pesquisa
     ├── 01..20-*.md            Teardown, causa-raiz, build, replicação, recuperação, auditoria, etc.
     ├── relatorio.html         Relatório consolidado (abre no navegador)
-    └── artefatos/             ZYCustom.ini (a build), stock, DTB, perfis, bin-build/
+    └── artefatos/             ZYCustom.ini (a build), stock, DTB, bin-build/, historico/ (perfis obsoletos)
 ```
 
 > **Fora do Git (`.gitignore`):** os binários proprietários da Intelbras (`firmware/*.bin`, `firmware/*.zip`,
