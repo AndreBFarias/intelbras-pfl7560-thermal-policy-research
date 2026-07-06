@@ -1,4 +1,11 @@
 #!/vendor/bin/sh
+# ---------------------------------------------------------------------------
+#  CONVENCAO DE CHARSET (NAO MEXER): este arquivo e ASCII PURO de proposito.
+#  Roda no shell do projetor (/vendor/bin/sh, BusyBox/Android, locale incerto)
+#  e vive num pendrive FAT32; acento pt-BR pode virar mojibake ou quebrar o
+#  parser do shell. NAO acentuar este arquivo. Convencao fixada na sprint 25
+#  (auditoria de acentuacao) - decisao registrada para o proximo auditor.
+# ---------------------------------------------------------------------------
 # ============================================================================
 #  PFL7560 - AUTOINSTALADOR via pendrive (termico + wi-fi + xiri)
 #

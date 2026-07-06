@@ -1,3 +1,8 @@
+[NOTA DE CHARSET] Este arquivo e mantido em ASCII PURO de proposito: vive num
+pendrive FAT32 e pode ser aberto no proprio projetor ou em editores de locale
+incerto, onde acento pt-BR viraria mojibake. NAO acentuar este arquivo.
+Convencao fixada na sprint 25 (auditoria de acentuacao).
+
 ========================================================================
  PFL7560 - AUTORUN por pendrive (instala a correcao sozinho)
 ========================================================================

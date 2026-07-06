@@ -1,7 +1,11 @@
 # 25 - Sprint: acentuação pt-BR (M8)
 
-Status: **PRONTA PARA EXECUÇÃO**. Prioridade **BAIXA/MÉDIA** (qualidade editorial; não afeta runtime). Origem:
+Status: **CONCLUÍDA (2026-07-06)**. Era prioridade **BAIXA/MÉDIA** (qualidade editorial; não afeta runtime). Origem:
 auditoria [doc 20](20-auditoria-integral-2026-07-06.md).
+
+> **Concluída:** docs 07 e 13 acentuados (verificado accent-only: removendo acentos, antes==depois byte a byte);
+> `pfl7560-menu.sh` e `Comment[pt_BR]` do `.desktop` acentuados (sintaxe intacta); `newlink_update.sh` e
+> `LEIA-ME.txt` ganharam nota de convenção ASCII (mantidos ASCII de propósito, shell do aparelho / FAT32).
 
 ## Objetivo
 
