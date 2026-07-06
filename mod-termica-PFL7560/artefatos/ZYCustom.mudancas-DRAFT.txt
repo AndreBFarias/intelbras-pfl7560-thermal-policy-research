@@ -1,0 +1,50 @@
+# Blocos alterados de ZYCustom.ini - DRAFT PROVISORIO
+# NAO aplicar antes de: recuperacao de brick confirmada + tier de deploy definido + diagnostico gtt.
+# Aplicar as mesmas mudancas em POLICY_0 e POLICY_1 (as politicas sao gemeas).
+# Referencia stock: ZYCustom.ini.ORIGINAL
+
+[ThermalPolicy]
+POLICY_NUM = 2;
+POLICY_0_NAME      = STANDARD;
+POLICY_0_THRESHOLD = 24000, 26000, 28000, 30000, 32000, 34000, 36000;
+POLICY_0_SPEED     =   750,   850,   950,  1000,  1000,  1000,  1000;
+POLICY_1_NAME      = 2ND_STANDARD;
+POLICY_1_THRESHOLD = 24000, 26000, 28000, 30000, 32000, 34000, 36000;
+POLICY_1_SPEED     =   750,   850,   950,  1000,  1000,  1000,  1000;
+
+[CoolingFan_0]
+DEFAULT_PWM_MODE      = Y;
+DEFAULT_PWM_FREQUENCY = 36000;
+DEFAULT_PWM_DUTY      = 500;        # stock: 200
+FW_NAME          = DFH8025S;
+FW_PWM_DUTY    =  200, 350, 475, 600, 725, 850, 1000;
+FW_SPEED_CURVE =  500, 575, 650, 725, 825, 925, 1000;
+
+[CoolingFan_1]
+DEFAULT_PWM_MODE      = Y;
+DEFAULT_PWM_FREQUENCY = 36000;
+DEFAULT_PWM_DUTY      = 500;        # stock: 150
+FW_NAME          = DFH8025S;
+FW_PWM_DUTY    =  325, 450, 575, 725, 875, 875, 1000;
+FW_SPEED_CURVE =  500, 575, 650, 725, 825, 925, 1000;   # corrigido typo stock "825. 925"
+
+[BacklightPolicy]
+POLICY_NUM = 2;
+POLICY_0_TYPE       = 0;
+POLICY_0_NAME       = STANDARD;
+POLICY_0_CLASS      = 0;
+POLICY_0_THRESHOLD  = 25000, 27000, 29000, 31000, 33000, 35000;
+POLICY_0_BRIGHTNESS =   900,   850,   800,   775,   750,   750;   # stock: 1000..750
+POLICY_1_TYPE       = 0;
+POLICY_1_NAME       = 2ND_STANDARD;
+POLICY_1_CLASS      = 0;
+POLICY_1_THRESHOLD  = 25000, 27000, 29000, 31000, 33000, 35000;
+POLICY_1_BRIGHTNESS =   900,   850,   800,   775,   750,   750;
+
+# [Thermal] - NAO baixar no chute. Calibrar WARNING/EMERGENCY com a leitura do gtt
+# no ponto que voce considera "quente demais". Mecanismo de desligar ja existe:
+# EMERGENCY_VALUE + DEFAULT_PROTECT=2 (desliga imediato).
+# STOCK atual:
+#   WARNING_VALUE   = 43000
+#   EMERGENCY_VALUE = 45000
+#   DEFAULT_PROTECT = 2

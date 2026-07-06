@@ -1,0 +1,22 @@
+# ===== Firmware e material proprietario da Intelbras =====
+# NAO redistribuir. Baixe do site oficial da Intelbras.
+*.bin
+*.zip
+*.pdf
+
+# ===== Dados pessoais capturados do aparelho (serial, MAC, SSID) =====
+# Ficam no seu PC, mas nao vao pro repositorio publico.
+mod-termica-PFL7560/artefatos/diagnostico/
+backups-projetor/
+
+# ===== Gerados em runtime =====
+newlink_update.log
+*.log
+
+# ===== Lixo de SO / editores =====
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.SIc*
+LOST.DIR/

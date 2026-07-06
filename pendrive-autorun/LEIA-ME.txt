@@ -1,0 +1,41 @@
+========================================================================
+ PFL7560 - AUTORUN por pendrive (instala a correcao sozinho)
+========================================================================
+
+O QUE E
+  Um jeito de aplicar a correcao (termica + wi-fi + xiri) SEM PC e SEM adb:
+  basta plugar o pendrive e ligar o projetor. O proprio firmware executa o
+  newlink_update.sh como root no boot. Serve para:
+    - recuperar SEU projetor se um dia regravarem o firmware de fabrica;
+    - instalar a correcao em OUTROS PFL7560 (mesma versao V1.0.0.9).
+
+COMO USAR
+  1. Formate um pendrive em FAT32 (MBR).
+  2. Copie para a RAIZ do pendrive estes 2 arquivos:
+        newlink_update.sh
+        ZYCustom.ini
+  3. Com o projetor DESLIGADO, plugue o pendrive numa porta USB dele.
+  4. Ligue o projetor. Ele aplica e REINICIA sozinho uma vez (~30-60 s).
+     Se na 1a vez nao aplicar (pendrive montou tarde), so reiniciar de novo.
+  5. Pronto: fans no maximo, tela 100%, wi-fi reconecta sozinho, sem spam.
+     Pode remover o pendrive.
+
+COMO SABER QUE FUNCIONOU (3 sinais)
+  - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos.
+  - LOG: aparece um arquivo "newlink_update.log" na raiz do pendrive com o
+    passo a passo (procure a linha "CORRECAO APLICADA COM SUCESSO").
+  - adb (se tiver PC): ./pfl7560-fix.sh status
+
+SEGURANCA
+  - Idempotente: se ja estiver aplicado, nao faz nada (nao fica reiniciando).
+  - So age em aparelho cujo modelo e PFL7560 (trava no inicio do script).
+  - Nao toca no bootloader. So edita a particao /vendor (reversivel).
+  - So altera o que existe: se o wi-fi/xiri ja estiverem ok, pula.
+
+OBSERVACOES
+  - Use um pendrive SEM o arquivo PFL7560.bin junto (para nao confundir com o
+    fluxo de "Atualizacao local" do menu). Este autorun e independente do menu.
+  - Testado no firmware V1.0.0.9. Em outra versao, confira antes.
+  - Reverter: use ./pfl7560-fix.sh revert (pelo PC) ou regrave o firmware
+    de fabrica (Software PFL7560.zip) pela "Atualizacao local do sistema".
+========================================================================
