@@ -1,8 +1,9 @@
-# 15 - O .bin definitivo (checksum decifrado + build verificado)
+# 15 - O .bin: checksum do container decifrado (build EM QUARENTENA — brica o boot)
 
 O que faltava para gerar um firmware `.bin` flashável com a correção embutida era **entender os checksums
-do container "LOAD"**. Isso foi feito revertendo o loader on-device. Resultado: o `.bin` corrigido existe,
-verificado end-to-end.
+do container "LOAD"**. Isso foi feito revertendo o loader on-device, e os **checksums estão corretos**. Mas
+o `.bin` resultante **trava o boot** em hardware (rótulo SELinux ausente nos arquivos reescritos) e está
+**em quarentena — não flashe** (detalhes na seção "ATENÇÃO" abaixo e na [`16-recuperacao-brick.md`](16-recuperacao-brick.md)).
 
 ## O formato "LOAD" e seus checksums (revertido do loader)
 
@@ -61,15 +62,19 @@ init embutido       xiriservice disabled
 Arquivo: **`PFL7560-FIX.bin`** · md5 `f5ff89c95f6ff9e622a9097d14b0c222` (byte-reproduzível a partir do
 stock de referência).
 
-## Como flashar (opcional)
+## ATENÇÃO: este `.bin` NÃO deve ser flashado (em quarentena)
 
-Pela "Atualização local do sistema" do menu, o projetor procura **`PFL7560.bin`** na raiz do pendrive.
-Para flashar o corrigido: renomeie `PFL7560-FIX.bin` → `PFL7560.bin` e rode o update. **Recuperação:** o
-firmware de fábrica (o `PFL7560.bin` stock) volta tudo.
+> **Este `.bin` foi TESTADO em hardware e TRAVA O BOOT** (fica preso na logo do Android). Causa: os 3
+> arquivos reescritos na partição vendor via `debugfs write` ficaram **sem rótulo SELinux**
+> (`security.selinux` xattr) e sem o modo/owner exato do stock. A CONFIG e os checksums estão certos — o
+> problema é o **metadado dos arquivos**. Recuperamos via power-hold + `usb_update.bin` (ver
+> [`16-recuperacao-brick.md`](16-recuperacao-brick.md)). O arquivo foi renomeado para
+> `firmware/PFL7560-FIX.NAO-USAR-brica-SELinux.bin`. **Use o método `/vendor` (autorun/adb), que é seguro.**
 
-> **Honestidade:** o `.bin` está **verificado internamente** (checksums válidos + fs correto), mas **ainda
-> não testado em hardware**. Como o SEU projetor já está corrigido pelo método `/vendor` (permanente), este
-> `.bin` é para **distribuição** e para quem prefere um flash único. Se for testar, tenha o `.bin` stock à mão.
+**Para um `.bin` seguro no futuro** (a fazer): depois de escrever cada arquivo no ext4, setar o contexto
+SELinux e o modo/owner iguais aos do stock — ex.: `debugfs -R "ea_set <arq> security.selinux <ctx>"` +
+`sif <arq> mode/uid/gid` — copiando os valores do arquivo stock original, e **testar em hardware** antes de
+qualquer distribuição. A receita de build (`bin-build/`) ainda vale; falta só esse passo de metadado.
 
 ## Reprodutível
 

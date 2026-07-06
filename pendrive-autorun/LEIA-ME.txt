@@ -33,9 +33,20 @@ SEGURANCA
   - So altera o que existe: se o wi-fi/xiri ja estiverem ok, pula.
 
 OBSERVACOES
-  - Use um pendrive SEM o arquivo PFL7560.bin junto (para nao confundir com o
-    fluxo de "Atualizacao local" do menu). Este autorun e independente do menu.
+  - Use um pendrive SEM qualquer .bin junto (nem PFL7560.bin, nem usb_update.bin)
+    para nao confundir com o fluxo de "Atualizacao local" nem com o modo de
+    resgate do loader. Este autorun e independente do menu.
   - Testado no firmware V1.0.0.9. Em outra versao, confira antes.
   - Reverter: use ./pfl7560-fix.sh revert (pelo PC) ou regrave o firmware
     de fabrica (Software PFL7560.zip) pela "Atualizacao local do sistema".
+
+  ATENCAO - PENDRIVE DE RESGATE (usb_update.bin) e SEPARADO:
+  - O pendrive de RESGATE (com usb_update.bin) deve ficar FISICAMENTE SEPARADO
+    deste pendrive de autorun e DESCONECTADO no uso normal. Nunca ponha os dois
+    juntos: LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de upgrade do loader,
+    que REFLASHA o firmware -> APAGA a correcao e FORMATA o /data.
+  - usb_update.bin deve SEMPRE ser o firmware DE FABRICA (Software PFL7560.zip).
+    NUNCA renomeie o PFL7560-FIX.bin (em quarentena) para usb_update.bin: ele
+    brica o boot (rotulo SELinux ausente) e o power-hold bricaria o aparelho.
+  - Detalhes do resgate: mod-termica-PFL7560/16-recuperacao-brick.md
 ========================================================================

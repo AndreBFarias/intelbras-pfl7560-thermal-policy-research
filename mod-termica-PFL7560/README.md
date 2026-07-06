@@ -48,7 +48,7 @@ via alteração de software, sem brickar o aparelho.
 - `12-seguranca-e-recuperacao.md` — cenários de pânico (reset, queda de energia) e as 3 camadas de recuperação.
 - `13-auditoria-outros-bugs.md` — Wi-Fi, xiri, PowerManager, postura de segurança da release.
 - `14-estado-final-aplicado.md` — o que **de fato** ficou no aparelho (método `/vendor`, validado).
-- `15-bin-definitivo.md` — **o checksum do container decifrado e o `.bin` flashável construído e verificado.**
+- `15-bin-definitivo.md` — o checksum do container decifrado e a receita do `.bin`. **AVISO: o `.bin` está em quarentena — trava o boot (rótulo SELinux ausente), não flashe. Ver doc 16.**
 - `artefatos/` — `ZYCustom.ini.ORIGINAL` (stock), `ZYCustom_390.ini` (**a build**), `board.dtb`, `full_dts.txt`, logs, backups, `bin-build/` (receita do `.bin`).
 
 ## Regra de ouro do projeto

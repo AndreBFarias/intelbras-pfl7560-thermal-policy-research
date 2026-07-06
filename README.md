@@ -6,7 +6,9 @@ deixando a proteção térmica cega. Esse calor **queima o polarizador e o LCD**
 deste projeto, trocados 2x em 18 meses).
 
 > **Aviso:** projeto independente, **sem vínculo com a Intelbras**. Mexe em partição do aparelho por sua
-> conta e risco. Não toca no bootloader — as mudanças são reversíveis e não brickam o aparelho. Veja
+> conta e risco. **Não toca no bootloader** — por isso o aparelho é **sempre recuperável** (mesmo um boot
+> travado se resolve, ver [doc 16](mod-termica-PFL7560/16-recuperacao-brick.md)). Os métodos `/vendor`
+> (1–3) são reversíveis e seguros; o `.bin` (Método 4) está **em quarentena** por travar o boot. Veja
 > [Segurança](#segurança-e-recuperação).
 
 ## O que a correção faz
@@ -45,11 +47,14 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
    Também `status` e `revert`. Ou clique duas vezes em `PFL7560-Corrigir.desktop` (menu).
 3. **Manual (adb).** Comandos crus documentados em
    [`mod-termica-PFL7560/06-acesso-adb-e-comandos.md`](mod-termica-PFL7560/06-acesso-adb-e-comandos.md).
-4. **Firmware `.bin` completo (avançado/distribuição).** `firmware/PFL7560-FIX.bin` — o firmware de fábrica com a
-   correção embutida na partição vendor (só ela muda; `checksum1` do container permanece válido). Flasha
-   pela "Atualização local do sistema" do menu (renomeie para `PFL7560.bin`). **Verificado internamente,
-   ainda não testado em hardware** — ver [`mod-termica-PFL7560/15-bin-definitivo.md`](mod-termica-PFL7560/15-bin-definitivo.md).
-   Reprodutível via `mod-termica-PFL7560/artefatos/bin-build/`. (Não vai no Git — é firmware proprietário.)
+4. **~~Firmware `.bin` completo~~ — EM QUARENTENA, NÃO FLASHE.** O `PFL7560-FIX.bin` embutia a correção no
+   firmware inteiro, e o checksum do container foi decifrado corretamente — mas ele **trava o boot** (o boot
+   fica preso na logo do Android) por um bug: os 3 arquivos reescritos na partição vendor ficaram **sem
+   rótulo SELinux** (o `debugfs write` não seta o `security.selinux`). Já provocou um brick recuperável nesta
+   pesquisa. O arquivo foi renomeado para `firmware/PFL7560-FIX.NAO-USAR-brica-SELinux.bin`. **Use os métodos
+   1–3 (`/vendor`), que são seguros.** Detalhes do brick e da recuperação: [`mod-termica-PFL7560/16-recuperacao-brick.md`](mod-termica-PFL7560/16-recuperacao-brick.md).
+   Para um `.bin` seguro no futuro: setar os rótulos SELinux/modo do stock e **testar em hardware** antes
+   (receita em `mod-termica-PFL7560/artefatos/bin-build/`).
 
 ## Segurança e recuperação
 
@@ -70,7 +75,7 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
 ├── REQUIREMENTS.md           Dependências por método (adb, nmap, pendrive…)
 ├── LICENSE                   GPLv3
 ├── firmware/                 Binários grandes (fora do Git — ver .gitignore)
-│   ├── PFL7560-FIX.bin        .bin flashável com a correção (renomeie p/ PFL7560.bin)
+│   ├── PFL7560-FIX.NAO-USAR-brica-SELinux.bin  .bin EM QUARENTENA (trava o boot — NÃO flashe, ver doc 16)
 │   └── Software PFL7560.zip   firmware de fábrica oficial (recuperação/reflash)
 ├── referencia/               Manuais e PDFs da Intelbras (fora do Git)
 │   ├── Manual_PFL7560_03-26_site_0.pdf

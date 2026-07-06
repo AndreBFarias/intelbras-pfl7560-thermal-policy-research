@@ -36,6 +36,17 @@ arquivo de nome fixo — a constante `USB_UPDATE_FILE_NAME` = **`usb_update.bin`
 faz esse check em **modo upgrade**, que o OS normalmente ativa. Sem o OS, o gatilho é **por hardware: ligar
 segurando o botão de power.**
 
+> **AVISOS DE SEGURANÇA (leia antes) — o power-hold é uma faca de dois gumes:**
+> - **Segurar o power ao ligar REFLASHA o firmware de fábrica**, o que **apaga a correção** (volta ao stock) e
+>   **formata o `/data`** (perde apps/configuração do usuário). Só use isto para **recuperar um boot travado**,
+>   não como uso normal.
+> - O **pendrive de resgate** (com `usb_update.bin`) deve ficar **FISICAMENTE SEPARADO** do pendrive de autorun
+>   (`newlink_update.sh` + `ZYCustom.ini`) e **desconectado no dia a dia**. Nunca junte os dois arquivos no
+>   mesmo pendrive: um resgate acidental (power-hold com o pendrive plugado) apagaria a correção.
+> - `usb_update.bin` deve **SEMPRE** ser o **firmware de FÁBRICA** (do `Software PFL7560.zip`). **NUNCA** renomeie
+>   o `PFL7560-FIX.bin` (em quarentena) para `usb_update.bin`: como ele brica o boot (rótulo SELinux ausente,
+>   ver seção 2), o power-hold o gravaria e **bricaria o aparelho** — o oposto de um resgate.
+
 ### Passo a passo (testado e aprovado)
 
 1. Num pendrive **FAT32 MBR**, ponha na raiz o firmware **de fábrica** renomeado para **`usb_update.bin`**.
@@ -71,6 +82,7 @@ placa e vice-versa, GND comum, **não** ligar VCC.) Método que a própria assis
 - **Aplicar a correção:** método `/vendor` (autorun `newlink_update.sh` ou `pfl7560-fix.sh`). **Seguro, nunca
   bricou.**
 - **`PFL7560-FIX.bin`:** só depois de corrigir os rótulos SELinux e **testar**. Por ora, **não usar**.
-- **Recuperar de qualquer brick:** `usb_update.bin` (stock) na raiz + **power-hold ao ligar**. Sempre
-  disponível porque o bootloader é intocável.
+- **Recuperar de qualquer brick:** `usb_update.bin` (**SEMPRE o firmware de fábrica**, nunca o `.bin` da
+  correção) na raiz de um pendrive **separado** + **power-hold ao ligar**. Sempre disponível porque o
+  bootloader é intocável. Lembre: isso **apaga a correção e formata o `/data`** — é resgate, não uso normal.
 - **Último caso:** UART 115200 (console U-Boot).
