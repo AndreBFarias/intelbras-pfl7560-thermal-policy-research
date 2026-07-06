@@ -45,6 +45,11 @@ fábrica). Veja o passo a passo em [`INSTALL.md`](INSTALL.md) e as dependências
    Também `status` e `revert`. Ou clique duas vezes em `PFL7560-Corrigir.desktop` (menu).
 3. **Manual (adb).** Comandos crus documentados em
    [`mod-termica-PFL7560/06-acesso-adb-e-comandos.md`](mod-termica-PFL7560/06-acesso-adb-e-comandos.md).
+4. **Firmware `.bin` completo (avançado/distribuição).** `PFL7560-FIX.bin` — o firmware de fábrica com a
+   correção embutida na partição vendor (só ela muda; `checksum1` do container permanece válido). Flasha
+   pela "Atualização local do sistema" do menu (renomeie para `PFL7560.bin`). **Verificado internamente,
+   ainda não testado em hardware** — ver [`mod-termica-PFL7560/15-bin-definitivo.md`](mod-termica-PFL7560/15-bin-definitivo.md).
+   Reprodutível via `mod-termica-PFL7560/artefatos/bin-build/`. (Não vai no Git — é firmware proprietário.)
 
 ## Segurança e recuperação
 

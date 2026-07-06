@@ -43,9 +43,13 @@ via alteração de software, sem brickar o aparelho.
 - `07-hardware-upgrade.md` — sopradores/ventiladores de troca, dissipadores, limpeza/duto, resfriamento externo.
 - `08-por-que-fica-cego.md` — a investigação da falha (mux morto + sensor desacoplado; a conta está certa).
 - `09-build-final-e-resultados.md` — **a build definitiva, o diff, os resultados medidos e a descoberta central.**
-- `10-guia-replicacao.md` — passo-a-passo para outros donos aplicarem (adb + futuro `.bin`).
+- `10-guia-replicacao.md` — passo-a-passo para outros donos aplicarem (adb + `.bin`).
 - `11-email-intelbras.md` — rascunho pronto do report para a Intelbras.
-- `artefatos/` — `ZYCustom.ini.ORIGINAL` (stock), `ZYCustom_390.ini` (**a build**), `board.dtb`, `full_dts.txt`, logs, backups.
+- `12-seguranca-e-recuperacao.md` — cenários de pânico (reset, queda de energia) e as 3 camadas de recuperação.
+- `13-auditoria-outros-bugs.md` — Wi-Fi, xiri, PowerManager, postura de segurança da release.
+- `14-estado-final-aplicado.md` — o que **de fato** ficou no aparelho (método `/vendor`, validado).
+- `15-bin-definitivo.md` — **o checksum do container decifrado e o `.bin` flashável construído e verificado.**
+- `artefatos/` — `ZYCustom.ini.ORIGINAL` (stock), `ZYCustom_390.ini` (**a build**), `board.dtb`, `full_dts.txt`, logs, backups, `bin-build/` (receita do `.bin`).
 
 ## Regra de ouro do projeto
 
