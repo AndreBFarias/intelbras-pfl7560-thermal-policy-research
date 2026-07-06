@@ -24,6 +24,11 @@ nem pendrive-autorun — bastaria "Atualização local do sistema" com este `.bi
   (`security.selinux` xattr) e **sem o modo/owner exato** do stock → o boot trava num estágio tardio do init
   (ver [`16-recuperacao-brick.md`](16-recuperacao-brick.md), seção 2). No método `/vendor` por adb isso nunca
   aconteceu porque o FS já carregava o contexto correto.
+- **ATENÇÃO (achado M7, [doc 20](20-auditoria-integral-2026-07-06.md)):** essa causa é **provável, não isolada
+  empiricamente**. O SELinux é **permissivo** nesta build (docs 11/13) — e em modo permissivo um rótulo ausente
+  em geral **não** trava o boot por negação de política. Logo a BIN-S1/BIN-S5 devem **isolar a causa real**
+  (comparar `ea_get security.selinux` + `stat` mode/uid/gid dos 3 arquivos no `/vendor` do método adb, que
+  boota, vs no `.bin`, que trava) ANTES de declarar o `.bin` futuro "corrigido". Pode não ser só o rótulo.
 - **A CONFIG está certa.** Prova: mesmo com o boot travado, o **brilho subiu ao máximo e os fans ao talo** — a
   HAL térmica leu e aplicou o nosso `ZYCustom.ini` antes do hang. O defeito é 100% de **metadado de arquivo**,
   não de conteúdo.

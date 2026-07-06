@@ -24,3 +24,6 @@ Thumbs.db
 *~
 .SIc*
 LOST.DIR/
+
+# Artefato de trabalho da IA (anonimato) - fica local, nao versionado
+VALIDATOR_BRIEF.md
