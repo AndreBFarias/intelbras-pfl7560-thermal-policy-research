@@ -6,8 +6,9 @@ auditoria [doc 20](20-auditoria-integral-2026-07-06.md). Fecha o achado crítico
 
 > **Concluída:** T1-T5 aplicadas (relatorio.html e doc 10 com aviso de quarentena do `.bin`; `/atv` marcado
 > SUPERADO em 09/10/índice; doc 13 status "FEITO"; README brilho reconciliado; contagens de docs corrigidas;
-> dependência da sprint 19 declarada no doc 18). **Pendente de confirmação do dono:** a linha do README raiz
-> sobre "tela mais clara" (ver doc 20 / ressalva) — só o dono sabe se a tela pareceu mais clara na prática.
+> dependência da sprint 19 declarada no doc 18). **Confirmado pelo dono: a tela FICOU mais clara** — o stock
+> escurecia com o calor (curva de dimming `1000→750` presa ao sensor cego); a build fixa o brilho em 100%.
+> README/doc 09 ajustados para a narrativa correta (a versão intermediária, que dizia "já rodava 100%", era falsa).
 
 ## Objetivo
 
@@ -36,9 +37,11 @@ Fazer toda a camada de documentação voltada a terceiros/leigos refletir o esta
 ### T4 (M6) — status e narrativa
 - `13-auditoria-outros-bugs.md`: mudar o status do fix Wi-Fi de "POSSIVEL" e do xiri de "opcional" para
   "FEITO (fix2/fix3, ver doc 14)", preservando o texto de diagnóstico.
-- `README.md` (raiz), linha do brilho: a de fábrica rodava a **100%** (sensor cego lê ~26 °C, abaixo do 1º
-  degrau de dimming) — não "represado". Corrigir e explicar no doc 09 por que a build travou o brilho em 1000
-  (compensado por fans máx + shutdown 75 °C), em vez da recomendação original do doc 03 de reduzir brilho.
+- `README.md` (raiz), linha do brilho: de fábrica a curva de dimming (`1000→750`, `POLICY_BRIGHTNESS`)
+  **escurecia** a tela conforme o sensor cego esquentava com o uso — por isso a tela ficou mais clara com o fix
+  (confirmado pelo dono). Explicar no doc 09 por que a build fixou o brilho em 1000 (curva flat; compensado por
+  fans máx + shutdown 75 °C), em vez de reduzir (doc 03). [NOTA: uma 1ª tentativa afirmou "já rodava 100%" —
+  falso; a física ignorava que o sensor cego sobe com o uso e dispara o dimming.]
 
 ### T5 (B2) — contagens de docs
 - `12-seguranca-e-recuperacao.md`: "(01-16)" → "(01-20)" ou `*.md`.

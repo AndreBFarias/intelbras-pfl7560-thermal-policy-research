@@ -16,10 +16,12 @@ Arquivo da build: `artefatos/ZYCustom_390.ini` (md5 `1ad641ed2dd99e61d8a987a675e
 | `[Thermal]` EMERGENCY_VALUE | `45000` → **75000** | **desligamento de proteção REAL** a 75 °C (antes nunca funcionava) |
 
 > **Por que travar o brilho em 100% (e não reduzi-lo, como o [doc 03](03-causa-raiz-e-limites.md) sugeria)?**
-> De fábrica o brilho já rodava a 100%: o sensor cego lia ~26 °C, abaixo do 1º degrau de dimming térmico, então o
-> dimming nunca entrava. Reduzir o brilho cortaria calor na fonte, mas escureceria a imagem. A build preferiu
-> **manter os 100%** e compensar o calor por outra via — fans no máximo desde o boot **+** sensor real destravado
-> **+** desligamento de proteção a 75 °C —, preservando a imagem sem deixar a óptica desprotegida.
+> De fábrica a curva `POLICY_BRIGHTNESS = 1000,950,900,850,800,750` **escurecia a tela** conforme o sensor
+> esquentava — e o sensor (cego) lê a placa/ar, que sobe com o uso —, então a imagem ia enfraquecendo na
+> projeção (**por isso a tela ficou visivelmente mais clara depois do fix** — confirmado pelo dono). Reduzir
+> ainda mais o brilho cortaria calor na fonte, mas escureceria a imagem de vez. A build preferiu **fixar os
+> 100%** (curva flat) e compensar o calor por outra via — fans no máximo desde o boot **+** sensor real
+> destravado **+** desligamento de proteção a 75 °C —, preservando a imagem sem deixar a óptica desprotegida.
 
 ## Resultados medidos (saída de ar, termômetro IR)
 

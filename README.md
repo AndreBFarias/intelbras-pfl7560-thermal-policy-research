@@ -17,13 +17,14 @@ deste projeto, trocados 2x em 18 meses).
 |---|---|---|
 | **2º sensor de temperatura** | desligado por um bug de config (`HW_VIRTUAL_CHANNEL=0`) → proteção cega | ativo → proteção real |
 | **Ventiladores** | só aceleram tarde, guiados pelo sensor cego | **100% desde o boot** |
-| **Brilho** | já rodava a **100%** de fábrica (o sensor cego lia ~26 °C, abaixo do 1º degrau de dimming térmico, então o dimming nunca entrava) | **travado em 100%** (não depende mais do sensor cego; compensado por fans máx + shutdown a 75 °C) |
+| **Brilho** | dimming preso ao sensor cego: a tela **escurecia** no uso conforme a placa esquentava (curva `1000→750`) → imagem fraca | **100% de verdade** (curva de brilho fixa; não escurece mais) — a proteção fica por conta de fans máx + shutdown a 75 °C |
 | **Desligamento de proteção** | limiar que quase nunca dispara | **75 °C** (rede de segurança) |
 | **Wi-Fi** | não reconecta após reiniciar (`wifi_disconnect_on_boot=1`) | reconecta sozinho |
 | **Log** | spam do `xiriservice` ~1x/s | silenciado |
 
-**Resultado medido** na saída de ar: **46,7 °C (stock) → 37,2 °C** (com a correção), **sem perder brilho** (o
-brilho já rodava a 100% de fábrica; a build só o trava nesse patamar).
+**Resultado medido** na saída de ar: **46,7 °C (stock) → 37,2 °C** (com a correção) — e a **tela ficou
+visivelmente mais clara**, porque de fábrica o brilho caía com o calor (dimming preso ao sensor cego) e a build
+o fixa em 100%.
 
 ## A descoberta central
 
