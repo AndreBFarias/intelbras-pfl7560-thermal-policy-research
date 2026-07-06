@@ -33,7 +33,7 @@ case "$op" in
   1) "$FIX" status ;;
   2) "$FIX" apply ;;
   3) read -p " Tem CERTEZA que quer voltar ao stock? [s/N]: " c
-     [ "$c" = "s" ] || [ "$c" = "S" ] && "$FIX" revert || echo " cancelado." ;;
+     if [ "$c" = "s" ] || [ "$c" = "S" ]; then "$FIX" revert; else echo " cancelado."; fi ;;
   4) exit 0 ;;
   *) echo " opcao invalida." ;;
 esac

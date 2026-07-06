@@ -30,6 +30,9 @@ say(){ printf '\033[1;36m>> %s\033[0m\n' "$*" >&2; }
 ok(){  printf '\033[1;32m[OK] %s\033[0m\n' "$*" >&2; }
 err(){ printf '\033[1;31m[ERRO] %s\033[0m\n' "$*" >&2; }
 RC="/vendor/etc/init/hw/init.bigfish.rc"; INI="/vendor/etc/ZYCustom.ini"; BP="/vendor/build.prop"
+INI_STOCK_MD5="29d8ba36149413e899563029df078f6d"   # md5 do ZYCustom.ini de fabrica (stock)
+INI_FIX_MD5="1ad641ed2dd99e61d8a987a675e9aced"      # md5 do ZYCustom.ini ja corrigido (a build)
+ORIG_INI="$HERE/mod-termica-PFL7560/artefatos/ZYCustom.ini.ORIGINAL"   # stock versionado no repo
 
 find_ip(){
   [ -n "${PFL_IP:-}" ] && { echo "$PFL_IP"; return 0; }
@@ -50,47 +53,109 @@ connect(){
   ok "conectado ao PFL7560 em $ip (root)"; echo "$dev"
 }
 cmd_status(){
-  local d; d="$(connect)"
+  local d; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
   say "estado atual:"
   "$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngfs 0\ngfs 1\nquit\n"|/vendor/bin/hidebug' 2>/dev/null|grep -E "NTC|fan speed" >&2
   "$ADB" -s "$d" shell "grep -aE 'HW_VIRTUAL_CHANNEL|POLICY_0_SPEED' $INI; grep -a wifi_disconnect_on_boot $BP; getprop init.svc.xiriservice" 2>/dev/null >&2
 }
 cmd_apply(){
-  local d tmp; d="$(connect)"; mkdir -p "$BK"
+  local d tmp; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
+  mkdir -p "$BK"
   say "remontando /vendor rw"; "$ADB" -s "$d" remount >/dev/null 2>&1
-  # backup do stock (so na 1a vez, pra preservar o original de fabrica)
-  for pair in "ZYCustom.ini:$INI" "build.prop:$BP" "init.bigfish.rc:$RC"; do
+  # backup do stock VALIDADO e FATAL (sem backup valido do stock nao tocamos no /vendor)
+  # ZYCustom.ini: recusa salvar a versao ja-corrigida (1ad641ed) como .STOCK; cai para o stock versionado do repo.
+  if [ ! -s "$BK/ZYCustom.ini.STOCK" ]; then
+    tmp="$(mktemp)"
+    "$ADB" -s "$d" pull "$INI" "$tmp" >/dev/null 2>&1 || { err "falha ao puxar $INI - backup abortado"; rm -f "$tmp"; exit 1; }
+    [ -s "$tmp" ] || { err "backup do ZYCustom.ini veio vazio - abortando (nao gravo backup invalido)"; rm -f "$tmp"; exit 1; }
+    bm="$(md5sum "$tmp"|awk '{print $1}')"
+    if [ "$bm" = "$INI_STOCK_MD5" ]; then
+      mv "$tmp" "$BK/ZYCustom.ini.STOCK" && ok "backup ZYCustom.ini (stock md5 $bm)"
+    elif [ "$bm" = "$INI_FIX_MD5" ]; then
+      rm -f "$tmp"
+      say "o ZYCustom.ini do device JA esta corrigido - usando o stock versionado do repo p/ o backup"
+      { [ -s "$ORIG_INI" ] && [ "$(md5sum "$ORIG_INI"|awk '{print $1}')" = "$INI_STOCK_MD5" ]; } \
+        || { err "device ja modificado e sem artefato stock valido ($ORIG_INI) - abortando p/ nao poluir o backup"; exit 1; }
+      cp "$ORIG_INI" "$BK/ZYCustom.ini.STOCK" && ok "backup ZYCustom.ini (stock versionado md5 $INI_STOCK_MD5)"
+    else
+      err "aviso: ZYCustom.ini do device tem md5 desconhecido ($bm) - nem stock nem fix; salvando como backup, confira."
+      mv "$tmp" "$BK/ZYCustom.ini.STOCK" && ok "backup ZYCustom.ini (md5 $bm)"
+    fi
+  fi
+  for pair in "build.prop:$BP" "init.bigfish.rc:$RC"; do
     n="${pair%%:*}"; p="${pair##*:}"
-    [ -f "$BK/$n.STOCK" ] || { "$ADB" -s "$d" pull "$p" "$BK/$n.STOCK" >/dev/null 2>&1 && ok "backup $n"; }
+    [ -s "$BK/$n.STOCK" ] && continue
+    tmp="$(mktemp)"
+    "$ADB" -s "$d" pull "$p" "$tmp" >/dev/null 2>&1 || { err "falha ao puxar $n - backup abortado"; rm -f "$tmp"; exit 1; }
+    [ -s "$tmp" ] || { err "backup de $n veio vazio - abortando"; rm -f "$tmp"; exit 1; }
+    mv "$tmp" "$BK/$n.STOCK" && ok "backup $n"
   done
   say "FIX 1: config termica -> $INI"
   tmp="$(mktemp)"; printf '%s' "$CONFIG_B64"|base64 -d >"$tmp"
   [ -s "$tmp" ] || { err "config vazia"; rm -f "$tmp"; exit 1; }
-  "$ADB" -s "$d" push "$tmp" "$INI" >/dev/null 2>&1; "$ADB" -s "$d" shell "chmod 644 $INI"
-  l="$(md5sum "$tmp"|awk '{print $1}')"; r="$("$ADB" -s "$d" shell "md5sum $INI" 2>/dev/null|awk '{print $1}')"; rm -f "$tmp"
-  [ "$l" = "$r" ] && ok "termico gravado (md5 $l)" || { err "md5 divergente"; exit 1; }
+  l="$(md5sum "$tmp"|awk '{print $1}')"
+  # push atomico: grava em .new, confere md5 e so entao mv por cima (original intacto se cair no meio)
+  "$ADB" -s "$d" push "$tmp" "$INI.new" >/dev/null 2>&1; rm -f "$tmp"
+  r="$("$ADB" -s "$d" shell "md5sum $INI.new" 2>/dev/null|awk '{print $1}')"
+  if [ "$l" = "$r" ]; then
+    "$ADB" -s "$d" shell "chmod 644 $INI.new && mv $INI.new $INI"; ok "termico gravado (md5 $l)"
+  else
+    "$ADB" -s "$d" shell "rm -f $INI.new" >/dev/null 2>&1; err "md5 divergente ao gravar $INI - original intacto"; exit 1
+  fi
   say "FIX 2: wifi -> wifi_disconnect_on_boot=0"
   "$ADB" -s "$d" shell "sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' $BP"
   say "FIX 3: desabilita xiriservice (para o spam)"
   tmp="$(mktemp)"; "$ADB" -s "$d" pull "$RC" "$tmp" >/dev/null 2>&1
+  # BOOT-CRITICO: se o pull falhar o $tmp fica vazio; NUNCA sobrescrever o init.rc com um arquivo vazio.
+  [ -s "$tmp" ] || { err "falha ao puxar $RC (veio vazio) - NAO vou sobrescrever o init.rc"; rm -f "$tmp"; exit 1; }
   if grep -A1 'service xiriservice' "$tmp" | grep -q 'disabled'; then ok "xiri ja desabilitado"
-  else sed -i '/^service xiriservice \/system\/bin\/xiriservice/a\    disabled' "$tmp"; "$ADB" -s "$d" push "$tmp" "$RC" >/dev/null 2>&1; "$ADB" -s "$d" shell "chmod 644 $RC"; ok "xiri desabilitado"; fi
+  else
+    sed -i '/^service xiriservice \/system\/bin\/xiriservice/a\    disabled' "$tmp"
+    grep -A1 'service xiriservice' "$tmp" | grep -q 'disabled' || { err "sed do xiri nao aplicou - abortando sem tocar no device"; rm -f "$tmp"; exit 1; }
+    lrc="$(md5sum "$tmp"|awk '{print $1}')"
+    "$ADB" -s "$d" push "$tmp" "$RC.new" >/dev/null 2>&1
+    rrc="$("$ADB" -s "$d" shell "md5sum $RC.new" 2>/dev/null|awk '{print $1}')"
+    if [ "$lrc" = "$rrc" ]; then
+      "$ADB" -s "$d" shell "chmod 644 $RC.new && mv $RC.new $RC"; ok "xiri desabilitado"
+    else
+      "$ADB" -s "$d" shell "rm -f $RC.new" >/dev/null 2>&1; err "md5 divergente ao gravar $RC - original intacto"; rm -f "$tmp"; exit 1
+    fi
+  fi
   rm -f "$tmp"
+  # valida os 3 estados relendo do device ANTES de declarar sucesso/reiniciar (sem falso-sucesso parcial)
+  say "validando o resultado no device antes de reiniciar"
+  "$ADB" -s "$d" shell "grep -q 'HW_VIRTUAL_CHANNEL = 1' $INI" || { err "validacao: termico nao confirmado em $INI"; exit 1; }
+  "$ADB" -s "$d" shell "grep -q wifi_disconnect_on_boot=0 $BP" || { err "validacao: wifi_disconnect_on_boot=0 nao confirmado em $BP"; exit 1; }
+  "$ADB" -s "$d" shell "grep -A1 'service xiriservice' $RC | grep -q disabled" || { err "validacao: xiriservice disabled nao confirmado em $RC"; exit 1; }
+  ok "os 3 fixes confirmados no /vendor"
   "$ADB" -s "$d" shell sync
   say "reiniciando (o Wi-Fi reconecta sozinho com o fix)"
   "$ADB" -s "$d" reboot >/dev/null 2>&1||true
   ok "APLICADO no /vendor (permanente). Apos o boot: fans 1000, gtt1 ~59C, wifi auto, sem spam."
 }
 cmd_revert(){
-  local d; d="$(connect)"
-  [ -f "$BK/ZYCustom.ini.STOCK" ] || { err "sem backup em $BK - reverta reflashando o .bin de fabrica"; exit 1; }
-  say "remontando /vendor rw e restaurando o stock"
+  local d fail; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
+  # exige os TRES backups existentes E nao-vazios antes de tocar em qualquer coisa
+  for n in ZYCustom.ini build.prop init.bigfish.rc; do
+    [ -s "$BK/$n.STOCK" ] || { err "backup ausente ou vazio: $BK/$n.STOCK - revert abortado (reverta reflashando o .bin de fabrica)."; exit 1; }
+  done
+  say "remontando /vendor rw e restaurando o stock (3 arquivos)"
   "$ADB" -s "$d" remount >/dev/null 2>&1
-  "$ADB" -s "$d" push "$BK/ZYCustom.ini.STOCK" "$INI" >/dev/null 2>&1
-  "$ADB" -s "$d" push "$BK/build.prop.STOCK" "$BP" >/dev/null 2>&1
-  "$ADB" -s "$d" push "$BK/init.bigfish.rc.STOCK" "$RC" >/dev/null 2>&1
-  "$ADB" -s "$d" shell "chmod 644 $INI $BP $RC; sync"
+  fail=0
+  for pair in "ZYCustom.ini:$INI" "build.prop:$BP" "init.bigfish.rc:$RC"; do
+    n="${pair%%:*}"; p="${pair##*:}"
+    lm="$(md5sum "$BK/$n.STOCK"|awk '{print $1}')"
+    "$ADB" -s "$d" push "$BK/$n.STOCK" "$p.new" >/dev/null 2>&1
+    rmt="$("$ADB" -s "$d" shell "md5sum $p.new" 2>/dev/null|awk '{print $1}')"
+    if [ "$lm" = "$rmt" ]; then
+      "$ADB" -s "$d" shell "chmod 644 $p.new && mv $p.new $p"; ok "restaurado $n"
+    else
+      "$ADB" -s "$d" shell "rm -f $p.new" >/dev/null 2>&1; err "md5 divergente ao restaurar $n - original intacto"; fail=1
+    fi
+  done
+  [ "$fail" = "0" ] || { err "revert PARCIAL - nem tudo foi restaurado. NAO reiniciei. Reexecute o revert."; exit 1; }
+  "$ADB" -s "$d" shell sync
   "$ADB" -s "$d" reboot >/dev/null 2>&1||true
-  ok "REVERTIDO ao /vendor de fabrica."
+  ok "REVERTIDO ao /vendor de fabrica (3 arquivos restaurados)."
 }
 case "${1:-status}" in status)cmd_status;; apply)cmd_apply;; revert)cmd_revert;; *) echo "uso: $0 [status|apply|revert]";exit 1;; esac
