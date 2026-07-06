@@ -101,6 +101,8 @@ cmd_apply(){
   tmp="$(mktemp)"; printf '%s' "$CONFIG_B64"|base64 -d >"$tmp"
   [ -s "$tmp" ] || { err "config vazia"; rm -f "$tmp"; exit 1; }
   l="$(md5sum "$tmp"|awk '{print $1}')"
+  # defesa: o base64 embutido tem que bater INI_FIX_MD5 (protege contra corrupcao do heredoc numa edicao futura do script)
+  [ "$l" = "$INI_FIX_MD5" ] || { err "config decodificada diverge de INI_FIX_MD5 ($l != $INI_FIX_MD5) - nao vou gravar"; rm -f "$tmp"; exit 1; }
   # push atomico: grava em .new, confere md5 e so entao mv por cima (original intacto se cair no meio)
   "$ADB" -s "$d" push "$tmp" "$INI.new" >/dev/null 2>&1; rm -f "$tmp"
   r="$("$ADB" -s "$d" shell "md5sum $INI.new" 2>/dev/null|awk '{print $1}')"

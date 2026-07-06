@@ -1,7 +1,11 @@
 # 21 - Sprint: integridade byte-exata do backup/restore (H1 + init.rc MOD + B1)
 
-Status: **PRONTA PARA EXECUÇÃO**. Prioridade **ALTA** (a ferramenta principal `pfl7560-fix.sh` está hoje
+Status: **CONCLUÍDA (2026-07-06)**. Era prioridade **ALTA** (a ferramenta principal `pfl7560-fix.sh` estava
 inoperante em clone fresco). Origem: auditoria [doc 20](20-auditoria-integral-2026-07-06.md).
+
+> **Concluída:** T1 (artefato `build.prop.STOCK` regenerado byte-exato, md5 `fd8406c4`, verdade de campo do
+> device) e T2 (`init.bigfish.rc.MOD` alinhado ao device, `57fa2139`) feitas manualmente com verificação md5;
+> T3 (`tests/check-stock-md5.sh` + `make check`, 6/6 OK) e T4 (`INI_FIX_MD5` ativado no `cmd_apply`) via agente.
 
 ## Objetivo
 
