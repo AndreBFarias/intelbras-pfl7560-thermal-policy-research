@@ -1,17 +1,24 @@
 # ===== Firmware e material proprietario da Intelbras =====
-# NAO redistribuir. Baixe do site oficial da Intelbras.
+# NAO redistribuir publicamente. Backup local/privado do stock oficial via Git LFS.
 *.bin
 *.zip
 *.pdf
+# Excecao: zip oficial de fabrica (resgate / rebuild) — tracked com Git LFS
+!firmware/Software PFL7560.zip
 
-# ===== Dados pessoais capturados do aparelho (serial, MAC, SSID) =====
-# Ficam no seu PC, mas nao vao pro repositorio publico.
-mod-termica-PFL7560/artefatos/diagnostico/
+
+# ===== Dados pessoais / logs do aparelho =====
+artifacts/diagnostico/
 backups-projetor/
+private/
+VALIDATOR_BRIEF.md
 
 # ===== Gerados em runtime =====
 newlink_update.log
 *.log
+
+# ===== Platform-tools baixadas pelo install.bat (Windows) =====
+tools/
 
 # ===== Cache Python =====
 __pycache__/
@@ -25,5 +32,5 @@ Thumbs.db
 .SIc*
 LOST.DIR/
 
-# Artefato de trabalho da IA (anonimato) - fica local, nao versionado
-VALIDATOR_BRIEF.md
+# Symlink local para diretrizes (não vai pro repo)
+CLAUDE.md
