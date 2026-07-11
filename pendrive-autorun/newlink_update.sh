@@ -37,7 +37,7 @@ fi
 
 # estados-alvo (idempotencia): considera aplicado so quando os TRES estao ok
 term_ok(){ grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI" 2>/dev/null; }
-wifi_ok(){ ! grep -q "wifi_disconnect_on_boot=1" "$BP" 2>/dev/null; }
+wifi_ok(){ [ -f "$BP" ] && grep -q "wifi_disconnect_on_boot=0" "$BP" 2>/dev/null; }
 xiri_ok(){ grep -A1 "service xiriservice" "$RC" 2>/dev/null | grep -q "disabled"; }
 
 if term_ok && wifi_ok && xiri_ok; then
@@ -75,12 +75,22 @@ else
     FAIL=$((FAIL+1))
   else
     # salva o stock UMA vez, antes de sobrescrever
-    [ -f "$INI.STOCK" ] || cp "$INI" "$INI.STOCK"
-    if cp "$MP/ZYCustom.ini" "$INI" && chmod 644 "$INI" && grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI"; then
-      LOG "[OK] termico: ZYCustom.ini gravado (fans 100%, brilho 100%, 2o sensor, shutdown 75C)"
-      CHG=1
+    if [ ! -f "$INI.STOCK" ]; then
+      cp "$INI" "$INI.STOCK" || LOG "[AVISO] nao consegui salvar $INI.STOCK"
+    fi
+    # escrita atomica: .new + validacao + mv
+    if cp "$MP/ZYCustom.ini" "$INI.new" && chmod 644 "$INI.new" && grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI.new"; then
+      if mv "$INI.new" "$INI"; then
+        LOG "[OK] termico: ZYCustom.ini gravado (fans 100%, brilho 100%, 2o sensor, shutdown 75C)"
+        CHG=1
+      else
+        LOG "[ERRO] termico: falha no mv final - original intacto."
+        rm -f "$INI.new"
+        FAIL=$((FAIL+1))
+      fi
     else
-      LOG "[ERRO] termico: destino nao contem 'HW_VIRTUAL_CHANNEL = 1' apos a copia - NAO vou reiniciar."
+      LOG "[ERRO] termico: destino .new nao contem 'HW_VIRTUAL_CHANNEL = 1' - NAO vou reiniciar."
+      rm -f "$INI.new"
       FAIL=$((FAIL+1))
     fi
   fi
@@ -90,12 +100,16 @@ fi
 if wifi_ok; then
   LOG "wi-fi ja estava ok (=0 ou linha ausente)"
 else
-  [ -f "$BP.STOCK" ] || cp "$BP" "$BP.STOCK"
-  if sed -i "s/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/" "$BP" && grep -q "wifi_disconnect_on_boot=0" "$BP"; then
+  if [ ! -f "$BP.STOCK" ]; then
+    cp "$BP" "$BP.STOCK" || LOG "[AVISO] nao consegui salvar $BP.STOCK"
+  fi
+  if cp "$BP" "$BP.new" && sed -i "s/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/" "$BP.new" \
+     && grep -q "wifi_disconnect_on_boot=0" "$BP.new" && mv "$BP.new" "$BP"; then
     LOG "[OK] wi-fi: wifi_disconnect_on_boot=0"
     CHG=1
   else
     LOG "[ERRO] wi-fi: falha ao editar wifi_disconnect_on_boot em $BP"
+    rm -f "$BP.new"
     FAIL=$((FAIL+1))
   fi
 fi
@@ -104,12 +118,19 @@ fi
 if xiri_ok; then
   LOG "xiri ja estava desabilitado"
 else
-  [ -f "$RC.STOCK" ] || cp "$RC" "$RC.STOCK"
-  if sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$RC" && xiri_ok; then
+  # BOOT-CRITICO: nunca sed -i no arquivo vivo; edita .new e so entao mv
+  if [ ! -f "$RC.STOCK" ]; then
+    cp "$RC" "$RC.STOCK" || LOG "[AVISO] nao consegui salvar $RC.STOCK"
+  fi
+  if cp "$RC" "$RC.new" \
+     && sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$RC.new" \
+     && grep -A1 "service xiriservice" "$RC.new" | grep -q "disabled" \
+     && mv "$RC.new" "$RC"; then
     LOG "[OK] xiri: xiriservice desabilitado (fim do spam de log)"
     CHG=1
   else
     LOG "[ERRO] xiri: falha ao desabilitar xiriservice em $RC"
+    rm -f "$RC.new"
     FAIL=$((FAIL+1))
   fi
 fi

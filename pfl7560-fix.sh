@@ -18,7 +18,7 @@ CONFIG_B64='W2luaXZlcnNpb25dClZlck51bWJlciAgICAgICAgICAgICA9IDE7CgpbR2xvYmFsXQpD
 #    PFL_IP=<ip> ./pfl7560-fix.sh apply   # se a busca automatica falhar
 # ============================================================================
 set -uo pipefail
-MAC="${PFL_MAC:-38:54:39:a3:6f:34}"; PORT=5555   # projetor de referencia; sobreponha com PFL_MAC=<mac> ou PFL_IP=<ip>
+MAC="${PFL_MAC:-}"; PORT=5555   # opcional: PFL_MAC=<mac> (nmap) ou PFL_IP=<ip> (recomendado)
 # sub-rede a varrer: usa PFL_SUBNET; senao autodetecta a LAN da rota padrao (fallback 192.168.0.0/24)
 _DEV="$(ip route show default 2>/dev/null | awk '/default/{print $5; exit}')"
 SUBNET="${PFL_SUBNET:-$(ip -o -f inet addr show dev "${_DEV:-lo}" 2>/dev/null | awk '{print $4}' | head -1)}"
@@ -34,12 +34,17 @@ INI_STOCK_MD5="29d8ba36149413e899563029df078f6d"   # md5 do ZYCustom.ini de fabr
 INI_FIX_MD5="1ad641ed2dd99e61d8a987a675e9aced"      # md5 do ZYCustom.ini ja corrigido (a build) - doc do md5 esperado
 BP_STOCK_MD5="fd8406c494c201e468a0401fa082027c"     # md5 do build.prop de fabrica (stock)
 RC_STOCK_MD5="0fe1b8fb087eb9f5d7fb89517f618124"     # md5 do init.bigfish.rc de fabrica (stock)
-ORIG_INI="$HERE/mod-termica-PFL7560/artefatos/ZYCustom.ini.ORIGINAL"        # stock versionado no repo
-BP_STOCK_ART="$HERE/mod-termica-PFL7560/artefatos/build.prop.STOCK"         # stock versionado no repo
-RC_STOCK_ART="$HERE/mod-termica-PFL7560/artefatos/init.bigfish.rc.STOCK"    # stock versionado no repo
+ORIG_INI="$HERE/artifacts/ZYCustom.ini.ORIGINAL"        # stock versionado no repo
+BP_STOCK_ART="$HERE/artifacts/build.prop.STOCK"         # stock versionado no repo
+RC_STOCK_ART="$HERE/artifacts/init.bigfish.rc.STOCK"    # stock versionado no repo
 
 find_ip(){
   [ -n "${PFL_IP:-}" ] && { echo "$PFL_IP"; return 0; }
+  if [ -z "$MAC" ]; then
+    err "informe o IP do projetor: PFL_IP=<ip> $0 <comando>"
+    err "(opcional: PFL_MAC=<mac> + nmap para busca automatica)"
+    return 1
+  fi
   command -v nmap >/dev/null || { err "sem nmap; use PFL_IP=<ip>"; return 1; }
   say "procurando o projetor (MAC $MAC)..."
   sudo nmap -sn -T4 "$SUBNET" >"/tmp/pfl.$$" 2>/dev/null||true
@@ -77,18 +82,22 @@ backup_stock(){
   [ -s "$tmp" ] || { err "backup de $nome veio vazio - abortando (nao gravo backup invalido)"; rm -f "$tmp"; exit 1; }
   bm="$(md5sum "$tmp"|awk '{print $1}')"
   if [ "$bm" = "$smd5" ]; then
-    mv "$tmp" "$BK/$nome.STOCK" && ok "backup $nome (stock md5 $bm)"
+    mv "$tmp" "$BK/$nome.STOCK" || { err "falha ao gravar backup $nome"; rm -f "$tmp"; exit 1; }
+    [ -s "$BK/$nome.STOCK" ] || { err "backup $nome ficou vazio"; exit 1; }
+    ok "backup $nome (stock md5 $bm)"
   else
     rm -f "$tmp"
     say "o $nome do device NAO e o stock (md5 $bm) - usando o stock versionado do repo p/ o backup"
     { [ -s "$art" ] && [ "$(md5sum "$art"|awk '{print $1}')" = "$smd5" ]; } \
       || { err "device ja modificado e sem artefato stock valido ($art) - abortando p/ nao poluir o backup"; exit 1; }
-    cp "$art" "$BK/$nome.STOCK" && ok "backup $nome (stock versionado md5 $smd5)"
+    cp "$art" "$BK/$nome.STOCK" || { err "falha ao copiar artefato stock de $nome"; exit 1; }
+    [ -s "$BK/$nome.STOCK" ] || { err "backup $nome ficou vazio apos copiar artefato"; exit 1; }
+    ok "backup $nome (stock versionado md5 $smd5)"
   fi
 }
 cmd_apply(){
   local d tmp; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
-  mkdir -p "$BK"
+  mkdir -p "$BK" || { err "nao consegui criar $BK"; exit 1; }
   say "remontando /vendor rw"; "$ADB" -s "$d" remount >/dev/null 2>&1
   # backup do stock VALIDADO e FATAL (sem backup valido do stock nao tocamos no /vendor).
   # Anti-envenenamento p/ os 3 arquivos: se o md5 do device casa o stock, guarda o proprio
@@ -112,7 +121,24 @@ cmd_apply(){
     "$ADB" -s "$d" shell "rm -f $INI.new" >/dev/null 2>&1; err "md5 divergente ao gravar $INI - original intacto"; exit 1
   fi
   say "FIX 2: wifi -> wifi_disconnect_on_boot=0"
-  "$ADB" -s "$d" shell "sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' $BP"
+  tmp="$(mktemp)"
+  "$ADB" -s "$d" pull "$BP" "$tmp" >/dev/null 2>&1
+  [ -s "$tmp" ] || { err "falha ao puxar $BP (veio vazio) - NAO vou editar wifi"; rm -f "$tmp"; exit 1; }
+  if grep -q 'wifi_disconnect_on_boot=0' "$tmp"; then
+    ok "wifi ja em 0"
+  else
+    sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' "$tmp"
+    grep -q 'wifi_disconnect_on_boot=0' "$tmp" || { err "sed do wifi nao aplicou - abortando sem tocar no device"; rm -f "$tmp"; exit 1; }
+    lbp="$(md5sum "$tmp"|awk '{print $1}')"
+    "$ADB" -s "$d" push "$tmp" "$BP.new" >/dev/null 2>&1
+    rbp="$("$ADB" -s "$d" shell "md5sum $BP.new" 2>/dev/null|awk '{print $1}')"
+    if [ "$lbp" = "$rbp" ]; then
+      "$ADB" -s "$d" shell "chmod 644 $BP.new && mv $BP.new $BP"; ok "wifi gravado (md5 $lbp)"
+    else
+      "$ADB" -s "$d" shell "rm -f $BP.new" >/dev/null 2>&1; err "md5 divergente ao gravar $BP - original intacto"; rm -f "$tmp"; exit 1
+    fi
+  fi
+  rm -f "$tmp"
   say "FIX 3: desabilita xiriservice (para o spam)"
   tmp="$(mktemp)"; "$ADB" -s "$d" pull "$RC" "$tmp" >/dev/null 2>&1
   # BOOT-CRITICO: se o pull falhar o $tmp fica vazio; NUNCA sobrescrever o init.rc com um arquivo vazio.

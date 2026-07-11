@@ -1,0 +1,208 @@
+<title>Dossiê de teardown — PFL7560</title>
+<style>
+  :root {
+    --ground:#f3f5f1; --surface:#fff; --surface-2:#ebeee8;
+    --ink:#171d19; --ink-soft:#55605a; --ink-faint:#8a938c;
+    --line:#dde1da; --line-strong:#c7cdc3;
+    --accent:#9a5f24; --accent-ink:#7c4c1b;
+    --crit:#b23a2e; --crit-bg:#f6e4e1; --ok:#2f7d52; --ok-bg:#e2efe7; --warn:#9a6a16; --warn-bg:#f3e9d5;
+    --cat-proc:#6d4bb0; --cat-wl:#b0417f; --cat-pwr:#b07d16; --cat-img:#1f8079; --cat-cool:#2f6aa8; --cat-aud:#b05f24; --cat-sys:#6a736c;
+    --shadow:0 1px 2px rgba(20,30,24,.06),0 8px 24px rgba(20,30,24,.05);
+    --mono:ui-monospace,"SF Mono","Cascadia Code",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --ground:#0e1310; --surface:#151b17; --surface-2:#1b231e;
+    --ink:#e7ebe6; --ink-soft:#9ba59d; --ink-faint:#6c766f;
+    --line:#263029; --line-strong:#35423a;
+    --accent:#d7a24a; --accent-ink:#e6b968;
+    --crit:#e08b7f; --crit-bg:#2e1a17; --ok:#74c497; --ok-bg:#16271d; --warn:#d9b569; --warn-bg:#2a2314;
+    --cat-proc:#a68ae0; --cat-wl:#e084b4; --cat-pwr:#d9b05a; --cat-img:#5cc0b7; --cat-cool:#6fa6df; --cat-aud:#dd9a63; --cat-sys:#9aa39c;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }}
+  :root[data-theme="dark"]{
+    --ground:#0e1310; --surface:#151b17; --surface-2:#1b231e;
+    --ink:#e7ebe6; --ink-soft:#9ba59d; --ink-faint:#6c766f;
+    --line:#263029; --line-strong:#35423a; --accent:#d7a24a; --accent-ink:#e6b968;
+    --crit:#e08b7f; --crit-bg:#2e1a17; --ok:#74c497; --ok-bg:#16271d; --warn:#d9b569; --warn-bg:#2a2314;
+    --cat-proc:#a68ae0; --cat-wl:#e084b4; --cat-pwr:#d9b05a; --cat-img:#5cc0b7; --cat-cool:#6fa6df; --cat-aud:#dd9a63; --cat-sys:#9aa39c;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.35);
+  }
+  :root[data-theme="light"]{
+    --ground:#f3f5f1; --surface:#fff; --surface-2:#ebeee8;
+    --ink:#171d19; --ink-soft:#55605a; --ink-faint:#8a938c;
+    --line:#dde1da; --line-strong:#c7cdc3; --accent:#9a5f24; --accent-ink:#7c4c1b;
+    --crit:#b23a2e; --crit-bg:#f6e4e1; --ok:#2f7d52; --ok-bg:#e2efe7; --warn:#9a6a16; --warn-bg:#f3e9d5;
+    --cat-proc:#6d4bb0; --cat-wl:#b0417f; --cat-pwr:#b07d16; --cat-img:#1f8079; --cat-cool:#2f6aa8; --cat-aud:#b05f24; --cat-sys:#6a736c;
+    --shadow:0 1px 2px rgba(20,30,24,.06),0 8px 24px rgba(20,30,24,.05);
+  }
+  *{box-sizing:border-box;} body{margin:0;}
+  .wrap{background:var(--ground);color:var(--ink);font-family:var(--sans);line-height:1.6;padding:clamp(20px,4vw,56px) clamp(16px,4vw,40px);min-height:100vh;-webkit-font-smoothing:antialiased;}
+  .page{max-width:1120px;margin:0 auto;}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-ink);display:flex;align-items:center;gap:10px;margin:0 0 14px;}
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--accent);}
+  h1{font-size:clamp(30px,5vw,46px);line-height:1.06;margin:0 0 12px;letter-spacing:-.02em;text-wrap:balance;font-weight:680;}
+  .lede{color:var(--ink-soft);font-size:clamp(15px,2vw,18px);max-width:64ch;margin:0;}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px 22px;margin:22px 0 0;font-family:var(--mono);font-size:12.5px;color:var(--ink-faint);}
+  .meta-row b{color:var(--ink-soft);font-weight:500;}
+  section{margin-top:clamp(34px,5vw,56px);}
+  h2{font-size:13px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--accent-ink);margin:0 0 6px;font-weight:600;display:flex;align-items:center;gap:10px;}
+  h2::before{content:"";width:20px;height:1px;background:var(--accent);}
+  .h2-title{font-size:clamp(21px,3vw,27px);font-weight:660;letter-spacing:-.015em;margin:0 0 20px;text-wrap:balance;}
+  p{max-width:70ch;}
+  code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);padding:1px 5px;border-radius:5px;color:var(--accent-ink);}
+  a{color:var(--accent-ink);}
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+  figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow);}
+  figure img{display:block;width:100%;height:210px;object-fit:cover;background:var(--surface-2);}
+  figcaption{padding:11px 14px;font-size:13px;color:var(--ink-soft);}
+  figcaption b{color:var(--ink);font-weight:620;display:block;margin-bottom:2px;font-size:13.5px;}
+  .steps{display:grid;gap:2px;counter-reset:s;}
+  .step{display:grid;grid-template-columns:auto 1fr;gap:16px;padding:15px 0;border-top:1px solid var(--line);align-items:baseline;}
+  .step:first-child{border-top:0;}
+  .step .n{font-family:var(--mono);font-size:12px;color:var(--accent-ink);font-weight:600;padding-top:2px;}
+  .step h3{margin:0 0 4px;font-size:16px;}
+  .step p{margin:0;color:var(--ink-soft);font-size:14.5px;}
+  table{border-collapse:collapse;width:100%;font-size:14px;}
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;background:var(--surface-2);}
+  td{background:var(--surface);}
+  tr:last-child td{border-bottom:0;}
+  .num{font-variant-numeric:tabular-nums;font-family:var(--mono);}
+  .cold{color:var(--cat-cool);} .hot{color:var(--crit);font-weight:640;}
+  .fixes{display:grid;gap:12px;}
+  .fix{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;box-shadow:var(--shadow);display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;}
+  .tag{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px;white-space:nowrap;font-weight:600;margin-top:2px;}
+  .tag.crit{color:var(--crit);background:var(--crit-bg);} .tag.adj{color:var(--warn);background:var(--warn-bg);} .tag.new{color:var(--ok);background:var(--ok-bg);}
+  .fix p{margin:0;font-size:14.5px;} .fix .was{color:var(--ink-faint);}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin:0 0 18px;font-size:12.5px;color:var(--ink-soft);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;} .dot{width:9px;height:9px;border-radius:3px;flex:none;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;}
+  .cmp{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--cat);border-radius:10px;padding:13px 15px;box-shadow:var(--shadow);}
+  .cmp .top{display:flex;align-items:baseline;gap:9px;margin-bottom:3px;}
+  .cmp .cn{font-family:var(--mono);font-size:12px;color:var(--cat);font-weight:600;}
+  .cmp .name{font-weight:620;font-size:14.5px;} .cmp .desc{color:var(--ink-soft);font-size:12.5px;margin:0;}
+  .cmp .badge{font-family:var(--mono);font-size:10px;text-transform:uppercase;padding:2px 7px;border-radius:999px;margin-left:auto;}
+  .badge.crit{color:var(--crit);background:var(--crit-bg);} .badge.adj{color:var(--warn);background:var(--warn-bg);} .badge.new{color:var(--ok);background:var(--ok-bg);}
+  .callout{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:16px;}
+  .callout p{margin:0 0 8px;font-size:14px;color:var(--ink-soft);} .callout p:last-child{margin-bottom:0;}
+  .verdict{color:var(--ok)!important;font-weight:640;}
+  footer{margin-top:44px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-faint);font-family:var(--mono);line-height:1.7;}
+</style>
+
+<div class="wrap"><div class="page">
+
+  <p class="eyebrow">PFL7560 · dossiê de campo</p>
+  <h1>Teardown e diagnóstico ao vivo</h1>
+  <p class="lede">Registro da sessão de abertura do projetor: comparativo térmico dos sensores por adb, teste de persistência do fix, desmontagem fotografada, identificação do cabo solto e correção do mapa da placa.</p>
+  <div class="meta-row">
+    <span><b>Aparelho</b> Intelbras PFL7560 · V1.0.0.9</span>
+    <span><b>Placa</b> NL-5H039-MAIN</span>
+    <span><b>SoC</b> HiSilicon Hi3751V553</span>
+    <span><b>Sessão</b> 2026-07-09/10</span>
+  </div>
+
+  <section>
+    <h2>Linha do tempo</h2>
+    <p class="h2-title">O que foi feito nesta sessão</p>
+    <div class="steps">
+      <div class="step"><span class="n">01</span><div><h3>Diagnóstico por Wi-Fi</h3><p>O script <code>pfl7560-evidencias.sh</code> achou o projetor na rede sozinho (adb TCP 5555) e leu o estado. Veredito automático: já estava corrigido.</p></div></div>
+      <div class="step"><span class="n">02</span><div><h3>Comparativo dos sensores</h3><p>Revertendo o térmico ao stock e reaplicando o fix, capturamos a assinatura do bug do mux: no stock os 2 NTC leem idêntico; com o fix o 2º sensor revela o calor real.</p></div></div>
+      <div class="step"><span class="n">03</span><div><h3>Teste de persistência</h3><p>Gravamos o fix direto na partição <code>/vendor</code> (ext4 real, não overlay) e reiniciamos. Confirmado: o fix sobrevive ao reboot.</p></div></div>
+      <div class="step"><span class="n">04</span><div><h3>Teardown fotografado</h3><p>Abertura do gabinete: 2 sopradores DFH8025S, a placa NL-5H039-MAIN e um cabo que "sempre ficou solto".</p></div></div>
+      <div class="step"><span class="n">05</span><div><h3>Identificação do cabo</h3><p>O cabo é o aterramento do header GND/NTC — bond de chassi/EMI, não o terra funcional do sensor. Não afeta a leitura de temperatura.</p></div></div>
+      <div class="step"><span class="n">06</span><div><h3>Correção do mapa</h3><p>Inspeção da placa corrigiu o mapa anterior: o SoC e o Flash estavam trocados, entre outros ajustes.</p></div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Teardown</h2>
+    <p class="h2-title">Registro fotográfico</p>
+    <div class="gallery">
+      <figure><img src="../media/teardown-01-base-cabo-solto.jpg" alt="Base do projetor com o cabo solto visivel pela grade" /><figcaption><b>Base — o cabo solto</b>Visto pela grade de ventilação inferior (círculo): a ponta com olhal do jumper de aterramento.</figcaption></figure>
+      <figure><img src="../media/teardown-02-interior-forca-led.jpg" alt="Interior com a forca do LED e terminais" /><figcaption><b>Interior — força do LED</b>Dissipador do LED, chicote de força vermelho/preto e terminais parafusados a metal.</figcaption></figure>
+      <figure><img src="../media/teardown-03-olhal-solto-blowers.jpg" alt="Olhal dourado solto entre os dois blowers" /><figcaption><b>O olhal, de perto</b>Terminal de anel (ring-lug) pendurado entre os 2 sopradores — a outra ponta do jumper GND.</figcaption></figure>
+      <figure><img src="../media/teardown-05-blowers-dfh8025s.jpg" alt="Os dois sopradores DFH8025S montados" /><figcaption><b>Refrigeração — 2 sopradores</b>Dois blowers COFN <code>DFH8025S</code> (DC 12 V). Confirma o firmware: <code>CoolingFan = 2</code>.</figcaption></figure>
+      <figure><img src="../media/teardown-04-blower-removido.jpg" alt="Um dos blowers removido, na mao" /><figcaption><b>Soprador removido</b>Etiqueta legível do DFH8025S, o mesmo componente citado na config térmica.</figcaption></figure>
+      <figure><img src="../media/placa-header-gnd-ntc.jpg" alt="Placa com serigrafia GND NTC" /><figcaption><b>Placa — header GND / NTC</b>Serigrafia <code>GND / NTC</code> com o conector de 2 vias plugado (o terra funcional do sensor).</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>O cabo solto</h2>
+    <p class="h2-title">Aterramento de chassi — não o terra do sensor</p>
+    <p>O cabo tem uma ponta fixa no header <code>GND/NTC</code> e a outra num olhal que estava solto no fundo, preso com fita isolante. É um <strong>jumper de aterramento / EMI</strong>: leva o terra do circuito até um ponto metálico (chassi ou dissipador) através do olhal, que deveria estar parafusado. O terra <em>funcional</em> do termistor chega pelo conector de 2 vias que está plugado — por isso a leitura de temperatura nunca dependeu desse olhal.</p>
+    <div class="callout">
+      <p><strong>A prova (do próprio firmware).</strong> Quando o terra do NTC abre, o firmware registra <code>LSADC Error</code> com um valor absurdo e rejeita a amostra. Esse padrão aparece <strong>uma única vez</strong> (um glitch) no <code>heat.logcat</code> do stock. Todas as leituras usadas na pesquisa vêm como <code>Achieve Balance</code> (válidas) — logo o terra do sensor esteve íntegro o tempo todo.</p>
+      <p>Além disso, um terra com mau contato adiciona resistência em série, que o firmware atribui ao termistor → leitura puxada para <em>mais frio</em>. Ou seja, os 65,8 °C medidos são um <strong>piso</strong>, não inflação.</p>
+      <p class="verdict">Conclusão: a tese central (2º sensor cego pelo mux) permanece intacta e sai reforçada. O que fazer com o cabo é opcional — reparafusar melhora EMI/aterramento; não afeta o térmico.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Mapa da placa</h2>
+    <p class="h2-title">Correções ao mapa anterior</p>
+    <div class="fixes">
+      <div class="fix"><span class="tag crit">Crítica</span><p><strong>SoC e Flash estavam trocados.</strong> O chip rotulado "SoC" traz a serigrafia <code>SiliconGo T22CA2415T</code> — um controlador de armazenamento (eMMC/Flash), não um SoC Android. O <strong>SoC HiSilicon Hi3751V553</strong> é o chip grande ao lado das memórias, sob espalhador de calor. <span class="was">Rótulos 1 e 3 invertidos.</span></p></div>
+      <div class="fix"><span class="tag adj">Ajuste</span><p><strong>São 2 ventiladores, não 3</strong> — dois <code>DFH8025S</code>, confirmados no aparelho (<code>gfc</code> = 2) e no firmware.</p></div>
+      <div class="fix"><span class="tag adj">Ajuste</span><p><strong>Entrada ~35 Vdc / 6,85 A</strong> (etiqueta), não 24 V. RAM = <strong>1 GB</strong> (2× Rayson).</p></div>
+      <div class="fix"><span class="tag new">Novo</span><p><strong>Header GND/NTC identificado</strong> — 2 termistores muxados; o olhal solto é aterramento de chassi (ver acima).</p></div>
+    </div>
+
+    <div style="margin-top:24px">
+      <div class="legend">
+        <span><i class="dot" style="background:var(--cat-proc)"></i>Processamento / memória</span>
+        <span><i class="dot" style="background:var(--cat-pwr)"></i>Energia</span>
+        <span><i class="dot" style="background:var(--cat-img)"></i>Imagem</span>
+        <span><i class="dot" style="background:var(--cat-cool)"></i>Refrigeração / sensores</span>
+        <span><i class="dot" style="background:var(--cat-wl)"></i>Sem fio</span>
+        <span><i class="dot" style="background:var(--cat-aud)"></i>Áudio</span>
+        <span><i class="dot" style="background:var(--cat-sys)"></i>Sistema</span>
+      </div>
+      <div class="grid">
+        <div class="cmp" style="--cat:var(--cat-proc)"><div class="top"><span class="cn">01</span><span class="name">SoC Hi3751V553</span><span class="badge crit">corrigido</span></div><p class="desc">Processador (bigfish, Android 9). Antes rotulado "Flash".</p></div>
+        <div class="cmp" style="--cat:var(--cat-proc)"><div class="top"><span class="cn">02</span><span class="name">RAM 1 GB</span></div><p class="desc">2× Rayson RS256M16ZADD DDR.</p></div>
+        <div class="cmp" style="--cat:var(--cat-proc)"><div class="top"><span class="cn">03</span><span class="name">Flash eMMC 8 GB</span><span class="badge crit">corrigido</span></div><p class="desc">Controlador SiliconGo T22CA2415T. Antes rotulado "SoC".</p></div>
+        <div class="cmp" style="--cat:var(--cat-wl)"><div class="top"><span class="cn">04</span><span class="name">Wi-Fi + Bluetooth</span></div><p class="desc">Módulo combo. Wi-Fi ativo só na tela inicial.</p></div>
+        <div class="cmp" style="--cat:var(--cat-pwr)"><div class="top"><span class="cn">10</span><span class="name">Entrada ~35 Vdc</span><span class="badge adj">ajuste</span></div><p class="desc">Alimentação principal (6,85 A).</p></div>
+        <div class="cmp" style="--cat:var(--cat-pwr)"><div class="top"><span class="cn">12</span><span class="name">Força do LED</span></div><p class="desc">Conector de potência da fonte de luz.</p></div>
+        <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">13</span><span class="name">Ventiladores (2×)</span><span class="badge adj">ajuste</span></div><p class="desc">2 sopradores DFH8025S. Antes contados como 3.</p></div>
+        <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">14</span><span class="name">Header GND / NTC</span><span class="badge new">novo</span></div><p class="desc">2 termistores ZL103SAF muxados (BL1551B @ GPIO4_4).</p></div>
+        <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">15</span><span class="name">Sensor ToF</span></div><p class="desc">Autofoco frontal.</p></div>
+        <div class="cmp" style="--cat:var(--cat-img)"><div class="top"><span class="cn">08</span><span class="name">Conector do painel</span></div><p class="desc">Saída de imagem p/ o bloco óptico.</p></div>
+        <div class="cmp" style="--cat:var(--cat-aud)"><div class="top"><span class="cn">07</span><span class="name">Alto-falantes</span></div><p class="desc">R / L + amplificador.</p></div>
+        <div class="cmp" style="--cat:var(--cat-sys)"><div class="top"><span class="cn">18</span><span class="name">UART (GND/RX/TX)</span></div><p class="desc">Console serial de depuração.</p></div>
+      </div>
+    </div>
+
+    <div class="gallery" style="margin-top:24px">
+      <figure><img src="../media/mapa-placa-original-topo.jpg" alt="Mapa anterior da placa (topo)" /><figcaption><b>Mapa anterior (topo)</b>Feito por IA numa sessão passada — aqui o rótulo 1 (SoC) estava no chip de Flash.</figcaption></figure>
+      <figure><img src="../media/mapa-placa-original-visao-geral.jpg" alt="Mapa anterior da placa (visao geral)" /><figcaption><b>Mapa anterior (visão geral)</b>Contava 3 ventiladores; são 2.</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>Dados térmicos</h2>
+    <p class="h2-title">Comparativo antes / depois</p>
+    <div class="tw"><table>
+      <thead><tr><th>Métrica</th><th>Antes (stock)</th><th>Depois (fix)</th><th>Fonte</th></tr></thead>
+      <tbody>
+        <tr><td>Sensor NTC0</td><td class="num">26,4 °C</td><td class="num">24,5 °C</td><td>adb <code>gtt 0</code></td></tr>
+        <tr><td>Sensor NTC1 (óptica)</td><td class="num cold">26,4 °C</td><td class="num hot">65,8 °C</td><td>adb <code>gtt 1</code></td></tr>
+        <tr><td>Divergência entre sensores</td><td class="num">0 (mux morto)</td><td class="num hot">~41 °C (mux vivo)</td><td>—</td></tr>
+        <tr><td>Ventiladores</td><td class="num">555 / 559</td><td class="num">1000 / 1000</td><td>adb <code>gfs</code></td></tr>
+        <tr><td>Saída de ar (termômetro IR)</td><td class="num">46,7 °C</td><td class="num">37,2 °C</td><td>histórico (doc 09)</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout">
+      <p><strong>Persistência do fix.</strong> A correção foi gravada na partição <code>/vendor</code> real (ext4, sem overlay volátil) e <strong>sobreviveu ao reboot</strong> — md5 <code>1ad641ed</code> confirmado após reiniciar, com <code>gtt1</code> divergindo de novo. Detalhes em <a href="research/26-persistencia-do-fix.md">research/26-persistencia-do-fix.md</a>.</p>
+    </div>
+  </section>
+
+  <footer>
+    Dossiê montado a partir de teardown fotográfico, diagnóstico adb ao vivo e análise multi-agente (identificação do cabo, mapa da placa, impacto do GND, persistência) · numeração de componentes herdada do mapa anterior · Intelbras PFL7560 · sessão 2026-07-09/10.<br>
+    Documentos relacionados: <code>docs/research/26-persistencia-do-fix.md</code> · <code>docs/research/06-acesso-adb-e-comandos.md</code> · <code>evidencias/</code> (dados crus, fora do Git).
+  </footer>
+
+</div></div>

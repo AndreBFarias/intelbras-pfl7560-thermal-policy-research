@@ -1,54 +1,65 @@
 # Requisitos — PFL7560 Fix
 
-Este projeto é feito de **scripts shell** (não há Python/Node), então os "requisitos" são ferramentas de
-sistema. O que você precisa depende do método de instalação (ver [`INSTALL.md`](INSTALL.md)).
+Lista curta em [`requirements`](requirements). Instalador automático: **`./install.sh`** (Linux/macOS) ou **`install.bat`** (Windows).
+O que você precisa depende do método ([`INSTALL.md`](INSTALL.md)).
 
 ## Por método
 
 | Método | Precisa de |
 |---|---|
 | **1. Pendrive autorun** | só um **pendrive FAT32**. Nenhum software no PC. |
-| **2. Script no PC** | `adb`, `bash`, coreutils. `nmap` opcional (busca por MAC). `gnome-terminal`/afim p/ o duplo-clique. |
+| **2. Script no PC** | `adb`. No Linux/macOS: `bash` + coreutils (`pfl7560-fix.sh`). No Windows: `install.bat` (adb puro). `nmap` **opcional** (só `PFL_MAC`). |
 | **3. Manual** | `adb`. |
 
 ## No aparelho
 
 - Intelbras **PFL7560**, firmware **V1.0.0.9**.
-- **adb por rede habilitado** (esta build vem `userdebug` com adb root aberto na porta TCP 5555 — é o que
-  torna o Método 2/3 possível). O aparelho e o PC no **mesmo Wi-Fi**.
+- **adb por rede** (esta build vem `userdebug` com adb root na porta TCP **5555**). PC e projetor no **mesmo Wi-Fi**.
 
 ## Instalar as dependências (PC)
 
-**Debian / Ubuntu / Pop!_OS:**
+**Recomendado (automático):**
+```bash
+./install.sh          # Linux / macOS
+./install.sh --check  # só verifica
+```
+```bat
+install.bat           REM Windows (menu)
+```
+
+**Manual — Debian / Ubuntu / Pop!_OS:**
 ```bash
 sudo apt update
 sudo apt install android-tools-adb nmap
 ```
 
-**Fedora:**
+**Manual — Fedora:**
 ```bash
 sudo dnf install android-tools nmap
 ```
 
-**Arch:**
+**Manual — Arch:**
 ```bash
 sudo pacman -S android-tools nmap
 ```
 
-**macOS (Homebrew):**
+**Manual — macOS (Homebrew):**
 ```bash
 brew install android-platform-tools nmap
 ```
 
+**Manual — Windows:** [Platform-Tools (Google)](https://developer.android.com/tools/releases/platform-tools) no PATH, ou deixe o `install.bat` baixar em `tools\platform-tools\`.
+
 ## Versões de referência
 
-Testado com: `adb` (Android platform-tools) 34+, `bash` 5.x, `nmap` 7.x, `git` 2.34+. Versões próximas
-funcionam. O `sed` do próprio aparelho (toybox) suporta o *append* usado na correção do `xiriservice`
-(verificado).
+Testado com: `adb` (platform-tools) 34+, `bash` 5.x, `nmap` 7.x, `git` 2.34+. Versões próximas funcionam.
 
-## Variáveis de ambiente (opcionais, Método 2)
+## Variáveis de ambiente (Método 2)
 
 | Variável | Para quê | Exemplo |
 |---|---|---|
-| `PFL_IP` | pula a busca e conecta direto no IP | `PFL_IP=192.168.0.50` |
-| `PFL_SUBNET` | faixa que o `nmap` varre | `PFL_SUBNET=192.168.0.0/24` |
+| `PFL_IP` | **recomendado** — IP do projetor | `PFL_IP=192.168.0.50` |
+| `PFL_MAC` | busca por MAC via nmap (opcional) | `PFL_MAC=aa:bb:cc:dd:ee:ff` |
+| `PFL_SUBNET` | faixa que o nmap varre | `PFL_SUBNET=192.168.0.0/24` |
+
+Sem `PFL_IP` e sem `PFL_MAC`, o script pede o IP e aborta (não há MAC de aparelho embutido).

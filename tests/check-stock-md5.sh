@@ -9,7 +9,7 @@ set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FIX="$ROOT/pfl7560-fix.sh"
-ART="$ROOT/mod-termica-PFL7560/artefatos"
+ART="$ROOT/artifacts"
 
 [ -f "$FIX" ] || { echo "FALHA: nao encontrei $FIX"; exit 1; }
 

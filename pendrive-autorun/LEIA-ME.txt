@@ -53,5 +53,5 @@ OBSERVACOES
   - usb_update.bin deve SEMPRE ser o firmware DE FABRICA (Software PFL7560.zip).
     NUNCA renomeie o PFL7560-FIX.bin (em quarentena) para usb_update.bin: ele
     brica o boot (rotulo SELinux ausente) e o power-hold bricaria o aparelho.
-  - Detalhes do resgate: mod-termica-PFL7560/16-recuperacao-brick.md
+  - Detalhes do resgate: docs/guide/16-recuperacao-brick.md
 ========================================================================

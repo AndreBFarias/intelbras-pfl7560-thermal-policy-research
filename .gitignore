@@ -10,6 +10,7 @@
 # ===== Dados pessoais / logs do aparelho =====
 artifacts/diagnostico/
 backups-projetor/
+evidencias/
 private/
 VALIDATOR_BRIEF.md
 
@@ -31,6 +32,23 @@ Thumbs.db
 *~
 .SIc*
 LOST.DIR/
+.playwright-mcp/
 
 # Symlink local para diretrizes (não vai pro repo)
 CLAUDE.md
+
+# --- anti-IA (anonimato local) ---
+AGENTS.md
+GEMINI.md
+COPILOT.md
+HANDOFF-PROMPT.md
+HANDOFF.md
+HOW_TO_RESUME.md
+STATE.md
+.cursorrules
+.windsurfrules
+.claude/
+.cursor/
+.aider*
+.continue/
+.github/copilot-instructions.md
