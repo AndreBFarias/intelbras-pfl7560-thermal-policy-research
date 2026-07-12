@@ -8,10 +8,11 @@ Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defe
 
 Relatório técnico preparado para o [CSIRT Intelbras](https://www.intelbras.com/pt-br/CSIRT-Intelbras). **Envio ainda pendente** (atualizar data/protocolo em [`docs/disclosure/STATUS.md`](docs/disclosure/STATUS.md) após o registro).
 
-Esta pesquisa foi conduzida de forma **independente**, com foco em **reparabilidade** e **proteção ao consumidor**. O repositório público fica após a janela coordenada (7–10 dias úteis pós-envio, ou resposta da fabricante).
+Esta pesquisa foi conduzida de forma **independente**, com foco em **reparabilidade** e **proteção ao consumidor**. **Este repositório é privado** (backup pessoal do reparo). Uma eventual abertura pública só ocorre após a janela de divulgação coordenada (7–10 dias úteis pós-envio, ou resposta da fabricante) **e** depois de redigir os dados sensíveis das fotos e decidir sobre o firmware proprietário — ver [`docs/research/30-sprint-validacao-repositorio.md`](docs/research/30-sprint-validacao-repositorio.md) (REPO-S2).
 
 | Campo | Valor |
 |---|---|
+| **Visibilidade** | **Privado** (backup pessoal; ainda não publicado) |
 | **Estado** | Relatório pronto · envio CSIRT pendente |
 | **Canal** | [CSIRT Intelbras](https://www.intelbras.com/pt-br/CSIRT-Intelbras) |
 | **Relatório** | [`docs/disclosure/relatorio-csirt.md`](docs/disclosure/relatorio-csirt.md) |
@@ -80,7 +81,7 @@ install.bat
 
 3. **Manual (adb)** — [`docs/research/06-acesso-adb-e-comandos.md`](docs/research/06-acesso-adb-e-comandos.md).
 
-4. **Firmware `.bin` completo (experimental)** — um protótipo antigo **travava o boot** (metadados errados) e foi **apagado**. Use só os métodos 1–3. Se no futuro recriar com `bin-build/`, teste com resgate oficial ao lado. Recuperação: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-recuperacao-brick.md).
+4. **Firmware `.bin` completo (experimental)** — um protótipo antigo **travava o boot** (metadados errados) e foi **apagado**. O builder atual (`artifacts/bin-build/`) já carimba mode/rótulo SELinux; existe uma build nova que passa offline, mas **ainda não bootou em hardware** — segue em quarentena. Use só os métodos 1–3. Caminho até um `.bin` que boota: [`docs/research/31-plano-mestre-bin-final.md`](docs/research/31-plano-mestre-bin-final.md). Recuperação: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-recuperacao-brick.md).
 
 ## Segurança e recuperação
 
@@ -123,22 +124,27 @@ painel e testa VESA/JEIDA na tela) ou `./pfl7560-menu.sh` → opção 4; no Wind
 
 ```
 .
-├── install.sh / install.bat   # setup do PC (Linux·macOS / Windows)
+├── install.sh / install.bat        # setup do PC (Linux·macOS / Windows)
 ├── requirements · REQUIREMENTS.md
-├── pfl7560-fix.sh / pfl7560-menu.sh / PFL7560-Corrigir.desktop
+├── pfl7560-fix.sh                  # correção térmica (status/apply/revert)
+├── pfl7560-lcd-color.sh            # correção de cor pós-troca de painel (VESA/JEIDA)
+├── pfl7560-menu.sh · pfl7560-evidencias.sh · PFL7560-Corrigir.desktop
 ├── INSTALL.md · LICENSE (GPLv3)
-├── pendrive-autorun/          # método sem PC
+├── pendrive-autorun/               # método sem PC
 ├── docs/
-│   ├── dossie-teardown.html   # dossiê visual do teardown (fotos + achados)
-│   ├── research/              # teardown, causa-raiz, build, medições, persistência
-│   ├── guide/                 # replicação, segurança, brick
-│   ├── disclosure/            # relatório CSIRT + status
-│   └── archive/               # histórico interno de auditorias
-├── artifacts/                 # ZYCustom stock/fix, bin-build, etc.
-├── media/                     # fotos do teardown + evidências
-├── tests/                     # make check (integridade md5)
-├── firmware/                  # binários grandes (fora do Git)
-└── referencia/                # manuais PDF (fora do Git)
+│   ├── dossie-teardown.html        # dossiê visual do teardown (fotos + achados)
+│   ├── research/                   # teardown, causa-raiz, build, LCD, plano mestre (31)
+│   ├── guide/                      # replicação, segurança, brick, troca de painel (32)
+│   ├── disclosure/                 # relatório CSIRT + status
+│   └── archive/                    # sprints e auditorias internas
+├── artifacts/
+│   ├── bin-build/                  # builder do .bin (com metadados/SELinux)
+│   ├── lcd-color-fix/              # lvdsctl + padrões de teste de cor
+│   └── (ZYCustom stock/fix, históricos)
+├── media/                          # fotos do teardown + evidências
+├── tests/                          # make check (integridade md5)
+├── firmware/                       # zip oficial (LFS) + .bin (fora do Git)
+└── referencia/                     # manuais PDF (fora do Git)
 ```
 
 ## Aparelho-alvo
