@@ -44,19 +44,21 @@ echo  ============================================================
 echo.
 echo     1^) Verificar ferramentas (nao muda o projetor^)
 echo     2^) Ver estado do projetor  (pede IP^)
-echo     3^) Aplicar correcao        (pede IP^)
+echo     3^) Aplicar correcao termica (pede IP^)
 echo     4^) Reverter para fabrica   (pede IP; usa backup local^)
 echo     5^) Abrir pasta pendrive-autorun (metodo SEM PC^)
-echo     6^) Sair
+echo     6^) Corrigir COR (so se voce TROCOU o painel LCD^)
+echo     7^) Sair
 echo.
-set /p "OP=  Escolha [1-6]: "
+set /p "OP=  Escolha [1-7]: "
 
 if "%OP%"=="1" goto :do_check
 if "%OP%"=="2" goto :do_status
 if "%OP%"=="3" goto :do_apply
 if "%OP%"=="4" goto :do_revert
 if "%OP%"=="5" goto :do_pendrive
-if "%OP%"=="6" exit /b 0
+if "%OP%"=="6" goto :do_lcd
+if "%OP%"=="7" exit /b 0
 echo  opcao invalida.
 goto :menu
 
@@ -121,7 +123,8 @@ if errorlevel 1 (
 echo  [OK] termico
 
 echo  [2/3] wifi_disconnect_on_boot=0 ...
-"%ADB%" -s %DEV% shell "sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' /vendor/build.prop"
+REM atomico: edita uma copia .new, confere, e so entao mv por cima (original intacto se cair no meio)
+"%ADB%" -s %DEV% shell "cp /vendor/build.prop /vendor/build.prop.new && sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' /vendor/build.prop.new && grep -q wifi_disconnect_on_boot=0 /vendor/build.prop.new && mv /vendor/build.prop.new /vendor/build.prop || rm -f /vendor/build.prop.new"
 "%ADB%" -s %DEV% shell "grep -q wifi_disconnect_on_boot=0 /vendor/build.prop"
 if errorlevel 1 (
   echo  [ERRO] wifi nao confirmado
@@ -131,7 +134,8 @@ if errorlevel 1 (
 echo  [OK] wifi
 
 echo  [3/3] xiriservice disabled ...
-"%ADB%" -s %DEV% shell "grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc | grep -q disabled || sed -i '/^service xiriservice \/system\/bin\/xiriservice/a\    disabled' /vendor/etc/init/hw/init.bigfish.rc"
+REM BOOT-CRITICO: nunca sed -i no arquivo vivo; edita .new, confere e so entao mv (senao rm do .new)
+"%ADB%" -s %DEV% shell "grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc | grep -q disabled || { cp /vendor/etc/init/hw/init.bigfish.rc /vendor/etc/init/hw/init.bigfish.rc.new && sed -i '/^service xiriservice \/system\/bin\/xiriservice/a\    disabled' /vendor/etc/init/hw/init.bigfish.rc.new && grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc.new | grep -q disabled && mv /vendor/etc/init/hw/init.bigfish.rc.new /vendor/etc/init/hw/init.bigfish.rc || rm -f /vendor/etc/init/hw/init.bigfish.rc.new; }"
 "%ADB%" -s %DEV% shell "grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc | grep -q disabled"
 if errorlevel 1 (
   echo  [ERRO] xiri nao confirmado
@@ -168,18 +172,88 @@ if /i not "%C%"=="s" (
 )
 call :connect || goto :menu
 "%ADB%" -s %DEV% remount >nul 2>&1
-"%ADB%" -s %DEV% push "%BK%\ZYCustom.ini.STOCK" /vendor/etc/ZYCustom.ini
-"%ADB%" -s %DEV% push "%BK%\build.prop.STOCK" /vendor/build.prop
-"%ADB%" -s %DEV% push "%BK%\init.bigfish.rc.STOCK" /vendor/etc/init/hw/init.bigfish.rc
+set "RVOK=1"
+REM os 3 restauros sao atomicos (.new + confere + mv); qualquer falha marca RVOK=0 e NAO reinicia
+REM SEM '|| rm': se o mv falhar (destino read-only/FS cheio) o adb shell retorna != 0
+REM e o 'if errorlevel 1' abaixo marca RVOK=0. Um .new remanescente e inofensivo (sobrescrito).
+"%ADB%" -s %DEV% push "%BK%\ZYCustom.ini.STOCK" /vendor/etc/ZYCustom.ini.new
+if errorlevel 1 set "RVOK=0"
+"%ADB%" -s %DEV% shell "[ -s /vendor/etc/ZYCustom.ini.new ] && mv /vendor/etc/ZYCustom.ini.new /vendor/etc/ZYCustom.ini"
+if errorlevel 1 set "RVOK=0"
+"%ADB%" -s %DEV% push "%BK%\build.prop.STOCK" /vendor/build.prop.new
+if errorlevel 1 set "RVOK=0"
+"%ADB%" -s %DEV% shell "[ -s /vendor/build.prop.new ] && mv /vendor/build.prop.new /vendor/build.prop"
+if errorlevel 1 set "RVOK=0"
+REM init.bigfish.rc e BOOT-CRITICO: so promove o .new se tiver conteudo E a linha do xiriservice
+"%ADB%" -s %DEV% push "%BK%\init.bigfish.rc.STOCK" /vendor/etc/init/hw/init.bigfish.rc.new
+if errorlevel 1 set "RVOK=0"
+"%ADB%" -s %DEV% shell "[ -s /vendor/etc/init/hw/init.bigfish.rc.new ] && grep -q 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc.new && mv /vendor/etc/init/hw/init.bigfish.rc.new /vendor/etc/init/hw/init.bigfish.rc"
+if errorlevel 1 set "RVOK=0"
+if "%RVOK%"=="0" (
+  echo  [ERRO] Revert incompleto ^(push/gravacao falhou^). NAO reiniciei - reexecute.
+  pause
+  goto :menu
+)
+REM confirmacao final por CONTEUDO stock (nao so existencia): build.prop de fabrica tem wifi=1
+REM (o fix poe =0), o que prova que o build.prop reverteu; os outros 2 sao cobertos pela deteccao
+REM de falha do mv acima. Sem '!' aqui: com EnableDelayedExpansion o cmd.exe corromperia o '!'.
+"%ADB%" -s %DEV% shell "grep -q wifi_disconnect_on_boot=1 /vendor/build.prop && [ -s /vendor/etc/ZYCustom.ini ] && [ -s /vendor/etc/init/hw/init.bigfish.rc ]"
+if errorlevel 1 (
+  echo  [ERRO] validacao final do revert falhou. NAO reiniciei.
+  pause
+  goto :menu
+)
 "%ADB%" -s %DEV% shell sync
 "%ADB%" -s %DEV% reboot
-echo  [OK] REVERTIDO (3 arquivos). Projetor reiniciando.
+echo  [OK] REVERTIDO (3 arquivos, confirmados). Projetor reiniciando.
 pause
 goto :menu
 
 :no_bk
 echo  [ERRO] Backup incompleto em backups-projetor\
 echo         Rode Aplicar uma vez neste PC, ou reflash o firmware de fabrica.
+pause
+goto :menu
+
+:do_lcd
+call :ask_ip || goto :menu
+set "LVDSCTL=%HERE%\artifacts\lcd-color-fix\lvdsctl"
+if not exist "%LVDSCTL%" (
+  echo  [ERRO] nao achei artifacts\lcd-color-fix\lvdsctl
+  pause
+  goto :menu
+)
+echo.
+echo  Correcao de cor pos-troca de painel ^(RX058B -4300 -^> -0600^).
+echo  So use se voce TROCOU o micro-painel LCD e as cores dos meios-tons sairam erradas.
+echo    a^) Ver o formato LVDS atual (nao muda nada^)
+echo    c^) Aplicar JEIDA  (corrige o -0600^)
+echo    d^) Voltar p/ VESA (padrao de fabrica -4300^)
+echo  ^(backup/restore/wizard completos: use o WSL -^> wsl ./pfl7560-lcd-color.sh wizard^)
+set /p "LOP=  Escolha [a/c/d]: "
+call :connect || goto :menu
+if /i "%LOP%"=="a" (
+  "%ADB%" -s %DEV% shell "cat /proc/msp/panel | grep -iE 'panel_name|lvds_fmt|bit_width'"
+  pause
+  goto :menu
+)
+set "FMT="
+if /i "%LOP%"=="c" set "FMT=1"
+if /i "%LOP%"=="d" set "FMT=0"
+if not defined FMT (
+  echo  opcao invalida.
+  pause
+  goto :menu
+)
+"%ADB%" -s %DEV% push "%LVDSCTL%" /data/local/tmp/lvdsctl >nul
+if errorlevel 1 (
+  echo  [ERRO] push do lvdsctl falhou ^(rede?^) - a cor NAO foi aplicada.
+  pause
+  goto :menu
+)
+"%ADB%" -s %DEV% shell "chmod 755 /data/local/tmp/lvdsctl && cd /data/local/tmp && LD_LIBRARY_PATH=/vendor/lib:/system/lib:/vendor/lib/hw ./lvdsctl fmt %FMT%"
+if errorlevel 1 (echo  [ERRO] lvdsctl fmt %FMT% falhou - a cor NAO foi aplicada.) else (echo  [OK] formato LVDS %FMT% aplicado ^(0=VESA 1=JEIDA^). Confira o lvds_fmt abaixo.)
+"%ADB%" -s %DEV% shell "cat /proc/msp/panel | grep -iE 'panel_name|lvds_fmt'"
 pause
 goto :menu
 

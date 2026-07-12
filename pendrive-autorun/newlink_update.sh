@@ -98,7 +98,7 @@ fi
 
 # ---- FIX 2: wi-fi reconecta sozinho apos boot ----
 if wifi_ok; then
-  LOG "wi-fi ja estava ok (=0 ou linha ausente)"
+  LOG "wi-fi ja estava ok (wifi_disconnect_on_boot=0 presente)"
 else
   if [ ! -f "$BP.STOCK" ]; then
     cp "$BP" "$BP.STOCK" || LOG "[AVISO] nao consegui salvar $BP.STOCK"

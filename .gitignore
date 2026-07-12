@@ -13,6 +13,8 @@ backups-projetor/
 evidencias/
 private/
 VALIDATOR_BRIEF.md
+# manuais/PDFs proprietarios (alem da regra *.pdf: pega qualquer nao-PDF solto aqui)
+referencia/
 
 # ===== Gerados em runtime =====
 newlink_update.log

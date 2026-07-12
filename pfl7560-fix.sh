@@ -29,6 +29,11 @@ ADB="$(command -v adb || true)"; [ -n "$ADB" ] || ADB="$HOME/Android/sdk/platfor
 say(){ printf '\033[1;36m>> %s\033[0m\n' "$*" >&2; }
 ok(){  printf '\033[1;32m[OK] %s\033[0m\n' "$*" >&2; }
 err(){ printf '\033[1;31m[ERRO] %s\033[0m\n' "$*" >&2; }
+# Re-tranca /vendor como somente-leitura. Chamado por trap EXIT no apply/revert:
+# se o fluxo abortar no meio (qualquer exit) o /vendor nao fica gravavel ate o reboot.
+# _RELOCK_DEV e global de proposito (o trap EXIT roda fora do escopo do local $d).
+_RELOCK_DEV=""
+relock(){ [ -n "${_RELOCK_DEV:-}" ] && "$ADB" -s "$_RELOCK_DEV" shell "mount -o ro,remount /vendor" >/dev/null 2>&1; return 0; }
 RC="/vendor/etc/init/hw/init.bigfish.rc"; INI="/vendor/etc/ZYCustom.ini"; BP="/vendor/build.prop"
 INI_STOCK_MD5="29d8ba36149413e899563029df078f6d"   # md5 do ZYCustom.ini de fabrica (stock)
 INI_FIX_MD5="1ad641ed2dd99e61d8a987a675e9aced"      # md5 do ZYCustom.ini ja corrigido (a build) - doc do md5 esperado
@@ -99,6 +104,7 @@ cmd_apply(){
   local d tmp; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
   mkdir -p "$BK" || { err "nao consegui criar $BK"; exit 1; }
   say "remontando /vendor rw"; "$ADB" -s "$d" remount >/dev/null 2>&1
+  _RELOCK_DEV="$d"; trap relock EXIT   # qualquer abort daqui p/ frente re-tranca /vendor ro
   # backup do stock VALIDADO e FATAL (sem backup valido do stock nao tocamos no /vendor).
   # Anti-envenenamento p/ os 3 arquivos: se o md5 do device casa o stock, guarda o proprio
   # pull; senao (device ja modificado/corrigido) cai para o artefato stock VERSIONADO do repo,
@@ -176,6 +182,7 @@ cmd_revert(){
   done
   say "remontando /vendor rw e restaurando o stock (3 arquivos)"
   "$ADB" -s "$d" remount >/dev/null 2>&1
+  _RELOCK_DEV="$d"; trap relock EXIT   # abort no meio do revert re-tranca /vendor ro
   fail=0
   for pair in "ZYCustom.ini:$INI" "build.prop:$BP" "init.bigfish.rc:$RC"; do
     n="${pair%%:*}"; p="${pair##*:}"
