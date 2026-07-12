@@ -1,135 +1,351 @@
 # 18 - Sprint: produzir um `PFL7560-FIX.bin` que BOOTA (e sai da quarentena)
 
-Data: 2026-07-06. Plano de pesquisa/engenharia, em formato de sprint, para transformar o `.bin` em quarentena
-num firmware distribuível. **Isto é um plano — nada aqui foi executado ainda.** O `.bin` só sai da quarentena
-depois do gate **BIN-S4** (boot real confirmado em hardware).
+Plano de engenharia para transformar o `.bin` em quarentena num firmware distribuível que **boota** e
+já traz os fixes por padrão. **Nada aqui foi flashado em hardware ainda.** O `.bin` só sai da quarentena
+depois do gate **BIN-S4a** (boot real confirmado no aparelho).
+
+---
+
+## STATUS (revisado 2026-07-12)
+
+O trabalho de software desta sprint **já está feito e vive no código**; o que falta é **hardware**.
+Antes de executar qualquer sub-sprint, leia este bloco — não refaça o que já existe.
+
+| Sub-sprint | Estado | Evidência |
+|---|---|---|
+| **BIN-S1** (extrair metadados stock dos 3 arquivos) | **FEITO em código** | `artifacts/bin-build/build_fix_bin.py`: `read_meta()` L135-158, capturado no build (`[2b] metadados stock`) L219-225; fallback medido `META_FALLBACK` L30-43 |
+| **BIN-S2** (carimbar rótulo SELinux + mode/uid/gid) | **FEITO em código** | `meta_cmds()` L161-171 (`sif mode` com S_IFREG, `ea_set security.selinux ...\000`); gate fatal `verify_meta()` L174-199 aborta se `.rc` ficar group/world-writable |
+| **BIN-S3** (checksum1 + tamanho) | **FEITO em código** | `checksum1 @0x04` conferido L320-330; tamanho `== stock` garantido (assert L297, `ok` L326); CRC vendor recalculado L308/318 |
+| **BIN-S3b** (build reprodutível + log versionado) | **PENDENTE (offline, sem aparelho)** | ninguém gerou uma build NOVA com este código capturando a saída `[done] ... VALIDO` e comparando md5 de 2 builds |
+| **BIN-S4a** (boot real do `.bin` de delta mínimo) | **PENDENTE — REQUER APARELHO** | gate nunca rodou; `.bin` segue em quarentena |
+| **BIN-S4b** (respin com o vigia da sprint 19, para distribuição) | **PENDENTE — REQUER APARELHO + sprint 19 fechada** | — |
+| **BIN-S5** (diagnóstico, só se S4a falhar) | contingência | — |
+
+**Artefato atual:** `firmware/PFL7560-FIX-com-metadados.bin` (md5 `16a4b42a65f57cccd7bc458d6a3e2dde`,
+local-only por `*.bin` no `.gitignore`; o `.md5` companheiro está versionado). Este é o `.bin` **novo,
+com metadados carimbados** — não confundir com o protótipo antigo `PFL7560-FIX.NAO-USAR-brica-SELinux.bin`
+(md5 `f5ff89c9...`), que foi **apagado** por ter travado o boot.
+
+**O que mudou nesta revisão da spec (vs a versão de 2026-07-06):**
+1. As BIN-S1/S2/S3 deixaram de ser "pesquisa a fazer" — são "código a validar". Sub-sprints reescritas.
+2. O gate único foi **dividido**: `BIN-S4a` (testar a hipótese de metadados, delta mínimo) roda **antes**
+   da sprint 19; `BIN-S4b` (build de distribuição com o vigia embarcado) roda depois. A sprint 19 é
+   pré-requisito **da distribuição**, não do teste de boot — ver "Ordem e dependências".
+3. Critério "brilho 1000" da BIN-S4 corrigido (o `./pfl7560-fix.sh status` não imprime brilho).
+4. Adicionado o passo manual obrigatório de reconfigurar o Wi-Fi após o flash (o flash formata `/data`).
+
+---
 
 ## Objetivo
 
-Um `.bin` de fábrica com a correção **embutida**, que **boota** e ativa os **3 fixes por default** (2º sensor +
-fans/brilho 100% + shutdown 75 °C, wifi reconecta, xiri silenciado). Alvo: distribuir a quem **não** usa adb
-nem pendrive-autorun — bastaria "Atualização local do sistema" com este `.bin`.
+Um `.bin` de fábrica com a correção **embutida**, que **boota** e ativa os fixes por padrão (2º sensor
+destravado + fans/brilho no máximo + shutdown a 75 °C, Wi-Fi reconecta, `xiriservice` silenciado). Alvo:
+distribuir a quem **não** usa adb nem pendrive-autorun — bastaria "Atualização local do sistema".
 
-> **Dependência declarada — sprint [19](19-sprint-warning-tela.md) primeiro:** o `.bin` distribuível deve
-> **embarcar o vigia de tela** da sprint 19 (o aviso que aparece no boot quando a correção não está ativa). Como
-> este `.bin` vai justamente para quem **não** usa adb/pendrive, é o público que mais precisa do aviso embutido —
-> e um reflash total do stock apagaria um vigia que morasse só no `/vendor`. Logo a sprint 19 é **pré-requisito**:
-> fechá-la **antes** de graduar este `.bin`.
+> **Fora de escopo desta sprint (decisão registrada):** a correção de cor LVDS (byte `0x5c` do
+> `panelparam`, JEIDA) **NÃO entra neste `.bin`**. Motivo: o `.bin` térmico é universal (serve todo
+> PFL7560), mas o byte `0x5c=JEIDA` só vale para quem **trocou** o painel para um `-0600`; embuti-lo
+> quebraria a cor de todo aparelho com painel de fábrica (`-4300`, que espera VESA). Além disso a
+> partição `panelparam` provavelmente **nem está** no container `.bin` (ver sprint LCD-S4 no doc 29).
+> A correção de cor continua sendo pós-boot, por `pfl7560-lcd-color.sh`.
 
-## Contexto (o que já sabemos — não recomeçar do zero)
+---
 
-- **Checksum do container DECIFRADO** (ver [`15-bin-definitivo.md`](../research/15-bin-definitivo.md)): o `checksum1`
-  (`@0x04`) é **CRC-32/MPEG-2 sobre `[0x00:0x2b4]`** com o próprio campo zerado — cobre **só o cabeçalho + a
-  tabela de partições**, não os payloads. Os **rodapés** (`@0x2b8`/`@0x2bc`) **não são verificados** pelo
-  loader. O **CRC por partição** também é CRC-32/MPEG-2.
-- **A receita de build FUNCIONA e é byte-reproduzível** (`artifacts/bin-build/build_fix_bin.py`): edita **só a
-  partição vendor** (record 14) mantendo o **tamanho** do payload — a tabela não muda, então o `checksum1`
-  segue válido, e recalcula-se apenas o **CRC daquela partição**. Rodar 2× dá o mesmo md5 (timestamps de inode
-  e superbloco são fixados no script).
-- **O ÚNICO bloqueador conhecido:** os 3 arquivos reescritos via `debugfs write` ficam **sem rótulo SELinux**
-  (`security.selinux` xattr) e **sem o modo/owner exato** do stock → o boot trava num estágio tardio do init
-  (ver [`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md), seção 2). No método `/vendor` por adb isso nunca
-  aconteceu porque o FS já carregava o contexto correto.
-- **ATENÇÃO (achado M7, [doc 20](20-auditoria-integral-2026-07-06.md)):** essa causa é **provável, não isolada
-  empiricamente**. O SELinux é **permissivo** nesta build (docs 11/13) — e em modo permissivo um rótulo ausente
-  em geral **não** trava o boot por negação de política. Logo a BIN-S1/BIN-S5 devem **isolar a causa real**
-  (comparar `ea_get security.selinux` + `stat` mode/uid/gid dos 3 arquivos no `/vendor` do método adb, que
-  boota, vs no `.bin`, que trava) ANTES de declarar o `.bin` futuro "corrigido". Pode não ser só o rótulo.
-- **A CONFIG está certa.** Prova: mesmo com o boot travado, o **brilho subiu ao máximo e os fans ao talo** — a
-  HAL térmica leu e aplicou o nosso `ZYCustom.ini` antes do hang. O defeito é 100% de **metadado de arquivo**,
-  não de conteúdo.
+## Contexto técnico (o que já sabemos — não recomeçar do zero)
+
+- **Checksum do container DECIFRADO** (ver [`15-bin-definitivo.md`](../research/15-bin-definitivo.md)):
+  o `checksum1` (`@0x04`, big-endian) é **CRC-32/MPEG-2 sobre `[0x00:0x2b4]`** com o próprio campo
+  zerado — cobre **só o cabeçalho + a tabela de partições**, não os payloads. Os **rodapés**
+  (`@0x2b8`/`@0x2bc`) **não são verificados** pelo loader. O **CRC por partição** também é CRC-32/MPEG-2.
+- **A receita de build FUNCIONA e é byte-reproduzível** (`artifacts/bin-build/build_fix_bin.py`): edita
+  **só a partição vendor** (record 14, prefixo `0x4b0b1d54`) mantendo o **tamanho** do payload — a tabela
+  não muda, o `checksum1` segue válido, recalcula-se só o **CRC daquela partição**. Timestamps de inode e
+  superbloco são fixados no script para dar o mesmo md5 a cada build.
+- **A hipótese do brick (achado M7):** os 3 arquivos reescritos pelo protótipo antigo ficaram
+  `0664` (group-writable) e **sem** o rótulo SELinux/owner do stock. A tese mais forte
+  ([`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md), seção "Causa mais provável") é que
+  **o init do Android recusa parsear um `.rc` group/world-writable** — causa suficiente, sozinha, do hang
+  na logo. **PORÉM essa causa é analítica, não isolada empiricamente** (o SELinux é permissivo nesta
+  build, então "rótulo ausente" por si só provavelmente não trava). **O gate BIN-S4a é justamente o
+  experimento que fecha o M7:** se o `.bin` novo (agora com `0644` + rótulo + owner corretos) **bootar**,
+  a hipótese está confirmada na prática; se **travar**, a BIN-S5 isola o que resta.
+- **A CONFIG está certa.** Mesmo com o boot travado no protótipo antigo, o brilho subiu ao máximo e os
+  fans foram ao talo — a HAL térmica leu e aplicou o `ZYCustom.ini` antes do hang. O defeito era 100%
+  **metadado de arquivo**, não conteúdo.
 - Os 3 arquivos-alvo dentro da imagem vendor: **`/etc/ZYCustom.ini`**, **`/build.prop`**,
-  **`/etc/init/hw/init.bigfish.rc`**.
+  **`/etc/init/hw/init.bigfish.rc`**. Metadados stock que o builder reproduz:
+
+  | Arquivo | mode | uid/gid | security.selinux |
+  |---|---|---|---|
+  | `/etc/ZYCustom.ini` | `0644` | 0/0 | `u:object_r:vendor_configs_file:s0` |
+  | `/build.prop` | `0600` | 0/0 | `u:object_r:vendor_file:s0` |
+  | `/etc/init/hw/init.bigfish.rc` | `0644` | 0/0 | `u:object_r:vendor_configs_file:s0` |
+
+---
+
+## PRÉ-REQUISITO ABSOLUTO — kit de resgate antes de qualquer flash
+
+Qualquer sub-sprint marcada **[REQUER APARELHO]** só começa depois deste checklist. **Não flashe sem
+isto pronto e à mão.** O resgate é o que garante que o aparelho é sempre recuperável.
+
+1. **Pendrive de RESGATE** — FAT32/MBR, com o firmware **DE FÁBRICA** renomeado para `usb_update.bin`
+   na raiz. Extraia o `.bin` de fábrica do zip oficial:
+   ```bash
+   unzip -j "firmware/Software PFL7560.zip" "*.bin" -d /tmp/resgate/
+   # copie /tmp/resgate/<arquivo>.bin para o pendrive como  usb_update.bin
+   ```
+   **NUNCA** renomeie o `.bin` de correção para `usb_update.bin` — isso bricaria em vez de resgatar.
+2. **Pendrive de resgate FISICAMENTE SEPARADO** do pendrive de autorun (`newlink_update.sh` +
+   `ZYCustom.ini`). Nunca junte os dois arquivos no mesmo pendrive.
+3. **O procedimento de resgate decorado** (ver [`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md),
+   seção 3): tirar a energia → plugar o pendrive de resgate → segurar o botão de power → religar a
+   energia mantendo o botão ~10-15 s → o loader entra em modo upgrade e regrava o stock.
+   **O resgate formata o `/data`** (perde apps/config e as credenciais de Wi-Fi).
+4. **PC com adb por Wi-Fi** pronto (o USB-C deste aparelho **não** expõe adb; adb só via Wi-Fi
+   configurada no launcher — ver memória `pfl7560-conexao-adb`).
+5. **(Contingência)** kit UART USB-TTL (CH340/CP2102, 115200 8N1) disponível para a BIN-S5, caso o boot
+   trave cedo demais para o logcat.
+
+---
 
 ## Sub-sprints
 
-### BIN-S1 — Pesquisa: extrair os metadados STOCK dos 3 arquivos
+### BIN-S3b — Gerar a build oficial e provar reprodutibilidade (offline, SEM aparelho)
 
-Extrair, da **imagem vendor de fábrica** (stock, expandida para ext4 raw pela receita), o **contexto SELinux**
-e o **mode/uid/gid** de cada um dos 3 arquivos. Esses são os valores-alvo que o `.bin` novo precisa reproduzir.
+**Objetivo:** produzir a build atual **a partir do stock oficial** com este builder, capturar a saída de
+prova e confirmar que 2 builds dão o mesmo md5. Isso fecha a lacuna "o `.bin` existe mas ninguém tem o
+log de que ele foi gerado corretamente e de forma determinística".
 
-- Task: expandir o vendor stock para `orig.raw` (a receita já faz isso).
-- Task: para cada arquivo, ler o xattr `security.selinux` e o `stat` (mode/uid/gid) do **stock**.
-
-**Proof-of-work esperado (runtime-real):**
+**Pré-condições (verifique antes):**
+```bash
+python3 --version                 # qualquer 3.x
+which debugfs e2fsck              # e2fsprogs instalado (sudo apt install e2fsprogs)
+ls artifacts/bin-build/sparse.py  # deve existir ao lado do builder
 ```
-debugfs -R "ea_list /etc/ZYCustom.ini"            orig.raw   # lista os xattr; deve conter security.selinux
-debugfs -R "ea_get /etc/ZYCustom.ini security.selinux"  orig.raw   # ex.: u:object_r:vendor_configs_file:s0
-debugfs -R "stat /etc/ZYCustom.ini"               orig.raw   # Mode/User/Group do inode stock
-# idem para /build.prop e /etc/init/hw/init.bigfish.rc
-```
-Saída registrada: para cada arquivo, `security.selinux = <ctx>` + `mode/uid/gid = <valores>`.
+Se `debugfs`/`e2fsck` faltarem: `sudo apt install e2fsprogs` (Debian/Ubuntu/Pop). **Anote a versão**
+(`debugfs -V`) no log — `sif`/`ea_set` são sensíveis à versão do e2fsprogs.
 
-### BIN-S2 — Build: carimbar rótulo + modo/owner iguais ao stock
+**Passos (comando literal):**
+```bash
+# 1) extrair o stock de fábrica do zip oficial (se ainda nao tiver o .bin solto)
+unzip -j "firmware/Software PFL7560.zip" "*.bin" -d /tmp/stock/
+STOCK=$(ls /tmp/stock/*.bin | head -1)
 
-No `build_fix_bin.py`, **depois** de escrever cada arquivo no ext4, setar os metadados aos valores da BIN-S1.
+# 2) primeira build, capturando TODA a saida
+python3 artifacts/bin-build/build_fix_bin.py \
+    "$STOCK" artifacts/ZYCustom_390.ini /tmp/build1.bin 2>&1 | tee /tmp/build1.log
 
-- Task: para cada arquivo reescrito, `debugfs -R "ea_set <arq> security.selinux <ctx>"` com o contexto da S1.
-- Task: `sif <arq> mode <m>` + `sif <arq> uid <u>` + `sif <arq> gid <g>` iguais ao stock.
+# 3) segunda build (determinismo)
+python3 artifacts/bin-build/build_fix_bin.py \
+    "$STOCK" artifacts/ZYCustom_390.ini /tmp/build2.bin 2>&1 | tee /tmp/build2.log
 
-**Proof-of-work esperado (runtime-real):** no arquivo **reescrito** (`edit.raw`), os metadados **batem com o
-stock** da S1:
-```
-debugfs -R "ea_get /etc/ZYCustom.ini security.selinux"  edit.raw   # == valor stock (S1)
-debugfs -R "stat /etc/ZYCustom.ini"               edit.raw         # Mode/User/Group == stock (S1)
-# idem para os outros 2 arquivos
-```
-
-### BIN-S3 — Build: rebuild + verificar checksums e determinismo
-
-Rodar a receita completa e confirmar que os invariantes do container continuam válidos após as escritas de
-metadado da S2.
-
-- Task: rebuild com `build_fix_bin.py`; confirmar `checksum1 @0x04` **inalterado** e válido, CRC da partição
-  recalculado, e tamanho do `.bin` == stock.
-- Task: rodar 2× e comparar md5 (determinismo).
-
-**Proof-of-work esperado (runtime-real):** os checks internos do script imprimem `VALIDO`
-(`checksum1 ... OK`, tamanho preservado), e:
-```
-md5sum PFL7560-FIX.bin   # roda 2× -> mesmo hash (determinismo)
+# 4) md5 das duas builds
+md5sum /tmp/build1.bin /tmp/build2.bin
 ```
 
-### BIN-S4 — GATE (proof-of-work runtime-real — o que realmente importa)
+**Proof-of-work esperado (saída literal a conferir):**
+- Em `/tmp/build1.log`, as linhas devem incluir, para os 3 arquivos:
+  ```
+  [4b] verificando metadados pos-edit:
+       OK /etc/ZYCustom.ini: mode=0644 selinux=u:object_r:vendor_configs_file:s0
+       OK /build.prop: mode=0600 selinux=u:object_r:vendor_file:s0
+       OK /etc/init/hw/init.bigfish.rc: mode=0644 selinux=u:object_r:vendor_configs_file:s0
+  [5b] revalidacao pos-pack:  (mesmos 3 OK, type=regular)
+  [8] checksum1 @0x04 = 0x738ebd09 (armazenado 0x738ebd09) -> OK
+  [done] /tmp/build1.bin  VALIDO (conteudo + metadados stock nos 3 arquivos)
+  ```
+- `md5sum` das duas builds: **os dois hashes IGUAIS entre si** (determinismo). O valor deve bater com
+  `firmware/PFL7560-FIX-com-metadados.bin.md5` (`16a4b42a65f57cccd7bc458d6a3e2dde`) **se** o stock e o
+  `ZYCustom_390.ini` forem os mesmos que geraram o artefato atual.
 
-Flashar o `.bin` novo num aparelho e confirmar **boot completo + os 3 fixes ativos**. **Ter o pendrive de
-resgate (`usb_update.bin` de fábrica) pronto ANTES de flashar** (ver Riscos).
+**Se falhar:**
+- Se `[8] ... -> ERRO`: a tabela do container mudou — **NÃO** use a build; investigue (não deveria
+  acontecer editando só o payload vendor).
+- Se um `[4b]`/`[5b]` abortar com "group/world-writable" ou "Type ... esperado regular": problema de
+  versão do `debugfs`/`sif`; registre a versão e reporte.
+- Se os dois md5 **diferirem** entre si: o determinismo quebrou — algum timestamp não foi fixado;
+  reporte a divergência (não flashe uma build não-reprodutível).
 
-- Task: flashar por "Atualização local do sistema".
-- Task: confirmar que o boot **chega ao launcher** (não trava na logo).
-- Task: rodar o status e conferir os 3 fixes ativos.
+**Entrega:** versionar `/tmp/build1.log` como `artifacts/bin-build/build-proof.log` (é texto, sem dado
+pessoal) e anotar aqui a versão do e2fsprogs usada. **Não versione o `.bin`** (`*.bin` é gitignored).
 
-**Critério de sucesso MENSURÁVEL:** boot chega ao launcher; `gtt1` lê temperatura real (~55–60 °C); fans
-**1000/1000**; brilho **1000**; `wifi_disconnect_on_boot=0`; `xiriservice` **disabled**. Comando:
+---
+
+### BIN-S4a — GATE: boot real do `.bin` de delta mínimo  [REQUER APARELHO — avisar o dono]
+
+**Objetivo duplo:** (a) confirmar que o `.bin` com metadados carimbados **boota** (gradua o `.bin` da
+quarentena); (b) **fechar o achado M7** — provar empiricamente que corrigir mode/rótulo/owner era o que
+faltava. Esta build **não** traz o vigia da sprint 19 ainda — é o delta mínimo (só os 3 arquivos), de
+propósito, para que um eventual hang não tenha variável confusa.
+
+> **Por que antes da sprint 19:** misturar o vigia (feature nova, arquivos novos) com o teste de
+> metadados no mesmo flash tornaria impossível saber qual mudança causou um eventual travamento. O teste
+> da hipótese é de delta mínimo; a distribuição é que espera o vigia (BIN-S4b).
+
+**Pré-condições:** o kit de resgate (seção acima) montado e à mão; a build da BIN-S3b validada.
+
+**Passos:**
+1. Flashar `firmware/PFL7560-FIX-com-metadados.bin` por **"Atualização local do sistema"** (copie o
+   `.bin` para um pendrive — pendrive de **flash**, distinto do de resgate — e use o menu do aparelho).
+2. Aguardar o boot. **Observar até onde chega:**
+   - **PASSA:** o boot chega ao **launcher** (não fica preso na logo do Android).
+   - **FALHA:** trava na logo → pule para a **recuperação** abaixo e depois para a BIN-S5.
+3. **[Passo manual obrigatório]** o flash formatou o `/data` → o Wi-Fi está desconfigurado e o adb caiu.
+   No launcher, reconecte o aparelho à rede Wi-Fi e reative o adb por Wi-Fi (o mesmo IP pode mudar).
+4. Rodar o status e conferir os fixes:
+   ```bash
+   PFL_IP=<ip-do-projetor> ./pfl7560-fix.sh status
+   ```
+
+**Critério de sucesso MENSURÁVEL (o que o `status` realmente imprime):**
+- boot chega ao **launcher**;
+- `HW_VIRTUAL_CHANNEL = 1` no `ZYCustom.ini` do aparelho (mux destravado);
+- `gtt1` lê **temperatura real** (~55-60 °C com o aparelho aquecido), **diferente** de `gtt0` (~24-26 °C)
+  — se `gtt1 == gtt0` byte a byte, o mux **não** comutou;
+- fans **1000/1000** (via `gfs 0`/`gfs 1` do `hidebug`);
+- `vendor.newlink.wifi_disconnect_on_boot=0`;
+- `init.svc.xiriservice` **ausente/stopped** (serviço `disabled`).
+- **Brilho:** o `status` **não** imprime o valor do backlight. Verifique o brilho **visualmente** (a
+  imagem projetada permanece no máximo, sem escurecer com o calor) e, se quiser o número, leia ao vivo:
+  ```bash
+  # POLICY_0_BRIGHTNESS no config do aparelho (deve ser 1000):
+  adb -s <ip> shell "grep -aE 'POLICY_0_BRIGHTNESS|POLICY_1_BRIGHTNESS' /vendor/etc/ZYCustom.ini"
+  ```
+
+**Recuperação (se travar):** kit de resgate — tire a energia, plugue o pendrive de resgate
+(`usb_update.bin` = fábrica), segure o power e religue a energia por ~10-15 s. O stock volta (o fix some,
+o `/data` é formatado). Reaplique o fix depois pelo método `/vendor` (autorun ou `./pfl7560-fix.sh apply`).
+
+**NÃO considere o `.bin` graduado até este gate passar.** Ao passar: mover o `.bin` para fora da
+quarentena na documentação e registrar a saída do `status` como prova.
+
+---
+
+### BIN-S2b — Metadados canônicos para arquivos NOVOS (pré-requisito da BIN-S4b)
+
+**Motivação:** o vigia da sprint 19, se embarcado no `.bin`, cria **arquivos que não existem no stock**
+(ex.: `/vendor/etc/init/pfl7560-warn.rc` e o script/asset do aviso). O builder atual só sabe **copiar os
+metadados do stock** dos 3 arquivos que já existem — não há regra para arquivos inéditos. Sem isso, um
+arquivo novo entraria com mode/rótulo default do `debugfs write` e poderia repetir o brick.
+
+**Escopo (código — a implementar quando a sprint 19 definir os arquivos do vigia):**
+- Definir o **metadado canônico** de cada arquivo novo:
+  - `.rc` de init: `mode 0644`, uid/gid `0/0`, `security.selinux u:object_r:vendor_configs_file:s0`;
+  - script/binário executável: `mode 0755`, uid/gid `0/0`, rótulo coerente com executáveis de vendor
+    (a confirmar no stock: comparar com um executável existente em `/vendor/bin` via `ea_get`).
+- Estender `TARGET_PATHS`/`meta_cmds` no `build_fix_bin.py` para escrever esses arquivos com o carimbo
+  explícito (não herdar do stock, pois não há stock), e incluí-los no `verify_meta` (gate fatal:
+  nenhum `.rc` group/world-writable; `Type: regular`).
+
+**Proof-of-work esperado (offline):** rebuild com o vigia; no log, os arquivos novos aparecem no bloco
+`[4b]`/`[5b]` com o mode/rótulo canônico e `type=regular`; `checksum1 -> OK`.
+
+---
+
+### BIN-S4b — GATE de distribuição: `.bin` com o vigia embarcado  [REQUER APARELHO + sprint 19 fechada]
+
+**Pré-requisitos:** BIN-S4a passou (o `.bin` de delta mínimo boota); sprint 19 fechada com o vigia
+ancorado em **arquivo novo no `/vendor`** (não no `init.bigfish.rc`); BIN-S2b implementada.
+
+**Passos:** iguais aos da BIN-S4a, mas com a build que inclui o vigia. **Além** dos critérios da BIN-S4a:
+- com o fix ativo, **nenhum aviso** aparece na tela (projeção limpa);
+- prova do vigia de forma reversível **antes** de confiar no `.bin`: no aparelho já bootado,
+  `./pfl7560-fix.sh revert` + reboot → o aviso **aparece**; `apply` + reboot → o aviso **some** (esse
+  teste do vigia pertence à sprint 19 e é feito por adb, sem reflash).
+
+**Critério de sucesso:** tudo da BIN-S4a **mais** o comportamento correto do vigia (aparece sem fix,
+some com fix) e boot íntegro com os arquivos novos.
+
+---
+
+### BIN-S5 — Diagnóstico (só se a BIN-S4a falhar)  [REQUER APARELHO + UART]
+
+Se o boot travar mesmo com os metadados corretos, a causa do brick **não** era (só) o mode `0664`.
+Descobrir o estágio exato do hang.
+
+- **Caminho primário: console serial UART** (não o logcat). Num hang cedo do init, o `logd` pode nem
+  subir e o `/data` fica inacessível — o logcat persistente não é confiável. Conecte o USB-TTL aos pads
+  TX/RX/GND perto do SoC (115200 8N1; TX do adaptador → RX da placa e vice-versa; GND comum; **não** ligue
+  VCC). Ver [`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md), seção 4. Alternativa sem abrir:
+  HiFactoryMenu "Open UartDebug".
+- **Comparar `/vendor` que boota vs `/vendor` que trava:** no aparelho corrigido pelo método adb (que
+  **boota**), leia os metadados reais dos 3 arquivos e compare com os do `.bin`:
+  ```bash
+  # no /vendor do metodo adb (aparelho bootado):
+  adb -s <ip> shell 'for f in /vendor/etc/ZYCustom.ini /vendor/build.prop /vendor/etc/init/hw/init.bigfish.rc; do
+      echo "== $f"; stat -c "%a %u %g" "$f"; ls -Z "$f"; done'
+  ```
+  e o equivalente do `.bin` (via `debugfs` na `edit.raw` do build — ver BIN-S1 abaixo). **Qualquer campo
+  que divirja é a próxima pista.**
+- Refinar a BIN-S2/S2b com o achado e voltar à BIN-S3b.
+
+**Proof-of-work esperado:** um diff explícito de `stat`/`ls -Z` (mode/uid/gid + rótulo SELinux) entre o
+`/vendor` do `.bin` e o do método adb, apontando o campo que diverge — ou a última linha do console UART
+antes do hang.
+
+---
+
+### BIN-S1 (referência) — como inspecionar os metadados dentro do `.bin`
+
+Já implementado no builder, mas se precisar inspecionar manualmente (para a BIN-S5), extraia a
+`orig.raw`/`edit.raw` — o builder usa um tempdir que é apagado ao fim. Snippet para preservar:
+```bash
+# extrai o payload vendor (sparse) do .bin e expande para ext4 raw:
+python3 - "$STOCK" <<'PY'
+import sys, struct, sparse
+PFX=0x4b0b1d54
+f=open(sys.argv[1],'rb'); f.seek(PFX); size=struct.unpack('>I',f.read(4))[0]
+f.seek(PFX+8); open('/tmp/vendor.img','wb').write(f.read(size))
+sparse.expand('/tmp/vendor.img','/tmp/orig.raw')
+print('orig.raw pronto')
+PY
+# (rode de dentro de artifacts/bin-build/ para achar o sparse.py)
+
+# ler rotulo + stat de cada arquivo:
+for f in /etc/ZYCustom.ini /build.prop /etc/init/hw/init.bigfish.rc; do
+  echo "== $f"
+  debugfs -R "ea_get $f security.selinux" /tmp/orig.raw
+  debugfs -R "stat $f" /tmp/orig.raw | grep -E 'Type|Mode|User|Group'
+done
 ```
-./pfl7560-fix.sh status
+Saída esperada (stock): rótulos conforme a tabela do Contexto; `Mode 0644`/`0600`; `User 0 Group 0`.
+
+---
+
+## Ordem e dependências (resolvido — sem ciclo)
+
+O texto antigo dizia "sprint 19 primeiro" de forma que criava um ciclo (18 depende de 19, 19 devolve a
+decisão para 18). Resolvido assim:
+
 ```
-**NÃO considerar o `.bin` pronto até este gate passar.**
+BIN-S3b (offline)  ──  BIN-S4a (boot do delta mínimo, fecha o M7)  ──┐
+                                                                       │
+Sprint 19 (vigia, testada por adb, reversível)  ──────────────────── BIN-S2b ─ BIN-S4b (distribuição)
+```
 
-### BIN-S5 — Diagnóstico (só se a BIN-S4 falhar)
+- **BIN-S4a NÃO espera a sprint 19.** Ela testa a hipótese de metadados com o delta mínimo. Pode rodar
+  assim que houver aparelho + resgate.
+- **A sprint 19 é pré-requisito apenas da BIN-S4b** (o `.bin` de **distribuição**, que precisa levar o
+  vigia embarcado porque o público-alvo não usa adb/pendrive). A sprint 19 se desenvolve e valida por
+  adb, de forma reversível, **sem** depender de nenhum flash.
+- Portanto a sprint 19 **decide sozinha** onde o vigia mora (arquivo novo em `/vendor`); a sprint 18
+  apenas **embarca** esse resultado na BIN-S4b. Sem ciclo.
 
-Se o boot ainda travar, descobrir o **estágio exato** do hang e comparar com o `/vendor` que o método adb
-(que funciona) produz.
-
-- Task: capturar a **última mensagem antes do hang** — logcat persistente ou **console serial UART 115200**
-  (ver [`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md), seção 4).
-- Task: comparar rótulo/modo/owner dos 3 arquivos no `/vendor` **do `.bin`** com os do `/vendor` produzido
-  **pelo método adb** (que boota) — qualquer divergência é a próxima pista.
-- Task: refinar a BIN-S2 com o achado e voltar à BIN-S3.
-
-**Proof-of-work esperado (runtime-real):** um diff explícito de `ea_get security.selinux` + `stat` entre o
-`/vendor` do `.bin` e o `/vendor` do método adb, apontando o campo que diverge.
+---
 
 ## Riscos e recuperação
 
-- **SEMPRE ter o resgate pronto ANTES de flashar:** pendrive **separado** com `usb_update.bin` = firmware **de
-  fábrica** (nunca o `.bin` da correção) + **power-hold ao ligar** (ver [`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md),
-  seção 3). Isso reflasha o stock e desbrica — ao custo de apagar o fix e formatar o `/data`.
+- **SEMPRE ter o resgate pronto ANTES de flashar** (seção "Pré-requisito absoluto"). O resgate reflasha
+  o stock de fábrica e formata o `/data` — desbrica sempre, ao custo de apagar o fix.
 - **O bootloader é intocável** (nem a build nem o flash o alteram) → o modo de upgrade USB está **sempre**
   disponível → o aparelho é **sempre recuperável**. Plano B: UART/console U-Boot 115200.
+- **Não confundir logística de evidências com o gate.** Fotos (termômetro IR, tela antes/depois) são do
+  roteiro de disclosure ([`../disclosure/roteiro-evidencias.md`](../disclosure/roteiro-evidencias.md)),
+  **não** são critério da BIN-S4a — o critério é o boot real medido pelo `status`.
 
 ## Regra de ouro
 
-> O `.bin` só sai da quarentena (`firmware/PFL7560-FIX.NAO-USAR-brica-SELinux.bin`) **depois** do gate
-> **BIN-S4** — boot real confirmado em hardware, com os 3 fixes ativos e medidos. Até lá, o método `/vendor`
-> (autorun/adb) é o caminho seguro e definitivo.
+> Nenhum `.bin` sai da quarentena antes de **bootar em hardware** com os fixes ativos e medidos. Até lá,
+> o método `/vendor` (autorun/adb) é o caminho seguro e definitivo. O protótipo antigo sem metadados foi
+> apagado e **não deve ser recriado** — só o builder atual (`build_fix_bin.py`), que carimba mode/rótulo/
+> owner, produz uma build candidata.

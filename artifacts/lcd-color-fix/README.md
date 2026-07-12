@@ -15,11 +15,20 @@ PFL_IP=<ip> ./pfl7560-lcd-color.sh status     # formato LVDS atual
 PFL_IP=<ip> ./pfl7560-lcd-color.sh jeida       # aplica a correção (RX058B-0600)
 PFL_IP=<ip> ./pfl7560-lcd-color.sh vesa         # reverte (RX058B-4300)
 PFL_IP=<ip> ./pfl7560-lcd-color.sh test gamma   # projeta um padrão (barras|gamma|bits|nitidez|resolucao)
-PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard       # guia leigo: aplica JEIDA e pergunta
-PFL_IP=<ip> ./pfl7560-lcd-color.sh backup       # salva o panelparam antes de mexer
+PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard       # guia leigo: BACKUP automático + testa VESA/JEIDA na tela
+PFL_IP=<ip> ./pfl7560-lcd-color.sh backup arq.img   # salva o panelparam (valida 8 MiB + grava arq.img.md5)
+PFL_IP=<ip> ./pfl7560-lcd-color.sh restore arq.img  # regrava o panelparam (com read-back de md5)
 ```
 `jeida`/`vesa` aplicam ao vivo (sem reboot) e persistem no `panelparam`. `swap <0-5>`/`bit <0-1>` para
-ajuste fino se nenhum formato bastar. O binário `lvdsctl` (pré-compilado, ARM) já acompanha.
+ajuste fino se nenhum formato bastar. O `wizard` faz um backup do `panelparam` antes de mexer e reverte
+sozinho se a tela ficar preta (sem resposta em `WIZ_TIMEOUT`s, padrão 25). O `backup` valida que o dump
+tem o tamanho da partição e grava um `.md5`; o `restore` confere tamanho + md5 e faz read-back após gravar
+(não confia no exit code do `dd` via adb). O binário `lvdsctl` (pré-compilado, ARM) já acompanha.
+
+**Integridade do binário versionado** (para auditar/reproduzir — decisão da sprint REPO-S2):
+`lvdsctl` = ELF 32-bit ARM EABI5 PIE, 6348 bytes, **md5 `178d812872cb9306c0ae6faeed07184a`**.
+Compilado com **NDK 27** (`armv7a-linux-androideabi24-clang`) a partir do `lvdsctl.c` deste diretório —
+ver a seção de build abaixo. Para reproduzir do zero, recompile e confira o md5.
 
 ## lvdsctl.c
 Programa ARM que faz `dlopen` na `libhitvservice.so` do aparelho e chama

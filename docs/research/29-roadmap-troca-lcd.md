@@ -86,30 +86,65 @@ A matriz viva completa é a Sprint **LCD-S6**.
 ### LCD-S1 — Aplicador da correção de cor (fácil replicação)
 **Objetivo:** um comando único que aplica/reverte o formato LVDS após troca de painel, no mesmo estilo
 do `pfl7560-fix.sh` térmico. **Motivação:** hoje exige adb manual + binário; o usuário quer 1 passo.
-> **Status (2026-07-11): primeira versão IMPLEMENTADA.** Existe `pfl7560-lcd-color.sh` (raiz) +
-> `lvdsctl` pré-compilado + 5 padrões de teste em `artifacts/lcd-color-fix/`, com subcomandos
-> `status/jeida/vesa/swap/bit/test/wizard/backup/restore` (testado: `status` OK no aparelho). **Falta:**
-> integrar ao `pfl7560-menu.sh` e `install.bat`; validar em outro aparelho.
+> **Status (revisado 2026-07-12): núcleo IMPLEMENTADO; faltam 3 itens concretos.** Existe
+> `pfl7560-lcd-color.sh` (raiz) + `lvdsctl` pré-compilado (ARM) + fonte `.c` + 5 padrões de teste em
+> `artifacts/lcd-color-fix/`, com os 9 subcomandos `status/jeida/vesa/swap/bit/test/wizard/backup/restore`
+> (verificado no código; só `status` foi exercitado no aparelho). **Falta, em ordem de prioridade:**
+> **(a)** endurecer `backup`/`restore` (hoje sem md5/tamanho/read-back — ver Escopo); **(b)** integrar ao
+> `pfl7560-menu.sh` e ao `install.bat`; **(c)** rodar o fluxo completo (`jeida`/`vesa`/`wizard`) no
+> aparelho e registrar a prova (até aqui, a correção real foi aplicada com `nl_lvdsctl` direto, doc 28
+> seção 13).
 **Escopo:**
-- Versionar o binário `lvdsctl` (ARM) + a fonte (já em `artifacts/lcd-color-fix/`).
-- Script `pfl7560-lcd-color.sh` com: `status` (lê `/proc/msp/panel` lvds_fmt), `jeida`, `vesa`,
-  `test` (projeta os padrões de teste), `backup`/`restore` do `panelparam`.
+- Versionar o binário `lvdsctl` (ARM) + a fonte (já em `artifacts/lcd-color-fix/`). Ver a decisão de
+  versionamento do binário na sprint REPO-S2 (doc 30): manter o ELF exige md5 fixado + versão do NDK e
+  flags documentadas no README de `artifacts/lcd-color-fix/`; caso contrário, versionar só o `.c`.
+- Script `pfl7560-lcd-color.sh` com: `status`, `jeida`, `vesa`, `test`, `backup`/`restore` do `panelparam`.
+- **Endurecer `backup`/`restore` (bloqueante — a partição é lida no início do boot):**
+  - `backup`: após o `dd`, **validar o tamanho** (8388608 bytes = 8 MiB) e **gravar o md5** ao lado do
+    `.img`; abortar se o `dd` não trouxe a partição inteira (hoje o `stderr` do `dd` é suprimido e um
+    backup truncado passa silencioso).
+  - `restore`: **exigir tamanho correto antes de gravar**, **checar o exit code do `dd`** (hoje mascarado
+    por `dd; sync`) e fazer **read-back com comparação de md5** após gravar. Documentar que um `restore`
+    interrompido (queda de adb/energia) deixa o `panelparam` parcialmente escrito e exige nova gravação
+    imediata — a rede anti-brick do firmware (doc 28 §4) só foi validada para perfil inválido, não para
+    partição arbitrariamente corrompida.
 - Empurrar `lvdsctl` para `/data/local/tmp` e rodar com `LD_LIBRARY_PATH=/vendor/lib:/system/lib`.
-- Integrar como opção no `pfl7560-menu.sh` e no `install.bat`.
-**Proof-of-work:** `pfl7560-lcd-color.sh jeida` → `/proc/msp/panel` mostra `lvds_fmt: jeida`; `vesa`
-reverte; sobrevive a reboot. **Risco:** requer root/adb (já disponível). **Esforço:** baixo.
+- Integrar como opção no `pfl7560-menu.sh` e no `install.bat` (o subcomando `map`, que o binário suporta
+  mas o script não expõe, fica documentado como "avançado" ou é adicionado ao dispatch).
+**Proof-of-work (mensurável):**
+1. Correção: `PFL_IP=<ip> ./pfl7560-lcd-color.sh jeida` → `status` mostra `lvds_fmt: jeida`; `vesa`
+   reverte para `lvds_fmt: vesa`; **sobrevive a reboot** (rechecar `status` após `adb reboot`).
+2. Backup íntegro: `./pfl7560-lcd-color.sh backup pp.img` → `pp.img` tem **8388608 bytes** e um `pp.img.md5`
+   é escrito; `restore` do mesmo arquivo passa no read-back (md5 pós-gravação == md5 do backup).
+3. Integração: a opção "correção de cor pós-troca de painel" aparece no `pfl7560-menu.sh` e no menu do
+   `install.bat`, e executa `pfl7560-lcd-color.sh status` com saída real.
+**"Validar em outro aparelho" é NÃO-BLOQUEANTE** (depende de um segundo PFL7560 com painel trocado, que
+pode não existir no curto prazo) — registrar como desejável, não como gate. **Esforço:** baixo.
 
 ### LCD-S2 — Wizard de pareamento (semi-automático, guiado)
 **Objetivo:** assistente que leva o usuário do "cores erradas" ao "certo" em <2 min, sem entender de
-LVDS. **Motivação:** nem todo painel será JEIDA; precisa de um fluxo à prova de leigo.
-**Escopo:**
-- Projeta o padrão de gamma (patches de cinza) e pergunta em loop: "os cinzas estão neutros? (s/n)".
-- Se não, cicla os eixos via `lvdsctl` **ao vivo (sem reboot)**: VESA↔JEIDA → bit 6/8 → swap 0..5,
-  reprojetando a cada passo. Para no primeiro que der cinza neutro.
-- Ao acertar, oferece "tornar permanente" (já persiste no `panelparam`) e salva o resultado na matriz.
-**Proof-of-work:** partindo de um painel com formato errado, o wizard chega ao correto e o usuário só
-responde s/n. **Risco:** alguns formatos dão tela preta (tratar com timeout + reversão automática).
-**Esforço:** médio.
+LVDS. **Motivação:** nem todo painel será JEIDA; precisa de um fluxo à prova de leigo. **Estado atual:**
+o `wizard` existente é uma v0 "single-shot" (projeta gamma, aplica JEIDA, pergunta 1× s/N) — falta o
+loop de eixos e, criticamente, o backup automático e o watchdog de tela preta.
+**Escopo (v2):**
+- **Backup automático OBRIGATÓRIO antes da primeira mutação:** o wizard **deve** fazer `backup` do
+  `panelparam` (com o endurecimento da LCD-S1: 8 MiB + md5) antes de tocar em qualquer byte. Sem backup
+  válido, o wizard **aborta**. Motivo: cada passo do wizard **persiste imediatamente** no `panelparam`
+  (ver nota abaixo), então uma tela preta + queda de energia deixaria o aparelho bootando cego.
+- Projeta o padrão de gamma (patches de cinza) e cicla os eixos via `lvdsctl` **ao vivo (sem reboot)**:
+  VESA↔JEIDA → bit 6/8 → swap 0..5, reprojetando a cada passo; para no primeiro cinza neutro.
+- **Watchdog de tela preta:** o `read` de "está neutro? (s/N)" **não pode bloquear indefinidamente** —
+  com tela preta o usuário não vê o prompt. Usar `read -t <N>` (timeout): sem resposta em N segundos,
+  **assumir tela preta e reverter automaticamente** (`lvds fmt 0` e, se preciso, `restore` do backup),
+  então seguir para o próximo eixo. Nunca deixar o aparelho num formato sem imagem esperando input.
+- Ao acertar, registra o resultado (painel → formato) num arquivo de matriz versionável (alimenta a
+  LCD-S6).
+- **CORREÇÃO da spec original:** remover a etapa "oferecer tornar permanente" — **toda mutação do
+  `lvdsctl` já persiste** no `panelparam` (doc 28 §13). Não existe modo transitório; a "permanência" é
+  automática. O que o wizard oferece no fim é **confirmar/manter** ou **reverter para o backup**.
+**Proof-of-work:** partindo de um painel com formato errado, o wizard faz backup, chega ao formato
+correto respondendo só s/N, e — se o usuário deixar sem responder num formato de tela preta — reverte
+sozinho dentro do timeout (comprovar forçando um `swap` que dê tela preta e não responder). **Esforço:** médio.
 
 ### LCD-S3 — Auto-pareamento via câmera interna (a "forma inteligente")
 **Objetivo:** detectar e aplicar o formato certo **sem input humano**, usando a **câmera de foco/keystone
@@ -118,24 +153,78 @@ EDID — não dá pra "perguntar" ao painel; mas o projetor pode **olhar a próp
 **Escopo (pesquisa + protótipo):**
 - Confirmar acesso à câmera interna (o firmware usa para auto-keystone; props `persist.newlink.autofocus*`,
   `vendor.newlink.camera*`). Ver se há API/HAL de captura acessível por adb/programa.
+- **Pré-requisito de pesquisa (primeiro passo barato, hoje sem base nenhuma):** confirmar acesso à
+  câmera. Rodar no aparelho e registrar num doc novo:
+  ```bash
+  adb -s <ip> shell 'getprop | grep -iE "autofocus|camera"'
+  adb -s <ip> shell 'ls -l /dev/video* 2>/dev/null; ls -l /vendor/lib/hw/ | grep -i camera'
+  ```
+  Sem isso, o protótipo não tem por onde começar (o doc 28 não menciona câmera; o único registro são as
+  props `persist.newlink.autofocus*` e `vendor.newlink.camera*`).
 - Loop: projetar um alvo de cor conhecido (ex.: patch cinza 50% + barras) → capturar com a câmera →
-  medir se o cinza saiu neutro (R≈G≈B) → se não, `lvdsctl` cicla o próximo formato → repetir.
-- Critério de acerto: menor desvio de croma no patch cinza. Persistir o vencedor.
+  medir se o cinza saiu neutro → se não, `lvdsctl` cicla o próximo formato → repetir.
+- **Critério de acerto DIFERENCIAL (não absoluto):** o auto white balance / auto-exposição da câmera
+  interna pode neutralizar um cinza que está errado no painel (falso positivo de "R≈G≈B"). Em vez do
+  critério absoluto, **comparar os formatos entre si na mesma sessão** (travar WB/exposição se a HAL
+  permitir) e escolher o de **menor desvio de croma relativo** entre os candidatos, com um **limiar
+  numérico** a definir no protótipo. Persistir o vencedor (com backup automático antes, como na LCD-S2).
 **Proof-of-work:** com um painel de formato desconhecido, o sistema converge sozinho para o formato
 correto e persiste, sem o usuário olhar a tela. **Risco:** acesso à câmera pode ser restrito; a ótica
-tem dominante de cor própria (calibrar baseline). **Esforço:** alto (é P&D). É o diferencial do projeto.
+tem dominante de cor própria (por isso o critério é diferencial, não absoluto). **Esforço:** alto (é P&D).
+É o diferencial do projeto.
 
 ### LCD-S4 — Integração no `.bin` final
-**Objetivo:** correção nativa desde o bootloader no firmware distribuível, sem passo pós-boot.
-**Escopo:**
-- No build do `.bin`: editar o byte **`0x5c` do perfil ativo** dentro da partição `panelparam` (ou do
-  `panel.img` fonte) para o formato do painel-alvo. Alternativa: embutir `lvdsctl` + serviço de init.
-- Casar com os cuidados de metadados que já quebraram o `.bin` antes (modo 0644 + xattr SELinux —
-  ver README §"por que o `.bin` experimental não funcionou").
-**Proof-of-work:** flashar o `.bin`, painel inicia no formato correto desde o logo. **Risco:** o `.bin`
-completo está em quarentena; testar com resgate de fábrica ao lado. **Esforço:** médio.
+**Objetivo:** avaliar se a correção de cor pode nascer no firmware, sem passo pós-boot.
+
+> **DECISÃO DE ESCOPO (tomada 2026-07-12 — leia antes de qualquer task):** o byte `0x5c=JEIDA` **NÃO
+> entra no `.bin` térmico universal.** Dois motivos duros:
+> 1. **Quebraria a maioria dos aparelhos.** O `.bin` térmico serve **todo** PFL7560; o `0x5c=JEIDA` só
+>    vale para quem **trocou** o painel para um `-0600`. Um `.bin` universal com JEIDA embutido deixaria
+>    a cor **errada** em todo aparelho com painel de fábrica (`-4300`, que espera VESA). São públicos
+>    disjuntos.
+> 2. **A partição provavelmente nem está no container.** A tabela de partições do `.bin` mapeada até hoje
+>    (doc 15) só tem a `vendor` (record 14); a inspeção do cabeçalho sugere que `panelparam` (eMMC
+>    `mmcblk0p6`, 8 MB) **não** é um record do container — é calibração por-aparelho, não flashada pelo
+>    firmware. Enquanto isso não for provado, "editar 0x5c no `.bin`" repousa em premissa falsa.
+>
+> **Conclusão:** a correção de cor **continua pós-boot** (`pfl7560-lcd-color.sh`). Esta sprint vira uma
+> **investigação com decisão registrada**, não uma feature do `.bin` universal.
+
+**Task 1 (RESOLVIDA — 2026-07-12, análise offline do container):** a tabela de partições do `.bin` foi
+decodificada por inteiro (19 records de 32 bytes @ `0x40..0x2a0`). **Resposta definitiva: NÃO existe
+record de `panelparam` no container.** Os 19 records são só imagens de firmware
+(bootloader×2, código ARM, boot, headers, reservado, recovery, DTB/SDK×2, sparse, misc, versão, super,
+vendor, atv, cache, securestore, userdata); nenhum payload tem ~8 MB (`0x800000`) compatível com o
+`panelparam`. Os nomes `panelparam` (8M), `tconparam` (80M) e `demura` (4M) aparecem **somente** dentro da
+string `blkdevparts=` do cmdline embutida no bootloader — são **slots da eMMC** (`mmcblk0`), não payloads
+empacotados neste container de update. (Evidência: `blkdevparts` extraído do próprio firmware confirma as
+25 partições da eMMC; o dado real de painel é ~512K dentro do slot de 8M, e não está no `.bin`.)
+
+Verificação no aparelho (opcional, confirma o mesmo mapa):
+```bash
+adb -s <ip> shell 'cat /proc/cmdline | tr " " "\n" | grep -iE "blkdevparts|panelparam|mmcblk"'
+```
+
+**Conclusão registrada:** encerra-se a via "patch de record no `.bin`". A correção de cor **é pós-boot,
+ponto final** (`pfl7560-lcd-color.sh`, gravando o slot `panelparam` direto no device). Se algum dia se
+quiser correção nativa por firmware, seria preciso um empacotador que grave o **slot da eMMC**
+`panelparam` (fora deste container), o que não vale o risco frente ao método `/vendor`/device já pronto.
+
+> Observação lateral (não afeta a decisão): o `firmware/PFL7560-FIX-com-metadados.bin` atual tem CRC de
+> vendor `0x621e9cb6` — um terceiro valor, distinto do stock (`0xdd5cdc49`) e do FIX antigo em quarentena
+> (`0x35ca9b46`, doc 15). Confirma que é o rebuild novo (com metadados/SELinux), não o protótipo apagado.
+
+**Task 2 (consequência para o resgate — corrigir doc 16 e o guia LCD-S5):** como o `panelparam` **não**
+é regravado pelo `.bin`/resgate, a correção de cor **sobrevive** a um resgate power-hold (bom). **Mas
+confirmar:** se algum dia se descobrir que o resgate toca o `panelparam`, adicionar ao doc 16 e ao guia
+leigo (LCD-S5): "após resgate, se as cores voltarem erradas, rode `pfl7560-lcd-color.sh jeida`".
+
+**Proof-of-work:** a resposta documentada da Task 1 (record de `panelparam` existe? sim/não, com
+evidência do header + cmdline). **Esforço:** médio (é análise binária + decisão, não build).
 
 ### LCD-S5 — Guia leigo de troca de painel (replicação passo a passo)
+> **Status (2026-07-12): ENTREGUE** — [`../guide/32-guia-troca-painel-lcd.md`](../guide/32-guia-troca-painel-lcd.md)
+> (identificar, trocar, corrigir a cor, troubleshooting, quando não tem conserto por software).
 **Objetivo:** documento de usuário final: como comprar, trocar e corrigir a cor do painel, com fotos.
 **Escopo:** identificar o painel novo (part number no flat), passo a passo físico (referência ao
 teardown doc 27), aplicar a correção (LCD-S1/S2), troubleshooting (tela preta → reverter; cor errada →
@@ -143,6 +232,8 @@ wizard), e quando NÃO tem conserto por software (timing/resolução física inc
 **Proof-of-work:** um terceiro consegue replicar só com o guia. **Esforço:** baixo.
 
 ### LCD-S6 — Matriz viva de painéis compatíveis
+> **Status (2026-07-12): ENTREGUE (v1)** — [`33-matriz-paineis.md`](33-matriz-paineis.md) §1, com
+> `RX058B-4300` (VESA) e `RX058B-0600` (JEIDA, testado OK). É catálogo vivo: adicionar novos painéis conforme testados.
 **Objetivo:** catálogo mantido de painéis testados: part number, tamanho, resolução física real,
 formato LVDS correto, driver IC, onde comprar (BR/AliExpress), e "grau de plug-and-play".
 **Escopo:** tabela versionada; começar com `RX058B-4300` (VESA, fábrica) e `RX058B-0600` (JEIDA,
@@ -152,6 +243,10 @@ recomendação de "melhor custo/benefício" e alertas (fake 1080p, timing incomp
 **Esforço:** contínuo.
 
 ### LCD-S7 — Auditoria da nomenclatura dos perfis (o mistério do "SC5010E")
+> **Status (2026-07-12): ENTREGUE** — [`33-matriz-paineis.md`](33-matriz-paineis.md) §3. Achado central:
+> o campo IC do nome é o **driver on-glass** do painel, não T-CON nem backlight; o "SC5010E" é **falso-amigo**
+> do backlight Semtech SC5010 (corrige a nota do doc 28). Chave de compatibilidade real = campos do struct,
+> não o nome. Falta só (contínuo) extrair os campos elétricos por perfil dos 83 structs.
 **Objetivo:** decifrar a convenção de nome dos 83 perfis e mapear os "driver ICs" citados vs os chips
 REAIS. **Motivação (achado dos agentes):** o perfil `RX058B_4300_5010E_1080P_M` embute "5010E" como se
 fosse o timing controller — mas o único **SC5010E** documentado é um **driver de backlight LED da
@@ -189,8 +284,16 @@ de por que perfis "irmãos" (mesmo IC citado) às vezes não são intercambiáve
 
 ## 5. Ordem sugerida
 
-1. **LCD-S1** (aplicador) e **LCD-S5** (guia) — valor imediato, esforço baixo.
+1. **LCD-S1** (aplicador — endurecer backup/restore + integrar ao menu) e **LCD-S5** (guia) — valor
+   imediato, esforço baixo. É o caminho principal e definitivo da correção de cor (pós-boot).
 2. **LCD-S6** (matriz) + **LCD-S7** (auditoria de nomenclatura/ICs) — em paralelo, alimentam-se mutuamente.
-3. **LCD-S2** (wizard) — cobre painéis não-JEIDA.
-4. **LCD-S4** (`.bin`) — quando houver um alvo de firmware estável.
-5. **LCD-S3** (câmera) — P&D de maior fôlego; o "auto-pareamento" que diferencia o projeto.
+3. **LCD-S2** (wizard v2 — backup automático + watchdog de tela preta) — cobre painéis não-JEIDA.
+4. **LCD-S4** — reduzida a uma **investigação com decisão** (o JEIDA não vai para o `.bin` universal;
+   ver a decisão de escopo na sprint). Fazer só a Task 1 (mapear a tabela do container) quando houver
+   folga; não é bloqueante para nada.
+5. **LCD-S3** (câmera) — P&D de maior fôlego; o "auto-pareamento" que diferencia o projeto. Começar pelo
+   passo barato (confirmar acesso à câmera) antes de qualquer protótipo.
+
+> **Nota transversal:** a correção de cor LCD é uma **trilha paralela** e **não** está no caminho crítico
+> do `.bin` térmico final (sprint 18). O `.bin` universal leva só o fix térmico + o vigia (sprint 19); a
+> cor é sempre pós-boot, por aparelho que teve o painel trocado.

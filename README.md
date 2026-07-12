@@ -115,6 +115,10 @@ grava **1 byte** (`0x5c`) no perfil de painel do `panelparam`. Persiste no boot 
 completo, tentativa-e-erro e comandos em
 [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).
 
+**Como aplicar** (só quem trocou o painel): `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (faz backup do
+painel e testa VESA/JEIDA na tela) ou `./pfl7560-menu.sh` → opção 4; no Windows, `install.bat` → opção 6.
+**Não** aplique num aparelho com o painel de fábrica.
+
 ## Estrutura do repositório
 
 ```

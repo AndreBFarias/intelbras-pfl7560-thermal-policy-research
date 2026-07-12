@@ -355,3 +355,6 @@ texto sem franja — confirmado por foto do padrão de gamma).
   PJ058S1, 5.8", 1920×1080, 60-pin. A **nitidez limitada é da ÓPTICA** (lente plástica barata), não do
   painel — confirmado por reviews de projetores irmãos. Prova 100% definitiva só por foto macro do vidro.
   Nota: "SC5010E" no nome do perfil provavelmente é um driver de backlight LED (Semtech SC5010), não o T-CON.
+  **Correção (auditoria LCD-S7, doc 33):** no contexto do nome do perfil, `5010E` denota o **driver de
+  imagem do vidro** (LTPS 1080p, on-glass), não o backlight. A coincidência com o Semtech SC5010 (chip de
+  backlight LED) é um **falso-amigo** — ver [`33-matriz-paineis.md`](33-matriz-paineis.md) §3.

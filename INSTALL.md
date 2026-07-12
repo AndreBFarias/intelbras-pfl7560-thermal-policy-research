@@ -103,3 +103,19 @@ Resgate com boot travado: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-r
 
 - **Nunca** renomear um `.bin` experimental para `usb_update.bin` — resgate é **só** o firmware de fábrica.
 - Não distribua/flashe `.bin` caseiro sem validar boot + metadados (ver `artifacts/bin-build/`).
+
+---
+
+## Reparo relacionado — correção de cor (só se você **trocou** o painel LCD)
+
+Tema distinto do térmico. Se você substituiu o micro-painel por uma variante de sufixo diferente
+(ex.: `RX058B-4300` de fábrica → `RX058B-0600`) e as cores dos **meios-tons** saíram erradas, é
+mapeamento LVDS divergente (VESA vs JEIDA), corrigível **por software**. **Não** aplique isto num
+aparelho com o painel de fábrica — mudaria a cor para errado.
+
+- **Linux / macOS:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (faz backup do painel e testa VESA/JEIDA
+  na tela), ou `./pfl7560-menu.sh` → opção **4**. Direto: `... jeida` (corrige o `-0600`) / `... vesa`.
+- **Windows:** `install.bat` → opção **6**. O wizard completo e o backup/restore usam WSL
+  (`wsl ./pfl7560-lcd-color.sh wizard`).
+
+Diagnóstico e detalhes: [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).

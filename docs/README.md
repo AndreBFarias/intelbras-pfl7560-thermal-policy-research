@@ -9,6 +9,7 @@
 | [`guide/10-guia-replicacao.md`](guide/10-guia-replicacao.md) | Replicar a correção em outro PFL7560 |
 | [`guide/12-seguranca-e-recuperacao.md`](guide/12-seguranca-e-recuperacao.md) | Backups, revert, cenários de pânico |
 | [`guide/16-recuperacao-brick.md`](guide/16-recuperacao-brick.md) | Power-hold + `usb_update.bin` de fábrica |
+| [`guide/32-guia-troca-painel-lcd.md`](guide/32-guia-troca-painel-lcd.md) | Guia leigo: trocar o painel LCD e corrigir a cor (VESA/JEIDA) |
 
 ## Divulgação responsável
 
@@ -16,6 +17,7 @@
 |---|---|
 | [`disclosure/relatorio-csirt.md`](disclosure/relatorio-csirt.md) | Relatório ≤3 páginas para CSIRT / suporte |
 | [`disclosure/STATUS.md`](disclosure/STATUS.md) | Data de envio, protocolo, follow-up |
+| [`disclosure/roteiro-evidencias.md`](disclosure/roteiro-evidencias.md) | Roteiro de captura de evidências (fotos, medições, redação de dados pessoais) |
 
 ## Pesquisa (ordem de leitura)
 
@@ -47,7 +49,9 @@ diferente (ex.: `RX058B-4300` de fábrica → `RX058B-0600`), as cores saem erra
 |---|---|
 | [`research/28-troca-painel-rx058b-diagnostico-cor.md`](research/28-troca-painel-rx058b-diagnostico-cor.md) | **Diagnóstico completo + solução:** decompilação da lib do aparelho, `lvdsctl` (chama `SetLvdsFormat`), correção VESA→JEIDA no `panelparam` (byte `0x5c`). Tentativa-e-erro incluído. |
 | [`research/29-roadmap-troca-lcd.md`](research/29-roadmap-troca-lcd.md) | **Roadmap e sprints (planejamento):** aplicador fácil, wizard de pareamento, auto-pareamento via câmera interna, integração no `.bin`, guia leigo, matriz de painéis, auditoria de nomenclatura de IC. |
+| [`research/33-matriz-paineis.md`](research/33-matriz-paineis.md) | **Matriz de painéis compatíveis + auditoria de nomenclatura (LCD-S6/S7):** quais painéis, qual formato LVDS, e por que o nome do perfil não garante compatibilidade. |
 | [`research/30-sprint-validacao-repositorio.md`](research/30-sprint-validacao-repositorio.md) | **Sprint de higiene:** validar a reorganização `mod-termica`→`docs/artifacts` (links, integridade, política de versionamento). |
+| [`research/31-plano-mestre-bin-final.md`](research/31-plano-mestre-bin-final.md) | **Plano mestre:** caminho crítico único até o `.bin` final — ordena todas as sprints pendentes por dependência e marca os gates de hardware. Comece por aqui para entender o todo. |
 
 Artefatos da correção de cor em [`../artifacts/lcd-color-fix/`](../artifacts/lcd-color-fix/) (`lvdsctl.c` + padrões de teste).
 
