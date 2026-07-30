@@ -205,21 +205,88 @@ Imediatamente depois dessa chamada ele lê **outra** variável (`0x36ea30`) e de
 `1` — o padrão bate com **`[MonotonicTask] TASK_MODE`**, seção que **também não existe no `.ini`**
 (confirmado no aparelho: `grep -c MonotonicTask` = 0, `grep -c TASK_MODE` = 0), logo está em `.bss` = 0.
 
-**Próxima pista concreta para o FAN-S1:** decodificar `[MonotonicTask] TASK_MODE` / `STEADY_CLOCK_EN` e
-descobrir qual valor agenda o loop que contém a chamada ao monitor. Sem isso, `MONITOR_MODE = 1` é inerte.
+### CAUSA REAL, e duas hipóteses minhas REFUTADAS (investigação em 4 frentes, 2026-07-29)
 
-**E pior que inerte — `MONITOR_MODE = 1` DEGRADA o loop térmico.** Efeito colateral observado ao vivo: com
-a config de observação carregada, os ticks de `RunLineChange`/`RunPwmChange` (normalmente a cada 2 s)
-ficaram **esparsos** — um único evento em vários minutos — e a rampa de recuperação do brilho **travou em
-956** em vez de completar até 1000, com `gtt1` em 56,8 °C (muito abaixo do 1º limiar, alvo 1000).
+A explicação abaixo substitui duas afirmações erradas que estavam nesta seção. Ficam registradas as duas,
+porque errar de forma rastreável é parte do método.
 
-Após reboot com a config canônica (sem a seção), os ticks voltaram ao ritmo de 2 s
-(`Level Change 1000 => 1000`) e o brilho retornou a **1000**. Isso é coerente com a hipótese do
-`TASK_MODE`: `MONITOR_MODE = 1` desvia o fluxo para `RunThermalMngrMain`, que sem o agendamento correto
-não roda a política na cadência normal.
+**REFUTADO 1 — "`MONITOR_MODE = 1` desvia o fluxo e degrada o loop térmico".** `RunThermalMngrMain`
+(`0x1fcbe0`) não desvia nada; é uma concatenação de três coisas ortogonais:
 
-**Consequência prática: nunca deixar `MONITOR_MODE = 1` no `.ini` distribuído antes de resolver o
-`TASK_MODE`.** Não é só "não protege" — atrasa a própria escada de brilho, que é a proteção que funciona.
+```
+0x1fcbe4  blx <RunThermalModeMain()>      ; politica termica (THERMAL_MODE) -- SEMPRE roda, primeiro
+0x1fcbf0  cmp <MONITOR_MODE>, #1
+0x1fcbf6  blxeq <RunSimplifyFanMonitor>   ; ADICIONA, nao substitui
+0x1fcc02  despacho por <TASK_MODE>        ; terceira coisa, ortogonal
+```
+
+O `blx #0x98574` em `0x1fcbe4` (que numa primeira análise ficou sem resolver) é o `RunThermalModeMain`.
+E `RunThermalMngrMain` é chamado de `ZYPowerManager::RunInternalModuleMain` — é o próprio corpo do tick.
+O caminho do monitor não escreve atuador nenhum (zero `RunPwmChange`/`RunLineChange`), não dorme, e com o
+portão do `SW_SENSE_TYPE` fechado custa ~10 instruções por tick. **Não podia degradar cadência.**
+
+**REFUTADO 2 — "falta o `[MonotonicTask] TASK_MODE` para agendar o monitor".** `TASK_MODE` (GOT
+`0x36ea30`, provado por `MonotonicTask::init` escrevendo e `MonotonicTask::dump` imprimindo
+`"TASK_MODE = %d"`) não é scheduler: liga um **atuador extra** ao fim do tick — `1` →
+`RunMonoFanSpeedMode`, `2` → `RunMonoBrightnesssMode`, `0x1000` → `RunMonoBrightnesssCus1Mode`, qualquer
+outro (inclusive `0`) → nada. Esses modos escrevem **os mesmos** PWM e backlight que a política térmica.
+**Habilitar `TASK_MODE` criaria dois escritores disputando os mesmos atuadores** — era exatamente o
+caminho errado. Pista encerrada.
+
+Também morreram, com prova: `RunFeedbackFanMonitor` (`0xfde91`) é uma função **vazia** (`bx lr`; o
+endereço é *identical code folding* com ~80 outros símbolos) e `RunFanMonitorModeMain` (`0x1fcd0d`) é
+**código morto** (zero callers). O único caminho vivo é o gate inline acima.
+
+**A CAUSA REAL é um portão de uma linha em `FanSpeedSense::Run()` (`0x201c84`):**
+
+```
+0x201c9c  ldr r0,[r5,#4]     ; CoolingFan+4 = &cfg.SW
+0x201c9e  ldr r0,[r0,#0xc]   ; SW+0xc = SW_SENSE_TYPE
+0x201ca0  cmp r0, #0
+0x201ca2  beq 0x201d6c       ; RETORNA sem amostrar, sem logar
+```
+
+Nos dois boots de observação a seção **estava** no arquivo (verificado: `grep -c MONITOR_MODE` = 1),
+`RunSimplifyFanMonitor` **foi chamado**, a lista de fans **não estava vazia** (2 elementos, populados no
+construtor a partir de `CoolingFan:SERIAL_NUM = 2`), o flag `[elem+0x10]` nasce em 1 — e o `Run()` de cada
+fan voltou na primeira checagem. Nada amostrado. Cadeia integralmente explicada.
+
+**`[CoolingFan_N]` aceita 6 chaves de sense que a fábrica nunca configurou**, e `SW_SENSE_TYPE` despacha
+4 modos (`initCoolingFanSense`, `0x20a648`):
+
+| `SW_SENSE_TYPE` | Log do firmware | Requisito |
+|---|---|---|
+| **`0`** (ausente = default) | `CoolingFan is unsensible!` | nenhum; impl fica NULL |
+| `1` | `CoolingFan is sensed by RD polarity!` | `HW_SENSE_GPIO_NUM` + `HW_SENSE_RD_POLARITY` |
+| `2` | `... by FG Level, which depends the LSADC!` | `HW_SENSE_LSADC_CHANNEL` |
+| `3` | `... by FG Pulse, which depends the FreqCounter!` | `HW_SENSE_GPIO_NUM` + `FW_SENSE_FG_POLES` + `FW_SENSE_FG_FULL_RPM` |
+
+Com impl NULL, `CoolingFan::getSenseSpeed` (`0x20a7a8`) devolve **`FULL_VALUE + 1`** — sentinela sintética
+"saudável", deliberadamente acima do teto de sanidade. É o no-op projetado para placas sem tacômetro.
+
+**E o hardware não tem o sinal:** ampliando `media/teardown-05-blowers-dfh8025s.jpg`, os sopradores têm
+cabo de **2 condutores** (vermelho/preto). Um brushless de 2 fios não tem saída FG. Não existe `/sys/class/pwm`,
+`hwmon` nem `thermal`; o DTS tem zero nós de pwm/fan/tach; `/proc/interrupts` não tem linha de GPIO e todas
+as linhas que crescem estão explicadas (arch_timer, áudio, GPU, VO, VICAP/VPSS a 60 fps, ehci, mmc).
+
+> A etiqueta parece dizer **`DFH8030S`**, não `DFH8025S` como o doc 27 registra. Não foi possível resolver
+> o dígito na resolução disponível — **confirmar na etiqueta física** antes de corrigir o doc 27. Só
+> importa para spec de RPM num eventual swap.
+
+**Veredito FAN-S1: não é "desarmado por omissão de config" como o bug do mux. É INARMÁVEL por software
+neste aparelho.** O firmware traz os 3 modos de tacômetro prontos; falta o fio. A via de correção deixa de
+ser config e passa a ser hardware (sopradores de 3 fios com FG roteado a um GPIO livre + as 6 chaves).
+
+**Armadilha nova: armar `SW_SENSE_TYPE` sem a fiação é PIOR que deixar desarmado.** Com o objeto de sense
+criado lendo hardware inexistente, a leitura vira `STOP_VALUE` → estado 6 → **+10 no acumulador a cada
+avaliação (uma a cada 5 ticks)** → com `PROTECT_OVERDUE != 0`, loop de desligamento garantido. Pior ainda:
+`SW_SENSE_TYPE = 2` usaria `HW_SENSE_LSADC_CHANNEL`, e ausente ele cai no **canal 0 do LSADC, o dos
+termistores** — mexeria na cadeia de medição de temperatura, contra o espírito da invariante 8.
+
+**Sobre a observação dos "956":** rebaixada de fato estabelecido para **hipótese não confirmada**. A rampa
+sobe `(delta>>5)+1` por chamada, então de 926 a 1000 leva 50-75 s — observar 956 no meio dela é normal, e
+minha leitura de "travou" provavelmente foi artefato (eu tinha o serviço de autocaptura recém-reiniciado
+batendo no `hidebug` em paralelo). Precisa de re-teste controlado contra uma linha de base medida.
 
 Enquanto isso não for feito: **se um soprador morrer, nada detecta.** Combinado com brilho alto, é
 exatamente o mecanismo que destrói polarizador. Continua sendo o achado de maior severidade desta sessão.
@@ -234,19 +301,44 @@ fica versionada apenas como artefato, não é o que roda.
 `ZYThermalManager::RunThermalModeMain` (`0x1fcc38`) despacha por jump table `tbb` com **21 entradas
 válidas** (`0x1000`-`0x1014`). Resolvendo os veneers Thumb->ARM e as relocações do GOT:
 
+Tabela **completa** (bytes do `tbb` em `0x1fcc58`: `0b 20 57 25 57 57 57 57 57 57 57 57 57 57 57 57 2a 2f
+3c 41 48`, alvo = base + 2·b):
+
 | `THERMAL_MODE` | Função |
 |---|---|
-| `0x1000` | `RunProtectionMode(size_t)` |
+| `0` / `1` / `2` (valores pequenos) | `RunTraditionalMode(this,0)` / `RunSimplifyMode(this,0)` / `RunProtectionMode(this,0)` |
+| `0x1000` | `RunTraditionalMode(this,0)` **e** `RunProtectionMode(this,1)` |
 | **`0x1001`** | **`RunDaulRigalMode()`** — valor atual do aparelho |
+| **`0x1002`** | **`pop {r4,pc}` — NO-OP ABSOLUTO** |
 | `0x1003` | `RunDaulKjmMode()` |
+| **`0x1004`-`0x100f`** | **`pop {r4,pc}` — NO-OP ABSOLUTO** |
 | `0x1010` | `RunTripleChuangRongMode()` |
-| `0x1011` | `RunThermoElectricCoolerMode(size_t)` |
+| `0x1011` | `RunBacklightStatusMonitor()`; `RunThermoElectricCoolerTriditionalMode(this,0)`; `RunThermoElectricCoolerMode(this,1)` |
 | `0x1012` | `RunTripleBoeMode()` |
+| `0x1013` | `SyncFanStrategyMode()`; `SyncBacklightStrategyMode()`; `RunTraditionalMode(this,0)` |
+| `0x1014` | `SyncFanStrategyMode()`; `RunTraditionalMode(this,0)` |
 
-O `[Global] CONFIG_MODEL` do aparelho é **`KJM_5H039_412`**, mas a topologia térmica roda o modo
-**Rigal** (`0x1001`), não o **KJM** (`0x1003`). **Não se afirma que isso está errado** — pode ser escolha
-do ODM Newlink para esta placa. Provar exigiria comparar as duas funções e o mapeamento sensor->atuador
-de cada uma. Fica registrado como divergência a investigar; **não mexer sem isso.**
+**ARMADILHA CRÍTICA:** `0x1002` e `0x1004`-`0x100f` **não são "default provável" — são retorno imediato,
+sem política térmica nenhuma.** Escrever qualquer um deles **desligaria a proteção térmica inteira**
+(sem rampa de fan, sem dimming, sem WARNING, sem EMERGENCY), silenciosamente. Nunca alterar `THERMAL_MODE`
+sem consultar esta tabela.
+
+**Nenhum modo faz sensoriamento de ventilador.** O monitor é gateado só por `MONITOR_MODE`, em
+`RunThermalMngrMain`, ortogonal ao `THERMAL_MODE`. Trocar de modo não ajuda o FAN-S1.
+
+### TM-S1 RESPONDIDO: Rigal vs KJM é refatoração, não topologia — não alterar
+
+O `[Global] CONFIG_MODEL` é `KJM_5H039_412` mas roda `0x1001` (Rigal). Comparados os dois grafos de
+chamada: **ambos** fazem `Thermistor::getTemperature()` ×2 → `getAverageTemperature()` ×2 →
+`ThermalSense::RunNotify` ×2 → `dispatchProcess` ×2 → `RunProtect` ×2, com as **mesmas** constantes de
+histerese (`0x1f4` = 500 mC, `0x9c4` = 2500 mC) nos mesmos offsets. A única divergência é o despachante de
+atuação: Rigal usa 4 sobrecargas de `RunThermalDualProcess` (expansão combinatória 2×2 normal/anormal),
+KJM usa `RunThermalProcessEx(initializer_list<ProcessChannel>)` (genérico N-canais). **Nenhum dos dois toca
+`FanSpeedSense`.** O `.ini` de fábrica e os 4 perfis históricos A/B/C/D todos usam `0x1001`.
+
+**Veredito: divergência benigna. Não há ganho em trocar e há risco. Não alterar.** Ressalva: o mapeamento
+sensor→atuador dentro de `RunThermalDualProcess` vs `RunThermalProcessEx` não foi comparado — não é
+necessário para nenhuma decisão pendente.
 
 ### `[Thermal]` aceita limiares por sensor
 
@@ -305,12 +397,70 @@ do 1º limiar, logo alvo 1000) e `gbri 0` = 956, em recuperação. **Isto fecha 
 quando esquenta e volta sozinha ao brilho cheio, de forma gradual — sem salto perceptível na tela.
 O `RunLineChange` (`CLASS = 0`, LINE) é o que produz essa rampa; com `CLASS = 1` (STEP) seria degrau seco.
 
+## ARMADILHA OPERACIONAL: sondar canais do LSADC direto envenena a proteção térmica até o reboot
+
+Descoberto do jeito ruim, durante esta sessão. **Severidade alta, e é armadilha de quem investiga, não
+defeito do produto.**
+
+`Thermistor::getAverageTemperature()` (`0x21d9bc`) devolve a sentinela **`MIN_VALUE - 1`** (= `-40001`) se
+**qualquer** amostra do ring de `SW_N = 10` for `< MIN_VALUE`. E `ThermalSense::dispatchProcess` (`0x20116c`)
+testa isso **primeiro**, na linha 1116:
+
+```
+r0 = MIN_VALUE ; cmp r0, r5 ; ble <caminho normal>
+ALOGE("Thermistor_%lu LSADC Error!") ; return 1
+```
+
+Os ramos de `WARNING` (`Overheat Warning`) e `EMERGENCY` ficam **a jusante** desse teste. Com a média
+envenenada, **não existe avaliação de WARNING nem de EMERGENCY** — a proteção térmica fica cega de novo,
+por um caminho diferente do bug do mux.
+
+**Sequência observada:** após um agente sondar os canais do LSADC direto (`0` a `9`, com `4`-`9`
+retornando erro), o log passou a acumular `Thermistor_0/1 LSADC Error!` a cada ~2 s, **ininterruptamente**,
+com **zero** linhas de `Achieve Balance`. O serviço Android confirmava (`onThermalErrorLsadc`). Duração:
+todo o restante daquele boot.
+
+**Discriminação feita (importa para não culpar o fix):**
+
+| Estado | `LSADC Error` | Média válida |
+|---|---|---|
+| Antes de qualquer escrita minha (config `1ad641ed`, 20:44) | 0 | válidas (`Temperature:61.2!`) |
+| Após o sondamento, config canônica `252ab7a7` | 62 e contando | **0** |
+| Meu serviço de captura parado por 100 s, mesma config | 62 (continua) | 0 |
+| **Reboot limpo, config canônica `252ab7a7` idêntica** | **0** | **válidas (`31.9℃` / `63.4℃`)** |
+
+Ou seja: **não é a escada de brilho, não é a config, e não é o polling de 30 s do monitor** (que rodava em
+20:44 com médias válidas). É estado de ADC/mux corrompido pelo sondamento direto, e **um reboot limpa.**
+
+**Regras que decorrem disso:**
+
+1. **Nunca sondar canais do LSADC direto neste aparelho** (nem canais inválidos "só para ver"). Use
+   `gtt 0` / `gtt 1`, ou melhor, as props `zysys.light_temp` / `zysys.env_temp` (29 ms, não forçam
+   comutação de mux, fidelidade verificada em 0,1 °C contra o `gtt`).
+2. Se aparecer `LSADC Error` no log, **reinicie antes de concluir qualquer coisa** — e desconfie de
+   instrumentação própria antes de acusar a config.
+3. `LSADC Error` no log é sinal de que **a proteção térmica está cega naquele boot**. Vale um check
+   explícito no `status` dos instaladores.
+
+## Armadilha metodológica: símbolo exportado não implica código vivo
+
+Neste binário o linker deixou **clones exportados órfãos**. `FanSpeedSense::RunReportRpm`,
+`RunReportRatio`, `RunStart` e `RunStop` têm **zero call sites** — o código real foi inlinado dentro de
+`dispatchProcess`. E `RunFeedbackFanMonitor` é `bx lr` por *identical code folding* (o mesmo endereço
+serve ~80 símbolos, incluindo destrutores). A escala `medido = rpm × 100` foi originalmente deduzida
+analisando o `RunReportRatio` — **uma função que nunca executa**. A conclusão sobreviveu porque o
+`dispatchProcess` usa as mesmas constantes e o caminho de FG pulse mostra `60.0`/`100.0` de forma
+independente, mas o método foi por sorte. **Confirme call sites antes de tirar conclusão de uma função.**
+
 ## Pendências que esta sessão abre
 
 | ID | Severidade | Estado | Item |
 |---|---|---|---|
-| **FAN-S1** | **alta** | **ABERTO** | Armar o `[FanMonitor]`. Semântica e limiares já decodificados (`medido = rpm x 100`, defaults coerentes, kill switch `PROTECT_OVERDUE = 0`), mas `MONITOR_MODE = 1` é **inerte**: o loop que chama o monitor não é agendado. **Próximo passo:** decodificar `[MonotonicTask] TASK_MODE`. |
-| TM-S1 | média | aberto | Comparar `RunDaulRigalMode` vs `RunDaulKjmMode` e decidir o `THERMAL_MODE` correto para `CONFIG_MODEL = KJM_*`. Não alterar antes. |
+| **FAN-S1** | **alta** | **FECHADO como inarmável** | O monitor é **inarmável por software**: portão `SW_SENSE_TYPE = 0` em `FanSpeedSense::Run()`, e os sopradores são de 2 fios (sem FG). Não é omissão de config como o bug do mux. Correção exigiria **hardware** (sopradores de 3 fios + as 6 chaves `*SENSE*`). **Não armar `SW_SENSE_TYPE` sem a fiação — é pior que deixar desarmado.** |
+| TM-S1 | média | **FECHADO** | Rigal vs KJM diferem só no despachante de atuação; sensoriamento idêntico. Divergência benigna, **não alterar**. |
+| ~~`[MonotonicTask]`~~ | — | **ANULADA** | Pista encerrada: `TASK_MODE` não é scheduler, é atuador extra que disputaria PWM/backlight com a política térmica. |
+| **LSADC-S1** | **alta** | **ABERTO** | Verificar, sob uso real e com o aparelho quente, se o `WARNING` de 70 °C é de fato avaliado (contar `Overheat Warning` vs `LSADC Error` com `gtt1 > 70 °C`). Hoje sabemos que a média fica válida em boot limpo, mas nunca vimos o `Overheat Warning` disparar. Somente leitura. |
+| VIGIA-S1 | média | aberto | Avaliar vigia externo em userspace ancorado no hook `sys.boot_completed` que **já existe** no `.rc` stock (`exec … /data/local/nlsu/update_after_boot.sh`) — dispensa `.rc` novo em `/vendor`, reversível por `rm`. Enquadrar como "resposta graduada esgotou e ainda esquenta", **não** como "detector de fan travada" (não isola a causa: obstrução, ambiente quente e pá quebrada dão a mesma assinatura). Premissa não provada da sprint 19: que o init varre `/vendor/etc/init/*.rc`. |
 | **ESC-S1** | baixa | **FECHADO** | Escada verificada atuando e recuperando em rampa, com log (`Level Change 926 => 1000`, subindo 2-3/tick). Falta apenas ver o pior caso de uso real (filme longo) para confirmar que o piso 850 segura abaixo de 75 °C. |
 | PREF-S1 | baixa | aberto | Provar a grafia das chaves de `Thermal::Preference` se algum dia forem necessárias. |
 | **INT-S1** | média | **FECHADO** | Incidente: o pre-commit global apagou trailing whitespace dos `ZYCustom.ini` e derrubou o md5 (quebrando o gate do pendrive). Corrigido com atributo `byte-exact` no `.gitattributes` versionado, honrado pelo hook. |
