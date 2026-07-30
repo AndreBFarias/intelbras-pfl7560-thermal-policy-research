@@ -45,7 +45,7 @@ BP="/vendor/build.prop"
 ART_STOCK="$HERE/artifacts/ZYCustom.ini.ORIGINAL"   # firmware de fabrica
 ART_FIX="$HERE/artifacts/ZYCustom_390.ini"          # a build corrigida
 MD5_STOCK="29d8ba36149413e899563029df078f6d"
-MD5_FIX="1ad641ed2dd99e61d8a987a675e9aced"
+MD5_FIX="252ab7a72a007a8b79b3fc86bd5c0d19"
 
 # saida do dossie (dados CRUS; gitignored). Um diretorio por dia p/ juntar antes+depois.
 OUTDIR="${PFL_OUTDIR:-$HERE/evidencias/$(date +%Y-%m-%d)}"

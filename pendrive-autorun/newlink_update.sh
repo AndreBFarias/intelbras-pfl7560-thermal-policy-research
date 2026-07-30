@@ -24,7 +24,7 @@ MP="/mnt/media_rw/$1"
 INI=/vendor/etc/ZYCustom.ini
 BP=/vendor/build.prop
 RC=/vendor/etc/init/hw/init.bigfish.rc
-INI_MD5_OK="1ad641ed2dd99e61d8a987a675e9aced"   # md5 esperado do ZYCustom.ini corrigido
+INI_MD5_OK="252ab7a72a007a8b79b3fc86bd5c0d19"   # md5 esperado do ZYCustom.ini corrigido
 LOG(){ echo "[PFL7560-fix] $*"; }
 LOG "==== autorun iniciado (mountpoint=$1) ===="
 
@@ -79,9 +79,9 @@ else
       cp "$INI" "$INI.STOCK" || LOG "[AVISO] nao consegui salvar $INI.STOCK"
     fi
     # escrita atomica: .new + validacao + mv
-    if cp "$MP/ZYCustom.ini" "$INI.new" && chmod 644 "$INI.new" && grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI.new"; then
+    if cp "$MP/ZYCustom.ini" "$INI.new" && chmod 644 "$INI.new" && grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI.new" && grep -q "= 66000, 67500, 69000, 70000, 71500, 73000" "$INI.new"; then
       if mv "$INI.new" "$INI"; then
-        LOG "[OK] termico: ZYCustom.ini gravado (fans 100%, brilho 100%, 2o sensor, shutdown 75C)"
+        LOG "[OK] termico: ZYCustom.ini gravado (fans 100% sempre, 2o sensor, escada de brilho 1000->850 entre 66C e 70C, shutdown 75C)"
         CHG=1
       else
         LOG "[ERRO] termico: falha no mv final - original intacto."

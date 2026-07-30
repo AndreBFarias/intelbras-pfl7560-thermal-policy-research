@@ -24,13 +24,20 @@ A política térmica do aparelho é um arquivo de texto (`/vendor/etc/ZYCustom.i
 
 Detalhes técnicos: [`docs/research/08-por-que-fica-cego.md`](docs/research/08-por-que-fica-cego.md).
 
+**Segundo defeito de configuração, da mesma natureza (2026-07-29):** o firmware também traz uma proteção
+por **ventilador travado** (desliga o aparelho se um soprador para). Ela só roda se `MONITOR_MODE = 1`, e o
+`ZYCustom.ini` de fábrica **não tem a seção `[FanMonitor]`** — o valor fica em zero e a proteção **nunca
+executa**. Ou seja: se um dos dois sopradores morrer, nada detecta, e a óptica cozinha em silêncio.
+Diagnóstico e plano de calibração em
+[`docs/research/34-escada-brilho-e-fanmonitor.md`](docs/research/34-escada-brilho-e-fanmonitor.md).
+
 ## O que a correção comunitária faz
 
 | Item | Configuração de fábrica | Após a correção |
 |---|---|---|
 | **2º sensor de temperatura** | mapeamento incorreto (`HW_VIRTUAL_CHANNEL=0` nos dois canais) → proteção térmica ineficaz | canal virtual `1` → mux comuta; proteção passa a enxergar o calor real |
 | **Ventiladores** | aceleram tarde, guiados pelo sensor inadequado | **100% desde o boot** |
-| **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% estável** (proteção por fans + shutdown a 75 °C) |
+| **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% no uso normal**; escada de dimming ancorada no sensor **real**, caindo até 850 entre 66 °C e 70 °C e voltando sozinha na descida ([doc 34](docs/research/34-escada-brilho-e-fanmonitor.md)) |
 | **Desligamento de proteção** | limiar que quase nunca dispara na prática | **75 °C** (rede de segurança calibrada ao sensor real) |
 | **Wi-Fi** | não reconecta após reiniciar | reconecta sozinho |
 | **Log** | spam do serviço `xiriservice` ~1×/s | serviço desabilitado |

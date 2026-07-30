@@ -81,8 +81,8 @@ call :ask_ip || goto :menu
 call :connect || goto :menu
 echo.
 echo  --- estado ---
-"%ADB%" -s %DEV% shell "printf 'custom\ngtc\ngtt 0\ngtt 1\ngfs 0\ngfs 1\nquit\n'|/vendor/bin/hidebug" 2>nul | findstr /i "NTC fan"
-"%ADB%" -s %DEV% shell "grep -aE 'HW_VIRTUAL_CHANNEL|POLICY_0_SPEED' /vendor/etc/ZYCustom.ini; grep -a wifi_disconnect_on_boot /vendor/build.prop; getprop init.svc.xiriservice" 2>nul
+"%ADB%" -s %DEV% shell "printf 'custom\ngtc\ngtt 0\ngtt 1\ngfs 0\ngfs 1\ngbri 0\nquit\n'|/vendor/bin/hidebug" 2>nul | findstr /i "NTC fan brightness"
+"%ADB%" -s %DEV% shell "grep -aE 'HW_VIRTUAL_CHANNEL|POLICY_0_SPEED|POLICY_0_THRESHOLD|POLICY_0_BRIGHTNESS' /vendor/etc/ZYCustom.ini; grep -a wifi_disconnect_on_boot /vendor/build.prop; getprop init.svc.xiriservice" 2>nul
 echo.
 pause
 goto :menu
@@ -114,7 +114,7 @@ if errorlevel 1 (
   pause
   goto :menu
 )
-"%ADB%" -s %DEV% shell "grep -q 'HW_VIRTUAL_CHANNEL = 1' /vendor/etc/ZYCustom.ini.new && chmod 644 /vendor/etc/ZYCustom.ini.new && mv /vendor/etc/ZYCustom.ini.new /vendor/etc/ZYCustom.ini"
+"%ADB%" -s %DEV% shell "grep -q 'HW_VIRTUAL_CHANNEL = 1' /vendor/etc/ZYCustom.ini.new && grep -q '= 66000, 67500, 69000, 70000, 71500, 73000' /vendor/etc/ZYCustom.ini.new && chmod 644 /vendor/etc/ZYCustom.ini.new && chcon u:object_r:vendor_configs_file:s0 /vendor/etc/ZYCustom.ini.new && mv /vendor/etc/ZYCustom.ini.new /vendor/etc/ZYCustom.ini"
 if errorlevel 1 (
   echo  [ERRO] gravacao do ini falhou
   pause
@@ -144,7 +144,7 @@ if errorlevel 1 (
 )
 echo  [OK] xiri
 
-"%ADB%" -s %DEV% shell "grep -q 'HW_VIRTUAL_CHANNEL = 1' /vendor/etc/ZYCustom.ini && grep -q wifi_disconnect_on_boot=0 /vendor/build.prop"
+"%ADB%" -s %DEV% shell "grep -q 'HW_VIRTUAL_CHANNEL = 1' /vendor/etc/ZYCustom.ini && grep -q '= 66000, 67500, 69000, 70000, 71500, 73000' /vendor/etc/ZYCustom.ini && grep -q wifi_disconnect_on_boot=0 /vendor/build.prop"
 if errorlevel 1 (
   echo  [ERRO] validacao final falhou — NAO reiniciei
   pause
