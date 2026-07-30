@@ -1,1 +1,18 @@
 firmware/*.zip filter=lfs diff=lfs merge=lfs -text
+
+# Artefatos BYTE-EXATOS: o md5 destes arquivos e o contrato do projeto.
+# `make check` valida 6 deles, e o INI_MD5_OK do pendrive-autorun/newlink_update.sh
+# e um GATE -- md5 divergente faz o autorun RECUSAR aplicar o fix.
+# Conteudo mistura ASCII, chines GBK e mojibake latin-1, e o trailing whitespace
+# faz parte dos bytes originais do vendor.
+#
+# `-text`      : impede normalizacao de EOL pelo git.
+# `byte-exact` : atributo consumido pelo pre-commit (core.hookspath) para NAO
+#                aplicar auto-fix de whitespace/newline final nestes arquivos.
+#                Sem este marcador o hook removeu whitespace de 88 linhas dos
+#                ZYCustom.ini e derrubou o md5 (incidente de 2026-07-29, doc 34).
+artifacts/ZYCustom*             -text byte-exact
+pendrive-autorun/ZYCustom.ini   -text byte-exact
+artifacts/*.STOCK               -text byte-exact
+artifacts/*.MOD                 -text byte-exact
+artifacts/historico/perfis/*    -text byte-exact
