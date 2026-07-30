@@ -3,10 +3,29 @@
 | Arquivo | Tracking | Uso |
 |---|---|---|
 | `Software PFL7560.zip` | **Git LFS** (backup no repo) | Firmware **oficial** Intelbras V1.0.0.9 — resgate (`usb_update.bin`) e base do `bin-build` |
-| `PFL7560-FIX-com-metadados.bin` | **local only** (`*.bin` no gitignore) | Build com conteúdo + metadados (mode/SELinux). **Offline OK; boot em hardware ainda nao graduado.** |
-| `PFL7560-FIX-com-metadados.bin.md5` | local | md5 do bin acima |
+| `PFL7560-FIX-escada-NAO-GRADUADO.bin` | **local only** (`*.bin` no gitignore) | Build com a **escada de brilho** (config md5 `252ab7a7…`) + metadados/SELinux carimbados. md5 `eae3a83db44f790b64b9a5838a27a977`. **Offline APROVADO; boot em hardware NÃO graduado — não flashar (invariante 1).** |
+| `PFL7560-FIX-escada-NAO-GRADUADO.bin.md5` | local | md5 do bin acima |
 
-O protótipo experimental antigo sem metadados (`PFL7560-FIX…brica…`) foi **apagado** — era inseguro (metadados errados) e não deve ser recriado sem o builder atual + teste em hardware.
+Histórico de builds (nenhuma delas deve ser flashada; todas reproduzíveis pelo builder):
+
+| Build | md5 | Estado |
+|---|---|---|
+| protótipo sem metadados | `f5ff89c9…` | **BRICOU** o aparelho (mode `0664` + xattr ausente). Apagado; não recriar. |
+| `PFL7560-FIX-com-metadados.bin` | `16a4b42a…` | superada em 2026-07-29 — carregava os limiares de `[BacklightPolicy]` **pré-escada** (`27000..36000`). Removida do disco; reproduzível. |
+| `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | **atual.** Offline aprovado, HW pendente (gate BIN-S4a). |
+
+**BIN-S3b FECHADO (2026-07-29):** a build é **reprodutível** — duas execuções a partir do mesmo stock
+(`28a2f280…`) e do mesmo `artifacts/ZYCustom_390.ini` (`252ab7a7…`) deram md5 idêntico. Verificação
+independente: tamanho igual ao stock, `checksum1` preservado (`0x738ebd09`), **todas** as 9 faixas
+divergentes contidas no slot da partição vendor (envelope a partir de `0x4b0b1d58`, logo após o prefixo do
+record `0x4b0b1d54`), cabeçalho e tabela intactos, escada presente 2× e limiares antigos ausentes, mux
+destravado, fans 100% nos 7 degraus. CRC da vendor: `0x832a0731`.
+
+Reproduzir:
+```bash
+unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d /tmp/
+python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini saida.bin
+```
 
 ## Avisos
 

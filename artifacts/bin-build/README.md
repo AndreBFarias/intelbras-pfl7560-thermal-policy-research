@@ -21,9 +21,13 @@ sudo apt install e2fsprogs   # Debian/Ubuntu/Pop
 python3 build_fix_bin.py  <stock_PFL7560.bin>  ../ZYCustom_390.ini  <saida.bin>
 ```
 
-- `stock_PFL7560.bin` — firmware de fábrica V1.0.0.9
-- `../ZYCustom_390.ini` — config da build (md5 `1ad641ed…`)
+- `stock_PFL7560.bin` — firmware de fábrica V1.0.0.9 (md5 `28a2f280eee313a4b115567926b2ba4f`)
+- `../ZYCustom_390.ini` — config da build (md5 `252ab7a7…`, com a escada de brilho)
 - `saida.bin` — saída
+
+**Build reprodutível (BIN-S3b, fechado em 2026-07-29):** com esse stock e essa config a saída é
+determinística — md5 `eae3a83db44f790b64b9a5838a27a977`, CRC da vendor `0x832a0731`. Rodar 2× dá o mesmo
+md5. Se der outro valor, algo mudou no stock, na config ou no builder — investigue antes de usar.
 
 O `build.prop` e o `init.bigfish.rc` são derivados do stock dentro da imagem.
 
