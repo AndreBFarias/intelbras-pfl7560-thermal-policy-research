@@ -140,24 +140,79 @@ Defaults compilados: `FULL_VALUE = 1000000` (`.data`), `WARNING_VALUE = 100000` 
 Confirmação independente em runtime: `RunReportRatio` publica `zysys.main_speed` / `zysys.sub_speed`
 (percentual, `valor/10`). No aparelho essas props estão **vazias** — o monitor nunca rodou.
 
-**Por que NÃO foi armado:** `FanSpeedSense::dispatchProcess` (`0x201e70`) compara o valor medido contra
-`FULL_VALUE` (limite superior de sanidade) e `STOP_VALUE`, e depois contra `WARNING`/`EMERGENCY`. Com
-`FULL_VALUE = 1000000` e um valor medido na escala 0-1000, a razão calculada cairia **abaixo** de
-`EMERGENCY` (10000) permanentemente -> risco real de **loop de desligamento no boot**. Não há como
-calibrar `FULL_VALUE` por análise estática: precisa do valor de tacômetro real, que só é publicado quando
-o monitor roda (galinha-e-ovo).
+### Semântica decodificada (correção de uma leitura errada minha)
 
-**Calibração segura em duas etapas (proposta, requer boot supervisionado):**
+`FanSpeedSense::dispatchProcess` (`0x201e70`) compara o valor medido contra `FULL_VALUE` (teto de
+sanidade), `STOP_VALUE` e depois `WARNING`/`EMERGENCY`, sempre no sentido **`limiar >= medido` dispara**
+— ou seja, **valor maior = fan mais saudável**:
 
-1. **Etapa observação:** `MONITOR_MODE = 1` com `WARNING_VALUE = 0` e `EMERGENCY_VALUE = 0` (nada pode
-   ficar abaixo de zero -> a proteção não pode disparar), `PROTECT_OVERDUE` alto. O monitor roda e
-   **publica** `zysys.main_speed`/`sub_speed`. Ler os valores reais com as duas fans girando.
-2. **Etapa armar:** com o full-scale real conhecido, definir `FULL_VALUE` correto e
-   `WARNING`/`EMERGENCY` como fração dele (ex.: 10% e 1%), e validar em boot supervisionado com o
-   pendrive de resgate à mão.
+```
+measured > WARNING_VALUE   -> estado 3 (normal)
+WARNING_VALUE >= measured  -> escala para a checagem de EMERGENCY
+STOP_VALUE    >= measured  -> "CoolingFan_%lu Stop Error!"
+```
+
+O formato de report é `%4.2frpm` com divisor float **100,0** (constante em `0x20200c`), logo
+**`medido = rpm x 100`**. Com isso os defaults compilados são **coerentes** para este hardware:
+
+| Chave | Valor | Em RPM |
+|---|---|---|
+| `FULL_VALUE` | 1000000 | 10.000 rpm (teto de sanidade) |
+| `WARNING_VALUE` | 100000 | 1.000 rpm |
+| `EMERGENCY_VALUE` | 10000 | 100 rpm |
+| `STOP_VALUE` | 0 | parado |
+
+Um DFH8025S a 100% gira ~4.000-6.000 rpm -> medido 400.000-600.000, com folga entre o WARNING e o teto.
+**Numa primeira análise eu supus a escala 0-1000 e previ um loop de desligamento; estava errado.**
+
+**Kill switch provado, útil para observação:** o fim de `RunSimplifyFanMonitor` é
+
+```
+r0 = PROTECT_OVERDUE
+cmp   r0, #0        ; se 0, deixa Z=1
+it    ne
+cmpne r5, r0        ; so compara se PROTECT_OVERDUE != 0
+bhi   <shutdown>    ; bhi exige Z=0 -> com 0 NUNCA e tomado
+...
+setprop sys.powerctl = "shutdown,fan"
+```
+
+Com `PROTECT_OVERDUE = 0` o desligamento é **inalcançável por construção**. `r5` acumula amostras ruins
+somadas nas duas fans, então `PROTECT_OVERDUE` é o total tolerado antes de desligar. E
+`BACKLIGHT_POWERED != 0` faz o monitor consultar o estado do backlight e **retornar cedo** se ele
+responder 0 — para observação isso atrapalha, e o gate não é necessário porque o kill switch já protege.
+
+### Tentativa de observação: NÃO funcionou (resultado negativo, registrado)
+
+Foram feitos **dois boots** com a seção presente (`artifacts/ZYCustom_390.OBSERVACAO-FANMONITOR.ini`),
+`MONITOR_MODE = 1`, `PROTECT_OVERDUE = 0`, primeiro com `BACKLIGHT_POWERED = 1` e depois com `0`.
+Em nenhum dos dois as props `zysys.main_speed` / `zysys.sub_speed` foram publicadas, e não houve
+**nenhuma** linha de log do monitor. A seção estava comprovadamente no arquivo ativo e o serviço
+`hwtvmw@1.0-service` reiniciou e releu.
+
+O caminho de chamada existe — `ZYThermalManager::RunThermalMngrMain` (`0x1fcbe0`) faz:
+
+```
+r0 = MONITOR_MODE
+cmp r0, #1
+itt eq
+moveq r0, r4
+blxeq <thunk 0x98580 = RunSimplifyFanMonitor>
+```
+
+Logo `MONITOR_MODE = 1` é **necessário mas não suficiente**: falta o `RunThermalMngrMain` ser agendado.
+Imediatamente depois dessa chamada ele lê **outra** variável (`0x36ea30`) e despacha por `0x1000` / `2` /
+`1` — o padrão bate com **`[MonotonicTask] TASK_MODE`**, seção que **também não existe no `.ini`**
+(confirmado no aparelho: `grep -c MonotonicTask` = 0, `grep -c TASK_MODE` = 0), logo está em `.bss` = 0.
+
+**Próxima pista concreta para o FAN-S1:** decodificar `[MonotonicTask] TASK_MODE` / `STEADY_CLOCK_EN` e
+descobrir qual valor agenda o loop que contém a chamada ao monitor. Sem isso, `MONITOR_MODE = 1` é inerte.
 
 Enquanto isso não for feito: **se um soprador morrer, nada detecta.** Combinado com brilho alto, é
-exatamente o mecanismo que destrói polarizador. É o achado de maior severidade desta sessão.
+exatamente o mecanismo que destrói polarizador. Continua sendo o achado de maior severidade desta sessão.
+
+O aparelho foi **devolvido à config canônica** (`252ab7a7`) ao fim da sessão; a config de observação
+fica versionada apenas como artefato, não é o que roda.
 
 ## Outros achados no firmware (não documentados antes)
 
@@ -219,13 +274,30 @@ adb -s <ip>:5555 shell "printf 'custom\ngtt 0\ngtt 1\ngfs 0\ngfs 1\ngbri 0\nquit
 ```
 
 Verificado no aparelho após reboot: md5 correto, metadados corretos, fans 1000/1000, brilho 1000 no
-patamar normal. A atuação da escada (queda a 850) foi comprovada pelo experimento da sonda descrito acima.
+patamar normal.
+
+### A escada atuando e recuperando (log real, não extrapolação)
+
+Num boot com o chassi já encharcado de calor (vários reboots seguidos), `gtt1` passou de 66 °C, a escada
+atuou e o brilho caiu abaixo de 1000. Ao voltar ao patamar normal, o firmware **recupera em rampa**:
+
+```
+[RunLineChange:1712] Backlight_0 Level Change 926 => 1000!
+[RunLineChange:1715] Backlight_0 Level Up to 929!
+... 932 ... 935 ... 938 ... 940 ... 942 ... 944 ... 946 ... 948 ... 950 ... 952 ... 954 ... 956 ...
+```
+
+Passos de 2-3 unidades por tick de 2 s, alvo `1000`. Medido no mesmo instante: `gtt1` = 56,81 °C (abaixo
+do 1º limiar, logo alvo 1000) e `gbri 0` = 956, em recuperação. **Isto fecha o ESC-S1:** a escada engata
+quando esquenta e volta sozinha ao brilho cheio, de forma gradual — sem salto perceptível na tela.
+O `RunLineChange` (`CLASS = 0`, LINE) é o que produz essa rampa; com `CLASS = 1` (STEP) seria degrau seco.
 
 ## Pendências que esta sessão abre
 
-| ID | Severidade | Item |
-|---|---|---|
-| **FAN-S1** | **alta** | Calibrar e armar o `[FanMonitor]` (2 etapas acima). Hoje fan travada não é detectada. |
-| TM-S1 | média | Comparar `RunDaulRigalMode` vs `RunDaulKjmMode` e decidir o `THERMAL_MODE` correto para `CONFIG_MODEL = KJM_*`. |
-| ESC-S1 | baixa | Observar a escada em uso real por algumas sessões: confirmar que 850 basta para segurar abaixo de 75 °C no pior caso. |
-| PREF-S1 | baixa | Provar a grafia das chaves de `Thermal::Preference` se algum dia forem necessárias. |
+| ID | Severidade | Estado | Item |
+|---|---|---|---|
+| **FAN-S1** | **alta** | **ABERTO** | Armar o `[FanMonitor]`. Semântica e limiares já decodificados (`medido = rpm x 100`, defaults coerentes, kill switch `PROTECT_OVERDUE = 0`), mas `MONITOR_MODE = 1` é **inerte**: o loop que chama o monitor não é agendado. **Próximo passo:** decodificar `[MonotonicTask] TASK_MODE`. |
+| TM-S1 | média | aberto | Comparar `RunDaulRigalMode` vs `RunDaulKjmMode` e decidir o `THERMAL_MODE` correto para `CONFIG_MODEL = KJM_*`. Não alterar antes. |
+| **ESC-S1** | baixa | **FECHADO** | Escada verificada atuando e recuperando em rampa, com log (`Level Change 926 => 1000`, subindo 2-3/tick). Falta apenas ver o pior caso de uso real (filme longo) para confirmar que o piso 850 segura abaixo de 75 °C. |
+| PREF-S1 | baixa | aberto | Provar a grafia das chaves de `Thermal::Preference` se algum dia forem necessárias. |
+| **INT-S1** | média | **FECHADO** | Incidente: o pre-commit global apagou trailing whitespace dos `ZYCustom.ini` e derrubou o md5 (quebrando o gate do pendrive). Corrigido com atributo `byte-exact` no `.gitattributes` versionado, honrado pelo hook. |
