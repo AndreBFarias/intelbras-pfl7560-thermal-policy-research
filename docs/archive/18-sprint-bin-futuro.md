@@ -16,22 +16,55 @@ Antes de executar qualquer sub-sprint, leia este bloco — não refaça o que j�
 | **BIN-S1** (extrair metadados stock dos 3 arquivos) | **FEITO em código** | `artifacts/bin-build/build_fix_bin.py`: `read_meta()` L135-158, capturado no build (`[2b] metadados stock`) L219-225; fallback medido `META_FALLBACK` L30-43 |
 | **BIN-S2** (carimbar rótulo SELinux + mode/uid/gid) | **FEITO em código** | `meta_cmds()` L161-171 (`sif mode` com S_IFREG, `ea_set security.selinux ...\000`); gate fatal `verify_meta()` L174-199 aborta se `.rc` ficar group/world-writable |
 | **BIN-S3** (checksum1 + tamanho) | **FEITO em código** | `checksum1 @0x04` conferido L320-330; tamanho `== stock` garantido (assert L297, `ok` L326); CRC vendor recalculado L308/318 |
-| **BIN-S3b** (build reprodutível + log versionado) | **PENDENTE (offline, sem aparelho)** | ninguém gerou uma build NOVA com este código capturando a saída `[done] ... VALIDO` e comparando md5 de 2 builds |
-| **BIN-S4a** (boot real do `.bin` de delta mínimo) | **PENDENTE — REQUER APARELHO** | gate nunca rodou; `.bin` segue em quarentena |
+| **BIN-S3b** (build reprodutível + log versionado) | **FEITO em 2026-07-29** | 2 builds do mesmo stock (`28a2f280…`) + mesma config (`252ab7a7…`) → md5 **idêntico** `eae3a83d…`; log em `firmware/README.md`; verificação independente das invariantes 6 e 10 aprovada |
+| **BIN-S4a** (boot real do `.bin` de delta mínimo) | **PENDENTE — REQUER APARELHO + PENDRIVES SEPARADOS** | gate nunca rodou; `.bin` segue em quarentena. **Bloqueado hoje** pelo pré-requisito de mídia (ver abaixo) |
 | **BIN-S4b** (respin com o vigia da sprint 19, para distribuição) | **PENDENTE — REQUER APARELHO + sprint 19 fechada** | — |
 | **BIN-S5** (diagnóstico, só se S4a falhar) | contingência | — |
 
-**Artefato atual:** `firmware/PFL7560-FIX-com-metadados.bin` (md5 `16a4b42a65f57cccd7bc458d6a3e2dde`,
-local-only por `*.bin` no `.gitignore`; o `.md5` companheiro está versionado). Este é o `.bin` **novo,
-com metadados carimbados** — não confundir com o protótipo antigo `PFL7560-FIX.NAO-USAR-brica-SELinux.bin`
-(md5 `f5ff89c9...`), que foi **apagado** por ter travado o boot.
+**Artefato atual:** `firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin`
+(md5 `eae3a83db44f790b64b9a5838a27a977`, local-only por `*.bin` no `.gitignore`; o `.md5` companheiro está
+versionado). Embute a **escada de brilho** (`[BacklightPolicy]` `66000..73000` → `1000,950,900,850,850,850`).
+CRC da vendor `0x832a0731`; `checksum1` `0x738ebd09` preservado.
 
-**O que mudou nesta revisão da spec (vs a versão de 2026-07-06):**
+Builds superadas — **nenhuma deve ser flashada, ambas reproduzíveis pelo builder:**
+`16a4b42a…` (pré-escada, limiares `27000..36000`, removida do disco em 2026-07-29) e o protótipo
+`f5ff89c9…` (sem metadados SELinux, **que bricou**, apagado e não recriar).
+
+### BLOQUEIO ATUAL DO BIN-S4a: separação de mídia
+
+O pendrive do dono tem **autorun e resgate na mesma mídia** (`newlink_update.sh` + `ZYCustom.ini` +
+`usb_update.bin` + uma cópia `PFL7560.bin` idêntica ao resgate). Isso viola as invariantes 2 e 3, e para o
+S4a é pior: no meio de um brick você estaria manipulando justamente o pendrive que contém os dois papéis,
+e o loader poderia pegar o `.bin` errado. **O S4a não deve ser tentado antes de existirem 3 papéis em
+mídias distintas** (ou no mínimo 2, com o autorun fora do caminho):
+
+| Papel | Conteúdo | Estado hoje |
+|---|---|---|
+| **flash** | só `PFL7560-FIX-escada-NAO-GRADUADO.bin` | não existe |
+| **resgate** | só `usb_update.bin` (fábrica) | existe, mas na mídia compartilhada |
+| **autorun** | `newlink_update.sh` + `ZYCustom.ini` + `LEIA-ME.txt` | atualizado em 2026-07-29, na mídia compartilhada |
+
+**Resgate verificado (2026-07-29):** o `usb_update.bin` do dono é fábrica genuíno — md5
+`28a2f280eee313a4b115567926b2ba4f`, **byte-idêntico** ao `.bin` extraído do zip oficial (cujo sha256 bate
+com o BRIEF). Confirmado por conteúdo: contém `HW_VIRTUAL_CHANNEL = 0`, `43000` e
+`wifi_disconnect_on_boot=1`, e **zero** ocorrências de `HW_VIRTUAL_CHANNEL = 1` ou `=  70000`. Confira esse
+md5 antes de começar o S4a — é a sua rede de segurança.
+
+**O que mudou nesta revisão da spec (2026-07-29):**
+1. **BIN-S3b FECHADO** — a build é reprodutível e passou verificação independente.
+2. Artefato trocado: o `.bin` agora embute a escada de brilho. O anterior era pré-escada.
+3. **Novo bloqueio explícito do S4a:** separação de mídia (tabela acima).
+4. Critérios de aceite do S4a **revisados** — o `status` **agora imprime brilho** (o `gbri 0` foi
+   adicionado ao `cmd_status` em 2026-07-29), e há dois critérios novos: a **escada** e a **ausência de
+   `LSADC Error`**.
+5. Adicionado critério de **preservação da correção de cor LCD** (JEIDA) — o dono tem painel `-0600`.
+
+**O que mudou na revisão de 2026-07-12 (histórico):**
 1. As BIN-S1/S2/S3 deixaram de ser "pesquisa a fazer" — são "código a validar". Sub-sprints reescritas.
 2. O gate único foi **dividido**: `BIN-S4a` (testar a hipótese de metadados, delta mínimo) roda **antes**
    da sprint 19; `BIN-S4b` (build de distribuição com o vigia embarcado) roda depois. A sprint 19 é
    pré-requisito **da distribuição**, não do teste de boot — ver "Ordem e dependências".
-3. Critério "brilho 1000" da BIN-S4 corrigido (o `./pfl7560-fix.sh status` não imprime brilho).
+3. Critério "brilho 1000" da BIN-S4 corrigido — **superado pelo item 4 de 2026-07-29.**
 4. Adicionado o passo manual obrigatório de reconfigurar o Wi-Fi após o flash (o flash formata `/data`).
 
 ---
@@ -182,11 +215,27 @@ propósito, para que um eventual hang não tenha variável confusa.
 > metadados no mesmo flash tornaria impossível saber qual mudança causou um eventual travamento. O teste
 > da hipótese é de delta mínimo; a distribuição é que espera o vigia (BIN-S4b).
 
-**Pré-condições:** o kit de resgate (seção acima) montado e à mão; a build da BIN-S3b validada.
+**Pré-condições (todas obrigatórias — o gate não começa sem elas):**
+
+1. **Mídia separada** (bloqueio atual, ver "BLOQUEIO ATUAL DO BIN-S4a" no STATUS): um pendrive só com o
+   `.bin` de flash, outro só com `usb_update.bin`. O de autorun **desconectado e longe**.
+2. **Resgate conferido antes de começar:**
+   `md5sum <pendrive-resgate>/usb_update.bin` → deve dar `28a2f280eee313a4b115567926b2ba4f`.
+   Se der outro valor, **pare** — sua rede de segurança não é o que você pensa.
+3. Build da BIN-S3b validada: `md5sum firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin` →
+   `eae3a83db44f790b64b9a5838a27a977`.
+4. **Dono presente e ciente** de que o `/data` será formatado (Wi-Fi e adb caem, pareamento se perde) e de
+   que o pior caso é ~1 h reflashando o stock.
+5. **Linha de base registrada ANTES do flash** (para comparar depois):
+   ```bash
+   PFL_IP=<ip> ./pfl7560-fix.sh status                    # inclui brilho desde 2026-07-29
+   PFL_IP=<ip> ./pfl7560-lcd-color.sh status              # esperado: lvds_fmt: jeida
+   adb -s <ip>:5555 shell "logcat -d | grep -c 'LSADC Error'"   # esperado: 0
+   ```
 
 **Passos:**
-1. Flashar `firmware/PFL7560-FIX-com-metadados.bin` por **"Atualização local do sistema"** (copie o
-   `.bin` para um pendrive — pendrive de **flash**, distinto do de resgate — e use o menu do aparelho).
+1. Flashar `firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin` por **"Atualização local do sistema"** (copie o
+   `.bin` para o pendrive de **flash**, distinto do de resgate — e use o menu do aparelho).
 2. Aguardar o boot. **Observar até onde chega:**
    - **PASSA:** o boot chega ao **launcher** (não fica preso na logo do Android).
    - **FALHA:** trava na logo → pule para a **recuperação** abaixo e depois para a BIN-S5.
@@ -205,12 +254,29 @@ propósito, para que um eventual hang não tenha variável confusa.
 - fans **1000/1000** (via `gfs 0`/`gfs 1` do `hidebug`);
 - `vendor.newlink.wifi_disconnect_on_boot=0`;
 - `init.svc.xiriservice` **ausente/stopped** (serviço `disabled`).
-- **Brilho:** o `status` **não** imprime o valor do backlight. Verifique o brilho **visualmente** (a
-  imagem projetada permanece no máximo, sem escurecer com o calor) e, se quiser o número, leia ao vivo:
+- **Brilho — critério revisado (o `status` AGORA imprime, desde 2026-07-29):** o `cmd_status` inclui
+  `gbri 0`. No patamar normal (`gtt1` 61-63 °C) o esperado é **`backlight brightness: 1000`** — a escada
+  **não** deve estar atuando com o aparelho apenas morno. E a escada tem de estar no config:
   ```bash
-  # POLICY_0_BRIGHTNESS no config do aparelho (deve ser 1000):
-  adb -s <ip> shell "grep -aE 'POLICY_0_BRIGHTNESS|POLICY_1_BRIGHTNESS' /vendor/etc/ZYCustom.ini"
+  adb -s <ip>:5555 shell "grep -a 'POLICY_0_THRESHOLD\|POLICY_0_BRIGHTNESS' /vendor/etc/ZYCustom.ini"
+  # esperado: = 66000, 67500, 69000, 70000, 71500, 73000  /  = 1000, 950, 900, 850, 850, 850
   ```
+- **Escalada térmica viva (critério NOVO, 2026-07-29):**
+  ```bash
+  adb -s <ip>:5555 shell "logcat -d | grep -c 'LSADC Error'"     # DEVE ser 0
+  adb -s <ip>:5555 shell "logcat -d | grep -c 'Achieve Balance'" # DEVE ser > 0
+  ```
+  `LSADC Error` significa que `getAverageTemperature` está devolvendo a sentinela `MIN_VALUE-1` e o
+  `ThermalSense::dispatchProcess` aborta **antes** de avaliar WARNING/EMERGENCY — a proteção fica cega.
+  Se aparecer, reinicie e reavalie antes de declarar o gate passado (doc 34, armadilha do LSADC).
+- **Correção de cor LCD preservada (critério NOVO — só neste aparelho, painel `-0600`):**
+  ```bash
+  PFL_IP=<ip> ./pfl7560-lcd-color.sh status   # esperado: lvds_fmt: jeida
+  ```
+  O `panelparam` **não** é record do container (LCD-S4), então o flash **não deveria** tocá-lo e o byte
+  `0x5c=1` sobrevive. Este check existe para **provar** isso na prática. Se a cor quebrar, reaplique com
+  `./pfl7560-lcd-color.sh jeida` e registre o achado — significa que o flash mexe em mais partições do que
+  o container declara, o que é informação relevante para a invariante 10.
 
 **Recuperação (se travar):** kit de resgate — tire a energia, plugue o pendrive de resgate
 (`usb_update.bin` = fábrica), segure o power e religue a energia por ~10-15 s. O stock volta (o fix some,
