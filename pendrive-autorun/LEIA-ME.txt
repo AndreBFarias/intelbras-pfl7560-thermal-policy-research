@@ -22,8 +22,13 @@ COMO USAR
   3. Com o projetor DESLIGADO, plugue o pendrive numa porta USB dele.
   4. Ligue o projetor. Ele aplica e REINICIA sozinho uma vez (~30-60 s).
      Se na 1a vez nao aplicar (pendrive montou tarde), so reiniciar de novo.
-  5. Pronto: fans no maximo, tela 100%, wi-fi reconecta sozinho, sem spam.
-     Pode remover o pendrive.
+  5. Pronto: fans no maximo SEMPRE, tela 100% no uso normal, wi-fi reconecta
+     sozinho, sem spam. Pode remover o pendrive.
+     Obs. sobre o brilho: fica 100% na faixa normal de temperatura. Se a optica
+     passar de 66 C ele cai em degraus (950 / 900 / 850) e chega a 850 nos 70 C,
+     onde o aparelho tambem mostra o aviso de superaquecimento; ao esfriar volta
+     a 100% sozinho, em rampa suave. Isso e proposital: corta o calor na fonte
+     antes do desligamento de protecao em 75 C. Perda maxima de brilho: 15%.
 
 COMO SABER QUE FUNCIONOU (3 sinais)
   - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos.
