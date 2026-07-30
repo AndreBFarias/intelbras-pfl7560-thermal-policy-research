@@ -208,6 +208,19 @@ Imediatamente depois dessa chamada ele lê **outra** variável (`0x36ea30`) e de
 **Próxima pista concreta para o FAN-S1:** decodificar `[MonotonicTask] TASK_MODE` / `STEADY_CLOCK_EN` e
 descobrir qual valor agenda o loop que contém a chamada ao monitor. Sem isso, `MONITOR_MODE = 1` é inerte.
 
+**E pior que inerte — `MONITOR_MODE = 1` DEGRADA o loop térmico.** Efeito colateral observado ao vivo: com
+a config de observação carregada, os ticks de `RunLineChange`/`RunPwmChange` (normalmente a cada 2 s)
+ficaram **esparsos** — um único evento em vários minutos — e a rampa de recuperação do brilho **travou em
+956** em vez de completar até 1000, com `gtt1` em 56,8 °C (muito abaixo do 1º limiar, alvo 1000).
+
+Após reboot com a config canônica (sem a seção), os ticks voltaram ao ritmo de 2 s
+(`Level Change 1000 => 1000`) e o brilho retornou a **1000**. Isso é coerente com a hipótese do
+`TASK_MODE`: `MONITOR_MODE = 1` desvia o fluxo para `RunThermalMngrMain`, que sem o agendamento correto
+não roda a política na cadência normal.
+
+**Consequência prática: nunca deixar `MONITOR_MODE = 1` no `.ini` distribuído antes de resolver o
+`TASK_MODE`.** Não é só "não protege" — atrasa a própria escada de brilho, que é a proteção que funciona.
+
 Enquanto isso não for feito: **se um soprador morrer, nada detecta.** Combinado com brilho alto, é
 exatamente o mecanismo que destrói polarizador. Continua sendo o achado de maior severidade desta sessão.
 
