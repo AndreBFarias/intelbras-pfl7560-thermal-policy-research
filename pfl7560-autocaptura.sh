@@ -38,11 +38,24 @@ eh_projetor(){
   [ "$m" = "PFL7560" ]
 }
 
+# hidebug vive em /vendor/bin e exige root. O adbd do aparelho sobe como
+# uid=2000(shell), entao sem esta escalada toda amostragem falha em silencio --
+# foi a causa dos 8253 TSVs so-cabecalho entre 2026-07-30 e 2026-08-17
+# (8257 sessões abertas no autocaptura.log, das quais so 4 chegaram a amostrar).
+garante_root(){
+  local dev="$1" u
+  u=$(timeout 10 $ADB -s "$dev" shell id </dev/null 2>/dev/null | tr -d '\r')
+  case "$u" in *"uid=0"*) return 0 ;; esac
+  timeout 15 $ADB -s "$dev" root >/dev/null 2>&1; sleep 3
+  timeout 10 $ADB connect "$dev" >/dev/null 2>&1
+  timeout 10 $ADB -s "$dev" wait-for-device >/dev/null 2>&1 || true
+}
+
 tenta_ip(){
   local ip="$1" dev="$ip:$PORTA"
   timeout 4 bash -c "cat < /dev/null > /dev/tcp/$ip/$PORTA" 2>/dev/null || return 1
   timeout 8 $ADB connect "$dev" >/dev/null 2>&1
-  if eh_projetor "$dev"; then echo "$dev"; return 0; fi
+  if eh_projetor "$dev"; then garante_root "$dev"; echo "$dev"; return 0; fi
   timeout 5 $ADB disconnect "$dev" >/dev/null 2>&1   # não envenenar o daemon
   return 1
 }
@@ -98,39 +111,62 @@ amostra(){  # $1 = dev ; imprime "t0 t1 f0 f1 bri up" ou falha
 
 log "supervisor iniciado (intervalo=${INTERVALO}s backoff=${BACKOFF}s)"
 DEV=""; PICO=0; SESSAO=""
+# por que a sessão terminou. Sem isso o log carimba "projetor offline" tambem
+# quando o aparelho respondeu e foi so a amostragem que falhou -- foi esse
+# rotulo errado que escondeu o bug do root por 18 dias.
+MOTIVO="projetor offline"
 
 while :; do
   if [ -z "$DEV" ] || ! eh_projetor "$DEV"; then
     if [ -n "$SESSAO" ]; then
-      log "sessão encerrada (projetor offline). pico de gtt1: $((PICO / 1000)) C"
+      log "sessão encerrada ($MOTIVO). pico de gtt1: $((PICO / 1000)) C"
       SESSAO=""; PICO=0
     fi
+    MOTIVO="projetor offline"
     DEV=$(descobre) || { sleep "$BACKOFF"; continue; }
     log "projetor encontrado em $DEV"
   fi
 
-  if [ -z "$SESSAO" ]; then
-    SESSAO="$DATA_DIR/$(date +%Y-%m-%d)/autocaptura-$(date +%H%M%S).tsv"
-    mkdir -p "$(dirname "$SESSAO")"
-    printf 'ts\tuptime_s\tgtt0_mC\tgtt1_mC\tfan0\tfan1\tbrilho\tevento\n' > "$SESSAO"
-    log "sessão iniciada -> $SESSAO"
-  fi
-
   if out=$(amostra "$DEV"); then
-    read -r t0 t1 f0 f1 b up <<< "$out"
-    [ "$t1" -gt "$PICO" ] 2>/dev/null && PICO="$t1"
-    ev="-"
-    if   [ "$t1" -ge "$EMERG_MC" ] 2>/dev/null; then ev="EMERGENCY cruzado (corte imediato)"
-    elif [ "$t1" -ge "$WARN_MC" ]  2>/dev/null; then ev="WARNING cruzado (aviso na tela)"
-    elif [ "$t1" -ge "$ESCADA_MC" ] 2>/dev/null; then ev="escada de brilho atuando"
+    # o arquivo so nasce quando ha dado de verdade: sessão que nunca amostrou
+    # não deixa TSV so-cabecalho para tras
+    if [ -z "$SESSAO" ]; then
+      SESSAO="$DATA_DIR/$(date +%Y-%m-%d)/autocaptura-$(date +%H%M%S).tsv"
+      mkdir -p "$(dirname "$SESSAO")"
+      printf 'ts\tuptime_s\tgtt0_mC\tgtt1_mC\tfan0\tfan1\tbrilho\tevento\n' > "$SESSAO"
+      log "sessão iniciada -> $SESSAO"
     fi
-    [ "$b" != "1000" ] && [ "$b" != "NA" ] && ev="$ev; brilho $b"
+    read -r t0 t1 f0 f1 b up <<< "$out"
+    ev="-"
+    # LEITURA INVÁLIDA do LSADC. Em 2026-08-17 23:20:44 este mesmo caminho de
+    # sondagem devolveu 2 mC no meio de uma serie estavel em 63421, e sete
+    # minutos depois a protecao travou em "LSADC Error". Como cada gtt forca
+    # comutacao do mux, uma leitura assim provavelmente e do próprio sondador --
+    # razao a mais para marcar, e para nunca contaminar o PICO ou os limiares.
+    if [ "$t1" -lt 5000 ] 2>/dev/null || [ "$t1" -gt 120000 ] 2>/dev/null; then
+      ev="LEITURA INVÁLIDA do LSADC (gtt1=$t1 mC)"
+      log "$ev - precursor de protecao cega"
+    else
+      [ "$t1" -gt "$PICO" ] 2>/dev/null && PICO="$t1"
+      if   [ "$t1" -ge "$EMERG_MC" ] 2>/dev/null; then ev="EMERGENCY cruzado (corte imediato)"
+      elif [ "$t1" -ge "$WARN_MC" ]  2>/dev/null; then ev="WARNING cruzado (aviso na tela)"
+      elif [ "$t1" -ge "$ESCADA_MC" ] 2>/dev/null; then ev="escada de brilho atuando"
+      fi
+    fi
+    # ATENÇÃO: `gbri 0` devolve o PWM real, não o nivel logico. Com brilho maximo
+    # ele le 996, não 1000 -- comparar com "1000" marcava TODA amostra como
+    # anomala e afogava a coluna de evento. Os degraus validos vem do `gbll`:
+    # 750, 800, 850, 900, 950, 1000. So abaixo de 950 houve queda de verdade.
+    [ "$b" != "NA" ] && [ "$b" -lt 950 ] 2>/dev/null && ev="$ev; brilho caiu para $b"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
       "$(date +%H:%M:%S)" "$up" "$t0" "$t1" "$f0" "$f1" "$b" "$ev" >> "$SESSAO"
     [ "$ev" != "-" ] && log "$ev (gtt1=$((t1 / 1000)) C brilho=$b)"
     sleep "$INTERVALO"
   else
-    DEV=""            # perdeu contato: proxima volta redescobre
+    # falha de amostragem NÃO e o mesmo que projetor desligado: o aparelho pode
+    # ter respondido ao getprop e o hidebug ter falhado (tipicamente sem root)
+    log "amostragem falhou em $DEV (hidebug sem resposta); redescobrindo"
+    DEV=""
     sleep 5
   fi
 done
