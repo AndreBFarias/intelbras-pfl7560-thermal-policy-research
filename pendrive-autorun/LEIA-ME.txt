@@ -34,7 +34,27 @@ COMO SABER QUE FUNCIONOU (3 sinais)
   - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos.
   - LOG: aparece um arquivo "newlink_update.log" na raiz do pendrive com o
     passo a passo (procure a linha "CORRECAO APLICADA COM SUCESSO").
-  - adb (se tiver PC): ./pfl7560-fix.sh status
+  - adb (se tiver PC): ./pfl7560-saude.sh -> 12 checagens de uma vez, e diz
+    tambem se a protecao esta ENXERGANDO neste boot, que e coisa diferente de
+    "o arquivo esta certo". Prova ativa: ./pfl7560-saude.sh --vivacidade
+    (injeta 71 C por 40 s; o aviso aparece na tela e o brilho cai ate 850 e
+    volta sozinho - e proposital, nao e defeito).
+
+CUIDADO COM AS FERRAMENTAS QUE "CUTUCAM" O SENSOR
+  ./pfl7560-fix.sh status, pfl7560-evidencias.sh, pfl7560-monitor-termico.sh e
+  pfl7560-autocaptura.sh leem a temperatura pelo /vendor/bin/hidebug. Nao e a
+  leitura em si que faz mal: o comando "gtt N" avanca o anel de amostras do
+  termistor N e SO DELE, entao "gtt 0" e "gtt 1" EM PAR avancam um anel cada e
+  PRESERVAM A FASE - foi o que os 1060 comandos gtt do historico fizeram, com
+  ZERO episodios. O que arrisca cegar a protecao e a sondagem IMPAR: um gtt
+  sozinho, os canais crus do LSADC, ou um par INTERROMPIDO NO MEIO - que e
+  exatamente o que um timeout de adb produz.
+  Regra pratica que permanece: use essas ferramentas de forma pontual e
+  supervisionada, e NUNCA as deixe rodando como servico. Nao porque cada par
+  seja perigoso, mas porque quanto mais pares emitidos, maior a chance de um
+  deles ser cortado no meio.
+  Para acompanhar sem risco: pfl7560-saude.sh, pfl7560-vigia-lsadc.sh e
+  pfl7560-monitor-props.sh.
 
 SEGURANCA
   - Idempotente: se ja estiver aplicado, nao faz nada (nao fica reiniciando).
@@ -42,21 +62,71 @@ SEGURANCA
   - Nao toca no bootloader. So edita a particao /vendor (reversivel).
   - So altera o que existe: se o wi-fi/xiri ja estiverem ok, pula.
 
+CORRECAO DE COR (FIX 4) - OPCIONAL, DESLIGADA POR PADRAO
+  Por padrao o autorun aplica so os 3 fixes TERMICOS. A cor do painel
+  (VESA/JEIDA) vive na particao panelparam (mmcblk0p6), separada, e NAO e
+  tocada - a menos que voce ligue o FIX 4 de proposito, como abaixo.
+
+  QUANDO LIGAR: so se o micro-painel DESTE aparelho foi trocado pelo RX058B-0600
+  (peca do Thundeal TD96). Num aparelho com o painel DE FABRICA (-4300), forcar
+  JEIDA QUEBRA a cor dos meios-tons. Na duvida, NAO ligue.
+
+  COMO LIGAR (duas travas, as duas obrigatorias):
+    1. Descubra o serial do aparelho:  adb shell getprop ro.serialno
+       (ou Configuracoes -> Sobre; e o mesmo numero)
+    2. Crie na RAIZ do pendrive um arquivo chamado exatamente
+          EU-TROQUEI-O-PAINEL-PARA-0600.txt
+       e escreva o serial DENTRO dele, numa linha.
+    3. Pronto. No proximo boot com o pendrive plugado, se a cor estiver em VESA
+       o autorun faz backup da particao (8 MiB, no proprio pendrive), grava o
+       byte e reinicia uma vez.
+
+  POR QUE O SERIAL: este pendrive foi feito para ser emprestado e corrigir
+  OUTROS PFL7560. Um arquivo vazio sobreviveria ao emprestimo e estragaria a cor
+  do aparelho do outro. Com o serial dentro, a autorizacao vale para UM aparelho
+  so e nao viaja junto com a midia.
+
+  O software NAO consegue saber qual painel esta no motor optico: depois da
+  troca fisica, o driver continua reportando RX058B_4300. Quem afirma a troca e
+  voce, escrevendo o serial no arquivo. O script confere se o nome do perfil
+  gravado na particao bate com o que o driver reporta - isso prova que o OFFSET
+  esta certo, nao qual painel esta instalado.
+
+  SE ALGO DER ERRADO: o backup fica em panelparam-backup-<serial>.img na raiz do
+  pendrive, com .md5 ao lado. Restaure com ./pfl7560-lcd-color.sh restore.
+  Falha na cor NUNCA bloqueia os fixes termicos: sao independentes.
+
+  Nota util: a particao panelparam NAO faz parte do container do firmware, entao
+  REGRAVAR o firmware de fabrica NAO apaga a correcao de cor. Ela so volta ao
+  errado se alguem rodar nl_lvdsctl fmt 0 ou trocar o indice do perfil de
+  proposito. Na pratica, e um cenario raro.
+
 OBSERVACOES
-  - Use um pendrive SEM qualquer .bin junto (nem PFL7560.bin, nem usb_update.bin)
-    para nao confundir com o fluxo de "Atualizacao local" nem com o modo de
-    resgate do loader. Este autorun e independente do menu.
   - Testado no firmware V1.0.0.9. Em outra versao, confira antes.
   - Reverter: use ./pfl7560-fix.sh revert (pelo PC) ou regrave o firmware
     de fabrica (Software PFL7560.zip) pela "Atualizacao local do sistema".
 
-  ATENCAO - PENDRIVE DE RESGATE (usb_update.bin) e SEPARADO:
-  - O pendrive de RESGATE (com usb_update.bin) deve ficar FISICAMENTE SEPARADO
-    deste pendrive de autorun e DESCONECTADO no uso normal. Nunca ponha os dois
-    juntos: LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de upgrade do loader,
-    que REFLASHA o firmware -> APAGA a correcao e FORMATA o /data.
-  - usb_update.bin deve SEMPRE ser o firmware DE FABRICA (Software PFL7560.zip).
-    NUNCA renomeie o PFL7560-FIX.bin (em quarentena) para usb_update.bin: ele
-    brica o boot (rotulo SELinux ausente) e o power-hold bricaria o aparelho.
+  DOIS ARRANJOS POSSIVEIS - escolha com consciencia:
+
+  (A) DISTRIBUICAO / pendrive de autorun "limpo" - RECOMENDADO para dar a
+      outra pessoa ou para o dia a dia: SO newlink_update.sh + ZYCustom.ini,
+      sem nenhum .bin junto. Nao ha como um power-hold acidental reflashear.
+
+  (B) KIT DE EMERGENCIA pessoal - um pendrive so, com o autorun E o
+      usb_update.bin de fabrica. E um arranjo legitimo: cobre tanto "liguei e a
+      correcao sumiu" (plugar, ligar, deixar aplicar, tirar) quanto "brickei e
+      preciso reflashear" (power-hold). O preco e conhecer o risco abaixo.
+
+  ATENCAO - o risco do arranjo (B), e como conviver com ele:
+  - Com o pendrive plugado, LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de
+    upgrade do loader, que REFLASHA o firmware -> APAGA os 3 fixes de /vendor e
+    FORMATA o /data (perde Wi-Fi, contas, apps). Nao e defeito: e o modo de
+    resgate funcionando. So nao pode ser acidental.
+  - Regra pratica do arranjo (B): mantenha o pendrive DESCONECTADO no uso
+    normal. Plugue so quando for usar um dos dois papeis, e tire depois.
+  - usb_update.bin deve SEMPRE ser o firmware DE FABRICA (Software PFL7560.zip),
+    md5 28a2f280eee313a4b115567926b2ba4f. NUNCA renomeie um .bin de correcao
+    para usb_update.bin: o prototipo sem rotulo SELinux brica o boot, e ai o
+    power-hold nao resgata - piora.
   - Detalhes do resgate: docs/guide/16-recuperacao-brick.md
 ========================================================================
