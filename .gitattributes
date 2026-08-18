@@ -13,6 +13,12 @@ firmware/*.zip filter=lfs diff=lfs merge=lfs -text
 #                ZYCustom.ini e derrubou o md5 (incidente de 2026-07-29, doc 34).
 artifacts/ZYCustom*             -text byte-exact
 pendrive-autorun/ZYCustom.ini   -text byte-exact
+# ASCII PURO obrigatorio: rodam no shell do projetor (/vendor/bin/sh) e vivem
+# em FAT32, onde acento pt-BR vira mojibake ou quebra o parser. O proprio
+# cabecalho dos dois declara a convencao; sem byte-exact o auto-fix de
+# acentuacao do pre-commit os acentuaria.
+pendrive-autorun/newlink_update.sh  -text byte-exact
+pendrive-autorun/LEIA-ME.txt        -text byte-exact
 artifacts/*.STOCK               -text byte-exact
 artifacts/*.MOD                 -text byte-exact
 artifacts/historico/perfis/*    -text byte-exact
