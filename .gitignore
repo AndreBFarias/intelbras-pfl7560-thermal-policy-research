@@ -3,6 +3,9 @@
 *.bin
 *.zip
 *.pdf
+# libs do firmware extraidas do aparelho para disassembly (doc 37):
+# proprietarias, mesma regra dos .bin e .zip - ficam so na maquina
+*.so
 # Excecao: zip oficial de fabrica (resgate / rebuild) — tracked com Git LFS
 !firmware/Software PFL7560.zip
 
