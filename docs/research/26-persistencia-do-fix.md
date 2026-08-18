@@ -60,9 +60,15 @@ Nota sobre `mtime`: o arquivo fica com data `2026-07-06` mesmo escrito em `2026-
 
 A reversão pontual do `ZYCustom.ini` para stock (observada uma vez, no início) **não foi reproduzida**
 no teste controlado. Hipóteses não descartadas: (a) resíduo do resgate/reflash pós-brick recente;
-(b) ação manual durante a troca de fontes de vídeo. **Recomendação:** manter o **pendrive-autorun
-plugado** como garantia (reaplica os 3 a cada boot) e **monitorar** se a reversão recorre — se recorrer
-de forma reprodutível, reabrir esta investigação.
+(b) ação manual durante a troca de fontes de vídeo.
+
+**Recomendação — CORRIGIDA.** A versão anterior deste doc mandava manter o **pendrive-autorun plugado
+como garantia**. **Não faça isso:** ligar o projetor segurando o botão de power com um pendrive plugado
+dispara o modo de upgrade do loader, que regrava o firmware e **formata o `/data`** — a "garantia" custa
+mais do que o risco que cobre. Guarde o pendrive de autorun **desconectado** no dia a dia e apenas
+**monitore** se a reversão recorre; se recorrer, reaplique com `pfl7560-fix.sh apply` e reabra esta
+investigação. Mesma regra em [`../../INSTALL.md`](../../INSTALL.md) e em
+[`../../pendrive-autorun/LEIA-ME.txt`](../../pendrive-autorun/LEIA-ME.txt).
 
 ## Correções de documentação associadas (mesma sessão)
 
@@ -79,5 +85,5 @@ adb -s <ip>:5555 shell 'grep -w /vendor /proc/mounts; grep -i overlay /proc/moun
 adb -s <ip>:5555 remount ; adb -s <ip>:5555 shell 'grep -w /vendor /proc/mounts'
 # 3) teste de persistência: grava o fix, reinicia, relê o md5:
 #    (use pfl7560-fix.sh apply, ou mount -o rw,remount + push atômico)
-adb -s <ip>:5555 shell 'md5sum /vendor/etc/ZYCustom.ini'   # esperado 1ad641ed após reboot
+adb -s <ip>:5555 shell 'md5sum /vendor/etc/ZYCustom.ini'   # esperado 252ab7a72a007a8b79b3fc86bd5c0d19 após reboot
 ```

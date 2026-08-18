@@ -1,5 +1,13 @@
 # 15 - O .bin: checksum do container decifrado (build EM QUARENTENA — brica o boot)
 
+> **NOTA (2026-08-18) — este documento descreve o protótipo APAGADO.** A build aqui descrita embute a
+> config `1ad641ed` (pré-escada de brilho) e tem CRC de vendor `0x35ca9b46`; ela **não existe mais** no
+> repositório. A build **viva** é `eae3a83d…` (`PFL7560-FIX-escada-NAO-GRADUADO.bin`), com a config
+> canônica `252ab7a72a007a8b79b3fc86bd5c0d19` e CRC de vendor **`0x832a0731`**, registrada em
+> [`../../firmware/README.md`](../../firmware/README.md). O que continua válido aqui é o **método**
+> (formato do container, os dois checksums CRC-32/MPEG-2, a edição in-place do sparse) — os números da
+> build, não. Nenhuma das duas deve ser flashada.
+
 O que faltava para gerar um firmware `.bin` flashável com a correção embutida era **entender os checksums
 do container "LOAD"**. Isso foi feito revertendo o loader on-device, e os **checksums estão corretos**. Mas
 o `.bin` resultante **trava o boot** em hardware (rótulo SELinux ausente nos arquivos reescritos) e está
@@ -76,7 +84,7 @@ stock de referência).
 Depois de cada `write`, o builder lê mode/uid/gid/`security.selinux` do **stock** e reaplica com:
 
 - `sif <arq> mode 0100xxx` (**com** bit `S_IFREG` — `sif mode 0644` sozinho vira `bad type`)
-- `sif uid/gid` iguais ao stock  
+- `sif uid/gid` iguais ao stock
 - `ea_set … security.selinux <ctx>\000` (NUL terminal como no stock)
 
 Valores V1.0.0.9: `ZYCustom.ini`/`init.bigfish.rc` → 0644 + `vendor_configs_file:s0`; `build.prop` → 0600 +

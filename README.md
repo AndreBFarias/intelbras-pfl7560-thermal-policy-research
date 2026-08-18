@@ -88,6 +88,29 @@ install.bat
 
 3. **Manual (adb)** — [`docs/research/06-acesso-adb-e-comandos.md`](docs/research/06-acesso-adb-e-comandos.md).
 
+### Verificar depois de aplicar
+
+```bash
+PFL_IP=<ip> ./pfl7560-saude.sh                # 12 checagens; exit 0 = tudo certo
+PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade   # a PROVA FORTE: a protecao reage?
+```
+
+Confere os 3 arquivos, o mux destravado, a escada de brilho, a correção de cor **e** se a proteção está
+**enxergando neste boot** — a configuração pode estar perfeita e a proteção estar cega mesmo assim
+(`LSADC Error`; um reboot restaura). Nessa forma não escreve nada e não toca o sensor. Menu: opção **5**.
+
+**A prova forte é `--vivacidade`.** Ela injeta 71 °C por ~40 s (`vendor.zy.power.tm.temp`) e verifica se o
+firmware **reage**: `Overheat Warning` no log e a escada de brilho descendo até 850 e voltando sozinha.
+É o único teste **positivo** da proteção que existe — contar `LSADC Error` no logcat não serve como prova
+de ausência (o erro só sai em 2 de cada 10 iterações e o buffer dura 60-150 s). Diferente das outras
+checagens, este modo **não é read-only**: escreve a propriedade, mexe no brilho e grava log em
+`evidencias/vivacidade/`. Mecanismo e aviso de segurança em
+[`docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md`](docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md).
+
+Para acompanhar durante o uso real (a escada só atua acima de 66 °C):
+`PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh` — menu opção **6**. Ver o aviso sobre sondagem em
+[`INSTALL.md`](INSTALL.md#acompanhar-durante-o-uso).
+
 4. **Firmware `.bin` completo (experimental)** — um protótipo antigo **travava o boot** (metadados errados) e foi **apagado**. O builder atual (`artifacts/bin-build/`) já carimba mode/rótulo SELinux; existe uma build nova que passa offline, mas **ainda não bootou em hardware** — segue em quarentena. Use só os métodos 1–3. Caminho até um `.bin` que boota: [`docs/research/31-plano-mestre-bin-final.md`](docs/research/31-plano-mestre-bin-final.md). Recuperação: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-recuperacao-brick.md).
 
 ## Segurança e recuperação
@@ -133,15 +156,24 @@ painel e testa VESA/JEIDA na tela) ou `./pfl7560-menu.sh` → opção 4; no Wind
 .
 ├── install.sh / install.bat        # setup do PC (Linux·macOS / Windows)
 ├── requirements · REQUIREMENTS.md
-├── pfl7560-fix.sh                  # correção térmica (status/apply/revert)
+├── pfl7560-fix.sh                  # correção térmica (status/apply/revert) — sonda o sensor
+├── pfl7560-saude.sh                # verifica se a correção está ativa (12 checagens, passivo)
+│                                   #   --vivacidade = prova forte, e o ÚNICO modo não read-only
+├── pfl7560-vigia-lsadc.sh          # acompanha a proteção durante o uso real (passivo)
+├── pfl7560-monitor-props.sh        # curva térmica por props (passivo)
+├── pfl7560-monitor-termico.sh      # curva térmica por hidebug (sonda — só pontual)
+├── pfl7560-autocaptura.sh          # captura automática da curva em uso real (sonda — serviço DESABILITADO)
 ├── pfl7560-lcd-color.sh            # correção de cor pós-troca de painel (VESA/JEIDA)
 ├── pfl7560-menu.sh · pfl7560-evidencias.sh · PFL7560-Corrigir.desktop
 ├── INSTALL.md · LICENSE (GPLv3)
 ├── pendrive-autorun/               # método sem PC
 ├── docs/
 │   ├── dossie-teardown.html        # dossiê visual do teardown (fotos + achados)
-│   ├── research/                   # teardown, causa-raiz, build, LCD, plano mestre (31)
-│   ├── guide/                      # replicação, segurança, brick, troca de painel (32)
+│   ├── research/                   # teardown, causa-raiz, build, LCD, plano mestre (31),
+│   │                               #   escada de brilho + FanMonitor (34), sessão de campo (35),
+│   │                               #   mecanismo do LSADC (37 — o mais importante do projeto)
+│   ├── guide/                      # replicação, segurança, brick, troca de painel (32),
+│   │                               #   lista de compras do reparo óptico (36)
 │   ├── disclosure/                 # relatório CSIRT + status
 │   └── archive/                    # sprints e auditorias internas
 ├── artifacts/

@@ -48,9 +48,10 @@ echo     3^) Aplicar correcao termica (pede IP^)
 echo     4^) Reverter para fabrica   (pede IP; usa backup local^)
 echo     5^) Abrir pasta pendrive-autorun (metodo SEM PC^)
 echo     6^) Corrigir COR (so se voce TROCOU o painel LCD^)
-echo     7^) Sair
+echo     7^) VERIFICAR se esta tudo certo (recomendado; nao cutuca o sensor^)
+echo     8^) Sair
 echo.
-set /p "OP=  Escolha [1-7]: "
+set /p "OP=  Escolha [1-8]: "
 
 if "%OP%"=="1" goto :do_check
 if "%OP%"=="2" goto :do_status
@@ -58,7 +59,8 @@ if "%OP%"=="3" goto :do_apply
 if "%OP%"=="4" goto :do_revert
 if "%OP%"=="5" goto :do_pendrive
 if "%OP%"=="6" goto :do_lcd
-if "%OP%"=="7" exit /b 0
+if "%OP%"=="7" goto :do_saude
+if "%OP%"=="8" exit /b 0
 echo  opcao invalida.
 goto :menu
 
@@ -73,6 +75,48 @@ if exist "%HERE%\pfl7560-fix.sh" (
 )
 echo.
 echo  Proximo: anote o IP do projetor ^(Configuracoes -^> Wi-Fi^) e use a opcao 2 ou 3.
+pause
+goto :menu
+
+:do_saude
+call :ask_ip || goto :menu
+call :connect || goto :menu
+echo.
+echo  ============================================================
+echo   VERIFICACAO - nenhuma destas leituras toca o sensor
+echo  ============================================================
+echo.
+echo  [1] os 3 arquivos corrigidos
+"%ADB%" -s %DEV% shell "md5sum /vendor/etc/ZYCustom.ini" 2>nul | findstr /c:"252ab7a72a007a8b79b3fc86bd5c0d19" >nul && (echo      OK    ZYCustom.ini e o config de correcao) || (echo      FALHA ZYCustom.ini divergente ou ilegivel)
+"%ADB%" -s %DEV% shell "grep -a wifi_disconnect_on_boot /vendor/build.prop" 2>nul | findstr /c:"=0" >nul && (echo      OK    Wi-Fi reconecta no boot) || (echo      FALHA Wi-Fi nao corrigido)
+"%ADB%" -s %DEV% shell "grep -a -A3 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc" 2>nul | findstr /c:"disabled" >nul && (echo      OK    xiriservice silenciado) || (echo      FALHA xiriservice ativo)
+echo.
+echo  [2] o conserto em si - o mux dos termistores
+"%ADB%" -s %DEV% shell "grep -ac 'HW_VIRTUAL_CHANNEL = 1' /vendor/etc/ZYCustom.ini" 2>nul | findstr /r "[1-9]" >nul && (echo      OK    HW_VIRTUAL_CHANNEL = 1 presente) || (echo      FALHA mux travado no canal 0)
+"%ADB%" -s %DEV% shell "ls /atv/ini/ZYCustom.ini" 2>nul | findstr /c:"No such" >nul && (echo      OK    sem ZYCustom.ini em /atv/ini) || (echo      ATENCAO existe /atv/ini/ZYCustom.ini - ele VENCE o de /vendor)
+echo.
+echo  [3] apareceu LSADC Error no buffer? - sinal POSITIVO, nao prova
+"%ADB%" -s %DEV% shell "logcat -d | grep -c 'LSADC Error'" 2>nul | findstr /r "^0" >nul && (echo      OK    nenhum LSADC Error no buffer - NAO prova que esta viva) || (echo      FALHA LSADC Error presente - PROTECAO CEGA. REINICIE O PROJETOR.)
+echo      Zero ocorrencias NAO prova que a protecao esta viva: o erro so
+echo      aparece em 2 de cada 10 iteracoes do loop termico, e o buffer do
+echo      logcat dura 60-150 s neste aparelho. Se aparecer, ai sim algo esta
+echo      errado de fato - reinicie o projetor.
+echo      sensores (o 1o e a optica, o 2o a placa; iguais = mux nao comutou^):
+"%ADB%" -s %DEV% shell "getprop zysys.env_temp; getprop zysys.light_temp" 2>nul
+echo.
+echo  [4] correcao de cor do painel trocado
+"%ADB%" -s %DEV% shell "cat /proc/msp/panel" 2>nul | findstr /c:"jeida" >nul && (echo      OK    runtime em JEIDA) || (echo      ATENCAO nao esta em JEIDA - so correto se o painel for o de fabrica)
+echo.
+echo  ============================================================
+echo   A configuracao pode estar perfeita e a protecao estar cega
+echo   mesmo assim - sao coisas diferentes. O bloco [3] NAO decide
+echo   isso: ausencia de LSADC Error nao prova nada, so a presenca.
+echo   A prova que decide e o teste de vivacidade, que injeta 71 C
+echo   e ve se o firmware REAGE. Ele roda no Linux/WSL:
+echo      wsl bash -lc "PFL_IP=IP-DO-PROJETOR ./pfl7560-saude.sh --vivacidade"
+echo   Se a protecao estiver cega, reiniciar o projetor restaura.
+echo  ============================================================
+echo.
 pause
 goto :menu
 

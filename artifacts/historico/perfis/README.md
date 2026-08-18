@@ -27,6 +27,7 @@ termistores (mux **não** destravado).
 
 ## O único config seguro e atual
 
-`../../ZYCustom_390.ini` (a **build final**, md5 `1ad641ed`): mux destravado (`HW_VIRTUAL_CHANNEL = 1` no
-`[Thermistor_1]`) **+** `WARNING/EMERGENCY = 70000/75000` **+** fans/brilho fixos em 1000 **+** typo do
+`../../ZYCustom_390.ini` (a **build final**, md5 `252ab7a7…`): mux destravado (`HW_VIRTUAL_CHANNEL = 1` no
+`[Thermistor_1]`) **+** `WARNING/EMERGENCY = 70000/75000` **+** fans fixos em 1000 **+** brilho com escada
+1000→850 entre 66 °C e 73 °C (1000 no uso normal, perda máxima de 15% e só quando quente) **+** typo do
 `FW_SPEED_CURVE` corrigido. É o que está no aparelho e o que os métodos `/vendor` aplicam.

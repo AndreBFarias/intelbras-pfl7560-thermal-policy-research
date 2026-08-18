@@ -46,6 +46,10 @@ Dois blowers COFN **DFH8025S** (DC 12 V), exatamente o que a config térmica dec
 (`[CoolingFan] SERIAL_NUM = 2`). **Não há Peltier/TEC nem terceiro ventilador** — a refrigeração é
 passiva (dissipador) + ar forçado (2 sopradores) + proteção por dimming/desligamento do LED.
 
+> **Ressalva (doc 34, 2026-07-29):** ampliando a mesma foto, a etiqueta **parece dizer `DFH8030S`**, não
+> `DFH8025S`. O dígito não foi resolvido na resolução disponível — **confirmar na etiqueta física** antes
+> de dar o modelo por fechado. Só importa para spec de RPM num eventual swap.
+
 ## Correção do mapa da placa
 
 O mapa anterior (feito por IA numa sessão passada) tinha erros. Correções:

@@ -90,9 +90,65 @@ adb shell sync && adb reboot
 
 ## Verificar se aplicou
 
+**Jeito recomendado — 12 checagens de uma vez:**
+
+```bash
+PFL_IP=<ip> ./pfl7560-saude.sh            # 0 = tudo certo, 1 = algo falhou
+PFL_IP=<ip> ./pfl7560-saude.sh --idempotencia   # roda 2x e confere que o veredito nao muda
+PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade     # a prova FORTE: pergunta se a protecao reage
+```
+
+No menu: opção **5**. Ele confere os 3 arquivos corrigidos, o mux destravado, a escada de brilho, se a
+proteção está **enxergando neste boot**, e a correção de cor do painel. Nas duas primeiras formas não
+escreve nada e não toca o sensor, então pode rodar quantas vezes quiser.
+
+**A prova que decide é o teste de vivacidade:** `PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade`. Ele injeta
+71 °C por ~40 s pela propriedade `vendor.zy.power.tm.temp` e pergunta ao firmware se a política **reage**:
+se o `Overheat Warning` sair e a escada de brilho descer até 850 e voltar sozinha, a proteção está viva
+**agora**, sem margem para dúvida. É o único teste **positivo** da proteção que existe. Diferente das
+outras duas formas, este **não é read-only**: escreve a propriedade, mexe no brilho e grava log em
+`evidencias/vivacidade/` — o override é limpo ao final aconteça o que acontecer.
+
+**A ausência de `LSADC Error` no buffer NÃO prova que a proteção está viva.** O erro só aparece em **2 de
+cada 10** iterações do loop térmico, e o ring do logcat dura **60-150 s** neste aparelho: zero ocorrências
+pode significar apenas que você não olhou tempo suficiente, ou que o buffer rolou. O grep continua
+valendo como sinal **positivo** — se `LSADC Error` aparecer, algo está errado de fato, e **reiniciar o
+projetor** é o que restaura a proteção. Mecanismo em
+[`docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md`](docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md).
+
+**Outras formas:**
+
 - **De olho/ouvido:** ventiladores no talo + brilho estável.
-- **Pelo PC:** `PFL_IP=... ./pfl7560-fix.sh status` — espera-se `NTC count:2`, `fan speed:1000`, e no ini `HW_VIRTUAL_CHANNEL = 1` no 2º termistor.
 - **Pelo pendrive:** `newlink_update.log` com `CORRECAO APLICADA COM SUCESSO`.
+- **Sondando** (`PFL_IP=... ./pfl7560-fix.sh status`): espera-se `NTC count:2`, `fan speed:1000`, e no
+  ini `HW_VIRTUAL_CHANNEL = 1` no 2º termistor. **Use com moderação** — ver o aviso abaixo.
+
+## Acompanhar durante o uso
+
+A escada de brilho só atua quando a óptica passa de 66 °C, então ela não aparece num teste rápido: é
+preciso observar durante uso real. Para isso existe o vigia, que fica de fora e só lê o log:
+
+```bash
+PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh            # acompanha (Ctrl-C para parar)
+PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh --resumo   # o que ja foi observado
+```
+
+No menu: opção **6**. Ele anota quando o brilho baixa sozinho (a escada protegendo a óptica) e quando
+volta a subir, se algum ventilador sair do máximo, e se a proteção cegar.
+
+> **Aviso — não deixe um sondador rodando durante o uso.** Não é a sondagem em si que faz mal: `gtt N`
+> avança o anel de amostras do termistor `N` **e só dele** ([doc 37](docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md)),
+> então `gtt 0` **e** `gtt 1` **em par** avançam um anel cada e **preservam a fase** — foi o que os 1060
+> comandos `gtt` do histórico fizeram, com **zero** episódios. O que arrisca cegar a proteção
+> (`LSADC Error`) é sondagem **ÍMPAR**: um `gtt` sozinho, os canais crus do LSADC, **ou um par
+> interrompido no meio** — que é exatamente o que um `timeout` de adb produz.
+>
+> Daí a regra prática: as ferramentas que leem o sensor pelo `hidebug` (`pfl7560-fix.sh status`,
+> `pfl7560-evidencias.sh`, `pfl7560-monitor-termico.sh`, `pfl7560-autocaptura.sh`) devem ser usadas
+> **pontualmente, com o aparelho supervisionado**, e **nunca deixadas rodando como serviço** — quanto
+> mais pares emitidos, maior a chance de um deles ser cortado no meio. Para acompanhamento contínuo use
+> os passivos: `pfl7560-saude.sh`, `pfl7560-vigia-lsadc.sh` e `pfl7560-monitor-props.sh`. Detalhes em
+> [`docs/research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md`](docs/research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md).
 
 ## Reverter
 

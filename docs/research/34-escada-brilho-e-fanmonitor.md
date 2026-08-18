@@ -29,8 +29,8 @@ aparelho (adb por Wi-Fi, `94.140.14.52:5555`) ou extraído da `libhitvservice.so
 | `gtt1` (óptica, sensor real) | **61,15 °C** em regime, travado (n=20, variação zero) |
 | `gtt1` com screensaver escuro | 63,42 °C |
 | fans (`gfs 0/1`) | `1000` / `1000`, `bAbnormal=0`, `gfe`=1/1 |
-| `gbri 0` | `1000` |
-| `md5` do `ZYCustom.ini` antes | `1ad641ed…` (byte-exato ao fix anterior) |
+| `gbri 0` | `996` — é o **PWM real**, não o nível lógico; `996` é o que o aparelho lê no máximo (o nível lógico correspondente é `1000`) |
+| `md5` do `ZYCustom.ini` antes | `1ad641ed…` (byte-exato ao fix anterior, **pré-escada**) |
 | `/atv/ini/ZYCustom.ini` | **não existe** (sem conflito de precedência) |
 
 **Efeito do conteúdo na tela é pequeno:** branco 61,15 °C vs screensaver escuro 63,42 °C = 2,27 °C, que é
@@ -460,7 +460,7 @@ independente, mas o método foi por sorte. **Confirme call sites antes de tirar 
 | TM-S1 | média | **FECHADO** | Rigal vs KJM diferem só no despachante de atuação; sensoriamento idêntico. Divergência benigna, **não alterar**. |
 | ~~`[MonotonicTask]`~~ | — | **ANULADA** | Pista encerrada: `TASK_MODE` não é scheduler, é atuador extra que disputaria PWM/backlight com a política térmica. |
 | **LSADC-S1** | **alta** | **ABERTO** | Verificar, sob uso real e com o aparelho quente, se o `WARNING` de 70 °C é de fato avaliado (contar `Overheat Warning` vs `LSADC Error` com `gtt1 > 70 °C`). Hoje sabemos que a média fica válida em boot limpo, mas nunca vimos o `Overheat Warning` disparar. Somente leitura. |
-| VIGIA-S1 | média | aberto | Avaliar vigia externo em userspace ancorado no hook `sys.boot_completed` que **já existe** no `.rc` stock (`exec … /data/local/nlsu/update_after_boot.sh`) — dispensa `.rc` novo em `/vendor`, reversível por `rm`. Enquadrar como "resposta graduada esgotou e ainda esquenta", **não** como "detector de fan travada" (não isola a causa: obstrução, ambiente quente e pá quebrada dão a mesma assinatura). Premissa não provada da sprint 19: que o init varre `/vendor/etc/init/*.rc`. |
+| VIGIA-S1 | média | aberto, **premissa REFUTADA** | ~~Ancorar o vigia no hook `sys.boot_completed` que **já existe** no `.rc` stock (`exec … /data/local/nlsu/update_after_boot.sh`)~~ — **`/data/local/nlsu/` NÃO existe neste aparelho** (doc 35 §6; artefato `evidencias/diagnostico-2026-08-17/pos-reboot/artefatos-ausentes.txt`). O hook não tem diretório de destino aqui, então **não** dispensa `.rc` novo em `/vendor` — a ancoragem por `.rc` em `/vendor/etc/init/` volta a ser o caminho, com precedente empírico a favor (foi assim que o `nl_lvds.rc` funcionou). O item em si segue aberto: enquadrar como "resposta graduada esgotou e ainda esquenta", **não** como "detector de fan travada" (não isola a causa: obstrução, ambiente quente e pá quebrada dão a mesma assinatura). Premissa não provada da sprint 19: que o init varre `/vendor/etc/init/*.rc`. |
 | **ESC-S1** | baixa | **FECHADO** | Escada verificada atuando e recuperando em rampa, com log (`Level Change 926 => 1000`, subindo 2-3/tick). Falta apenas ver o pior caso de uso real (filme longo) para confirmar que o piso 850 segura abaixo de 75 °C. |
 | PREF-S1 | baixa | aberto | Provar a grafia das chaves de `Thermal::Preference` se algum dia forem necessárias. |
 | **INT-S1** | média | **FECHADO** | Incidente: o pre-commit global apagou trailing whitespace dos `ZYCustom.ini` e derrubou o md5 (quebrando o gate do pendrive). Corrigido com atributo `byte-exact` no `.gitattributes` versionado, honrado pelo hook. |

@@ -319,7 +319,8 @@ texto sem franja — confirmado por foto do padrão de gamma).
    (`_ZN11HiPanelCtrl4InitEv`) → `SetLvdsFormat(0, valor)`
    (`_ZN11HiPanelCtrl13SetLvdsFormatE22HI_MW_PANEL_LVDS_FMT_E`). Sem o `Init` dá
    `hi_mpi_panel: PANEL is not init`. Uso: `LD_LIBRARY_PATH=/vendor/lib:/system/lib ./lvdsctl fmt 1`.
-   Fonte em `scratchpad/re/lvdsctl.c`. Aplica **ao vivo (sem reboot)**.
+   Fonte em [`../../artifacts/lcd-color-fix/lvdsctl.c`](../../artifacts/lcd-color-fix/lvdsctl.c) (binário
+   compilado ao lado). Aplica **ao vivo (sem reboot)**.
 3. **Bônus: `SetLvdsFormat` também grava no `panelparam`** (não só runtime). Comparando o perfil 69
    antes/depois: **exatamente 1 byte muda — offset `0x5c` do struct de 768: `0x00`(VESA)→`0x01`(JEIDA)**.
    Por isso a correção **persiste no reboot nativamente**, sem janela de cor errada e sem serviço extra.

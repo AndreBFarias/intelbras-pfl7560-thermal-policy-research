@@ -42,7 +42,7 @@ Com `HW_VIRTUAL_CHANNEL = 1` em `[Thermistor_1]` (e reboot):
 | Corrigida + ventilação externa auxiliar | 32,9 °C |
 
 - **Dano físico observado no equipamento de teste:** polarizador e painel LCD degradados/queimados, com **duas substituições em 18 meses** sob uso doméstico com ambientação ventilada.
-- **Efeito colateral do stock no brilho:** a curva de dimming (`POLICY_*_BRIGHTNESS` 1000→750) está atada ao sensor cego; com o uso a imagem **enfraquece**. Com a curva fixada em 1000 e a proteção real no 2º NTC, a imagem permanece estável e a refrigeração deixa de depender de um sensor “frio”.
+- **Efeito colateral do stock no brilho:** a curva de dimming (`POLICY_*_BRIGHTNESS` 1000→750) está atada ao sensor cego, com limiares na faixa `27000-36000` que **não corresponde** à temperatura real da óptica; com o uso a imagem **enfraquece** sem que isso proteja nada. Na correção, a curva é reancorada no sensor **real**: brilho pleno (1000) em toda a faixa normal de operação, descendo em degraus (950 / 900 / 850) apenas entre 66 °C e 70 °C e voltando sozinha na descida. A imagem permanece estável no uso comum **e** a redução passa a acontecer quando de fato protege.
 
 **Anexos.** Já no repositório (`media/` + dossiê visual [`docs/dossie-teardown.html`](../dossie-teardown.html), detalhado em [`docs/research/27-teardown-cabo-gnd-ntc.md`](../research/27-teardown-cabo-gnd-ntc.md)): fotos do teardown — 2 sopradores DFH8025S, header `GND/NTC` na placa NL-5H039-MAIN, e o mapa da placa corrigido (SoC HiSilicon vs. controlador de armazenamento). Pendentes de captura: fotos do polarizador/LCD danificados e do termômetro IR na saída de ar (o comparativo térmico e as leituras `hidebug` `gtt`/`gfs` antes/depois estão registrados numericamente). Repositório de pesquisa (ainda sob janela de divulgação coordenada): *intelbras-pfl7560-thermal-policy-research*.
 
@@ -52,14 +52,15 @@ Com `HW_VIRTUAL_CHANNEL = 1` em `[Thermistor_1]` (e reboot):
 
 **Causa-raiz:** mapeamento incorreto do multiplexador de termistores na configuração de fábrica (`HW_VIRTUAL_CHANNEL` idêntico nos dois canais), resultando em proteção térmica que não observa a temperatura real da óptica.
 
-**Diff conceitual no `ZYCustom.ini` (principais linhas; build validada md5 `1ad641ed…`):**
+**Diff conceitual no `ZYCustom.ini` (principais linhas; build validada md5 `252ab7a72a007a8b79b3fc86bd5c0d19`):**
 
 | Seção / chave | Stock | Proposto / validado |
 |---|---|---|
 | `[Thermistor_1] HW_VIRTUAL_CHANNEL` | `0` | **`1`** ← destrava o mux |
 | `[ThermalPolicy] POLICY_*_SPEED` | rampa 500…1000 | **1000** (piso máximo enquanto a óptica for crítica) |
 | `[CoolingFan_*] DEFAULT_PWM_DUTY` | 200 / 150 | **1000** no boot |
-| `[BacklightPolicy] POLICY_*_BRIGHTNESS` | 1000…750 | **1000** (sem escurecer por sensor cego) |
+| `[BacklightPolicy] POLICY_*_THRESHOLD` | `27000…36000` (faixa do sensor cego) | **`66000, 67500, 69000, 70000, 71500, 73000`** (faixa real da óptica) |
+| `[BacklightPolicy] POLICY_*_BRIGHTNESS` | 1000…750 atado ao sensor cego | **`1000, 950, 900, 850, 850, 850`** — pleno no uso normal, escada só a partir de 66 °C |
 | `[Thermal] WARNING / EMERGENCY` | 43 / 45 °C | **70 / 75 °C** (coerentes com `gtt1` real ~55–61 °C) |
 | typo `FW_SPEED_CURVE` fan1 | `825. 925` | `825, 925` |
 

@@ -10,6 +10,7 @@
 | [`guide/12-seguranca-e-recuperacao.md`](guide/12-seguranca-e-recuperacao.md) | Backups, revert, cenários de pânico |
 | [`guide/16-recuperacao-brick.md`](guide/16-recuperacao-brick.md) | Power-hold + `usb_update.bin` de fábrica |
 | [`guide/32-guia-troca-painel-lcd.md`](guide/32-guia-troca-painel-lcd.md) | Guia leigo: trocar o painel LCD e corrigir a cor (VESA/JEIDA) |
+| [`guide/36-lista-de-compras-reparo-optico.md`](guide/36-lista-de-compras-reparo-optico.md) | Lista de compras do reparo óptico (polarizador, painel, peças) |
 
 ## Divulgação responsável
 
@@ -38,6 +39,9 @@
 | [`research/15-bin-definitivo.md`](research/15-bin-definitivo.md) | Container `.bin` (em quarentena) |
 | [`research/26-persistencia-do-fix.md`](research/26-persistencia-do-fix.md) | Persistência do fix térmico entre boots |
 | [`research/27-teardown-cabo-gnd-ntc.md`](research/27-teardown-cabo-gnd-ntc.md) | Teardown fotografado; cabo GND/NTC; mapa da placa |
+| [`research/34-escada-brilho-e-fanmonitor.md`](research/34-escada-brilho-e-fanmonitor.md) | Alarme de 70 °C, **escada de brilho** ancorada no sensor real, `THERMAL_MODE`, e o FanMonitor **inarmável por software** |
+| [`research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md`](research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md) | Sessão de campo: a proteção cegou no meio do uso; ferramental novo (saúde / vigia / props); quem sonda e quem não sonda |
+| [`research/37-mecanismo-lsadc-defasagem-dos-aneis.md`](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) | **O documento mais importante do projeto.** O mecanismo do `LSADC Error`: defasagem dos anéis de amostras, provado no binário. Explica os dois regimes com um único mecanismo, dá o **teste de vivacidade** (`--vivacidade`) e o experimento decisivo de 2 minutos |
 
 ## Reparo de hardware — troca do painel LCD e correção de cor
 
