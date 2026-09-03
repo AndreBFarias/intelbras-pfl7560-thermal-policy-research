@@ -59,7 +59,11 @@ ok(){   printf '\033[1;32m[OK] %s\033[0m\n' "$*" >&2; }
 warn(){ printf '\033[1;33m[!] %s\033[0m\n' "$*" >&2; }
 err(){  printf '\033[1;31m[ERRO] %s\033[0m\n' "$*" >&2; }
 hr(){   printf '\033[2m%s\033[0m\n' "------------------------------------------------------------" >&2; }
-c2(){   awk "BEGIN{printf \"%.1f\", ${1:-0}/1000}"; }   # miliC -> C
+# miliC -> C. A sentinela 'NA' de read_hidebug tem de SOBREVIVER: interpolada
+# como expressao awk, 'NA/1000' virava 0.0 -- indistinguivel de leitura real, e
+# entrava na media do relatorio ANTES/DEPOIS puxando-a dezenas de graus.
+c2(){   case "${1:-}" in ''|*[!0-9-]*) printf 'NA'; return ;; esac
+        awk "BEGIN{printf \"%.1f\", ${1}/1000}"; }
 
 # higieniza stdin (redige IP/MAC/SSID) p/ artefatos publicaveis
 sanitize(){
@@ -158,11 +162,16 @@ cmd_status(){
   say "  Wi-Fi (boot) : ${wifi:-(nao lido)}"
   say "  xiriservice  : ${xiri:-(desabilitado/ausente)}"
   hr
-  diff=0; { [ -n "$g0" ] && [ -n "$g1" ]; } && diff=$(( g1 - g0 ))
-  if [ "${vch:-0}" -ge 1 ] 2>/dev/null && [ "$diff" -gt 20000 ]; then
+  # read_hidebug preenche campo ausente com a sentinela 'NA', que e NÃO-VAZIA:
+  # testar por -n deixava passar, e $(( NA - NA )) sob `set -u` e erro fatal
+  # ("NA: unbound variable") que ENCERRAVA o script antes do veredito.
+  diff=0; SENT=0
+  case "$g0$g1" in *NA*|'') SENT=1 ;; esac
+  [ "$SENT" = "0" ] && diff=$(( g1 - g0 ))
+  if [ "$SENT" = "0" ] && [ "${vch:-0}" -ge 1 ] 2>/dev/null && [ "$diff" -gt 20000 ]; then
     verdict="CORRIGIDO  (2o sensor ativo: NTC1 le o calor real; fans no maximo)"
     printf '\033[1;32m>> VEREDITO: %s\033[0m\n' "$verdict" >&2
-  elif { [ -n "$g0" ] && [ -n "$g1" ]; } && [ "${diff#-}" -lt 3000 ]; then
+  elif [ "$SENT" = "0" ] && [ "${diff#-}" -lt 3000 ]; then
     verdict="STOCK / DEFEITO  (os 2 sensores leem IGUAL: mux morto, optica cega)"
     printf '\033[1;31m>> VEREDITO: %s\033[0m\n' "$verdict" >&2
   else
@@ -239,6 +248,12 @@ cmd_set_thermal(){
   say "backup do .ini atual do device -> $bkp"
   "$ADB" -s "$d" pull "$ini" "$bkp" >/dev/null 2>&1 || { err "falha ao puxar $ini p/ backup - abortando"; exit 1; }
   [ -s "$bkp" ] || { err "backup veio vazio - abortando (nao vou gravar)"; exit 1; }
+  # Sem isto, qualquer abort daqui para frente deixava /vendor GRAVAVEL ate o
+  # reboot. O pfl7560-fix.sh ja fazia o relock por trap desde a sprint 23; este
+  # caminho de escrita ficou de fora.
+  _RELOCK_DEV="$d"
+  relock_ev(){ [ -n "${_RELOCK_DEV:-}" ] && "$ADB" -s "$_RELOCK_DEV" shell "mount -o ro,remount /vendor" >/dev/null 2>&1; return 0; }
+  trap relock_ev EXIT
   say "remontando /vendor rw"; "$ADB" -s "$d" remount >/dev/null 2>&1
   say "gravando ZYCustom.ini [$target] em $ini (atomico)"
   "$ADB" -s "$d" push "$art" "$ini.new" >/dev/null 2>&1

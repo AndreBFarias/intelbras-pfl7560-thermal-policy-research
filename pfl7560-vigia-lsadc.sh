@@ -165,7 +165,24 @@ vigia(){
     fi
   fi
   echo $$ > "$LOCK"
-  trap 'rm -f "$LOCK"' EXIT INT TERM
+  # A janela de cobertura TEM de ser fechada em qualquer saida. Antes, o trap so
+  # removia o lock e o COBERTURA_FIM so era escrito depois do streaming retornar
+  # -- entao todo Ctrl-C, kill ou queda do terminal deixava a janela ABERTA, e o
+  # resumo a estendia ate "agora". Efeito medido em 2026-09-03: 386,26 h
+  # publicadas para 2,65 h reais (fator 145x), no numero que decide o LSADC-S1.
+  # O trap de INT precisa de `exit` explicito: sem ele o handler retorna e o
+  # `while :` continua -- o script ficava ininterrompivel por Ctrl-C.
+  FIM_OK=""; JANELA_ABERTA=""
+  fim_cobertura(){
+    [ -z "${FIM_OK:-}" ] || return 0
+    FIM_OK=1
+    [ -n "${JANELA_ABERTA:-}" ] && \
+      printf 'COBERTURA_FIM\t%s\t%s\t%s\n' "$(agora)" "${BID:-}" "" >> "$COB"
+    rm -f "$LOCK"
+    return 0
+  }
+  trap fim_cobertura EXIT
+  trap 'fim_cobertura; exit 130' INT TERM
   DEV="$IP:$PORTA"
   printf "${C}vigia LSADC iniciado${Z}  destino: %s\n" "$DIR"
   printf "passivo: so logcat e /proc/uptime. Nenhum acesso ao hidebug.\n\n"
@@ -180,6 +197,7 @@ vigia(){
       ANT_BID="$BID"
     fi
     printf 'COBERTURA_INICIO\t%s\t%s\t%s\n' "$(agora)" "$BID" "$UPTIME" >> "$COB"
+    JANELA_ABERTA=1
 
     # backfill: o buffer do logcat guarda o histórico do boot, entao uma leitura
     # unica recupera o que aconteceu enquanto o vigia estava fora do ar
@@ -191,6 +209,7 @@ vigia(){
       | grep -aE --line-buffered "$FILTRO" | registra "$BID" stream
 
     local up_fim; up_fim=$(timeout 10 "$ADB" -s "$DEV" shell 'cut -d" " -f1 /proc/uptime' </dev/null 2>/dev/null | tr -d '\r')
+    JANELA_ABERTA=""
     printf 'COBERTURA_FIM\t%s\t%s\t%s\n' "$(agora)" "$BID" "${up_fim%%.*}" >> "$COB"
     printf "${A}[%s] cobertura interrompida (aparelho desligou ou a rede caiu)${Z}\n" "$(agora)"
     sleep 20
@@ -204,25 +223,35 @@ resumo(){
   # UNIAO das janelas, não soma: janelas sobrepostas (duas instancias, ou
   # reconexao rapida) contariam o mesmo tempo real duas vezes e inflariam as
   # horas observadas, que sao o criterio de decisao do estudo.
-  awk -F'\t' -v agora="$(date +%s)" '
+  # Janela orfa (sem FIM) e fechada no ÚLTIMO SINAL DE VIDA daquele boot -- nunca
+  # em "agora". Fechar em "agora" transformava uma sessão de 15 min encerrada com
+  # Ctrl-C em centenas de horas de observacao fabricada. Este awk repara tambem o
+  # histórico ja gravado, sem editar arquivo de evidencia.
+  # Ordem dos arquivos: "$EV" primeiro (o bloco FNR==NR o consome), "$COB" depois.
+  awk -F'\t' '
     function seg(s){ gsub(/-/," ",s); gsub(/:/," ",s); return mktime(s) }
-    NR>1 && $1=="COBERTURA_INICIO" { ini[++n]=seg($2); fim[n]=0 }
-    NR>1 && $1=="COBERTURA_FIM" { for(i=n;i>=1;i--) if(fim[i]==0){ fim[i]=seg($2); break } }
+    FNR==NR { if(FNR>1 && $2!="") { k=$2; if($1>ult[k]) ult[k]=$1 } ; next }
+    FNR>1 && $1=="COBERTURA_INICIO" { ini[++n]=seg($2); fim[n]=0; bid[n]=$3 }
+    FNR>1 && $1=="COBERTURA_FIM" { for(i=n;i>=1;i--) if(fim[i]==0){ fim[i]=seg($2); break } }
     END{
       if(n==0){ print "  nenhuma janela registrada"; exit }
       ab=0
-      for(i=1;i<=n;i++) if(fim[i]==0){ fim[i]=agora; ab=1 }
+      for(i=1;i<=n;i++) if(fim[i]==0){
+        lim = (bid[i] in ult) ? seg(ult[bid[i]]) : ini[i]
+        if(lim < ini[i]) lim = ini[i]
+        fim[i]=lim; ab++
+      }
       for(i=1;i<=n;i++) for(j=i+1;j<=n;j++) if(ini[j]<ini[i]){
         t=ini[i];ini[i]=ini[j];ini[j]=t; t=fim[i];fim[i]=fim[j];fim[j]=t }
       soma=0; for(i=1;i<=n;i++) soma+=fim[i]-ini[i]
       uni=0; ci=ini[1]; cf=fim[1]
       for(i=2;i<=n;i++){ if(ini[i]<=cf){ if(fim[i]>cf) cf=fim[i] } else { uni+=cf-ci; ci=ini[i]; cf=fim[i] } }
       uni+=cf-ci
-      if(ab) printf "  (uma janela ainda aberta)\n"
+      if(ab) printf "  %d janela(s) sem FIM: fechada(s) no ÚLTIMO SINAL DE VIDA, não em agora\n", ab
       printf "  janelas de observacao : %d\n", n
       printf "  tempo observado       : %.2f h (%.0f min)\n", uni/3600, uni/60
       if(soma-uni > 60) printf "  (havia %.2f h de sobreposicao, descontada)\n", (soma-uni)/3600
-    }' "$COB"
+    }' "$EV" "$COB"
 
   local boots; boots=$(awk -F'\t' 'NR>1{print $3}' "$COB" | sort -u | wc -l)
   printf "  boots distintos       : %s\n" "$boots"
@@ -265,18 +294,26 @@ resumo(){
 
   printf "\n${C}== veredito ==${Z}\n"
   local h ep
-  h=$(awk -F'\t' -v agora="$(date +%s)" '
+  # MESMA regra do bloco de cobertura: janela orfa fecha no último sinal de vida
+  # daquele boot, nunca em "agora". Este e o denominador da regra dos tres --
+  # infla-lo fabrica confianca estatistica que a observacao real não sustenta.
+  h=$(awk -F'\t' '
     function seg(s){ gsub(/-/," ",s); gsub(/:/," ",s); return mktime(s) }
-    NR>1 && $1=="COBERTURA_INICIO"{ ini[++n]=seg($2); fim[n]=0 }
-    NR>1 && $1=="COBERTURA_FIM"{ for(i=n;i>=1;i--) if(fim[i]==0){ fim[i]=seg($2); break } }
+    FNR==NR { if(FNR>1 && $2!="") { k=$2; if($1>ult[k]) ult[k]=$1 } ; next }
+    FNR>1 && $1=="COBERTURA_INICIO"{ ini[++n]=seg($2); fim[n]=0; bid[n]=$3 }
+    FNR>1 && $1=="COBERTURA_FIM"{ for(i=n;i>=1;i--) if(fim[i]==0){ fim[i]=seg($2); break } }
     END{
       if(n==0){ printf "0.0000"; exit }
-      for(i=1;i<=n;i++) if(fim[i]==0) fim[i]=agora
+      for(i=1;i<=n;i++) if(fim[i]==0){
+        lim = (bid[i] in ult) ? seg(ult[bid[i]]) : ini[i]
+        if(lim < ini[i]) lim = ini[i]
+        fim[i]=lim
+      }
       for(i=1;i<=n;i++) for(j=i+1;j<=n;j++) if(ini[j]<ini[i]){
         t=ini[i];ini[i]=ini[j];ini[j]=t; t=fim[i];fim[i]=fim[j];fim[j]=t }
       uni=0; ci=ini[1]; cf=fim[1]
       for(i=2;i<=n;i++){ if(ini[i]<=cf){ if(fim[i]>cf) cf=fim[i] } else { uni+=cf-ci; ci=ini[i]; cf=fim[i] } }
-      uni+=cf-ci; printf "%.4f", uni/3600 }' "$COB")
+      uni+=cf-ci; printf "%.4f", uni/3600 }' "$EV" "$COB")
   ep=$(awk -F'\t' -v gap="$GAP_EPISODIO" '
     function seg(s){ gsub(/-/," ",s); gsub(/:/," ",s); return mktime(s) }
     NR>1 && $3=="LSADC_ERROR"{ t=seg($1); if(ant==0||t-ant>=gap) ep++; ant=t }

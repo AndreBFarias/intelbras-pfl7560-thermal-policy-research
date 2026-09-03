@@ -42,6 +42,12 @@ connect() {
   "$ADB" -s "$DEV" root >/dev/null 2>&1 || true
   sleep 1
   [ -n "$PFL_IP" ] && "$ADB" connect "$PFL_IP" >/dev/null 2>&1 || true
+  # TRAVA DE MODELO -- este script grava em /dev/block/by-name/panelparam, um
+  # dispositivo de bloco CRU. Sem esta guarda, um `adb devices` com o celular do
+  # dono plugado faz o DEV cair em qualquer aparelho conectado e o dd escreve
+  # numa particao alheia. Todos os outros scripts do repo ja tinham esta trava.
+  local m; m="$("$ADB" -s "$DEV" shell getprop ro.product.model 2>/dev/null | tr -d '\r\n ')"
+  [ "$m" = "PFL7560" ] || die "dispositivo em '$DEV' NÃO e PFL7560 (model='${m:-vazio}'). Abortado."
 }
 sh_() { "$ADB" -s "$DEV" shell "$@"; }
 

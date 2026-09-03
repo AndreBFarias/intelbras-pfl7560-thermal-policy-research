@@ -167,8 +167,13 @@ INJETADO=71000
 
 vivacidade(){
   local w e
-  w=$(sh_ "grep -a WARNING_VALUE $INI" | grep -ao '[0-9]\{4,\}')
-  e=$(sh_ "grep -a EMERGENCY_VALUE $INI" | grep -ao '[0-9]\{4,\}')
+  # head -1: se o grep casar mais de uma linha, o valor vem MULTILINHA e o
+  # `[ 71000 -le "$w" ]` emite "integer expression expected" e retorna FALSO --
+  # a cadeia de || não dispara e o fluxo cai no ramo que INJETA. Falha ABERTA.
+  w=$(sh_ "grep -a WARNING_VALUE $INI" | grep -ao '[0-9]\{4,\}' | head -1)
+  e=$(sh_ "grep -a EMERGENCY_VALUE $INI" | grep -ao '[0-9]\{4,\}' | head -1)
+  case "$w" in ''|*[!0-9]*) fail "WARNING_VALUE ilegivel" "não vou injetar"; return 1 ;; esac
+  case "$e" in ''|*[!0-9]*) fail "EMERGENCY_VALUE ilegivel" "não vou injetar"; return 1 ;; esac
   # trava dura: so injeta se o valor ficar mesmo entre os dois limiares do
   # aparelho, lidos AGORA. Se o .ini tiver outros limiares, aborta.
   if [ -z "$w" ] || [ -z "$e" ] || [ "$INJETADO" -le "$w" ] || [ "$INJETADO" -ge "$e" ]; then
@@ -180,7 +185,24 @@ vivacidade(){
   printf "  ${A}na tela: o aviso de temperatura aparece e o brilho cai ate 850, voltando sozinho.${Z}\n"
   printf "  dura ~40 s. O override e limpo ao final aconteca o que acontecer.\n\n"
 
-  limpa_override(){ sh_ "setprop $PROP_OVERRIDE ''" >/dev/null 2>&1; }
+  # Roda no trap, entao e a última linha de defesa: se ela falhar em silencio o
+  # aparelho fica com 71 C ficticios alimentando a politica ate o reboot -- e com
+  # o EMERGENCY inalcancavel. Tenta 3x e CONFIRMA lendo de volta.
+  limpa_override(){
+    local i
+    for i in 1 2 3; do
+      sh_ "setprop $PROP_OVERRIDE ''" >/dev/null 2>&1
+      if [ "$(sh_ "getprop ro.product.model")" = "PFL7560" ] \
+         && [ -z "$(sh_ "getprop $PROP_OVERRIDE")" ]; then
+        return 0
+      fi
+      sleep 2
+    done
+    printf "\n${X}[ATENÇÃO]${Z} não confirmei a limpeza do override de temperatura.\n"
+    printf "  REINICIE O PROJETOR (o override não sobrevive ao boot), ou rode:\n"
+    printf "    adb connect %s && adb -s %s shell setprop %s ''\n" "$DEV" "$DEV" "$PROP_OVERRIDE"
+    return 1
+  }
   trap limpa_override EXIT INT TERM
 
   local tmp; tmp=$(mktemp)
@@ -198,8 +220,13 @@ vivacidade(){
 
   local n_warn desce sobe
   n_warn=$(grep -ac 'Overheat Warning' "$tmp")
-  desce=$(grep -a 'Level Change' "$tmp" | grep -ac '=> 850!')
-  sobe=$(grep -a 'Level Change' "$tmp" | grep -ac '=> 1000!')
+  # Excluir o no-op "X => X": num boot em regime o firmware loga
+  # "Level Change 1000 => 1000!" continuamente (299 ocorrencias so na vigilia
+  # passiva), entao contar '=> 1000!' cru marcava "o brilho voltou sozinho"
+  # SEMPRE, inclusive sem escada nenhuma ter atuado. Mesmo erro de metodo que o
+  # doc 37 denuncia no `grep -c 'LSADC Error'`: detector que não pode falhar.
+  desce=$(grep -a 'Level Change' "$tmp" | grep -a '=> 850!'  | grep -avc '850 => 850!')
+  sobe=$(grep -a 'Level Change' "$tmp"  | grep -a '=> 1000!' | grep -avc '1000 => 1000!')
 
   echo
   [ "${n_warn:-0}" -ge 1 ] && pass "o WARNING disparou" "$n_warn aviso(s) de Overheat" \
@@ -209,9 +236,21 @@ vivacidade(){
   [ "${sobe:-0}" -ge 1 ] && pass "o brilho voltou sozinho" "alvo de volta em 1000" \
                          || warn "recuperação não capturada" "confira com: adb shell logcat -d | grep 'Level Change'"
 
-  local resto; resto=$(sh_ "getprop $PROP_OVERRIDE")
-  [ -z "$resto" ] && pass "override limpo" "aparelho de volta ao normal" \
-                  || fail "override AINDA ATIVO" "$resto - rode: adb shell setprop $PROP_OVERRIDE ''"
+  # sh_() manda stderr para /dev/null e descarta o exit code: com o aparelho
+  # offline o getprop volta VAZIO, indistinguivel de "override limpo". O canario
+  # separa os dois casos -- sem ele isto era um falso [OK] no único check que
+  # existe para provar que o aparelho ficou seguro.
+  local resto canario
+  canario=$(sh_ "getprop ro.product.model")
+  resto=$(sh_ "getprop $PROP_OVERRIDE")
+  if [ "$canario" != "PFL7560" ]; then
+    fail "NÃO CONSEGUI CONFIRMAR a limpeza do override" \
+         "aparelho mudo -- REINICIE O PROJETOR AGORA (o override não e persistente)"
+  elif [ -z "$resto" ]; then
+    pass "override limpo" "confirmado com o aparelho respondendo"
+  else
+    fail "override AINDA ATIVO" "$resto - rode: adb shell setprop $PROP_OVERRIDE ''"
+  fi
 
   mkdir -p evidencias/vivacidade 2>/dev/null
   local dest="evidencias/vivacidade/$(date +%Y-%m-%d-%H%M%S).log"
@@ -241,7 +280,20 @@ idempotencia(){
 conecta
 case "${1:-}" in
   --idempotencia) idempotencia ;;
-  --vivacidade)   verifica; echo; vivacidade ;;
+  --vivacidade)
+    # `verifica` checa, entre outras coisas, se existe /atv/ini/ZYCustom.ini --
+    # que tem PRECEDENCIA sobre /vendor. Com o .ini de fabrica ativo em /atv
+    # (EMERGENCY_VALUE = 45000), injetar 71000 e >= EMERGENCY e DEFAULT_PROTECT=2
+    # significa DESLIGAMENTO IMEDIATO. Antes, o `echo` no meio destruia o $? e a
+    # FALHA impressa segundos antes não impedia nada.
+    verifica; rc=$?
+    if [ "$rc" -ne 0 ]; then
+      printf "\n${X}[ABORTADO]${Z} as checagens passivas reprovaram; não vou injetar temperatura.\n"
+      printf "  Corrija as FALHAS acima primeiro. A mais grave: um ZYCustom.ini em /atv/ini\n"
+      printf "  VENCE o de /vendor e pode ter EMERGENCY=45000 -- 71000 desligaria o aparelho.\n"
+      exit 1
+    fi
+    echo; vivacidade ;;
   "")             verifica ;;
   *) echo "uso: PFL_IP=<ip> $0 [--idempotencia|--vivacidade]"
      echo "  (sem argumento) 12 checagens passivas"
