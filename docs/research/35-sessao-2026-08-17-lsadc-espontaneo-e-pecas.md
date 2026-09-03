@@ -256,7 +256,7 @@ em `evidencias/` no mesmo comando que a produz. O `pfl7560-vigia-lsadc.sh` já n
 | **LSADC-S2** | **alta** | **ABERTO** | `gtt` repetido via `hidebug` é gatilho? A doc trata `gtt` como seguro. Se for, inválida `pfl7560-autocaptura.sh` como método de medição |
 | ~~LSADC-S3~~ | — | **DESCARTADA** | Levantei "mau contato no chicote GND/NTC" como origem elétrica. O [doc 27](27-teardown-cabo-gnd-ntc.md) **já havia respondido**: o cabo solto é jumper de aterramento/EMI com terminal de anel, e o terra funcional do NTC entra pelo conector JST de 2 vias, que está **plugado**. Terminal de anel não entra em carcaça JST. Além disso o doc 27 já catalogou o glitch do `heat.logcat` e mostrou que o terra esteve íntegro (leituras finitas e válidas). **Causa elétrica no chicote está excluída; o vetor vivo é software/sondagem** |
 | **ART-S1** | média | **NOVO** | Artefato/faixas não caracterizado. Discriminar elétrico (LVDS `current` 300MV, flat) vs óptico |
-| **POL-S1** | média | **NOVO** | Medir o polarizador com paquímetro e identificar qual queimou, antes de comprar. Gate da lista de compras (doc 36) |
+| ~~POL-S1~~ | — | **FECHADO (2026-09-02)** | Polarizador é **placa de vidro separada** entre a Fresnel traseira e o LCD, **não laminado ao painel**; o de **entrada** é o que queimou; a peça de reposição bate medida, espessura e eixo. Ver [doc 38](38-motor-optico-e-troca-do-polarizador.md) |
 | **BRI-S1** | média | **NOVO** | Decidir o brilho base. Com 0,43 °C por 1% (doc 34), 1000→900 compra ~4,3 °C; 1000→850, ~6,5 °C |
 | VIGIA-S1 | média | revisado | Premissa do hook `/data/local/nlsu/` **refutada** |
 

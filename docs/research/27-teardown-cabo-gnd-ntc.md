@@ -46,6 +46,18 @@ Dois blowers COFN **DFH8025S** (DC 12 V), exatamente o que a config térmica dec
 (`[CoolingFan] SERIAL_NUM = 2`). **Não há Peltier/TEC nem terceiro ventilador** — a refrigeração é
 passiva (dissipador) + ar forçado (2 sopradores) + proteção por dimming/desligamento do LED.
 
+> **CORREÇÃO (2026-09-03) — dois pontos deste parágrafo estão errados ou incompletos:**
+>
+> 1. **Existe um TERCEIRO ventilador.** Com o aparelho aberto na bancada (2026-09-02), foi observado que
+>    o **LED tem fan axial próprio**, com dissipador aletado, separado dos dois blowers
+>    ([doc 38](38-motor-optico-e-troca-do-polarizador.md) §1). O `SERIAL_NUM = 2` conta só os que a
+>    política térmica controla — não é o total físico. **Contagem final ainda não fechada: OPT-S6.**
+> 2. **O modelo provavelmente é `DFH8030S`** (30 mm de espessura), não `DFH8025S`. Etiqueta lida em foto
+>    ampliada: `DC 12V / 0,45 A`. Confirmação na etiqueta física pendente (**OPT-S5**).
+>
+> Consequência: qualquer conta de vazão ou redirecionamento de ar feita com "2 ventiladores" parte de um
+> mapa térmico errado. Ver [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §2.3.
+
 > **Ressalva (doc 34, 2026-07-29):** ampliando a mesma foto, a etiqueta **parece dizer `DFH8030S`**, não
 > `DFH8025S`. O dígito não foi resolvido na resolução disponível — **confirmar na etiqueta física** antes
 > de dar o modelo por fechado. Só importa para spec de RPM num eventual swap.

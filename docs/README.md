@@ -42,6 +42,8 @@
 | [`research/34-escada-brilho-e-fanmonitor.md`](research/34-escada-brilho-e-fanmonitor.md) | Alarme de 70 °C, **escada de brilho** ancorada no sensor real, `THERMAL_MODE`, e o FanMonitor **inarmável por software** |
 | [`research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md`](research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md) | Sessão de campo: a proteção cegou no meio do uso; ferramental novo (saúde / vigia / props); quem sonda e quem não sonda |
 | [`research/37-mecanismo-lsadc-defasagem-dos-aneis.md`](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) | **O documento mais importante do projeto.** O mecanismo do `LSADC Error`: defasagem dos anéis de amostras, provado no binário. Explica os dois regimes com um único mecanismo, dá o **teste de vivacidade** (`--vivacidade`) e o experimento decisivo de 2 minutos |
+| [`research/38-motor-optico-e-troca-do-polarizador.md`](research/38-motor-optico-e-troca-do-polarizador.md) | **A geometria do motor óptico**, observada com o aparelho aberto, e o procedimento de troca do polarizador. **Fecha o POL-S1:** o polarizador é placa de vidro **separada** (não laminada ao painel). Corrige dois registros errados do doc 07 |
+| [`research/39-sessao-2026-09-02-optica-e-balanco-termico.md`](research/39-sessao-2026-09-02-optica-e-balanco-termico.md) | **Reparo óptico executado** (3ª troca de polarizador, Fresnel limpas) e **auditoria adversarial do balanço térmico**: seis registros do repositório derrubados, incluindo "os ventiladores são axiais" (são centrífugos — a lista de compras do doc 07 compraria peça que não monta) e "o teto do software foi atingido". **O experimento que discrimina vazão de acoplamento nunca foi rodado** |
 
 ## Reparo de hardware — troca do painel LCD e correção de cor
 

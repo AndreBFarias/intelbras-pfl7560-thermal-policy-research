@@ -9,19 +9,26 @@ Peças para o reparo óptico do PFL7560 (painel único LCD 5,8" da família RX05
 
 ---
 
-## 0. Antes de comprar qualquer coisa: o gate POL-S1
+## 0. O gate POL-S1 — FECHADO em 2026-09-02
 
-Nada nesta lista deve ser encomendado antes de abrir o aparelho e responder três perguntas:
+> **Respondido com o aparelho aberto.** Ver [`../research/38-motor-optico-e-troca-do-polarizador.md`](../research/38-motor-optico-e-troca-do-polarizador.md).
+>
+> 1. **Qual queimou:** o de **entrada** (lado do LED), como previsto na seção 1.
+> 2. **Solto ou laminado:** **SOLTO.** É uma **placa de vidro separada**, entre a Fresnel traseira e o
+>    painel LCD, retida por guias. **Não é laminado ao vidro do painel** — a compra **não** precisa
+>    migrar para o painel completo (seção 4).
+> 3. **Medida real:** a peça do **item 1** (vidro de isolamento térmico do TD98, **136x85 mm**) bate
+>    **tamanho, espessura e eixo** com a original, verificado por sobreposição. É **drop-in**.
+>
+> **Consequência para esta lista:** o item 1 está validado no aparelho. O item 4 (painel completo)
+> deixa de ser contingência provável e vira sobressalente. Os filmes soltos (itens 2, 3 e 5) continuam
+> valendo como material do plano B (vidro cortado + filme) e como **gabarito de eixo** — nunca como
+> camada adicional no caminho de luz.
+>
+> **A medida não é universal na classe "5,8 polegadas"** — o catálogo tem 145x85, 142x92, 136x85,
+> 119x74 e 96x60. Em outro exemplar, **sempre comparar com a peça retirada antes de instalar**.
 
-1. **Qual dos dois polarizadores queimou** — o de entrada (lado do LED) ou o de saída?
-2. **Ele é solto numa moldura, ou laminado ao vidro do painel?** Se estiver laminado, descolar é a
-   operação com maior chance de destruir a peça — e a compra muda para o painel completo (seção 4).
-3. **Qual a medida real, com paquímetro?** Os `~129x78 mm` que circulam neste projeto são **inferência
-   a partir de anúncio de painel, não medição**. Várias opções abaixo deixam ~1 mm de folga sobre esse
-   número: se a inferência estiver errada, elas não cabem.
-
-Enquanto o gate não for feito, a única compra sem risco de desperdício é a folha de corte (item 5), que
-serve de material de teste em qualquer cenário.
+O texto abaixo é o levantamento original de 2026-08-17/18, mantido como registro da pesquisa de peças.
 
 ---
 

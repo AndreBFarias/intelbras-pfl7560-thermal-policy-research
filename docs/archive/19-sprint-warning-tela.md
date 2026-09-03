@@ -90,6 +90,12 @@ existente — **mas nunca editando o corpo do `init.bigfish.rc` que o revert res
 
 ### WARN-S1 — Viabilidade (gate JÁ RESOLVIDO; resta o disparo no boot)
 
+> **GATE REABERTO em 2026-09-03.** A viabilidade dada como resolvida por `am start ... VIEW` **NAO se
+> sustenta neste aparelho**: tres vias de exibicao de imagem por adb falharam e
+> `pm resolve-activity -a android.intent.action.VIEW -t image/png` devolve `No activity found`.
+> Ver [doc 39](../research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3 (OPT-S13).
+> O vigia de tela precisa de outro mecanismo, ou de um APK proprio.
+
 **O método visual está provado** (`am start ... VIEW`, ver STATUS). Resta apenas confirmar que dá para
 **disparar no contexto de boot** (após `sys.boot_completed=1`, quando o `higallery` e o SurfaceFlinger
 já estão de pé).

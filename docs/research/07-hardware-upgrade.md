@@ -5,6 +5,35 @@
 
 ## Sopradores/ventiladores (troca)
 
+> ## CORREÇÃO (2026-09-03) — NÃO COMPRE PELA LISTA ABAIXO
+>
+> **Esta seção inteira parte de uma premissa ERRADA: que o ventilador de fábrica é AXIAL.** Ele é um
+> **soprador CENTRÍFUGO (blower)**, verificado nas fotos do próprio repositório
+> (`media/teardown-04-blower-removido.jpg` e `teardown-05-blowers-dfh8025s.jpg`): rotor tipo **gaiola de
+> esquilo** com dezenas de pás curtas, **carcaça em voluta** (espiral) e **saída tangencial** lateral. Não
+> há hélice axial nem moldura quadrada de 80×80.
+>
+> **Consequência prática:** o Delta **AFB0812SH / AFB0824SH** e o "cooler 8025 nacional" recomendados
+> abaixo, **com link e preço**, são ventiladores axiais e **NÃO montam** neste aparelho. Seguir a
+> recomendação compra 2 peças inúteis (R$ 90–180) mais uma abertura de chassi à toa.
+>
+> **Ironia registrada:** o aviso de compatibilidade nº 4 desta mesma seção já dizia *"só considere blower
+> se, ao abrir, você constatar que a peça é realmente centrífuga"*. Abriu-se, e é centrífuga. A ressalva
+> estava certa e a recomendação principal, errada.
+>
+> **Modelo:** a etiqueta lida na foto ampliada diz **`DFH8030S`** (não `DFH8025S`), `DC 12V`, `0,45 A`
+> — ou seja, **30 mm de espessura**, não 25, e **5,4 W por unidade**. Leitura de foto ampliada, com
+> **confirmação na etiqueta física pendente** (o dígito 25/30 está no limite da resolução). 25 mm e 30 mm
+> **não são intercambiáveis** no berço.
+>
+> **Antes de qualquer compra:** confirmar na etiqueta física o modelo, a tensão e a corrente; e medir o
+> berço. Substituto tem de ser **blower centrífugo** de mesma altura, mesmo diâmetro de voluta e mesma
+> orientação de saída. Ver [`39-sessao-2026-09-02-optica-e-balanco-termico.md`](39-sessao-2026-09-02-optica-e-balanco-termico.md).
+>
+> **E antes de trocar qualquer coisa:** o efeito dos ventiladores no sensor da óptica (`gtt1`)
+> **nunca foi medido** — só na exaustão, e com o sensor ainda cego. Trocar soprador hoje é comprar sem
+> saber se a vazão é o gargalo. Ver doc 39 §4.
+
 **Peça de fábrica:** Fan de fábrica: D-FAN DFH8025S — ventilador AXIAL 80x80x25 mm (o "8025" = 80x80x25mm), NÃO é um soprador centrífugo (blower). Rotor de plástico PBT, moldura de alumínio, rolamento sleeve ou ball, ~3000 RPM, 2 fios (alimentação apenas), faixa de operação -10 a +70°C. Fabricado pela Dongguan Xingdong Electronics. Existe em 12V E em 24V (ambas as versões são vendidas com o mesmo código) — no eBay aparecem unidades 24V 0,15A e 24V 0,32A; a Amazon lista 12V. Como é fan de 2 fios, o controle "PWM 36 kHz" do PFL7560 é feito chaveando a própria linha de alimentação (não há fio de sinal PWM dedicado). CFM/pressão estática não são publicados pelo fabricante, mas para um 8025 sleeve de ~3000 RPM ficam tipicamente na faixa de ~30-35 CFM e ~1,5-3 mmH2O — ou seja, há folga real para upgrade.
 
 
@@ -43,6 +72,17 @@
 **Notas:** RESUMO PRÁTICO: O fan de fábrica é um AXIAL 8025 (D-FAN DFH8025S), ~3000 RPM, 2 fios, controlado por PWM na linha de alimentação a 36 kHz — não é um blower centrífugo, apesar do nome do projeto. O melhor upgrade drop-in de mesmo footprint (80x80x25) e maior pressão estática é o Delta AFB0812SH (12V) ou AFB0824SH (24V): ~4500/4000 RPM, 46,6 CFM e ~6-7 mmH2O, roughly dobrando vazão e pressão. Para o extremo de pressão estática em sistema com duto restritivo, o Sunon PMD1208PMB (12V, 84 CFM, ~19 mmH2O) é imbatível, MAS tem 38mm de espessura (não drop-in sem folga) e é barulhento. Antes de qualquer compra, ABRA O PROJETOR e leia na etiqueta do fan: tensão (12V/24V), nº de fios/conector e a seta de sentido do fluxo — nenhuma compatibilidade pode ser afirmada sem isso. Como são 2 unidades, troque as duas juntas para manter balanceamento de fluxo. Dica: pegue variante de 2 fios (mesma pinagem da fábrica) para o controle PWM na alimentação funcionar igual ao original.\n\nFontes: delta-fan.com/products/AFB0812SH.html; delta-fan.com/products/AFB0824SH.html; d-fans.en.made-in-china.com (DFH8025S 80x80x25 axial 3000RPM 12V/24V); ebay.com/itm/155976540893 e /386908379522 (DFH8025S 24V 2 fios); amazon.com/dp/B00BK18KAA (8025S 12V 2 fios); rs-online / mouser (Sunon PMD1208PMB1 80x38 84,1CFM 0,74inH2O); fansefontes.com.br e netcomputadores.com.br (Delta AFB0812SH preço BR); mercadolivre.com.br (cooler 80x80x25 12V alta rotação); intelbras.com.br Datasheet PFL7560.
 
 ## Dissipadores para o polarizador/LCD
+
+> **CORREÇÃO (2026-09-02, doc 38).** Duas afirmações desta seção e da seção de limpeza são **descrição
+> genérica de categoria vinda de pesquisa web** (fontes ao fim do doc) e **não valem para o PFL7560**,
+> verificado com o aparelho aberto:
+> 1. **"o polarizador é película laminada sobre o vidro do LCD"** — **errado aqui.** É uma **placa de
+>    vidro SEPARADA**, entre a Fresnel traseira e o painel, retida por guias, que sai puxando para cima.
+>    Trocável sem tocar no painel.
+> 2. **"remover o painel LCD do prisma"** — não há prisma. Prisma é arquitetura **3LCD**; este é painel
+>    único e o painel sai como módulo discreto.
+>
+> Geometria correta e procedimento de troca: [`38-motor-optico-e-troca-do-polarizador.md`](38-motor-optico-e-troca-do-polarizador.md).
 
 **Peça de fábrica:** Ponto que queima no PFL7560 = o POLARIZADOR DE ENTRADA (incidente) e a moldura/vidro do bloco LCD. Nesses projetores LCD de painel único, o polarizador é uma película orgânica (plástico polimérico com iodo/corante) laminada sobre o vidro do LCD. Ele absorve ~50% da luz + infravermelho da lâmpada/LED e converte em calor. Como o filme fica exatamente no caminho óptico e conduz calor muito mal, ele aquece no centro e 'queima' (mancha marrom/amarelada tipo queimadura de cigarro, escurecendo com o tempo). A área ativa (janela transparente por onde passa a luz) NÃO pode ser tocada, coberta nem receber cola/fita. A dissipação só pode ir na moldura metálica/plástica que segura o LCD e na borda do vidro (~2-3 mm fora da área útil), levando o calor para longe, em direção a um fluxo de ar.
 
