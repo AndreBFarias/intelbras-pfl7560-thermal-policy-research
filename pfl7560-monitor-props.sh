@@ -123,7 +123,7 @@ coleta(){
     "$OUT" "$AMB" "${ROTULO:--}" "$INT" "$MIN"
 
   local t0 fim hist n_reg regime bid
-  t0=$(date +%s); fim=$(( t0 + MIN * 60 )); hist=""; regime="nao"
+  t0=$(date +%s); fim=$(( t0 + MIN * 60 )); hist=""; regime="NAO"
   bid=$(timeout 10 "$ADB" -s "$DEV" shell 'cat /proc/sys/kernel/random/boot_id' </dev/null 2>/dev/null | tr -d '\r-' | cut -c1-10)
   while [ "$(date +%s)" -lt "$fim" ]; do
     local e l up
@@ -145,7 +145,7 @@ coleta(){
     hist=$(printf '%s' "$hist" | awk -v k="$REGIME_N" '{n=NF;s="";for(i=(n>k?n-k+1:1);i<=n;i++)s=s" "$i;print s}')
     n_reg=$(printf '%s' "$hist" | wc -w)
     if [ "$n_reg" -ge "$REGIME_N" ]; then
-      regime=$(printf '%s' "$hist" | awk -v b="$REGIME_BANDA" '{mn=$1;mx=$1;for(i=1;i<=NF;i++){if($i<mn)mn=$i;if($i>mx)mx=$i}print (mx-mn<=b)?"SIM":"não"}')
+      regime=$(printf '%s' "$hist" | awk -v b="$REGIME_BANDA" '{mn=$1;mx=$1;for(i=1;i<=NF;i++){if($i<mn)mn=$i;if($i>mx)mx=$i}print (mx-mn<=b)?"SIM":"NÃO"}')
     fi
 
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
