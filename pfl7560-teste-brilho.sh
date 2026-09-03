@@ -198,7 +198,7 @@ cmd_curva(){
   hid "sbri 0 $nivel" >/dev/null
   local fim=$(( $(date +%s) + minutos * 60 ))
   local prox_reaplica=$(( $(date +%s) + REAPLICA_S ))
-  local hist="" n_reg=0 regime="NAO"
+  local hist="" n_reg=0 regime="-"
   while [ "$(date +%s)" -lt "$fim" ]; do
     if [ "$(date +%s)" -ge "$prox_reaplica" ]; then
       hid "sbri 0 $nivel" >/dev/null
@@ -217,7 +217,7 @@ cmd_curva(){
     hist="$hist $o"; hist=$(echo "$hist" | awk -v k="$REGIME_N" '{n=NF; s=""; for(i=(n>k?n-k+1:1);i<=n;i++) s=s" "$i; print s}')
     n_reg=$(echo "$hist" | wc -w)
     if [ "$n_reg" -ge "$REGIME_N" ]; then
-      regime=$(echo "$hist" | awk -v band="$REGIME_BANDA" '{mn=$1;mx=$1; for(i=1;i<=NF;i++){if($i<mn)mn=$i; if($i>mx)mx=$i} print (mx-mn<=band)?"SIM":"NÃO"}')
+      regime=$(echo "$hist" | awk -v band="$REGIME_BANDA" '{mn=$1;mx=$1; for(i=1;i<=NF;i++){if($i<mn)mn=$i; if($i>mx)mx=$i} print (mx-mn<=band)?"SIM":"-"}')
     fi
 
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
