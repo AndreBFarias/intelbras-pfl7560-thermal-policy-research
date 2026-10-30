@@ -74,7 +74,10 @@ resumo(){
     # o aparelho sumiu e o monitor desistiu; nao e amostra.
     awk -F'\t' -v arq="$f" '
       function num(x){ return x ~ /^[0-9]+([.][0-9]+)?$/ }
-      NR==1 { next }
+      # formato de 2026-08 (ts uptime_s gtt1... sem boot_id/regime): sem a guarda,
+      # o uptime virava boot_id e cada linha virava um "boot"
+      NR==1 { if($2!="boot_id") velho=1; next }
+      velho { tot++; next }
       $10=="LACUNA" { lac++; if(lac_ts=="") lac_ts=$1; next }
       {
         tot++; amb=$6; rot=$4
@@ -89,6 +92,7 @@ resumo(){
       }
       END{
         printf "  %s\n", arq
+        if(velho){ printf "    formato antigo (sem boot_id/regime), %d linha(s) -- nao use este arquivo para comparar\n", tot; exit }
         printf "    rotulo: %s   ambiente: %s C   amostras: %d   boots: %d\n", (rot==""?"-":rot), (amb==""?"?":amb), tot, g
         if(lac) printf "    LACUNA: %d vez(es) em que o aparelho sumiu (primeira em %s)\n", lac, lac_ts
         if(ov)  printf "    ATENCAO: %d amostra(s) com a marca OVERRIDE? (nas duas props ao mesmo tempo): confira\n", ov
