@@ -34,4 +34,5 @@ artifacts/historico/perfis/*    -text byte-exact
 # Os PNG e o lvdsctl sao binarios; o cor.sh e ASCII puro como o autorun.
 pendrive-autorun/cor.sh             -text byte-exact
 pendrive-autorun/lvdsctl            -text byte-exact
+pendrive-autorun/nl_camcheck        -text byte-exact
 pendrive-autorun/kit/*.png          -text byte-exact
