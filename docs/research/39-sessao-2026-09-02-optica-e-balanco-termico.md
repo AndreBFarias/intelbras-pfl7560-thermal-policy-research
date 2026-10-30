@@ -96,7 +96,10 @@ este aparelho já consumiu três vezes.
 
 Auditoria adversarial sobre 25 afirmações extraídas dos docs 02/03/07/09/27/34/38 e do BRIEF.
 
-### 2.1. Os ventiladores são CENTRÍFUGOS, não axiais (`REFUTADO`)
+### 2.1. Os sopradores são CENTRÍFUGOS, não axiais (`REFUTADO`)
+
+> **Escopo (2026-10-29):** vale para os **2 sopradores** que a política controla. O 3º ventilador, no
+> exaustor do dissipador do LED (§2.3), é axial ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
 
 O [doc 07](07-hardware-upgrade.md#sopradoresventiladores-troca) afirma que o ventilador de fábrica é
 **axial 80x80x25** e **recomenda comprar Delta AFB0812SH / AFB0824SH, com link e preço**.
@@ -127,7 +130,7 @@ grossos. Confirmação na etiqueta física continua valendo como conferência (*
 **OPT-S5 FECHADO em 2026-10-29:** `DFH8030S`, 12 V, 0,45 A, `PROVADO` pela etiqueta
 ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §4).
 
-### 2.3. Há TRÊS ventiladores, não dois (contradição interna, `ABERTO`)
+### 2.3. Há TRÊS ventiladores, não dois (contradição interna; FECHADO em 2026-10-29, OPT-S6)
 
 | Doc | Afirma |
 |---|---|

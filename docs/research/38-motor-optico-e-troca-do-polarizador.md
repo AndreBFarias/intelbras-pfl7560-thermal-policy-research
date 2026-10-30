@@ -236,7 +236,7 @@ Suspeitos, em ordem:
    rasante** procurando ondulação. **Sobre a orientação, ver §7.1 — a nota anterior deste doc ("face
    ranhurada voltada para a lâmpada") era ambígua e não é conclusiva.**
 
-### 7.1. Orientação das duas Fresnel — EM ABERTO (OPT-S4)
+### 7.1. Orientação das duas Fresnel — OPT-S4 (fechado na prática em 2026-09-03)
 
 > **Atualização (2026-09-03):** OPT-S4 **FECHADO na prática** — o dono resolveu a orientação na bancada
 > ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §1). A contradição entre as fontes abaixo

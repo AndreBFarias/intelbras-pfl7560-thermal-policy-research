@@ -162,6 +162,13 @@ PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh --resumo   # o que ja foi observado
 No menu: opção **6**. Ele anota quando o brilho baixa sozinho (a escada cortando o calor na fonte) e quando
 volta a subir, se algum ventilador sair do máximo, e se a proteção cegar.
 
+Para medir a curva térmica: `PFL_IP=<ip> ./pfl7560-monitor-props.sh --ambiente <sala_C>` (passivo, por
+props; a temperatura da sala é obrigatória). Ele separa os boots (lê o `boot_id` a cada amostra), marca
+lacuna quando o aparelho some e o override do teste de vivacidade, e o `--resumo` agrupa por boot. Todos
+os scripts que formatam ou comparam número fixam `LC_ALL=C`, então o resultado não muda com o idioma do PC.
+A coluna `optica_C` do TSV é o `gtt1`, que mede o bloco do LED
+([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
+
 > **Aviso — não deixe um sondador rodando durante o uso.** Não é a sondagem em si que faz mal: `gtt N`
 > avança o anel de amostras do termistor `N` **e só dele** ([doc 37](docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md)),
 > então `gtt 0` **e** `gtt 1` **em par** avançam um anel cada e **preservam a fase** — foi o que os 1060

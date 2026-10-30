@@ -49,3 +49,21 @@ Para cada afirmação factual que um registro mais novo derrubou ou atualizou:
 
 Um conferente independente relê o diff e faz busca dirigida por cada fato do doc 40 e por cada ID de
 pendência, listando qualquer par de docs ainda em conflito. Zero pares = bloco fechado.
+
+## Estado (2026-10-30)
+
+Feito em 6 commits temáticos (cor, térmica, status, guias, disclosure, fecho). Fatos propagados em todos os
+docs vivos: painel de hoje VESA e formato decidido por teste de cinza; OPT-S5/S6/S7 fechados (`gtt1` no
+bloco do LED, 3 ventiladores, `DFH8030S`); medição de 2026-10-29 com as ressalvas do doc 40 §2; sem
+`WARNING` real registrado; `panelparam` provavelmente no `.bin`; defeito persistindo no V1.0.0.1;
+ferramentas dos blocos 1, 2, 5 e 6; status único por ID. Links internos conferidos por script
+(`python3 -I`, arquivo e âncora): zero quebrados.
+
+Fica para outro bloco (fora do escopo deste, que não toca código nem arquivos byte-exatos):
+- o nome "óptica" para o `gtt1` segue em código e arquivos byte-exatos: coluna `optica_C` e comentários do
+  `pfl7560-monitor-props.sh`, e o `pendrive-autorun/LEIA-ME.txt` ("se a optica passar de 66 C");
+- o arquivo `requirements` (texto puro) ainda diz só "firmware V1.0.0.9";
+- o kit v2 mostra as telas por `am start ... VIEW`, a mesma via que deu tela preta em 2026-09-03
+  (OPT-S13): a E1(e) do bloco 5 decide antes da bancada E4.
+
+A prova da regra de saída é a releitura independente prevista acima.
