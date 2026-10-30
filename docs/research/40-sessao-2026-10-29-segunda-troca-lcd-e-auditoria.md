@@ -53,13 +53,14 @@ Artefato: `evidencias/2026-10-29/props-221947.tsv`. Branco `#FFFFFF`, brilho 100
 
 ## 3. Onde está o NTC do `gtt1` (OPT-S7)
 
-> **ATUALIZAÇÃO (mesma sessão, aparelho aberto) — `OBSERVADO`, confiança ~85 %:** o dono seguiu o fio do
+> **ATUALIZAÇÃO (mesma sessão, aparelho aberto) — `OBSERVADO`, confiança ~95 % (OPT-S7 FECHADO):** o dono seguiu o fio do
 > conector `NTC GND` da placa principal (`media/2026-10-29-trajeto-fio-ntc-gnd.jpg`). São **dois fios
 > pretos finos trançados** (formato de sensor de 2 fios) que descem pela lateral da placa de força do LED
 > e terminam no parafuso do canto inferior, onde o **olhal de latão** fica preso no topo do **bloco
-> dissipador do LED**. Leitura: **o `gtt1` mede o bloco do LED, não a óptica.** O que falta para 100 %:
-> ver o olhal com os dois fios entrando nele (sem outro fio no mesmo parafuso). O olhal solto na base,
-> com luva metálica, é outra peça (o do doc 27).
+> dissipador do LED**. Foto de perto (`media/2026-10-29-olhal-ntc-no-bloco-do-led.webp`): **dois fios
+> finos entram no tubo do olhal, cuja boca é selada com resina preta**, o formato de termistor
+> encapsulado em terminal de anel (um terra teria um fio só, sem resina). Leitura: **o `gtt1` mede o
+> bloco do LED, não a óptica.** O olhal solto na base, com luva metálica, é outra peça (o do doc 27).
 >
 > Consequências: (1) a coluna `optica_C` e o nome "óptica" nos scripts e docs são rótulo errado; o
 > valor é a temperatura do dissipador do LED. (2) Os +8 °C depois da pasta nova são compatíveis com a

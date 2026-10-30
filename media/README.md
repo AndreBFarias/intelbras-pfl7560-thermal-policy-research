@@ -40,6 +40,7 @@ Fotos do dono com o aparelho aberto, usadas no [doc 40](../docs/research/40-sess
 |---|---|---|
 | `2026-10-29-trajeto-fio-ntc-gnd.jpg` | Trajeto do fio do conector `NTC GND` até o olhal no bloco do LED (marcado em verde) | REVISAR: mão |
 | `2026-10-29-flat-lcd-rx058b-4300.jpg` | Flat do LCD instalado: `FPX-RX058B-4300-V0`, `20241101 HT` | REVISAR: mão |
+| `2026-10-29-olhal-ntc-no-bloco-do-led.webp` | Olhal do NTC no topo do bloco do LED: 2 fios e resina no tubo | REVISAR: mão |
 | `2026-10-29-placa-led-neopix-npx725.jpg` | Placa de força do LED, marcação `NeoPix 725 NPX725 CN LED` | REVISAR: mão, etiqueta da placa principal ao fundo |
 
 ## Já no repositório — teardown 2026-07
