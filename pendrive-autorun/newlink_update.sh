@@ -23,8 +23,11 @@
 #
 #  IDEMPOTENTE:
 #   - TERMICO: o estado-alvo e o md5 do ZYCustom.ini que o firmware le. Troca
-#     (escrita atomica) so se o md5 atual for o de fabrica ou o da versao
-#     anterior nossa; md5 desconhecido = RECUSA. 2a execucao: nada e escrito.
+#     (escrita atomica) so se o md5 atual for o de fabrica (dos DOIS modelos: com
+#     USB-C V1.0.0.9 e sem USB-C V1.0.0.1) ou o da versao anterior nossa; md5
+#     desconhecido = RECUSA. O .ini novo e montado a partir do .ini DO APARELHO,
+#     trocando so as secoes termicas pelas do ZYCustom.ini do pendrive: o resto
+#     (CONFIG_MODEL inclusive) fica byte a byte. 2a execucao: nada e escrito.
 #   - COR: o cor.sh pergunta olhando a tela e so grava com DUAS teclas; sem
 #     tecla nada muda. 2a execucao: nada e escrito e nada reinicia.
 #   - Reinicia UMA vez, e so quando a fase termica mudou algo.
@@ -60,17 +63,28 @@ DONO_UID=0
 # gancho de teste (so com PFL_TESTE=1): o harness (tests/) zera a espera
 [ -n "${PFL_RAPIDO:-}" ] && ESPERA_REBOOT=0
 
-# md5 do ZYCustom.ini: o corrigido (alvo), o de fabrica V1.0.0.9 e o de CADA
-# versao anterior nossa que ja foi para aparelho. Qualquer outro = desconhecido
-# = o kit recusa em vez de sobrescrever um mapa que nao conhece.
+# md5 do ZYCustom.ini. O kit serve a DOIS modelos, que so diferem no CONFIG_MODEL
+# do [Global] (doc 42): o com USB-C (V1.0.0.9, KJM_5H039_412) e o sem USB-C
+# (V1.0.0.1, KJM_5H039_412_INTELBRAS_NOTYPEC_TP). Para cada .ini conhecido o
+# resultado esperado tambem e conhecido; qualquer outro md5 = desconhecido = o kit
+# recusa em vez de sobrescrever um mapa que nao conhece.
+#   *_OK            corrigido, modelo com USB-C (e o ZYCustom.ini do pendrive)
+#   *_OK_NOTYPEC    corrigido, modelo sem USB-C (artifacts/ZYCustom_390.NOTYPEC.ini)
+#   *_FABRICA       de fabrica V1.0.0.9 (com USB-C); *_FABRICA_NOTYPEC, o V1.0.0.1
+# Versoes anteriores nossas que ja foram para aparelho (todas do modelo com USB-C):
 #   bbf82dd1  artifacts/ZYCustom_390.PREV-211927.ini
 #   1ad641ed  pendrive-autorun/ZYCustom.ini de 23169d6 a d10f6da (antes da
 #             escada; a que o pendrive e o adb levaram, docs 26 e 34)
 #   5868d67f  pendrive-autorun/ZYCustom.ini de cd5a80f (escada com os espacos
 #             de fim de linha cortados)
 INI_MD5_OK="252ab7a72a007a8b79b3fc86bd5c0d19"
+INI_MD5_OK_NOTYPEC="bdf5c4640596d1b2f2fb7f62fbadd6e3"
 INI_MD5_FABRICA="29d8ba36149413e899563029df078f6d"
+INI_MD5_FABRICA_NOTYPEC="ed3f314ca89698cb057a74ef64dca38e"
 INI_MD5_ANTERIORES="bbf82dd17d4523b7df8a86bec0e850ce 1ad641ed2dd99e61d8a987a675e9aced 5868d67fd8d47564842494aa8f14c37c"
+# secoes que o kit troca no .ini do aparelho (as do ZYCustom.ini do pendrive); o
+# resto do arquivo nao e tocado. [Thermal] leva os limites de 70/75 C.
+TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 CoolingFan_0 CoolingFan_1"
 
 # md5 de CADA arquivo do kit, relativo a raiz do pendrive. Gerado por
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
@@ -264,14 +278,85 @@ COR_MD5=$(kit_md5_esperado cor.sh)
 # termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior
 # a escada tem o mux mas nao a escada e antes passava como aplicado.
 ini_md5(){ md5sum "$INI" 2>/dev/null | cut -d' ' -f1; }
-term_ok(){ [ "$(ini_md5)" = "$INI_MD5_OK" ]; }
-term_aplicavel(){
-  _m=$(ini_md5)
-  [ -n "$_m" ] || return 1
-  [ "$_m" = "$INI_MD5_FABRICA" ] && return 0
+term_ok(){ _m=$(ini_md5); [ -n "$_m" ] && { [ "$_m" = "$INI_MD5_OK" ] || [ "$_m" = "$INI_MD5_OK_NOTYPEC" ]; }; }
+# md5 que o .ini corrigido TEM de ter, dado o md5 do .ini do aparelho; vazio =
+# aparelho desconhecido (nao e aplicavel)
+term_alvo_de(){
+  [ -n "$1" ] || return 0
+  [ "$1" = "$INI_MD5_FABRICA_NOTYPEC" ] && { echo "$INI_MD5_OK_NOTYPEC"; return 0; }
+  [ "$1" = "$INI_MD5_FABRICA" ] && { echo "$INI_MD5_OK"; return 0; }
   for _a in $INI_MD5_ANTERIORES; do
-    [ "$_m" = "$_a" ] && return 0
+    [ "$1" = "$_a" ] && { echo "$INI_MD5_OK"; return 0; }
   done
+  return 0
+}
+
+# ---- .ini por secoes ---------------------------------------------------------
+# Monta o .ini corrigido a partir do .ini DO APARELHO ($1) e do corrigido do
+# pendrive ($2): as secoes de TERM_SECOES vem do $2, tudo o mais (o cabecalho antes
+# da 1a secao, o CONFIG_MODEL, as demais secoes) fica byte a byte como no $1.
+# So grep/sed/head/tail/tr (nada de awk) e cortes por numero de linha, que nao
+# mexem nos bytes (o arquivo mistura ASCII, chines GBK e mojibake). O chamador
+# confere o md5 do resultado contra o esperado: se o shell do aparelho se
+# comportar diferente, o resultado nao confere e nada e gravado.
+# "linha nome" de cada secao [nome] do arquivo $1
+ini_secoes(){ grep -a -n '^\[' "$1" 2>/dev/null | sed -n 's/^\([0-9][0-9]*\):\[\([^]]*\)\].*$/\1 \2/p'; }
+# "ini fim" (linhas) da secao $2 do arquivo $1; !=0 se nao existe ou se repete
+ini_faixa(){
+  _ftot=$(grep -a -c '' "$1" 2>/dev/null)
+  [ "$(ini_secoes "$1" | grep -c " $2\$")" = 1 ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- "$_ftot" "$2" $(ini_secoes "$1" | grep -A1 " $2\$" | tr '\n' ' ')
+  [ "$4" = "$2" ] || return 1
+  if [ -n "${5:-}" ]; then echo "$3 $(($5-1))"; else echo "$3 $1"; fi
+}
+# acrescenta a $INI_S a secao $1 (linhas $2 a $3 do $INI_A, ou a do $INI_B se termica)
+ini_emite(){
+  case " $TERM_SECOES " in
+    *" $1 "*)
+      # shellcheck disable=SC2046
+      set -- $(ini_faixa "$INI_B" "$1")
+      [ "$#" = 2 ] || return 1
+      head -n "$2" "$INI_B" | tail -n "+$1" >> "$INI_S" ;;
+    *) head -n "$3" "$INI_A" | tail -n "+$2" >> "$INI_S" ;;
+  esac
+}
+ini_compor(){
+  INI_A="$1"; INI_B="$2"; INI_S="$3"
+  _ctot=$(grep -a -c '' "$INI_A" 2>/dev/null)
+  ini_secoes "$INI_A" > "$INI_S.lista" || return 1
+  _cprim=$(sed -n '1s/ .*//p' "$INI_S.lista")
+  [ -n "$_cprim" ] && [ -n "$_ctot" ] || return 1
+  : > "$INI_S" || return 1
+  if [ "$_cprim" -gt 1 ]; then head -n "$((_cprim-1))" "$INI_A" >> "$INI_S" || return 1; fi
+  _cini=""; _cnome=""
+  while read -r _cl _cn; do
+    if [ -n "$_cnome" ]; then ini_emite "$_cnome" "$_cini" "$((_cl-1))" || return 1; fi
+    _cini="$_cl"; _cnome="$_cn"
+  done < "$INI_S.lista"
+  ini_emite "$_cnome" "$_cini" "$_ctot" || return 1
+  rm -f "$INI_S.lista"
+}
+# monta em $WORK/ini.composto o .ini corrigido do aparelho e confere o md5 ($1 =
+# esperado; $2 = md5 do .ini do aparelho). Sem o esperado igual, apaga e devolve !=0.
+#  - de fabrica (qualquer dos dois modelos): so as secoes termicas, o resto do .ini do
+#    aparelho fica como esta (o CONFIG_MODEL de cada modelo e preservado);
+#  - versao anterior NOSSA: e um .ini do modelo com USB-C que ja foi corrigido uma vez
+#    e que difere do atual ate fora das secoes termicas (espacos de fim de linha), entao
+#    troca-se o arquivo inteiro, como sempre foi (o resultado e o mesmo md5 de antes).
+term_compor(){
+  rm -f "$WORK/ini.composto" "$WORK/ini.composto.lista"
+  _anterior=0
+  for _a in $INI_MD5_ANTERIORES; do [ "$2" = "$_a" ] && _anterior=1; done
+  if [ "$_anterior" = 1 ]; then
+    cp "$MP/ZYCustom.ini" "$WORK/ini.composto" 2>/dev/null || _anterior=erro
+  else
+    ini_compor "$INI" "$MP/ZYCustom.ini" "$WORK/ini.composto" || _anterior=erro
+  fi
+  if [ "$_anterior" != erro ] && [ "$(md5sum "$WORK/ini.composto" 2>/dev/null | cut -d' ' -f1)" = "$1" ]; then
+    return 0
+  fi
+  rm -f "$WORK/ini.composto" "$WORK/ini.composto.lista"
   return 1
 }
 wifi_ok(){ [ -f "$BP" ] && grep -q "wifi_disconnect_on_boot=0" "$BP" 2>/dev/null; }
@@ -293,12 +378,20 @@ done
 TERM_ACAO=0
 if term_ok; then
   LOG "termico ja estava ok (md5 do ZYCustom.ini = corrigido)"
-elif term_aplicavel; then
-  TERM_ACAO=1
 else
-  LOG "[ERRO] termico: md5 do ZYCustom.ini em uso ('$(ini_md5)') nao e o de fabrica ($INI_MD5_FABRICA) nem o de uma versao anterior nossa - NAO vou sobrescrever (firmware diferente de V1.0.0.9?)."
-  FAIL=$((FAIL+1))
-  AVISO=1
+  TERM_MD5_ATUAL=$(ini_md5)
+  TERM_ALVO=$(term_alvo_de "$TERM_MD5_ATUAL")
+  if [ -z "$TERM_ALVO" ]; then
+    LOG "[ERRO] termico: md5 do ZYCustom.ini em uso ('$(ini_md5)') nao e o de fabrica (V1.0.0.9 $INI_MD5_FABRICA; V1.0.0.1 $INI_MD5_FABRICA_NOTYPEC) nem o de uma versao anterior nossa - NAO vou sobrescrever (firmware diferente?)."
+    FAIL=$((FAIL+1))
+    AVISO=1
+  elif ! term_compor "$TERM_ALVO" "$TERM_MD5_ATUAL"; then
+    LOG "[ERRO] termico: nao consegui montar o ZYCustom.ini corrigido a partir do do aparelho (o resultado nao tem o md5 esperado $TERM_ALVO) - NAO vou gravar."
+    FAIL=$((FAIL+1))
+    AVISO=1
+  else
+    TERM_ACAO=1
+  fi
 fi
 
 # O /vendor so e aberto rw se algum dos 3 fixes DE /vendor estiver pendente.
@@ -312,15 +405,16 @@ if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok; then
   VENDOR_RW=1
 fi
 
-# ---- FIX 1: termico (copia a config agressiva) ----
+# ---- FIX 1: termico (secoes termicas sobre o .ini do aparelho) ----
 if [ "$TERM_ACAO" = "1" ]; then
   # salva o stock UMA vez, antes de sobrescrever, e so se o atual for o de fabrica
-  if [ ! -f "$INI.STOCK" ] && [ "$(ini_md5)" = "$INI_MD5_FABRICA" ]; then
+  # (de qualquer um dos dois modelos)
+  if [ ! -f "$INI.STOCK" ] && { [ "$(ini_md5)" = "$INI_MD5_FABRICA" ] || [ "$(ini_md5)" = "$INI_MD5_FABRICA_NOTYPEC" ]; }; then
     cp "$INI" "$INI.STOCK" || LOG "[AVISO] nao consegui salvar $INI.STOCK"
   fi
   # escrita atomica: .new + validacao por md5 + mv + releitura por md5
-  if cp "$MP/ZYCustom.ini" "$INI.new" && chmod 644 "$INI.new" \
-     && [ "$(md5sum "$INI.new" 2>/dev/null | cut -d' ' -f1)" = "$INI_MD5_OK" ]; then
+  if cp "$WORK/ini.composto" "$INI.new" && chmod 644 "$INI.new" \
+     && [ "$(md5sum "$INI.new" 2>/dev/null | cut -d' ' -f1)" = "$TERM_ALVO" ]; then
     if mv "$INI.new" "$INI" && term_ok; then
       LOG "[OK] termico: ZYCustom.ini gravado e conferido por md5 (fans 100% sempre, 2o sensor, escada de brilho 1000->850 entre 66C e 70C, shutdown 75C)"
       CHG=1
@@ -336,6 +430,7 @@ if [ "$TERM_ACAO" = "1" ]; then
     FAIL=$((FAIL+1))
     AVISO=1
   fi
+  rm -f "$WORK/ini.composto"
 fi
 
 # ---- FIX 2: wi-fi reconecta sozinho apos boot ----

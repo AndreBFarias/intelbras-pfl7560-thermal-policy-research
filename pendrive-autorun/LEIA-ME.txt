@@ -10,7 +10,8 @@ Convencao fixada na sprint 25 (auditoria de acentuacao).
 PARA QUE SERVE
   Aplica a correcao (termica + wi-fi + xiri) e confere a COR da imagem, tudo
   pelo controle remoto, SEM PC e SEM adb. Vale para qualquer PFL7560 com o
-  firmware de fabrica V1.0.0.9. Serve para:
+  firmware de fabrica V1.0.0.9 (com entrada USB-C) ou V1.0.0.1 (modelo NOTYPEC,
+  sem USB-C, de fabricacao a partir de 25/08/2026). Serve para:
     - recuperar SEU projetor se um dia regravarem o firmware de fabrica;
     - instalar a correcao em OUTROS PFL7560;
     - acertar a cor depois de trocar o micro-painel (VESA ou JEIDA).
@@ -69,8 +70,11 @@ O QUE O KIT FAZ POR DENTRO (resumo)
     uma lista embutida no newlink_update.sh. Arquivo faltando, corrompido ou
     adulterado = aborta e nao altera nada (copie de novo a pasta inteira).
   - TERMICO: o alvo e o md5 do ZYCustom.ini que o firmware le. So troca se o atual
-    for o de fabrica ou o de uma versao anterior nossa; md5 desconhecido
-    (firmware diferente?) = RECUSA e avisa, em vez de sobrescrever. Se existir
+    for o de fabrica (dos DOIS modelos) ou o de uma versao anterior nossa; md5
+    desconhecido (firmware diferente?) = RECUSA e avisa, em vez de sobrescrever.
+    O .ini novo e montado a partir do DO APARELHO, trocando so as secoes termicas
+    ([Thermal], [BacklightPolicy], [ThermalPolicy], [Thermistor_0/1],
+    [CoolingFan_0/1]); o resto, CONFIG_MODEL inclusive, fica como esta. Se existir
     /atv/ini/ZYCustom*.ini, ele tem precedencia sobre o do /vendor: o kit avisa
     e mostra ERRO em vez de dizer que deu certo.
   - COR: so mexe no byte lvds_fmt do perfil ativo da particao panelparam, e so
@@ -106,13 +110,14 @@ LIMITES (o que o kit NAO faz)
     se a montagem atrasar, ele perde a vez (por isso "ligue de novo").
   - Nao corrige painel que precise de swap, bit ou map: isso fica no wizard do
     PC (./pfl7560-lcd-color.sh wizard).
-  - Termico so vale no firmware V1.0.0.9 (em outro, o kit recusa).
+  - Termico so vale nos firmwares V1.0.0.9 e V1.0.0.1 de fabrica (em outro, o kit recusa).
   - Este kit v2 foi provado so em SIMULACAO (harness com stubs, tests/). A
     bancada no aparelho (etapa E4) ainda nao foi feita: se algo se comportar
     diferente, guarde os dois .log do pendrive.
 
 OBSERVACOES
-  - Testado no firmware V1.0.0.9. Em outra versao, confira antes.
+  - Testado no firmware V1.0.0.9; o V1.0.0.1 (sem USB-C) so em simulacao, ainda nao no
+    aparelho. Em outra versao, confira antes.
   - A particao panelparam (onde mora a cor) PARECE estar dentro do container do
     firmware (doc 41, ainda a confirmar no aparelho). Se for, REGRAVAR o firmware
     de fabrica pode devolver a cor ao formato de fabrica (VESA): depois de um
