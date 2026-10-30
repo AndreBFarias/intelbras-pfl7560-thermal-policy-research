@@ -67,6 +67,10 @@ Artefato: `evidencias/2026-10-29/props-221947.tsv`. Branco `#FFFFFF`, brilho 100
 > **não é medida por nenhum sensor** do aparelho. (4) A placa de força do LED traz a marcação
 > **`NeoPix 725 NPX725 CN LED`** (`media/2026-10-29-placa-led-neopix-npx725.jpg`), pista nova para a
 > ficha do LED.
+>
+> **OPT-S6 FECHADO (`OBSERVADO`, dono):** são **3 ventiladores**, os 2 sopradores embaixo (os que a
+> política térmica controla, `gfc` = 2) e 1 no exaustor do dissipador do LED (sem controle por software).
+> Os três estão funcionando.
 
 - `OBSERVADO`: em cima do bloco do LED há um **olhal de latão parafusado** (já aparece em
   `media/teardown-02-interior-forca-led.jpg`, de julho) e um **cabo cinza terminado num tubinho metálico**.
