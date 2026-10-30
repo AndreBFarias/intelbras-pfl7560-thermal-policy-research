@@ -9,7 +9,8 @@ Convencao fixada na sprint 25 (auditoria de acentuacao).
 
 PARA QUE SERVE
   Aplica a correcao (termica + wi-fi + xiri) e confere a COR da imagem, sozinho
-  (pela camera do proprio projetor) ou pelo controle remoto, SEM PC e SEM adb. Vale para qualquer PFL7560 com o
+  (pela camera do proprio projetor) ou pelo controle remoto, SEM PC e SEM adb.
+  Vale para qualquer PFL7560 com o
   firmware de fabrica V1.0.0.9 (com entrada USB-C) ou V1.0.0.1 (modelo NOTYPEC,
   sem USB-C, de fabricacao a partir de 25/08/2026). Serve para:
     - recuperar SEU projetor se um dia regravarem o firmware de fabrica;
