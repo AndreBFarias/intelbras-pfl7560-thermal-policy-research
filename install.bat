@@ -105,7 +105,11 @@ echo      sensores (o 1o e a optica, o 2o a placa; iguais = mux nao comutou^):
 "%ADB%" -s %DEV% shell "getprop zysys.env_temp; getprop zysys.light_temp" 2>nul
 echo.
 echo  [4] correcao de cor do painel trocado
-"%ADB%" -s %DEV% shell "cat /proc/msp/panel" 2>nul | findstr /c:"jeida" >nul && (echo      OK    runtime em JEIDA) || (echo      ATENCAO nao esta em JEIDA - so correto se o painel for o de fabrica)
+REM VESA ou JEIDA sao ambos validos: depende do painel que esta na optica. O que se confere aqui
+REM e se o formato em uso bate com o byte lvds_fmt gravado no perfil ativo da panelparam (exige root).
+"%ADB%" -s %DEV% shell "f=$(grep -a lvds_fmt /proc/msp/panel | head -1 | tr 'A-Z' 'a-z'); i=$(grep -a cut_idx /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^0-9]//g'); b=; case $i in ?*) b=$(dd if=/dev/block/by-name/panelparam bs=1 skip=$((168+i*768+92)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ');; esac; case $f:$b in *jeida:1|*vesa:0) echo COR_OK;; *) echo COR_DIVERGE;; esac" 2>nul | findstr /c:"COR_OK" >nul && (echo      OK    formato em uso bate com o byte gravado na panelparam) || (echo      ATENCAO formato em uso diverge do byte gravado, ou ilegivel ^(a leitura exige root^))
+"%ADB%" -s %DEV% shell "grep -a lvds_fmt /proc/msp/panel" 2>nul
+echo      O software nao sabe qual painel esta na optica: confira a cor na tela.
 echo.
 echo  ============================================================
 echo   A configuracao pode estar perfeita e a protecao estar cega
@@ -357,7 +361,12 @@ if "%PFL_IP%"=="" (
   echo  [ERRO] IP vazio. Dica: set PFL_IP=x.x.x.x antes de rodar, ou digite agora.
   exit /b 1
 )
-set "DEV=%PFL_IP%:%PORT%"
+REM aceita IP puro (acrescenta a porta padrao) ou IP:porta (usa como veio)
+if not "%PFL_IP::=%"=="%PFL_IP%" (
+  set "DEV=%PFL_IP%"
+) else (
+  set "DEV=%PFL_IP%:%PORT%"
+)
 exit /b 0
 
 :connect
@@ -374,7 +383,13 @@ if /i not "%MODEL%"=="PFL7560" (
   echo  [ERRO] Dispositivo em %PFL_IP% nao e PFL7560 ^(model='%MODEL%'^). Abortado.
   exit /b 1
 )
-echo  [OK] PFL7560 em %PFL_IP% ^(root^)
+REM 'adb root' falha em silencio: confere o id de verdade antes de dizer root
+"%ADB%" -s %DEV% shell id 2>nul | findstr /c:"uid=0(" >nul
+if errorlevel 1 (
+  echo  [OK] PFL7560 em %PFL_IP% ^(ATENCAO: SEM root - o id nao e uid=0; gravar e ler particoes pode falhar^)
+) else (
+  echo  [OK] PFL7560 em %PFL_IP% ^(root confirmado^)
+)
 exit /b 0
 
 :backup_stock
