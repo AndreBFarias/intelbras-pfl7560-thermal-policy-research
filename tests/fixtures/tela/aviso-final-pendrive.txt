@@ -1,0 +1,11 @@
+# C-tela, aviso: final do pendrive (pede para tira-lo)
+etapa=PFL7560 \u00b7 verifica\u00e7\u00e3o autom\u00e1tica
+canto=conclu\u00edda
+titulo=Pronto.\nPode tirar o pendrive.
+texto=A verifica\u00e7\u00e3o terminou e o resumo foi salvo. O projetor segue normalmente depois que voc\u00ea tirar o pendrive.
+passo=Cor do painel|feito|corrigido
+passo=\u00c2ngulo e foco|feito|ok
+passo=Nitidez|feito|ok
+passo=Temperatura|feito|ok
+passo=Teste da rampa|feito|pendente
+rodape=relat\u00f3rio em /data/vendor/pfl7560-suite/ultimo.log

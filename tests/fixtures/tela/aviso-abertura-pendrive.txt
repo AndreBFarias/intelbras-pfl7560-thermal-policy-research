@@ -1,0 +1,11 @@
+# C-tela, aviso: abertura ao inserir o pendrive
+etapa=PFL7560 \u00b7 verifica\u00e7\u00e3o autom\u00e1tica
+canto=pendrive conectado
+titulo=Pendrive conectado.\nConferindo o projetor.
+texto=O kit do pendrive foi conferido e instalado. Agora o projetor confere a cor, a imagem e a temperatura. Leva cerca de 2 minutos. N\u00e3o tire o pendrive at\u00e9 o fim.
+passo=Cor do painel|agora
+passo=\u00c2ngulo e foco|fila
+passo=Nitidez|fila
+passo=Temperatura|fila
+passo=Teste da rampa|fila
+rodape=n\u00e3o tire o pendrive \u00b7 n\u00e3o precisa apertar nada

@@ -1,0 +1,11 @@
+# C-tela, aviso: abertura ao voltar da tomada (nenhuma tela fala de pendrive)
+etapa=PFL7560 \u00b7 verifica\u00e7\u00e3o autom\u00e1tica
+titulo=Voltou a energia.\nConferindo o projetor.
+texto=O projetor ficou sem energia. Antes de voc\u00ea usar, ele confere a cor, a imagem e a temperatura. Leva cerca de 2 minutos.
+passo=Cor do painel|agora
+passo=\u00c2ngulo e foco|fila
+passo=Nitidez|fila
+passo=Temperatura|fila
+passo=Teste da rampa|fila
+rodape=n\u00e3o precisa apertar nada
+tom=normal

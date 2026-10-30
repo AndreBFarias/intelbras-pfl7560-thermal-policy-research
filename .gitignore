@@ -23,6 +23,8 @@ referencia/
 # ===== Gerados em runtime =====
 newlink_update.log
 *.log
+# telas de exemplo do tests/test-tela.sh (bloco 9A), para olhar
+tests/saida/
 
 # ===== Platform-tools baixadas pelo install.bat (Windows) =====
 tools/
