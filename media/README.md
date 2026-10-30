@@ -13,6 +13,25 @@ Coloque aqui fotos **sem dados pessoais** (sem rosto, sem SSID/IP na tela, sem n
 | `hidebug-gtt-depois.png` | `gtt 0` ~26 °C e `gtt 1` ~55–61 °C com o mux destravado |
 | `tela-antes-depois.jpg` | Brilho da imagem (stock escurecendo vs fix em 100%) |
 
+## Guias ilustrados de manutenção — 2026-10-29
+
+Fotos do aparelho aberto com anotações, feitas com IA para o dono durante a troca de pasta térmica e do
+LCD. **São guias de bancada, não evidência:** os rótulos não foram conferidos peça a peça. Duas imagens
+existem em duas versões (`-a`/`-b`) que discordam num rótulo; as duas ficam até a peça ser verificada.
+
+| Arquivo | Conteúdo | Ressalva |
+|---|---|---|
+| `guia-placa-forca-led-nl5h039.jpg` | Placa de força do LED `NL-5H039-LED`: conectores, bobina, shunts `R120`, local do dissipador 30x40 opcional | Etiqueta com QR/data-matrix da placa visível |
+| `guia-vista-de-cima-pasta-a.jpg` | Vista de cima: o que leva pasta e o que não leva | Diz "processador sob a chapinha preta"; bate com o [doc 27](../docs/research/27-teardown-cabo-gnd-ntc.md) |
+| `guia-vista-de-cima-pasta-b.jpg` | Mesma vista | Diz "processador sem dissipador"; diverge do doc 27 |
+| `guia-lateral-pasta-led-a.jpg` | Lateral: pasta entre o LED e o bloco dos heat pipes, passo a passo | Rotula a peça no topo do bloco como "fio com terminal parafusado" |
+| `guia-lateral-pasta-led-b.jpg` | Mesma lateral | Rotula a mesma peça como "sensor de temperatura (NTC)". **Não verificado** (OPT-S7, [doc 39](../docs/research/39-sessao-2026-09-02-optica-e-balanco-termico.md)); o doc 27 diz que o olhal com terminal é aterramento EMI |
+| `guia-motor-optico-angulo.jpg` | Motor óptico em ângulo: funil, LCD, bloco do LED, ventoinha | — |
+| `guia-ordem-pecas-opticas.jpg` | Ordem e posição de Fresnel, polarizadores, LCD e espelho; 3 testes rápidos | Diz que "o firmware já está em JEIDA". **Desatualizado:** desde 2026-10-29 o aparelho está em VESA (2ª troca de LCD) |
+
+Auditoria de privacidade: **REVISAR** antes de publicar. Há QR/data-matrix de placas, mãos e fundo
+doméstico (tecido, piso).
+
 ## Já no repositório — teardown 2026-07
 
 Fotos da sessão de abertura do aparelho. Usadas no dossiê [`docs/dossie-teardown.html`](../docs/dossie-teardown.html) e em [`docs/research/27-teardown-cabo-gnd-ntc.md`](../docs/research/27-teardown-cabo-gnd-ntc.md).
