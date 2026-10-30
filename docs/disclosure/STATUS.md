@@ -9,6 +9,7 @@
 | **Protocolo / nº** | _preencher após S5_ |
 | **Resposta** | — |
 | **Repo público** | Somente após 7–10 dias úteis do envio (ou resposta da fabricante) |
+| **Defeito no firmware mais novo** | Persiste no V1.0.0.1 publicado em 2026-10-20 (modelo sem USB-C; [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)). Nota datada no relatório e no doc 11 |
 
 ## Follow-up
 

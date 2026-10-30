@@ -2,6 +2,16 @@
 
 Pronto para enviar (ajuste nome/dados). Canais: suporte@intelbras.com.br · forum.intelbras.com.br · SAC 0800 7042767.
 
+> **NOTA (2026-10-30) — o texto abaixo não foi alterado; vale acrescentar ao envio:**
+> 1. **O defeito persiste em outubro de 2026.** O firmware publicado pela Intelbras em 2026-10-20 ("para
+>    produtos com data de fabricação a partir de 25/08/2026") é o modelo sem USB-C, `V1.0.0.1` (build de
+>    2026-08-08). A térmica é idêntica: os dois termistores seguem com `HW_VIRTUAL_CHANNEL = 0` e a
+>    `libhitvservice.so` é byte-idêntica ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §3 e "Lições").
+> 2. **Onde fica o 2º sensor:** é um NTC encapsulado num olhal no topo do **bloco dissipador do LED**
+>    (light engine), não junto do polarizador/LCD; nenhum sensor do aparelho mede o polarizador
+>    ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). "Próximo à óptica" abaixo deve
+>    ser lido assim.
+
 ---
 
 **Assunto:** PFL7560 — defeito de firmware desliga a proteção térmica e queima o polarizador/LCD (com causa-raiz e correção)
