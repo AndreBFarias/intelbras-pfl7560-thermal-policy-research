@@ -35,6 +35,9 @@ artifacts/historico/perfis/*    -text byte-exact
 pendrive-autorun/cor.sh             -text byte-exact
 pendrive-autorun/lvdsctl            -text byte-exact
 pendrive-autorun/nl_camcheck        -text byte-exact
+# bloco 9A: gerador de telas (ARM) e as fontes IBM Plex (OFL) que ele usa; binarios, no md5 do kit
+pendrive-autorun/nl_tela            -text byte-exact
+pendrive-autorun/fontes/*           -text byte-exact
 pendrive-autorun/kit/*.png          -text byte-exact
 # Quadros crus da camera interna (bloco 7, YUYV 640x480): sem byte 0 nem fim de linha,
 # o git os toma por texto; byte-exact impede que o pre-commit "conserte" algum byte.
