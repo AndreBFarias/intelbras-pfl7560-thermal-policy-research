@@ -48,3 +48,10 @@ TSV reais de `evidencias/` (ignorados pelo Git, existem nesta máquina) rodados 
   `teste-brilho.sh:106` não sai: no `--vivacidade` um Ctrl-C ainda injeta 71000.
 - **Cura:** o `case *:*` do `monitor-termico.sh:373` em todos; `trap '...; exit 130' INT TERM` como no
   `vigia-lsadc.sh:185`.
+
+## Estado (2026-10-30)
+
+T2.1 a T2.5 feitas e integradas (merge `4d18b7f`): `LC_ALL=C` fixo (`0e899dd`), monitor separa boots, marca
+lacuna e override (`ca866ca`, `de3c801`), root conferido e `errno = 13` visível (`943988f`), `saude.sh`
+aceita o formato que bate com o byte gravado e lê o `.ini` efetivo (`4bd512f`, `dad46ba`), IP com porta e
+Ctrl-C que sai de verdade (`e6dd021`, `fb9a581`). Só em software; nada foi para o aparelho.

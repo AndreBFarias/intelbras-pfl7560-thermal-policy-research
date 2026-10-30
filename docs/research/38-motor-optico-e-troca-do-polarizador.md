@@ -238,6 +238,10 @@ Suspeitos, em ordem:
 
 ### 7.1. Orientação das duas Fresnel — EM ABERTO (OPT-S4)
 
+> **Atualização (2026-09-03):** OPT-S4 **FECHADO na prática** — o dono resolveu a orientação na bancada
+> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §1). A contradição entre as fontes abaixo
+> continua registrada.
+
 `CORREÇÃO (2026-09-03).` A versão anterior deste doc dizia "face ranhurada voltada para a lâmpada",
 frase herdada de um teardown do TD96. Ela é **ambígua na bancada** (não diz de qual das duas lentes fala)
 e a questão **não está resolvida**. O levantamento encontrou fontes primárias em contradição direta:
@@ -343,13 +347,16 @@ medida antes. Se não cair, a peça não era o gargalo e o problema é fluxo de 
 
 ## 10. Pendências que este doc abre e fecha
 
+> **Estado em 2026-10-30** (a coluna "Estado" abaixo já reflete): OPT-S3 e OPT-S4 fecharam em 2026-09-03
+> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §6); OPT-S1, OPT-S2 e ART-S1 seguem abertos.
+
 | ID | Severidade | Estado | Item |
 |---|---|---|---|
 | ~~**POL-S1**~~ | — | **FECHADO (2026-09-02)** | Polarizador é **placa de vidro separada** entre a Fresnel traseira e o LCD, **não laminado**. Medida e eixo iguais aos da peça TD98 136x85. Gate da lista de compras liberado |
-| **OPT-S1** | média | **NOVO** | Transcrever a rota mecânica **deste** chassi (parafusos, ordem, o que é clipe e o que é cola). O dono já desmontou 3 vezes; nada foi anotado. É a última lacuna do §5.1 |
-| **OPT-S2** | média | **NOVO** | Caracterizar o **foco desigual** (§7). Inspecionar a Fresnel frontal com luz rasante antes de fechar |
-| **OPT-S3** | baixa | **NOVO** | Medir a linha de base de `gtt1` em regime antes/depois da troca e registrar em `evidencias/` |
-| **OPT-S4** | média | **NOVO** | **Orientação das duas Fresnel** (§7.1): fontes primárias em contradição direta; a regra de fabricante é convenção de molde, não lei. Resolver pelo teste do ponto no papel e **registrar com foto** a orientação adotada. Errar custa até ~20% de luz sem sintoma perceptível |
+| **OPT-S1** | média | **ABERTO** | Transcrever a rota mecânica **deste** chassi (parafusos, ordem, o que é clipe e o que é cola). O dono já desmontou 3 vezes; nada foi anotado. É a última lacuna do §5.1 |
+| **OPT-S2** | média | **ABERTO** | Caracterizar o **foco desigual** (§7). Inspecionar a Fresnel frontal com luz rasante antes de fechar |
+| ~~OPT-S3~~ | — | **FECHADO (2026-09-03)** | Medir a linha de base de `gtt1` em regime antes/depois da troca e registrar em `evidencias/`. Feito: 58,73 °C com a sala a 35,1 °C ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.1), com a ressalva de âncora do [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2 |
+| ~~OPT-S4~~ | — | **FECHADO na prática (2026-09-03)** | **Orientação das duas Fresnel** (§7.1): fontes primárias em contradição direta; a regra de fabricante é convenção de molde, não lei. Resolver pelo teste do ponto no papel e **registrar com foto** a orientação adotada. Errar custa até ~20% de luz sem sintoma perceptível |
 | **ART-S1** | média | aberto | Artefato/faixas ainda não caracterizado ([doc 35](35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md)) |
 
 ---

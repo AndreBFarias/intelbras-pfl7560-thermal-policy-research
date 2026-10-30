@@ -185,7 +185,9 @@ LCD), o recorte rotacionado precisa caber numa caixa de **141,4 x 141,4 mm** —
 | Edmund 150x150 mm | apertado: 4 mm de folga por lado |
 
 **Não verificado:** se o polarizador deste aparelho é 45/135 ou 0/90, e a espessura máxima que o slot
-aceita (as folhas têm 0,19-0,20 mm). Medir na desmontagem — faz parte do gate POL-S1.
+aceita (as folhas têm 0,19-0,20 mm). Medir na desmontagem — faz parte do gate POL-S1. (POL-S1 fechou em
+2026-09-02 com a peça TD98 drop-in, mesma espessura e mesmo eixo da original por sobreposição; o ângulo em
+graus e a folga do slot para filme seguem não medidos.)
 
 ## 5.4. As opções com spec declarada (fora do AliExpress)
 
@@ -218,7 +220,8 @@ Nenhuma inclui tributo de importação brasileiro.
 
 ## 7. O que continua sem resposta
 
-- **A medida real do polarizador** — tudo nesta lista depende do paquímetro (gate POL-S1).
+- ~~**A medida real do polarizador**~~ — respondida (POL-S1 fechado em 2026-09-02): a peça TD98 136x85 mm
+  tem a mesma medida e espessura da original ([doc 38](../research/38-motor-optico-e-troca-do-polarizador.md) §4).
 - **O ângulo de polarização** dos vidros: nenhum anúncio declara. A montagem é empírica, girando a peça
   até a imagem ficar mais clara (nunca preta). Os itens 5 e 6 existem para servir de referência de eixo.
 - **Frete internacional dos filmes dye** (itens 2 e 2b): não cotado. É o que decide se a única opção com

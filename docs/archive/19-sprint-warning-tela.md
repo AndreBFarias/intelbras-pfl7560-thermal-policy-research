@@ -1,5 +1,10 @@
 # 19 - Sprint: aviso na tela quando a correção NÃO estiver ativa
 
+> **Arquivo histórico (ressalva de 2026-10-30).** O gate de viabilidade "exibir imagem por
+> `am start ... VIEW`" foi **reaberto**: neste aparelho a via deu tela preta em 2026-09-03 (OPT-S13,
+> [doc 39](../research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3). O hook em `/data/local/nlsu/`
+> também não existe aqui (VIGIA-S1, [doc 34](../research/34-escada-brilho-e-fanmonitor.md)).
+
 Status: **PLANEJADA (não executada)**. Desenvolve-se e valida-se **por adb, de forma reversível** — não
 depende de nenhum flash. É pré-requisito da **distribuição** do `.bin` (sprint 18, gate BIN-S4b), não do
 teste de boot (BIN-S4a).

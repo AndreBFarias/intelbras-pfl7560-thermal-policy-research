@@ -7,6 +7,19 @@ executor, humano ou LLM — cada etapa aponta a spec detalhada e diz o que a blo
 
 Data desta revisão: 2026-07-12.
 
+> **ESTADO EM 2026-10-30** (prevalece sobre o texto de julho abaixo):
+> - **BIN-S3b FECHADO (2026-07-29):** build reprodutível, md5 `eae3a83d…`
+>   ([`firmware/README.md`](../../firmware/README.md), [`artifacts/bin-build/README.md`](../../artifacts/bin-build/README.md)).
+> - **BIN-S4a PENDENTE:** nenhum boot real do `.bin`; ele segue "offline aprovado, hardware não graduado"
+>   (parte C do [bloco 4](../sprints/2026-10-29-bloco-4-prova-da-build.md)). BIN-S2b e BIN-S4b pendentes;
+>   BIN-S5 é contingência.
+> - **O builder serve aos dois modelos** ([bloco 6](../sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md),
+>   T6.2): lê o offset do vendor da tabela do container e recusa `.ini` de outro modelo. Stock V1.0.0.9 →
+>   `eae3a83d…`; stock V1.0.0.1 sem USB-C → `0d294cb3…`, **só em software**.
+> - **Etapa 3 (vigia de tela) tem o gate de viabilidade reaberto:** o `am start ... VIEW` deu tela preta
+>   neste aparelho (**OPT-S13**, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3).
+> - **A `panelparam` provavelmente vai junto no `.bin`** (ver a correção na §1).
+
 ---
 
 ## 1. O que é o "`.bin` final perfeito" (definição de pronto)
@@ -58,9 +71,9 @@ kit de resgate; são os pontos em que o dono precisa entrar (testes ao vivo).
 | # | Etapa | Tipo | Depende de | Spec |
 |---|---|---|---|---|
 | 0 | Reconciliar `VALIDATOR_BRIEF.md` + fechar higiene do repo (REPO-S1) | **[SW]** | — | doc 30 + BRIEF |
-| 1 | Gerar a build oficial e provar reprodutibilidade (BIN-S3b) | **[SW]** | 0 | doc 18 · BIN-S3b |
+| 1 | Gerar a build oficial e provar reprodutibilidade (BIN-S3b) — **FEITO em 2026-07-29** | **[SW]** | 0 | doc 18 · BIN-S3b |
 | 2 | **GATE:** boot real do `.bin` de delta mínimo (BIN-S4a) — *fecha o achado M7* | **[HW]** | 1 + kit resgate | doc 18 · BIN-S4a |
-| 3 | Vigia de tela: desenvolver e validar por adb (sprint 19, todas as WARN-S*) | **[HW leve]** | pode ir em paralelo ao 2 | doc 19 |
+| 3 | Vigia de tela: desenvolver e validar por adb (sprint 19, todas as WARN-S*) — **gate de viabilidade reaberto (OPT-S13)** | **[HW leve]** | pode ir em paralelo ao 2 | doc 19 + [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3 |
 | 4 | Metadados canônicos dos arquivos novos do vigia no builder (BIN-S2b) | **[SW]** | 3 (lista de arquivos) | doc 18 · BIN-S2b |
 | 5 | **GATE de distribuição:** `.bin` com o vigia embarcado (BIN-S4b) | **[HW]** | 2 + 4 | doc 18 · BIN-S4b |
 | 6 | Graduar o `.bin` da quarentena na documentação (README, doc 15, BRIEF) | **[SW]** | 5 | — |
@@ -102,7 +115,9 @@ Checklist completo de pré-condições e recuperação: doc 18, seção "Pré-re
   (docs 14, 26). O `.bin` só empacota isso para quem não usa adb/pendrive.
 - **O builder do `.bin`** (`artifacts/bin-build/build_fix_bin.py`) — já faz BIN-S1/S2/S3: lê e carimba
   mode/uid/gid + rótulo SELinux dos 3 arquivos, com gate fatal contra `.rc` group-writable, e valida o
-  `checksum1`. Falta só **rodá-lo capturando a prova** (BIN-S3b) e o teste de hardware.
+  `checksum1`. Falta só **rodá-lo capturando a prova** (BIN-S3b) e o teste de hardware. (BIN-S3b feito em
+  2026-07-29; desde o bloco 6 o builder lê o offset do vendor da tabela e serve aos dois modelos. Falta o
+  teste de hardware.)
 - **A correção de cor LCD** — resolvida (byte `0x5c`: JEIDA na 1ª troca, VESA na 2ª, doc 40 §1), aplicada
   e persistente; ferramenta `pfl7560-lcd-color.sh` com os 9 subcomandos (doc 28), backup/restore
   endurecidos e integrada ao menu e ao `install.bat` (LCD-S1, `a9d3fa2`), backup obrigatório antes de
@@ -128,6 +143,6 @@ Checklist completo de pré-condições e recuperação: doc 18, seção "Pré-re
 ## 7. Resumo em uma frase
 
 O `.bin` final está a **dois testes de hardware** de distância (BIN-S4a e BIN-S4b), com todo o software
-já escrito; o caminho é: provar a build offline (BIN-S3b) → flashar o delta mínimo e confirmar o boot
+já escrito; o caminho é: provar a build offline (BIN-S3b, feito em 2026-07-29) → flashar o delta mínimo e confirmar o boot
 (BIN-S4a, que de quebra fecha o achado M7) → fechar o vigia por adb (sprint 19) → embarcá-lo e reflashar
 (BIN-S4b) → graduar da quarentena.

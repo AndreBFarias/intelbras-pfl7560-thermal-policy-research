@@ -69,3 +69,12 @@ Regras do bloco:
   trocas do wifi e do xiri aconteceram.
 - **Cura:** falhar com `e2fsck` >= 4; conferir no fim que os dois arquivos trocados têm o conteúdo novo.
 - **Prova:** `python3 -m py_compile`; leitura do diff.
+
+## Estado (2026-10-30)
+
+- **T1.1:** substituída pelo [bloco 5](2026-10-29-bloco-5-kit-universal.md) (kit universal). O FIX 4 por
+  serial não existe mais no `newlink_update.sh`.
+- **T1.2 a T1.5:** feitas e integradas (merge `1447328`): `term_ok` por md5 (`8fbe1bf`), backup obrigatório
+  antes de gravar na `panelparam` com rótulos VESA/JEIDA corrigidos (`c7a0bbb`, `10df356`), `install.bat`
+  com IP:porta, root conferido e cor pelo byte gravado (`aabd2f4`, `e207ccd`), builder falhando com
+  `e2fsck` >= 4 e conferindo as trocas (`3c34df5`). Só em software; nada foi para o aparelho.

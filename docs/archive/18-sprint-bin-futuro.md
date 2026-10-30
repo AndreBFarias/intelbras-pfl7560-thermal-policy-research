@@ -1,5 +1,12 @@
 # 18 - Sprint: produzir um `PFL7560-FIX.bin` que BOOTA (e sai da quarentena)
 
+> **Arquivo histórico (ressalva de 2026-10-30).** O [doc 31](../research/31-plano-mestre-bin-final.md) ainda
+> aponta para as sub-sprints daqui. Estado atual: BIN-S3b feito (2026-07-29); BIN-S4a, BIN-S2b e BIN-S4b
+> pendentes, sem boot real; o builder lê o offset do vendor da tabela e serve aos dois modelos (bloco 6,
+> [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)); a `panelparam` provavelmente vai junto no
+> `.bin` (doc 42 §5), então um flash pode devolver a cor ao formato de fábrica. Onde este texto divergir, vale
+> o doc 31.
+
 Plano de engenharia para transformar o `.bin` em quarentena num firmware distribuível que **boota** e
 já traz os fixes por padrão. **Nada aqui foi flashado em hardware ainda.** O `.bin` só sai da quarentena
 depois do gate **BIN-S4a** (boot real confirmado no aparelho).

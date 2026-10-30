@@ -124,6 +124,8 @@ medição).
 **Importa porque 25 mm e 30 mm não são intercambiáveis no berço** — e porque os candidatos centrífugos
 plausíveis do mercado (Delta BFB0812HH, Sunon PMB1208PYB1, San Ace 9BMB) são **80x80x32**, 2 mm mais
 grossos. Confirmação na etiqueta física continua valendo como conferência (**OPT-S5**, [ABERTURA]).
+**OPT-S5 FECHADO em 2026-10-29:** `DFH8030S`, 12 V, 0,45 A, `PROVADO` pela etiqueta
+([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §4).
 
 ### 2.3. Há TRÊS ventiladores, não dois (contradição interna, `ABERTO`)
 
@@ -586,16 +588,16 @@ degraus) para chamar de real.
 
 | ID | Sev | Estado | Item |
 |---|---|---|---|
-| **OPT-S12** | média | **NOVO** | Efeito termico do brilho 750 vs 1000 não medido ate o regime (so 2 amostras, interrompido). Valida ou refuta o `0,43 C/%` do doc 34. Rodar `pfl7560-teste-brilho.sh --curva 750 --ambiente X --minutos 25` (§4.2) |
-| **OPT-S13** | média | **NOVO** | **Reabrir o gate de viabilidade da sprint 19.** O doc 19 dava `am start ... VIEW` como resolvido; **não funciona neste aparelho** (§4.3). Sem exibir imagem por shell, o vigia de tela precisa de outro mecanismo |
-| ~~OPT-S3~~ | — | **FECHADO (2026-09-03)** | Linha de base medida: **58,73 °C** em regime com ambiente **35,1 °C** (§4.1). Queda real de **7,03 °C** contra a medição de agosto. Artefato: `evidencias/2026-09-03/props-033635.tsv` |
+| **OPT-S12** | média | **ABERTO** | Efeito termico do brilho 750 vs 1000 não medido ate o regime (so 2 amostras, interrompido). Valida ou refuta o `0,43 C/%` do doc 34. Rodar `pfl7560-teste-brilho.sh --curva 750 --ambiente X --minutos 25` (§4.2) |
+| **OPT-S13** | média | **ABERTO** | **Reabrir o gate de viabilidade da sprint 19.** O doc 19 dava `am start ... VIEW` como resolvido; **não funciona neste aparelho** (§4.3). Sem exibir imagem por shell, o vigia de tela precisa de outro mecanismo. **Atenção (2026-10-30):** o kit de pendrive v2 (bloco 5) mostra as telas do teste de cor pela mesma via (`am start ... VIEW`); a etapa E1(e) do [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) é o teste que decide |
+| ~~OPT-S3~~ | — | **FECHADO (2026-09-03)** | Linha de base medida: **58,73 °C** em regime com ambiente **35,1 °C** (§4.1). Queda real de **7,03 °C** contra a medição de agosto. Artefato: `evidencias/2026-09-03/props-033635.tsv`. Ressalva de âncora de ambiente no [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2 |
 | ~~OPT-S5~~ | — | **FECHADO (2026-10-29)** | `DFH8030S`, 12 V, 0,45 A, centrífugo, `PROVADO` pela etiqueta ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §4). Sem ficha pública (doc 40 §5) |
 | ~~OPT-S6~~ | — | **FECHADO (2026-10-29)** | 3 ventiladores: 2 sopradores controlados (`gfc` = 2) + 1 axial no exaustor do LED, sem controle ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
 | ~~OPT-S7~~ | — | **FECHADO (2026-10-29)** | O NTC do `gtt1` é um olhal encapsulado no topo do bloco dissipador do LED; nenhum sensor mede o polarizador/LCD ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
-| **OPT-S8** | média | **NOVO** | Rodar o braço dos ventiladores no `gtt1` (§2.5) — o experimento pendente desde 2026-07-05 |
-| **OPT-S9** | baixa | **NOVO** | Refazer as medições de exaustão **com T_ambiente e apontando o IR para o fluxo de ar**, não para a grade (§2.6) |
-| ~~OPT-S1~~ | — | parcial | Rota mecânica: o dono desmontou de novo em 2026-09-02. **Continua sem transcrição** |
-| **OPT-S2** | média | aberto | Foco desigual. Fresnel **limpas e sem dano** — o suspeito de empeno segue de pé, mas não foi inspecionado com luz rasante |
+| **OPT-S8** | média | **ABERTO** | Rodar o braço dos ventiladores no `gtt1` (§2.5) — o experimento pendente desde 2026-07-05 |
+| **OPT-S9** | baixa | **ABERTO** | Refazer as medições de exaustão **com T_ambiente e apontando o IR para o fluxo de ar**, não para a grade (§2.6) |
+| **OPT-S1** | média | **ABERTO** | Rota mecânica: o dono desmontou de novo em 2026-09-02 (e em 2026-10-29). **Continua sem transcrição** |
+| **OPT-S2** | média | **ABERTO** | Foco desigual. Fresnel **limpas e sem dano** — o suspeito de empeno segue de pé, mas não foi inspecionado com luz rasante |
 | ~~OPT-S4~~ | — | **FECHADO na prática** | Orientação das Fresnel resolvida pelo dono na bancada. A contradição documental da §7.1 do doc 38 permanece registrada |
 | ~~POL-S1~~ | — | **FECHADO** | Ver [doc 38](38-motor-optico-e-troca-do-polarizador.md) |
 

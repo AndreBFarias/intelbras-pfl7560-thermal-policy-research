@@ -36,3 +36,12 @@ sobre a árvore de integração com os blocos 1, 2 e 3 (e o bloco da T1.1, se ex
    [guia 16](../guide/16-recuperacao-brick.md)). Critério: boota, `saude.sh` verde, cor e Wi-Fi intactos.
    Sem esta parte, o `.bin` continua "offline aprovado, hardware não graduado", e os docs precisam dizer
    isso com essas palavras.
+
+## Estado (2026-10-30)
+
+- **Parte A (offline):** as provas que existem são as dos blocos 1, 5 e 6: o stock V1.0.0.9 continua
+  gerando `eae3a83d…` (T6.2), e `make check` (9 OK), `make check-kit`, `make check-bin` e `make check-fix`
+  passam. Não há registro próprio deste bloco para o item 2 (inspeção do `.bin`).
+- **Partes B e C: ABERTAS** — dependem do aparelho na rede, de um pendrive FAT32 e, na C, da autorização
+  explícita do dono. **BIN-S4a continua sem boot real:** o `.bin` segue "offline aprovado, hardware não
+  graduado".
