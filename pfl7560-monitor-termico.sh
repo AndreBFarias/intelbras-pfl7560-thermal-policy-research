@@ -35,10 +35,10 @@ mdl=$($ADB -s "$DEV" shell getprop ro.product.model </dev/null 2>/dev/null | tr 
 [ "$mdl" = "PFL7560" ] || { echo "erro: '$mdl' não e PFL7560 em $DEV" >&2; exit 1; }
 # hidebug vive em /vendor/bin e exige root; o adbd sobe como uid=2000(shell) e o
 # hidebug responde errno = 13 em silencio. Mesma escalada do teste-brilho.
-sh_id(){ timeout 15 $ADB -s "$DEV" shell id </dev/null 2>/dev/null | tr -d '\r'; }
+sh_id(){ timeout 15 "$ADB" -s "$DEV" shell id </dev/null 2>/dev/null | tr -d '\r'; }
 case "$(sh_id)" in *"uid=0"*) ;; *)
-  timeout 15 $ADB -s "$DEV" root >/dev/null 2>&1; sleep 3
-  timeout 10 $ADB connect "$DEV" >/dev/null 2>&1
+  timeout 15 "$ADB" -s "$DEV" root >/dev/null 2>&1; sleep 3
+  timeout 10 "$ADB" connect "$DEV" >/dev/null 2>&1
   case "$(sh_id)" in *"uid=0"*) ;; *) echo "erro: sem root em $DEV: o hidebug nao responde. Abortei." >&2; exit 1 ;; esac ;;
 esac
 
