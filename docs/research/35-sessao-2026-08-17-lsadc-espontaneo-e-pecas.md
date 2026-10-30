@@ -27,7 +27,7 @@ Tudo abaixo tem artefato em `evidencias/diagnostico-2026-08-17/`.
 | Wi-Fi | corrigido | `wifi-xiri.txt`: `vendor.newlink.wifi_disconnect_on_boot=0` |
 | `xiriservice` | silenciado | `wifi-xiri.txt`: `disabled` no `.rc`; `pos-reboot/artefatos-ausentes.txt`: `init.svc.xiriservice` vazio |
 | `/atv/ini/ZYCustom.ini` | **não existe** | `atv-ini.txt`: só `aq.ini`, `cfg.ini`, `db.ini`, `db_44.ini`, `programlist1/2.ini` |
-| Cor LCD (JEIDA) | ativa, persistente | `pos-reboot/proc-panel-pos-reboot.txt`: `lvds_fmt: jeida` **após o reboot desta sessão** |
+| Cor LCD (JEIDA) | ativa, persistente | `pos-reboot/proc-panel-pos-reboot.txt`: `lvds_fmt: jeida` **após o reboot desta sessão**. Desde a 2ª troca de LCD (2026-10-29) o aparelho está em **VESA** ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
 | Resolução | 1080p, modo único | `pos-reboot/display-modos.txt`: `supportedModes [{id=1, 1920x1080, 60.000004 fps}]` |
 
 ### 1.1. A persistência do JEIDA é NATIVA (corrige registro anterior)

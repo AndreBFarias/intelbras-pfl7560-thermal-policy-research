@@ -5,6 +5,11 @@ nem no recovery** — a correção são **três arquivos de texto** na partiçã
 (`ZYCustom.ini`, `build.prop`, `init.bigfish.rc`). Então nenhuma mudança nossa pode impedir o aparelho de
 ligar, e tudo é reversível.
 
+> **A exceção é a cor, e só para quem trocou o painel LCD:** ela grava **1 byte** (`0x5c`, o formato LVDS)
+> na partição `panelparam`, que é lida no início do boot. Toda ferramenta do repositório faz **backup da
+> partição antes** e se recusa a gravar sem ele; o kit de pendrive ainda guarda um journal e desfaz a
+> troca no boot seguinte se a energia cair no meio. Detalhes no [guia 32](32-guia-troca-painel-lcd.md).
+
 > **Atenção — o `.bin` NÃO entra aqui.** O `PFL7560-FIX.bin` (Método 4) está **em quarentena** por travar o
 > boot (rótulo SELinux ausente, ver [doc 16](16-recuperacao-brick.md)). Esta página cobre **só o método
 > `/vendor`** (autorun por pendrive + `pfl7560-fix.sh`), que é o seguro.
@@ -60,7 +65,9 @@ ligar, e tudo é reversível.
    root e `/vendor` remontado rw, empurrar de volta os 3 `.STOCK` (`ZYCustom.ini`, `build.prop`,
    `init.bigfish.rc`) para `/vendor/…` e reiniciar.
 3. **Reflash total:** gravar o `Software PFL7560.zip` de fábrica por pen drive FAT32 pela "Atualização local
-   do sistema" (menu do projetor). Volta 100% ao original.
+   do sistema" (menu do projetor). Volta 100% ao original — **inclusive o formato de cor do painel**: a
+   `panelparam` provavelmente está dentro do `.bin` ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)
+   §5). Quem trocou o painel LCD refaz o teste de cor depois ([guia 32](32-guia-troca-painel-lcd.md) §3).
 
 ## Comandos do dia a dia
 

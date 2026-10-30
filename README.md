@@ -135,20 +135,33 @@ Em especial, o **init do Android recusa parsear arquivos `.rc` group/world-writa
 
 ## Reparo relacionado: troca de painel LCD e correção de cor (VESA↔JEIDA)
 
-Investigação separada, no mesmo aparelho: ao substituir o micro-painel LCD do motor óptico por uma
-variante de sufixo diferente (`RX058B-4300` de fábrica → `RX058B-0600`, peça vendida p/ Thundeal TD96),
-a imagem sai com **cores erradas nos meios-tons** — os painéis usam **mapeamento LVDS diferente** (o
-`-0600` espera **JEIDA**; o firmware emitia **VESA**).
+Investigação separada, no mesmo aparelho: ao substituir o micro-painel LCD do motor óptico, a imagem
+pode sair com **primárias certas e preto/cinzas tingidos** (a cor do tingimento muda com a imagem). É o
+**formato LVDS** (VESA ou JEIDA) que o SoC emite não casar com o painel. Na 1ª troca (2026-07-10), o
+`RX058B-0600` (peça vendida p/ Thundeal TD96) pediu **JEIDA**; na 2ª troca (2026-10-29), o painel
+instalado é o `FPX-RX058B-4300-V0` `20241101 HT`, o mesmo modelo e data do painel de fábrica, e pediu
+**VESA** — o aparelho está hoje em VESA (byte `0x5c` = 0,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). **O formato não se
+deduz do nome do painel:** descobre-se olhando um padrão de cinza (o teste das "duas metades",
+[doc 41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 
-Resolvido **100% por software, sem trocar hardware**: decompilando a `libhitvservice.so` do aparelho
-(capstone), compilando um programa (`lvdsctl`, NDK) que chama `HiPanelCtrl::SetLvdsFormat(JEIDA)` — que
+Resolvido **por software, sem trocar hardware**: decompilando a `libhitvservice.so` do aparelho
+(capstone), compilando um programa (`lvdsctl`, NDK) que chama `HiPanelCtrl::SetLvdsFormat` — que
 grava **1 byte** (`0x5c`) no perfil de painel do `panelparam`. Persiste no boot nativamente. Diagnóstico
 completo, tentativa-e-erro e comandos em
 [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).
 
-**Como aplicar** (só quem trocou o painel): `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (faz backup do
-painel e testa VESA/JEIDA na tela) ou `./pfl7560-menu.sh` → opção 4; no Windows, `install.bat` → opção 6.
-**Não** aplique num aparelho com o painel de fábrica.
+**Como aplicar** (só quem trocou o painel):
+- **sem PC:** o kit de pendrive (método 1) projeta as duas metades; metades iguais = nada a fazer, e só
+  troca o formato com duas teclas do controle (backup e journal antes);
+- **com PC:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (backup obrigatório antes de gravar, testa
+  JEIDA e VESA na tela) ou `./pfl7560-menu.sh` → opção 4; no Windows, `install.bat` → opção 6.
+
+Todo comando que grava na `panelparam` faz backup antes e aborta se o backup falhar. Guia leigo:
+[`docs/guide/32-guia-troca-painel-lcd.md`](docs/guide/32-guia-troca-painel-lcd.md). **Regravar o firmware
+de fábrica provavelmente devolve o byte `0x5c` ao de fábrica (VESA)**: a `panelparam` parece estar dentro
+do `.bin` ([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md) §5); depois de um reflash,
+refaça o teste de cor.
 
 ## Estrutura do repositório
 

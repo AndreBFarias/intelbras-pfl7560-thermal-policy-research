@@ -7,6 +7,24 @@ engenharia reversa, decompilação e a pesquisa dos agentes, e define sprints co
 Base técnica já resolvida e documentada em
 [`28-troca-painel-rx058b-diagnostico-cor.md`](28-troca-painel-rx058b-diagnostico-cor.md).
 
+> **ESTADO DAS SPRINTS (2026-10-30)** — o status de cada sprint abaixo é este; as notas datadas dentro de
+> cada uma explicam:
+>
+> | ID | Status |
+> |---|---|
+> | LCD-S1 | **IMPLEMENTADO** (`a9d3fa2`, 2026-07-12; backup obrigatório antes de qualquer gravação no bloco 1, `c7a0bbb`). Falta só a prova (c): o fluxo completo do script rodado no aparelho |
+> | LCD-S2 | **IMPLEMENTADO** (wizard v2, `a9d3fa2`). Falta a prova no aparelho forçando tela preta |
+> | LCD-S3 | **SUBSTITUÍDA** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) ([doc 41](41-auto-pareamento-camera-e-kit-universal.md)): critério "duas metades"; a câmera é a etapa E5, ainda aberta |
+> | LCD-S4 | **DECIDIDA** (cor fora do `.bin` universal). A premissa da Task 1 caiu: a `panelparam` **provavelmente está** no container (record 4; [doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3, [doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §5); confirmação pendente no aparelho (bloco 5, E1) |
+> | LCD-S5 | **ENTREGUE** (guia 32, reescrito em 2026-10-30 para o kit de pendrive e o diagnóstico por barras puras) |
+> | LCD-S6 | **ENTREGUE** (doc 33; em 2026-10-30 ganhou o painel da 2ª troca e os perfis 83-86 do firmware de outubro) |
+> | LCD-S7 | **ENTREGUE** (doc 33 §3) |
+>
+> **Fato novo de 2026-10-29** ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1): na 2ª
+> troca o painel instalado é um `FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA**; o aparelho está hoje
+> em VESA (`0x5c` = 0). O JEIDA citado abaixo vale para o `-0600` da 1ª troca. O formato não se deduz do
+> nome: decide o teste de cinza.
+
 ---
 
 ## Resumo executivo
@@ -50,7 +68,7 @@ projetor**. Este documento organiza tudo em 7 sprints.
 - Registradores do VDP (`LVDS_CTRL/SWAP0`) existem mas a base é do SDK STB, não do HiDPT v350 →
   via registrador travou; via API (decompilação) venceu.
 - Painéis RX058B são variantes elétricas do mesmo 5.8"/60-pin; o sufixo NÃO garante o formato — deve
-  ser verificado. Não há datasheet público do `-0600` (resolução física a confirmar; workflow em curso).
+  ser verificado (confirmado em 2026-10-29: o `-4300` da 2ª troca pediu VESA, doc 40 §1). Não há datasheet público do `-0600` (resolução física a confirmar; workflow em curso).
 - Projetores irmãos que usam o `-0600`: Thundeal TD96, Vivibright F40 (Amlogic), AAO YG620, Rigal RD826
   — plataformas mistas (HiSilicon/Amlogic/MStar), então firmware não é portável; só o **modo LVDS** é.
 
@@ -86,6 +104,10 @@ A matriz viva completa é a Sprint **LCD-S6**.
 ### LCD-S1 — Aplicador da correção de cor (fácil replicação)
 **Objetivo:** um comando único que aplica/reverte o formato LVDS após troca de painel, no mesmo estilo
 do `pfl7560-fix.sh` térmico. **Motivação:** hoje exige adb manual + binário; o usuário quer 1 passo.
+> **Atualização (2026-10-30):** (a) e (b) foram feitos no commit `a9d3fa2` (2026-07-12), e o bloco 1
+> (2026-10-29) tornou o backup obrigatório antes de **qualquer** gravação (`jeida`/`vesa`/`swap`/`bit`, menu
+> e `install.bat`). Status: **IMPLEMENTADO**; falta só (c), a prova no aparelho. O texto abaixo é de 2026-07-12.
+>
 > **Status (revisado 2026-07-12): núcleo IMPLEMENTADO; faltam 3 itens concretos.** Existe
 > `pfl7560-lcd-color.sh` (raiz) + `lvdsctl` pré-compilado (ARM) + fonte `.c` + 5 padrões de teste em
 > `artifacts/lcd-color-fix/`, com os 9 subcomandos `status/jeida/vesa/swap/bit/test/wizard/backup/restore`
@@ -123,7 +145,12 @@ pode não existir no curto prazo) — registrar como desejável, não como gate.
 
 ### LCD-S2 — Wizard de pareamento (semi-automático, guiado)
 **Objetivo:** assistente que leva o usuário do "cores erradas" ao "certo" em <2 min, sem entender de
-LVDS. **Motivação:** nem todo painel será JEIDA; precisa de um fluxo à prova de leigo. **Estado atual:**
+LVDS. **Motivação:** nem todo painel será JEIDA; precisa de um fluxo à prova de leigo.
+> **Atualização (2026-10-30):** o wizard v2 (backup automático, watchdog de tela preta, eixos avançados
+> sobre o formato em uso) entrou no commit `a9d3fa2`. Status: **IMPLEMENTADO**; falta a prova no aparelho.
+> O "estado atual" abaixo é de antes desse commit.
+
+**Estado atual (2026-07-12):**
 o `wizard` existente é uma v0 "single-shot" (projeta gamma, aplica JEIDA, pergunta 1× s/N) — falta o
 loop de eixos e, criticamente, o backup automático e o watchdog de tela preta.
 **Escopo (v2):**
@@ -147,6 +174,10 @@ correto respondendo só s/N, e — se o usuário deixar sem responder num format
 sozinho dentro do timeout (comprovar forçando um `swap` que dê tela preta e não responder). **Esforço:** médio.
 
 ### LCD-S3 — Auto-pareamento via câmera interna (a "forma inteligente")
+> **SUBSTITUÍDA (2026-10-29)** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md), com a
+> pesquisa no [doc 41](41-auto-pareamento-camera-e-kit-universal.md): a câmera é UVC e se lê por V4L2
+> (§1), e o critério "duas metades" (§4) é diferencial dentro do mesmo quadro. O kit de pendrive já decide
+> com duas teclas; a câmera (modo sem tecla) é a etapa E5, ainda aberta.
 **Objetivo:** detectar e aplicar o formato certo **sem input humano**, usando a **câmera de foco/keystone
 do próprio PFL7560** para "ver" a projeção e se auto-calibrar. **Motivação:** painéis LVDS não têm
 EDID — não dá pra "perguntar" ao painel; mas o projetor pode **olhar a própria imagem**.
@@ -190,6 +221,17 @@ tem dominante de cor própria (por isso o critério é diferencial, não absolut
 > **Conclusão:** a correção de cor **continua pós-boot** (`pfl7560-lcd-color.sh`). Esta sprint vira uma
 > **investigação com decisão registrada**, não uma feature do `.bin` universal.
 
+> **CORREÇÃO (2026-10-29/30)** — a resposta da Task 1 abaixo está **provavelmente errada**. O record 4 do
+> container (63.876 bytes em `0x144180c`) contém `panelheader/paneldatabody` e o nome
+> `RX058B_4300_5010E_1080P_M`, igual à `panelparam` do aparelho
+> ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3); no firmware de outubro esse record cresceu
+> com os 4 perfis novos e o perfil 69 traz `0x5c` = 0 (VESA)
+> ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §2.2 e §5). O "nenhum payload tem ~8 MB" comparou com
+> o tamanho do slot, não com o dado (~64 KB). Consequência: **regravar o `.bin` pode devolver o byte `0x5c`
+> ao de fábrica (VESA)** — inócuo para painel VESA, quebra a cor de painel JEIDA. A decisão de escopo
+> (JEIDA fora do `.bin` universal) continua valendo, agora por mais um motivo. Confirmação no aparelho:
+> bloco 5, E1(b), e bloco 4.
+
 **Task 1 (RESOLVIDA — 2026-07-12, análise offline do container):** a tabela de partições do `.bin` foi
 decodificada por inteiro (19 records de 32 bytes @ `0x40..0x2a0`). **Resposta definitiva: NÃO existe
 record de `panelparam` no container.** Os 19 records são só imagens de firmware
@@ -215,8 +257,12 @@ quiser correção nativa por firmware, seria preciso um empacotador que grave o 
 > (`0x35ca9b46`, doc 15). Confirma que é o rebuild novo (com metadados/SELinux), não o protótipo apagado.
 
 **Task 2 (consequência para o resgate — corrigir doc 16 e o guia LCD-S5):** como o `panelparam` **não**
-é regravado pelo `.bin`/resgate, a correção de cor **sobrevive** a um resgate power-hold (bom). **Mas
-confirmar:** se algum dia se descobrir que o resgate toca o `panelparam`, adicionar ao doc 16 e ao guia
+é regravado pelo `.bin`/resgate, a correção de cor **sobrevive** a um resgate power-hold (bom).
+> **CORREÇÃO (2026-10-30):** com a Task 1 derrubada, o mais provável é o contrário: o resgate **regrava** a
+> `panelparam` e volta o formato ao de fábrica. O guia 16 e o guia 32 já mandam refazer o teste de cor
+> depois de um reflash.
+
+**Mas confirmar:** se algum dia se descobrir que o resgate toca o `panelparam`, adicionar ao doc 16 e ao guia
 leigo (LCD-S5): "após resgate, se as cores voltarem erradas, rode `pfl7560-lcd-color.sh jeida`".
 
 **Proof-of-work:** a resposta documentada da Task 1 (record de `panelparam` existe? sim/não, com
@@ -234,6 +280,7 @@ wizard), e quando NÃO tem conserto por software (timing/resolução física inc
 ### LCD-S6 — Matriz viva de painéis compatíveis
 > **Status (2026-07-12): ENTREGUE (v1)** — [`33-matriz-paineis.md`](33-matriz-paineis.md) §1, com
 > `RX058B-4300` (VESA) e `RX058B-0600` (JEIDA, testado OK). É catálogo vivo: adicionar novos painéis conforme testados.
+> Em 2026-10-30 ganhou a linha do painel da 2ª troca (`-4300`, VESA) e os perfis 83-86 do firmware de outubro.
 **Objetivo:** catálogo mantido de painéis testados: part number, tamanho, resolução física real,
 formato LVDS correto, driver IC, onde comprar (BR/AliExpress), e "grau de plug-and-play".
 **Escopo:** tabela versionada; começar com `RX058B-4300` (VESA, fábrica) e `RX058B-0600` (JEIDA,

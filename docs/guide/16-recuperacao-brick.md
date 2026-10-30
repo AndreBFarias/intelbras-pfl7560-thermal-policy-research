@@ -77,8 +77,13 @@ segurando o botão de power.**
 5. O loader entra em modo upgrade, acha o `usb_update.bin` e **regrava o firmware** (aparece tela de
    progresso, não a logo do Android). **Não desligue durante a gravação.**
 6. Ao terminar e reiniciar, **remova o pendrive** (pra não regravar de novo). Sobe no firmware de fábrica.
+7. **Se você trocou o painel LCD**, refaça o teste de cor ([guia 32](32-guia-troca-painel-lcd.md) §3). A
+   `panelparam` provavelmente está dentro do `.bin` ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)
+   §5), e o reflash devolve o formato LVDS ao de fábrica (VESA): um painel que pede JEIDA volta com a cor
+   errada. O flash também regrava a `deviceinfo` inteira (índice de painel 69).
 
-Por que funciona: o flash **só toca as partições do firmware**, e o **bootloader/loader nunca é alterado**
+Por que funciona: o flash **só toca as partições que o container leva** (entre elas, provavelmente, a
+`panelparam` e a `deviceinfo`, ver passo 7), e o **bootloader/loader nunca é alterado**
 (nem pela nossa build, nem pelo flash) — então o modo de upgrade USB está sempre disponível. É o mesmo motor
 que a "Atualização local" usa, só que disparado pelo hardware em vez do menu.
 

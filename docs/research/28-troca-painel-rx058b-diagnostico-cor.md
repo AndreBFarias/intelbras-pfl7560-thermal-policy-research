@@ -23,6 +23,20 @@ avançamos. Sessão conduzida via adb ao vivo no aparelho (`94.140.14.52:5555`, 
 - **Status:** correção ainda não fechada. Testes de campo (link map, bit-depth, flags) descartados.
   Falta localizar o parâmetro exato de formato LVDS (VESA/JEIDA) — pesquisa por agentes em curso.
 
+> **CORREÇÃO (2026-10-29)** — este TL;DR é o retrato do começo da investigação. O que vale hoje:
+> - **Resolvido em 2026-07-10** (§13): o `-0600` pedia **JEIDA**; o byte é o `0x5c` do perfil.
+> - **"Só o bit 4 vai para o canal errado" não se sustenta.** Pelas tabelas VESA/JEIDA do kernel Linux,
+>   trocar o formato é uma rotação de **2 bits igual em R, G e B**, em todos os canais
+>   ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1 e §5). O cinza parece "cruzar
+>   canais" porque o DCI levanta o preto alguns níveis, diferente por canal; com o formato errado os 2
+>   LSBs viram MSBs e essa diferença de 1-2 níveis vira 64-128. Por isso a cor do tingimento **muda com a
+>   imagem**. A §12.1, que usou o "cinza virou cor" para descartar VESA/JEIDA, está **refutada** (§13).
+> - **Diagnóstico que não se engana:** primárias certas + preto/cinza tingido = formato, não troca de
+>   canal. Barras puras antes de qualquer `swap` ([guia 32](../guide/32-guia-troca-painel-lcd.md) §3).
+> - **2ª troca (2026-10-29):** o painel instalado é de novo um `FPX-RX058B-4300-V0` `20241101 HT` (mesmo
+>   modelo e data do original desta tabela) e pediu **VESA**; o aparelho está hoje em VESA (`0x5c` = 0).
+>   O "estado permanente" da §13 (JEIDA) ficou para trás.
+
 ---
 
 ## 1. O hardware e a troca
@@ -142,6 +156,9 @@ Todos os testes mantêm o **timing do -4300** (que dá imagem nítida) e variam 
 **Conclusão dos testes de campo:** nenhum byte facilmente identificável do struct corrige a cor. O
 parâmetro de formato LVDS (VESA/JEIDA) não está entre `0x3c/0x54/0x5c` nem no link map nem no bit_width.
 
+> **CORREÇÃO (2026-07-10, §13):** o formato **está** no `0x5c` (`0` = VESA, `1` = JEIDA). O teste 4 mudou
+> `0x3c`, `0x54`, `0x5c` e o link map de uma vez; a tela preta veio dos outros campos, não do `0x5c`.
+
 ---
 
 ## 6. A decodificação de bits (o achado central)
@@ -164,6 +181,11 @@ dependem dos bits altos (corretos), elas ficam certas; os meios-tons (onde o bit
 Isso é a assinatura de um **descasamento de empacotamento LVDS** — a fronteira entre os bits que vão
 nos primeiros pares LVDS e os que vão no par extra (típico de **VESA vs JEIDA** e de mapeamento
 6-vs-8-bit) está diferente entre o que o firmware emite (formato do -4300) e o que o -0600 espera.
+
+> **CORREÇÃO (2026-10-29):** a leitura "só o bit 4, desviado de canal" foi a interpretação de um padrão
+> fotografado, não a tabela do formato. VESA↔JEIDA desloca **2 bits em todos os canais**
+> ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §5); a conclusão "é VESA vs JEIDA"
+> desta seção é a que ficou certa (§13).
 
 ---
 
@@ -258,7 +280,12 @@ adb shell "getprop zysys.env_temp zysys.light_temp"
 
 ## 12. Atualização — decodificação de bits e vias de baixo nível
 
-### 12.1. Prova de que NÃO é VESA/JEIDA (workflow `pfl7560-lvds-bitmap-conversao`)
+### 12.1. Prova de que NÃO é VESA/JEIDA (workflow `pfl7560-lvds-bitmap-conversao`) — REFUTADA
+
+> **REFUTADA (2026-07-10, §13; mecanismo no [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+> §1):** trocar para JEIDA corrigiu 100%. A matemática da rotação está certa; a premissa "cinza na tela =
+> R=G=B no sinal" é que falha, porque o DCI levanta o preto de forma diferente por canal e a rotação
+> amplifica essa diferença. Mantida abaixo só como registro.
 
 Os agentes derivaram das tabelas do kernel (`panel-lvds.txt`) um resultado **matematicamente
 confirmado**: trocar VESA<->JEIDA em 8-bit é um "rotate de 2 bits" aplicado **igual e independente**
@@ -334,6 +361,11 @@ texto sem franja — confirmado por foto do padrão de gamma).
 | 0x60-0x6c | link map | 0,1,2,3 | 0,1,2,3 |
 
 ### Estado permanente e reversão
+
+> **SUPERADO (2026-10-29):** na 2ª troca de LCD o aparelho voltou a **VESA** (`lvdsctl fmt 0`, byte `0x5c`
+> = 0, conferido depois do reboot), porque o painel instalado é um `-4300`
+> ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). O texto abaixo descreve o estado
+> de 2026-07-10 a 2026-10-29.
 
 - Perfil 69 (`RX058B_4300`) no `panelparam` agora tem `lvds_fmt=JEIDA` (byte 0x5c=1). Confirmado após
   reboot: `/proc/msp/panel` → `lvds_fmt: jeida`, painel ativo, imagem correta.

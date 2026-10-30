@@ -180,14 +180,26 @@ Resgate com boot travado: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-r
 
 ## Reparo relacionado — correção de cor (só se você **trocou** o painel LCD)
 
-Tema distinto do térmico. Se você substituiu o micro-painel por uma variante de sufixo diferente
-(ex.: `RX058B-4300` de fábrica → `RX058B-0600`) e as cores dos **meios-tons** saíram erradas, é
-mapeamento LVDS divergente (VESA vs JEIDA), corrigível **por software**. **Não** aplique isto num
-aparelho com o painel de fábrica — mudaria a cor para errado.
+Tema distinto do térmico. Se você substituiu o micro-painel e a imagem saiu com **primárias certas e
+preto/cinzas tingidos** (a cor do tingimento muda com a imagem), é o formato LVDS (VESA ou JEIDA) que não
+casa com o painel, corrigível **por software**. **O formato não se deduz do nome do painel:** o
+`RX058B-0600` da 1ª troca pediu JEIDA; o `RX058B-4300` instalado na 2ª troca (2026-10-29, o mesmo modelo
+do de fábrica) pediu VESA ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+§1). Quem decide é o teste de cinza.
 
-- **Linux / macOS:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (faz backup do painel e testa VESA/JEIDA
-  na tela), ou `./pfl7560-menu.sh` → opção **4**. Direto: `... jeida` (corrige o `-0600`) / `... vesa`.
-- **Windows:** `install.bat` → opção **6**. O wizard completo e o backup/restore usam WSL
+- **Sem PC:** o kit de pendrive do Método 1 já faz o teste das "duas metades". Metades iguais = cor
+  certa, nada é gravado. Só troca o formato com **duas** teclas do controle, com backup e journal antes.
+- **Linux / macOS:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (backup obrigatório antes de gravar,
+  testa JEIDA e VESA na tela e reverte sozinho se a tela apagar), ou `./pfl7560-menu.sh` → opção **4**.
+  Direto, se você já viu qual formato deixa o cinza neutro: `... jeida` / `... vesa` (também fazem o
+  backup do dia antes de gravar; `swap`/`bit` pedem confirmação).
+- **Windows:** `install.bat` → opção **6** (`c` = JEIDA, `d` = VESA, com backup antes em
+  `backups-projetor\`). O wizard completo e o backup/restore usam WSL
   (`wsl ./pfl7560-lcd-color.sh wizard`).
 
+Num aparelho com o painel de fábrica o teste mostra as metades iguais e nada muda. Depois de **regravar o
+firmware de fábrica**, refaça o teste: a `panelparam` parece estar dentro do `.bin` e o reflash pode
+devolver o formato ao de fábrica (VESA) ([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md) §5).
+
+Guia leigo: [`docs/guide/32-guia-troca-painel-lcd.md`](docs/guide/32-guia-troca-painel-lcd.md).
 Diagnóstico e detalhes: [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).

@@ -201,7 +201,7 @@ Folha polarizadora solta vem com liner nos dois lados e **apenas um lado é ades
 | Peça | Papel | Entra no aparelho? |
 |---|---|---|
 | **Vidro isolamento térmico 136x85 (TD98)** | Substituição do item 4 da §1 | **Sim.** É a peça do reparo |
-| **Painel LCD RX058B-0600** | Sobressalente / contingência | Só se o painel atual estiver danificado. Cor já resolvida (JEIDA no `panelparam`) |
+| **Painel LCD RX058B-0600** | Sobressalente / contingência | Só se o painel atual estiver danificado. Cor já resolvida (JEIDA no `panelparam`). **Atualização (2026-10-29):** na 2ª troca de LCD o painel instalado é um `-4300` e o aparelho está em **VESA**; qualquer painel novo passa pelo teste de cor do [guia 32](../guide/32-guia-troca-painel-lcd.md) §3 ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
 | **Folha polarizada linear 0/90°, 20x30 cm** | **Instrumento de medida de eixo** + material do plano B (§5.5) | **Não** no caminho de luz: 380-700 nm, não bloqueia IR |
 | **Filme refletivo prata 200x170 mm** | — | **Não. Fica na gaveta** |
 
@@ -317,8 +317,9 @@ PFL_IP=<ip> ./pfl7560-saude.sh
 # a protecao reage? (~65 s, mexe no brilho e volta sozinho)
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade
 
-# a cor continua correta apos mexer no caminho optico (painel -0600 => JEIDA):
-PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado: lvds_fmt: jeida
+# a cor continua correta apos mexer no caminho optico. Desde a 2a troca de LCD
+# (2026-10-29, painel -4300) o esperado e vesa; com o -0600 da 1a troca era jeida (doc 40 s1):
+PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado hoje: lvds_fmt: vesa
 ```
 
 **Critério de aceite da troca:** a temperatura da óptica em regime tem de **cair** contra a linha de base

@@ -22,8 +22,14 @@ Um `firmware/PFL7560-FIX.bin` que, flashado por "Atualização local do sistema"
 
 **O que o `.bin` final NÃO faz:** não corrige cor de painel trocado. O byte `0x5c=JEIDA` **não** entra no
 `.bin` universal (quebraria a cor de todo aparelho com painel de fábrica) — a correção de cor é sempre
-pós-boot, por `pfl7560-lcd-color.sh`. Ver a decisão de escopo em
+pós-boot, pelo kit de pendrive ou por `pfl7560-lcd-color.sh`. Ver a decisão de escopo em
 [`29-roadmap-troca-lcd.md`](29-roadmap-troca-lcd.md) (LCD-S4).
+
+> **CORREÇÃO (2026-10-29/30):** a `panelparam` **provavelmente está** no container (record 4,
+> [doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3 e [doc 42](42-firmware-2026-10-modelo-sem-usbc.md)
+> §5), ao contrário do que o doc 29 registrou em 2026-07-12. O `.bin` (de fábrica ou o nosso) leva então
+> o perfil 69 com `0x5c` = 0 (VESA): quem tem painel JEIDA precisa refazer o teste de cor depois de
+> gravar. A confirmação no aparelho é a etapa E1(b) do [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md).
 
 ---
 
@@ -34,11 +40,13 @@ TRILHA A — TÉRMICA (caminho crítico do .bin final)
   aparelho já corrigido via /vendor  ─  builder pronto  ─  vigia  ─  .bin que boota + avisa
 
 TRILHA B — COR LCD (paralela, NÃO bloqueia o .bin térmico)
-  correção JEIDA já aplicada e persistente no aparelho  ─  empacotar como ferramenta pós-boot
+  formato LVDS do painel instalado, persistente no aparelho  ─  ferramenta pós-boot (feita)
 ```
 
 A Trilha B é valiosa e já **funciona no aparelho do dono** (cor corrigida, persistente no reboot), mas é
-uma ferramenta pós-boot separada. Não gasta o caminho crítico do `.bin`. Detalhe: doc 29.
+uma ferramenta pós-boot separada. Não gasta o caminho crítico do `.bin`. Detalhe: doc 29. Desde a 2ª troca
+de LCD (2026-10-29) o aparelho do dono está em **VESA**, não em JEIDA
+([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1).
 
 ---
 
@@ -95,9 +103,11 @@ Checklist completo de pré-condições e recuperação: doc 18, seção "Pré-re
 - **O builder do `.bin`** (`artifacts/bin-build/build_fix_bin.py`) — já faz BIN-S1/S2/S3: lê e carimba
   mode/uid/gid + rótulo SELinux dos 3 arquivos, com gate fatal contra `.rc` group-writable, e valida o
   `checksum1`. Falta só **rodá-lo capturando a prova** (BIN-S3b) e o teste de hardware.
-- **A correção de cor LCD** — resolvida (VESA→JEIDA, byte `0x5c`), aplicada e persistente; ferramenta
-  `pfl7560-lcd-color.sh` com os 9 subcomandos (doc 28). Falta endurecer backup/restore e integrar ao menu
-  (doc 29 · LCD-S1) — trilha B, fora do caminho crítico.
+- **A correção de cor LCD** — resolvida (byte `0x5c`: JEIDA na 1ª troca, VESA na 2ª, doc 40 §1), aplicada
+  e persistente; ferramenta `pfl7560-lcd-color.sh` com os 9 subcomandos (doc 28), backup/restore
+  endurecidos e integrada ao menu e ao `install.bat` (LCD-S1, `a9d3fa2`), backup obrigatório antes de
+  gravar (bloco 1), e o kit de pendrive com o teste das "duas metades" (bloco 5) — trilha B, fora do
+  caminho crítico.
 - **A higiene do repo** — 4 dos 5 checks da REPO-S1 já passam; `make check` 6/6 (doc 30).
 
 ---

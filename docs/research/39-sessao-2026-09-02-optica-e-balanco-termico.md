@@ -660,8 +660,9 @@ PFL_IP=<ip> ./pfl7560-saude.sh
 # 3) a protecao reage? (~65 s, mexe no brilho e volta sozinho)
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade
 
-# 4) a cor sobreviveu ao manuseio do caminho optico
-PFL_IP=<ip> ./pfl7560-lcd-color.sh status     # esperado: lvds_fmt: jeida
+# 4) a cor sobreviveu ao manuseio do caminho optico. Em 2026-09-03 (painel -0600) era jeida;
+#    desde a 2a troca de LCD (2026-10-29, painel -4300) o esperado e vesa (doc 40 s1)
+PFL_IP=<ip> ./pfl7560-lcd-color.sh status     # esperado hoje: lvds_fmt: vesa
 
 # 5) integridade dos artefatos byte-exatos (offline)
 make check                                     # 6 OK

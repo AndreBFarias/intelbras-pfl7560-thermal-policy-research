@@ -113,6 +113,13 @@ Risco LVDS nulo porque é exatamente o painel já instalado e o firmware **já e
 = 1 no perfil 69 do `panelparam`): é drop-in, sem tocar na partição. Ressalva de loja: reputação 90,8%,
 a pior da lista, com poucas avaliações.
 
+> **CORREÇÃO (2026-10-29)** — o "risco LVDS nulo" acima não vale mais. Na 2ª troca de LCD o painel
+> instalado é o `FPX-RX058B-4300-V0` `20241101 HT` (o mesmo modelo do de fábrica) e o aparelho está em
+> **VESA** (`0x5c` = 0), não em JEIDA ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+> §1). Um `-0600` comprado hoje provavelmente pede JEIDA, mas **o formato não se deduz do anúncio nem do
+> nome**: depois de instalar, faça o teste de cor do [guia 32](32-guia-troca-painel-lcd.md) §3 (kit de
+> pendrive ou `wizard`). O risco é **baixo e corrigível por software**, não nulo.
+
 **EVITAR** anúncios "combo" com sufixos `-1300 / -1000 / -1500 / -1800 / -1900 / -0100 / -3400 / -0202`:
 sufixo diferente = timing diferente, e o teste com o perfil 72 (`RX058B_4500`) já resultou em **tela
 preta**, não em cor errada.

@@ -50,13 +50,15 @@
 
 ## Reparo de hardware — troca do painel LCD e correção de cor
 
-Tema distinto do térmico: quando se **troca o micro-painel LCD** do motor óptico por um de sufixo
-diferente (ex.: `RX058B-4300` de fábrica → `RX058B-0600`), as cores saem erradas nos meios-tons por
-**mapeamento LVDS divergente (VESA vs JEIDA)**. Resolvido por software, sem trocar hardware.
+Tema distinto do térmico: quando se **troca o micro-painel LCD** do motor óptico, as primárias saem
+certas e o preto/cinzas saem tingidos se o **formato LVDS (VESA ou JEIDA)** não casar com o painel. Na 1ª
+troca o `RX058B-0600` pediu JEIDA; na 2ª (2026-10-29) o `RX058B-4300` instalado pediu VESA, e o aparelho
+está hoje em VESA. O formato não se deduz do nome: decide o teste de cinza ("duas metades", doc 41).
+Resolvido por software, sem trocar hardware.
 
 | Doc | Conteúdo |
 |---|---|
-| [`research/28-troca-painel-rx058b-diagnostico-cor.md`](research/28-troca-painel-rx058b-diagnostico-cor.md) | **Diagnóstico completo + solução:** decompilação da lib do aparelho, `lvdsctl` (chama `SetLvdsFormat`), correção VESA→JEIDA no `panelparam` (byte `0x5c`). Tentativa-e-erro incluído. |
+| [`research/28-troca-painel-rx058b-diagnostico-cor.md`](research/28-troca-painel-rx058b-diagnostico-cor.md) | **Diagnóstico completo + solução da 1ª troca:** decompilação da lib do aparelho, `lvdsctl` (chama `SetLvdsFormat`), correção VESA→JEIDA no `panelparam` (byte `0x5c`). Tentativa-e-erro incluído; a §12.1 foi refutada pela §13 e pelo doc 40. |
 | [`research/29-roadmap-troca-lcd.md`](research/29-roadmap-troca-lcd.md) | **Roadmap e sprints (planejamento):** aplicador fácil, wizard de pareamento, auto-pareamento via câmera interna, integração no `.bin`, guia leigo, matriz de painéis, auditoria de nomenclatura de IC. |
 | [`research/33-matriz-paineis.md`](research/33-matriz-paineis.md) | **Matriz de painéis compatíveis + auditoria de nomenclatura (LCD-S6/S7):** quais painéis, qual formato LVDS, e por que o nome do perfil não garante compatibilidade. |
 | [`research/30-sprint-validacao-repositorio.md`](research/30-sprint-validacao-repositorio.md) | **Sprint de higiene:** validar a reorganização `mod-termica`→`docs/artifacts` (links, integridade, política de versionamento). |
