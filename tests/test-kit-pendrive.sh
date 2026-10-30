@@ -88,6 +88,10 @@ exec '"$REAL_CMP"' "$@"'
 pp="$PFL_ROOT/dev/block/by-name/panelparam"
 if [ "$2" = "1" ]; then printf "\001"; else printf "\000"; fi | dd of="$pp" bs=1 seek='"$OFF"' conv=notrunc 2>/dev/null
 [ -f "$T/lvds-corrompe" ] && rm -f "$T/lvds-corrompe" && printf "ZZ" | dd of="$pp" bs=1 seek='"$(( 168 + 69 * 768 + 200 ))"' conv=notrunc 2>/dev/null
+# fora do perfil (cabecalho da particao), uma vez
+[ -f "$T/lvds-corrompe-cab" ] && rm -f "$T/lvds-corrompe-cab" && printf "ZZ" | dd of="$pp" bs=1 seek=10 conv=notrunc 2>/dev/null
+# so na chamada que devolve o formato original (fmt 0), uma vez
+[ "$2" = "0" ] && [ -f "$T/lvds-corrompe-ao-reverter" ] && rm -f "$T/lvds-corrompe-ao-reverter" && printf "ZZ" | dd of="$pp" bs=1 seek='"$(( 168 + 69 * 768 + 200 ))"' conv=notrunc 2>/dev/null
 exit 0'
   ln -sf "$(command -v "$SHELL_BIN")" "$b/sh"
   [ "$SHELL_BIN" = busybox ] && ln -sf "$(command -v busybox)" "$b/sh"
@@ -357,6 +361,14 @@ c_falhas_seguras(){
   roda key key
   afirma '[ "$(pp_md5)" = "$PP0" ]' "o perfil nao voltou ao original"
   afirma 'log_tudo | grep -q "a releitura nao confirmou"' "log sem a recusa"
+  limpa
+
+  novo_cenario "lvdsctl corrompe o cabecalho (fora do perfil) + 2a tecla = nao mantem"; aparelho_ok
+  : > "$T/lvds-corrompe-cab"
+  roda key key
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "a particao nao voltou ao original (diferenca fora do perfil)"
+  afirma 'log_tudo | grep -q "a releitura nao confirmou"' "manteve com o cabecalho alterado"
+  afirma '[ ! -e "$T/root/data/local/tmp/pfl7560-kit/journal" ]' "journal sobrou"
   limpa
 
   novo_cenario "backup invalido (cmp falha) = nao escreve"; aparelho_ok

@@ -22,8 +22,9 @@
 #   2. Sem tecla em 30 s: NADA e escrito. Esta e a saida do aparelho de fabrica.
 #   3. Com uma tecla: backup do panelparam (conferido com cmp), journal em /data,
 #      troca o formato AO VIVO (lvdsctl fmt) e projeta de novo.
-#   4. So MANTEM com uma SEGUNDA tecla. Sem ela, REVERTE e confere relendo o byte
-#      0x5c e o perfil inteiro contra o backup. Nao precisa de confirmacao.
+#   4. So MANTEM com uma SEGUNDA tecla, e so se a particao inteira diferir do
+#      backup apenas no byte 0x5c. Sem ela, REVERTE e confere a particao inteira
+#      contra o backup. Nao precisa de confirmacao.
 #   5. Queda de energia no meio: o journal restaura no boot seguinte (pelo
 #      newlink_update.sh com o pendrive, ou pelo gancho de boot de fabrica).
 #
@@ -181,29 +182,29 @@ jornal_ler(){
   [ "$J_OFF" = "$(( TABELA_BASE + J_IDX * PERFIL_TAM + LVDS_FMT_OFF ))" ]
 }
 
-# ---- comparacao do perfil com o backup ---------------------------------------
-perfil_para(){ # arquivo idx destino
-  dd if="$1" bs=1 skip=$(( TABELA_BASE + $2 * PERFIL_TAM )) count="$PERFIL_TAM" of="$3" 2>/dev/null
-}
-perfil_comparar(){ # idx -> deixa perfil-agora e perfil-bkp em $WORK
-  perfil_para "$PP" "$1" "$WORK/perfil-agora" && perfil_para "$BKP" "$1" "$WORK/perfil-bkp"
-}
-perfil_igual_backup(){ perfil_comparar "$1" && cmp -s "$WORK/perfil-agora" "$WORK/perfil-bkp"; }
-# 0 se o perfil atual so difere do backup (no maximo) no byte lvds_fmt
-perfil_so_difere_no_fmt(){
-  perfil_comparar "$1" || return 1
-  _n=$(cmp -l "$WORK/perfil-agora" "$WORK/perfil-bkp" 2>/dev/null | wc -l | tr -dc '0-9')
+# ---- comparacao da particao com o backup -------------------------------------
+# Compara a PARTICAO INTEIRA, nao so o perfil: uma escrita do lvdsctl fora do
+# perfil (cabecalho, outro perfil, checksum) tambem tem de aparecer. Sem arquivo
+# temporario: cmp direto entre o dispositivo e o backup.
+particao_igual_backup(){ cmp -s "$PP" "$BKP"; }
+# 0 se a particao difere do backup (no maximo) no byte lvds_fmt do journal ($1)
+particao_so_difere_no_fmt(){
+  _n=$(cmp -l "$PP" "$BKP" 2>/dev/null | head -2 | wc -l | tr -dc '0-9')
   [ -n "$_n" ] && [ "$_n" -le 1 ] || return 1
   [ "$_n" = "0" ] && return 0
   # shellcheck disable=SC2046
-  set -- $(cmp -l "$WORK/perfil-agora" "$WORK/perfil-bkp" 2>/dev/null | head -1)
-  [ "$1" = "$(( LVDS_FMT_OFF + 1 ))" ]
+  set -- "$1" $(cmp -l "$PP" "$BKP" 2>/dev/null | head -1)
+  [ "$2" = "$(( $1 + 1 ))" ]
+}
+# copia do backup para a particao um trecho [inicio, inicio+tamanho)
+restaurar_trecho(){
+  dd if="$BKP" of="$PP" bs=1 skip="$1" seek="$1" count="$2" conv=notrunc 2>/dev/null && sync
 }
 
 # ---- restauracao -------------------------------------------------------------
-# Devolve o byte original a partir do journal e CONFERE: o byte relido e o perfil
-# inteiro contra o backup. Se houver qualquer outra diferenca (setor corrompido),
-# restaura os 768 bytes do perfil a partir do backup e confere de novo.
+# Devolve o byte original a partir do journal e CONFERE a particao inteira contra
+# o backup. Se houver qualquer outra diferenca, restaura os 768 bytes do perfil
+# e, se ainda sobrar diferenca fora dele, a particao inteira; confere de novo.
 restaurar_formato(){
   jornal_ler || { LOG "[ERRO] journal ilegivel ou incoerente - NAO vou escrever."; return 1; }
   [ -f "$BKP" ] || { LOG "[ERRO] backup $BKP ausente - NAO vou escrever."; return 1; }
@@ -212,20 +213,26 @@ restaurar_formato(){
   LOG "restaurando lvds_fmt=$J_FMT no perfil $J_IDX (offset $J_OFF)"
   gravar_fmt "$J_OFF" "$J_FMT" || { LOG "[ERRO] dd de restauracao falhou."; return 1; }
   sync
-  if [ "$(cor_valor "$J_IDX")" = "$J_FMT" ] && perfil_igual_backup "$J_IDX"; then
-    LOG "[OK] formato restaurado: byte e perfil conferem com o backup"
+  if particao_igual_backup; then
+    LOG "[OK] formato restaurado: a particao inteira confere com o backup"
     return 0
   fi
-  LOG "[AVISO] o perfil difere do backup alem do byte - restaurando os $PERFIL_TAM bytes do perfil"
-  _a=$(( TABELA_BASE + J_IDX * PERFIL_TAM ))
-  dd if="$BKP" of="$PP" bs=1 skip="$_a" seek="$_a" count="$PERFIL_TAM" conv=notrunc 2>/dev/null \
+  LOG "[AVISO] a particao difere do backup alem do byte - restaurando os $PERFIL_TAM bytes do perfil"
+  restaurar_trecho $(( TABELA_BASE + J_IDX * PERFIL_TAM )) "$PERFIL_TAM" \
     || { LOG "[ERRO] restauracao do perfil falhou."; return 1; }
-  sync
-  if [ "$(cor_valor "$J_IDX")" = "$J_FMT" ] && perfil_igual_backup "$J_IDX"; then
-    LOG "[OK] perfil restaurado do backup e conferido"
+  if particao_igual_backup; then
+    LOG "[OK] perfil restaurado do backup e a particao inteira confere"
     return 0
   fi
-  LOG "[ERRO] depois de restaurar o perfil, a releitura NAO confere. Restaure o backup com ./pfl7560-lcd-color.sh restore."
+  LOG "[AVISO] ainda ha diferenca fora do perfil - restaurando a particao inteira do backup"
+  if ! { dd if="$BKP" of="$PP" bs=4096 conv=notrunc 2>/dev/null && sync; }; then
+    LOG "[ERRO] restauracao da particao falhou."; return 1
+  fi
+  if particao_igual_backup; then
+    LOG "[OK] particao restaurada do backup e conferida"
+    return 0
+  fi
+  LOG "[ERRO] depois de restaurar, a releitura NAO confere. Restaure o backup com ./pfl7560-lcd-color.sh restore."
   return 1
 }
 
@@ -417,8 +424,8 @@ modo_teste(){
   mostrar metades-2
   sleep "$TEMPO_ASSENTAR"
   if esperar_tecla; then
-    if [ "$(cor_valor "$CIDX")" = "$NOVO" ] && perfil_so_difere_no_fmt "$CIDX"; then
-      LOG "[OK] segunda tecla: lvds_fmt=$NOVO mantido, relido e perfil confere (so o byte 0x5c mudou)"
+    if [ "$(cor_valor "$CIDX")" = "$NOVO" ] && particao_so_difere_no_fmt "$OFF"; then
+      LOG "[OK] segunda tecla: lvds_fmt=$NOVO mantido, relido e a particao confere (so o byte 0x5c mudou)"
       rm -f "$JOURNAL"
       remover_gancho
       finalizar pronto
