@@ -34,3 +34,22 @@ regressão para quem já usa. Roda depois da integração do bloco 5.
 - `artifacts/init.bigfish.rc.STOCK`: decidir com o dono se alinha com o stock real (quebra de linha
   final) — muda um md5 do contrato de `make check`.
 - Doc 33: perfis 83 a 86. Docs 11 e disclosure: o defeito persiste no firmware de outubro.
+
+## Estado (2026-10-30, bloco 6 implementado)
+
+T6.1, T6.2 e T6.3 feitos; a T6.4 segue fora (decisão do dono). Só em software: nada disto foi para
+aparelho nem para boot real do `.bin`.
+
+- **T6.1:** `newlink_update.sh` reconhece os dois md5 de fábrica e monta o `.ini` por seções sobre o do
+  aparelho. Acrescentou `[Thermal]` à lista de seções (os limites de 70/75 C moram nela). As versões
+  anteriores nossas seguem trocadas pelo arquivo inteiro, porque uma delas (`5868d67f`) difere do atual até
+  fora das seções térmicas. O md5 do resultado é conferido contra o esperado antes de gravar. Novos:
+  `artifacts/ZYCustom.ini.NOTYPEC.STOCK` (`ed3f314c`), `build.prop.NOTYPEC.STOCK` (`f5b24c1d`),
+  `ZYCustom_390.NOTYPEC.ini` (`bdf5c464`). Prova: `make check-kit`.
+- **T6.2:** `build_fix_bin.py` lê offset/tamanho do record 14; stock V1.0.0.9 segue em `eae3a83d`, o
+  V1.0.0.1 com o `.ini` NOTYPEC sai em `0d294cb3` (CRC do vendor `0xe2cad2f5`). Também recusa `.ini` de
+  outro modelo que o do stock. Prova: `make check-bin` (containers sintéticos; com `PFL_STOCK_ANTIGO` e
+  `PFL_STOCK_NOVO` roda nos stocks de verdade).
+- **T6.3:** `pfl7560-fix.sh` detecta o modelo; backup do modelo sem USB-C em `backups-projetor/notypec/`;
+  revert recusa backup de outro modelo; `apply` do modelo novo usa o `.ini` NOTYPEC (senão rebaixaria o
+  `CONFIG_MODEL`). `install.bat` recusa apply/revert fora do modelo com USB-C. Prova: `make check-fix`.

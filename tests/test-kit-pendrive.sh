@@ -135,6 +135,23 @@ aparelho_ok(){
 }
 estado_vendor(){ ( cd "$T/root/vendor" && find . -type f | sort | xargs md5sum | md5sum ); }
 
+# modelo SEM USB-C (V1.0.0.1, NOTYPEC): o aparelho de fabrica dele (ini e build.prop do
+# firmware de 2026-10-20, doc 42). Chamar logo depois de novo_cenario.
+modelo_novo(){
+  cp "$ROOT/artifacts/ZYCustom.ini.NOTYPEC.STOCK" "$T/root/vendor/etc/ZYCustom.ini"
+  cp "$ROOT/artifacts/build.prop.NOTYPEC.STOCK" "$T/root/vendor/build.prop"
+}
+# ... e o dele ja com tudo aplicado (termico por secoes, wi-fi e xiri)
+aparelho_ok_novo(){
+  local r="$T/root"
+  cp "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini" "$r/vendor/etc/ZYCustom.ini"
+  cp "$ROOT/artifacts/build.prop.NOTYPEC.STOCK" "$r/vendor/build.prop"
+  sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' "$r/vendor/build.prop"
+  sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$r/vendor/etc/init/hw/init.bigfish.rc"
+}
+# linhas do ini sem o CONFIG_MODEL (para comparar o resto byte a byte)
+sem_modelo(){ grep -av '^CONFIG_MODEL' "$1"; }
+
 # roda o autorun; $1.. = teclas (key|nokey) na ordem em que getevent for chamado
 roda(){
   : > "$T/keys"; for k in "$@"; do echo "$k" >> "$T/keys"; done
@@ -758,6 +775,89 @@ c_falhas_seguras(){
   limpa
 }
 
+# ---------------------------------------------------------------------------
+# bloco 6 (T6.1): termico por secoes, preservando o CONFIG_MODEL, nos DOIS modelos
+# ---------------------------------------------------------------------------
+c_modelo_antigo_secoes(){
+  novo_cenario "modelo com USB-C (V1.0.0.9): por secoes sai o md5 de sempre"
+  roda nokey
+  afirma '[ "$(md5 "$T/root/vendor/etc/ZYCustom.ini")" = 252ab7a72a007a8b79b3fc86bd5c0d19 ]' "o ini do modelo antigo nao tem o md5 252ab7a7"
+  afirma 'grep -aq "^CONFIG_MODEL = KJM_5H039_412;" "$T/root/vendor/etc/ZYCustom.ini"' "CONFIG_MODEL do modelo antigo mudou"
+  afirma '[ "$(chamadas reboot)" = 1 ]' "sem reboot"
+  afirma '[ ! -e "$(W)/ini.composto" ]' "arquivo de trabalho do ini sobrou"
+  afirma '[ ! -e "$T/root/vendor/etc/ZYCustom.ini.new" ]' ".new sobrou"
+  limpa
+}
+
+c_modelo_novo_secoes(){
+  novo_cenario "modelo sem USB-C (NOTYPEC, V1.0.0.1): troca so as secoes termicas"; modelo_novo
+  local f="$T/root/vendor/etc/ZYCustom.ini" st="$ROOT/artifacts/ZYCustom.ini.NOTYPEC.STOCK"
+  afirma '[ "$(md5 "$f")" = ed3f314ca89698cb057a74ef64dca38e ]' "preparo: o ini de fabrica novo nao tem o md5 esperado"
+  roda nokey
+  afirma '[ "$(md5 "$f")" = bdf5c4640596d1b2f2fb7f62fbadd6e3 ]' "o ini do modelo novo nao ficou com o md5 esperado"
+  afirma '[ "$(md5 "$f")" = "$(md5 "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini")" ]' "difere do artefato ZYCustom_390.NOTYPEC.ini"
+  # o CONFIG_MODEL do modelo sem USB-C foi preservado (nao virou o do modelo antigo)
+  afirma 'grep -aq "^CONFIG_MODEL = KJM_5H039_412_INTELBRAS_NOTYPEC_TP;" "$f"' "CONFIG_MODEL do modelo novo nao foi preservado"
+  afirma '! grep -aq "^CONFIG_MODEL = KJM_5H039_412;" "$f"' "CONFIG_MODEL rebaixado para o do modelo antigo"
+  # difere do corrigido do modelo antigo SO no CONFIG_MODEL (uma linha)
+  afirma '[ "$(diff -a "$f" "$KIT/ZYCustom.ini" | grep -c "^[<>]")" = 2 ] && diff -a "$f" "$KIT/ZYCustom.ini" | grep -aq "CONFIG_MODEL"' "difere do corrigido antigo em mais que o CONFIG_MODEL"
+  afirma 'cmp -s <(sem_modelo "$f") <(sem_modelo "$KIT/ZYCustom.ini")' "fora o CONFIG_MODEL, nao e o ini corrigido"
+  # as secoes termicas de fato mudaram e o mux esta corrigido
+  afirma 'grep -aq "HW_VIRTUAL_CHANNEL = 1" "$f" && grep -aq "= 66000, 67500, 69000, 70000, 71500, 73000" "$f"' "secoes termicas nao foram trocadas"
+  # o que NAO e termico ficou byte a byte como no stock: so as linhas termicas diferem
+  afirma '[ "$(diff -a "$st" "$f" | grep -a "^[<>]" | grep -avE "WARNING_VALUE|EMERGENCY_VALUE|POLICY_[01]_(THRESHOLD|BRIGHTNESS|SPEED)|HW_VIRTUAL_CHANNEL|DEFAULT_PWM_DUTY|FW_SPEED_CURVE" | wc -l)" = 0 ]' "linhas fora das secoes termicas mudaram em relacao ao stock novo"
+  afirma '[ -f "$f.STOCK" ] && [ "$(md5 "$f.STOCK")" = ed3f314ca89698cb057a74ef64dca38e ]' "o stock novo nao foi guardado como .STOCK"
+  afirma 'grep -q "wifi_disconnect_on_boot=0" "$T/root/vendor/build.prop"' "wi-fi nao aplicado no modelo novo"
+  afirma '[ "$(chamadas reboot)" = 1 ]' "o modelo novo deveria reiniciar uma vez"
+  afirma '! grep -q "NAO vou sobrescrever" "$T/out.log"' "recusou um ini de fabrica conhecido"
+  # 2a execucao: idempotente, nada e escrito
+  local v1; v1="$(estado_vendor)"; : > "$T/calls.log"
+  roda nokey
+  afirma '[ "$(chamadas reboot)" = 0 ] && [ "$(chamadas mount)" = 0 ]' "2a execucao reiniciou ou remontou /vendor"
+  afirma '[ "$(estado_vendor)" = "$v1" ]' "2a execucao escreveu em /vendor"
+  afirma '[ "$(md5 "$f")" = bdf5c4640596d1b2f2fb7f62fbadd6e3 ]' "2a execucao mexeu no ini"
+  afirma 'grep -q "termico ja estava ok" "$T/out.log"' "log sem 'termico ja estava ok' na 2a execucao"
+  limpa
+
+  novo_cenario "modelo sem USB-C ja corrigido: nada a fazer"; aparelho_ok_novo
+  local v0; v0="$(estado_vendor)"
+  roda nokey
+  afirma '[ "$(estado_vendor)" = "$v0" ] && [ "$(chamadas reboot)" = 0 ] && [ "$(chamadas mount)" = 0 ]' "mexeu em aparelho novo ja corrigido"
+  afirma '[ "$(telas)" = "aguarde metades-1 pronto " ]' "telas: '$(telas)'"
+  limpa
+}
+
+c_modelo_novo_desconhecido(){
+  novo_cenario "modelo novo com ini alterado (md5 desconhecido) = recusa"; modelo_novo
+  local f="$T/root/vendor/etc/ZYCustom.ini" m0
+  printf 'x' >> "$f"; m0="$(md5 "$f")"
+  roda nokey
+  afirma '[ "$(md5 "$f")" = "$m0" ]' "ini novo alterado foi sobrescrito"
+  afirma 'grep -q "NAO vou sobrescrever" "$T/out.log"' "log sem a recusa"
+  afirma 'grep -q "ed3f314ca89698cb057a74ef64dca38e" "$T/out.log" && grep -q "29d8ba36149413e899563029df078f6d" "$T/out.log"' "a recusa nao cita os dois md5 de fabrica"
+  afirma '[ "$(chamadas reboot)" = 0 ] && [ ! -e "$f.new" ] && [ ! -e "$f.STOCK" ]' "reiniciou, deixou .new ou guardou STOCK apesar da recusa"
+  afirma '[ "$(telas)" = "aguarde metades-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
+  limpa
+}
+
+# se o grep/sed/head/tail do aparelho se comportarem diferente e o ini montado nao tiver
+# o md5 esperado, nada e gravado (o harness estraga o tail do PATH)
+c_secoes_resultado_errado(){
+  local m
+  for m in antigo novo; do
+    novo_cenario "montagem por secoes com resultado errado ($m) = nao grava"
+    [ "$m" = novo ] && modelo_novo
+    stub tail 'echo LIXO'
+    local f="$T/root/vendor/etc/ZYCustom.ini" m0; m0="$(md5 "$f")"
+    roda nokey
+    afirma '[ "$(md5 "$f")" = "$m0" ]' "gravou um ini montado errado ($m)"
+    afirma 'grep -q "nao consegui montar o ZYCustom.ini corrigido" "$T/out.log"' "log sem o erro de montagem ($m)"
+    afirma '[ "$(chamadas reboot)" = 0 ] && [ ! -e "$f.new" ] && [ ! -e "$(W)/ini.composto" ]' "reiniciou, .new ou arquivo de trabalho sobrou ($m)"
+    afirma '[ "$(telas)" = "aguarde metades-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
+    limpa
+  done
+}
+
 c_sem_hidebug(){
   novo_cenario "nunca chama hidebug/gtt"
   roda nokey
@@ -844,6 +944,11 @@ c_estaticos(){
   local lista_ini; lista_ini="$(sed -n 's/^KIT_LISTA="\([0-9a-f]*\)  ZYCustom.ini$/\1/p' "$KIT/newlink_update.sh")"
   afirma '[ "$lista_ini" = "$(grep ^INI_MD5_OK= "$KIT/newlink_update.sh" | cut -d\" -f2)" ]' "INI_MD5_OK difere do md5 da lista"
   afirma '[ "$(md5 "$KIT/ZYCustom.ini")" = 252ab7a72a007a8b79b3fc86bd5c0d19 ]' "ZYCustom.ini do pendrive mudou"
+  # bloco 6: os md5 do modelo sem USB-C embutidos batem com os artefatos versionados
+  afirma '[ "$(grep ^INI_MD5_OK_NOTYPEC= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini")" ]' "INI_MD5_OK_NOTYPEC difere do artefato corrigido"
+  afirma '[ "$(grep ^INI_MD5_FABRICA_NOTYPEC= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.NOTYPEC.STOCK")" ]' "INI_MD5_FABRICA_NOTYPEC difere do ini de fabrica novo versionado"
+  afirma '[ "$(grep ^INI_MD5_FABRICA= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.ORIGINAL")" ]' "INI_MD5_FABRICA difere do ini de fabrica antigo versionado"
+  afirma '! grep -vE "^[[:space:]]*#" "$KIT/newlink_update.sh" | grep -qw awk' "o newlink_update.sh usa awk (o shell do aparelho so garante sed/grep/head/tail)"
   afirma '[ "$(md5 "$KIT/lvdsctl")" = 178d812872cb9306c0ae6faeed07184a ]' "lvdsctl do kit com md5 errado"
   afirma '[ "$(sed -n "s/^LVDSCTL_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/lvdsctl")" ]' "LVDSCTL_MD5 do cor.sh difere do md5 do lvdsctl"
   afirma '! grep -q "data/local/tmp/pfl7560-kit" "$KIT/cor.sh" "$KIT/newlink_update.sh"' "script ainda usa a pasta gravavel pelo shell"
@@ -873,7 +978,8 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   command -v "$SHELL_BIN" >/dev/null 2>&1 || { echo "(sem $SHELL_BIN: pulado)"; continue; }
   echo "== cenarios sob $SHELL_NOME =="
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
-           c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug}; do
+           c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
+           c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado}; do
     echo "  $c"
     "$c"
   done

@@ -25,6 +25,20 @@ python3 build_fix_bin.py  <stock_PFL7560.bin>  ../ZYCustom_390.ini  <saida.bin>
 - `../ZYCustom_390.ini` — config da build (md5 `252ab7a7…`, com a escada de brilho)
 - `saida.bin` — saída
 
+**Dois modelos (bloco 6).** O firmware V1.0.0.1, do modelo sem USB-C (NOTYPEC, doc 42), tem o
+vendor em outro offset (`0x4b0bc954`) e outro `CONFIG_MODEL`. O builder lê offset e tamanho do
+record 14 da tabela do container (em `0x40`, big-endian: tamanho em `+0x14`, offset em `+0x18`) e
+**recusa** um `.ini` de outro modelo que o do stock (para não rebaixar o `CONFIG_MODEL`):
+
+| stock | `.ini` a usar | md5 da saída |
+|---|---|---|
+| V1.0.0.9, com USB-C (`28a2f280…`) | `../ZYCustom_390.ini` (`252ab7a7…`) | `eae3a83d…` |
+| V1.0.0.1, sem USB-C (`89f82720…`) | `../ZYCustom_390.NOTYPEC.ini` (`bdf5c464…`) | `0d294cb3…` (CRC do vendor `0xe2cad2f5`) |
+
+O `ZYCustom_390.NOTYPEC.ini` é o `.ini` de fábrica do modelo novo (`ed3f314c…`) com só as seções
+térmicas trocadas, a mesma conta que o kit de pendrive faz no aparelho. Provado só em software
+(`make check-bin`); nenhum `.bin` do modelo novo foi gravado em aparelho.
+
 **Build reprodutível (BIN-S3b, fechado em 2026-07-29):** com esse stock e essa config a saída é
 determinística — md5 `eae3a83db44f790b64b9a5838a27a977`, CRC da vendor `0x832a0731`. Rodar 2× dá o mesmo
 md5. Se der outro valor, algo mudou no stock, na config ou no builder — investigue antes de usar.
@@ -50,7 +64,7 @@ Notas críticas:
 
 ## O que o script faz
 
-1. Extrai vendor (record 14 @ `0x4b0b1d54`)
+1. Extrai vendor (record 14, offset e tamanho lidos da tabela do container)
 2. Expande sparse → ext4 raw
 3. Lê metadados stock dos 3 arquivos
 4. Substitui conteúdo (`ZYCustom` / wifi / xiri disabled) + carimba mode/uid/gid/xattr

@@ -151,6 +151,19 @@ if /i not "%C%"=="s" (
   goto :menu
 )
 call :connect || goto :menu
+REM bloco 6: este .bat grava o ini e o build.prop do V1.0.0.9 (com USB-C). No modelo sem USB-C
+REM (V1.0.0.1, NOTYPEC) isso rebaixaria o CONFIG_MODEL e o revert daria USB-C fantasma e o canal
+REM de OTA errado: so segue se o CONFIG_MODEL E o ro.newlink.projectname forem os do V1.0.0.9 (um
+REM aparelho sem USB-C que ja levou este ini tem o CONFIG_MODEL rebaixado, mas nao o projectname).
+REM O pfl7560-fix.sh (Linux/WSL) trata os dois.
+"%ADB%" -s %DEV% shell "grep -aq '^CONFIG_MODEL *= *KJM_5H039_412;' /vendor/etc/ZYCustom.ini && getprop ro.newlink.projectname | grep -qx KJM_5H039_412_INTELBRAS_TP"
+if errorlevel 1 (
+  echo  [ERRO] Aparelho nao reconhecido como o modelo com USB-C ^(V1.0.0.9^): nada foi alterado.
+  echo         Para o modelo sem USB-C ^(V1.0.0.1, NOTYPEC^) use o pendrive ^(opcao 5^) ou,
+  echo         no Linux/WSL, ./pfl7560-fix.sh apply ^(ele detecta o modelo^).
+  pause
+  goto :menu
+)
 call :backup_stock
 if errorlevel 1 goto :menu
 
@@ -219,6 +232,19 @@ if /i not "%C%"=="s" (
   goto :menu
 )
 call :connect || goto :menu
+REM bloco 6: este .bat grava o ini e o build.prop do V1.0.0.9 (com USB-C). No modelo sem USB-C
+REM (V1.0.0.1, NOTYPEC) isso rebaixaria o CONFIG_MODEL e o revert daria USB-C fantasma e o canal
+REM de OTA errado: so segue se o CONFIG_MODEL E o ro.newlink.projectname forem os do V1.0.0.9 (um
+REM aparelho sem USB-C que ja levou este ini tem o CONFIG_MODEL rebaixado, mas nao o projectname).
+REM O pfl7560-fix.sh (Linux/WSL) trata os dois.
+"%ADB%" -s %DEV% shell "grep -aq '^CONFIG_MODEL *= *KJM_5H039_412;' /vendor/etc/ZYCustom.ini && getprop ro.newlink.projectname | grep -qx KJM_5H039_412_INTELBRAS_TP"
+if errorlevel 1 (
+  echo  [ERRO] Aparelho nao reconhecido como o modelo com USB-C ^(V1.0.0.9^): nada foi alterado.
+  echo         Para o modelo sem USB-C ^(V1.0.0.1, NOTYPEC^) use o pendrive ^(opcao 5^) ou,
+  echo         no Linux/WSL, ./pfl7560-fix.sh apply ^(ele detecta o modelo^).
+  pause
+  goto :menu
+)
 "%ADB%" -s %DEV% remount >nul 2>&1
 set "RVOK=1"
 REM os 3 restauros sao atomicos (.new + confere + mv); qualquer falha marca RVOK=0 e NAO reinicia
