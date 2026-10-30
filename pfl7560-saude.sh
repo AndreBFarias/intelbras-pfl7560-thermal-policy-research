@@ -20,6 +20,9 @@
 #       PFL_IP=<ip> ./pfl7560-saude.sh --idempotencia  # roda 2x e compara
 #       PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade    # prova ATIVA (~65 s, mexe na tela)
 set -u
+# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
+# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
+export LC_ALL=C
 
 ADB="${ADB:-adb}"
 PORTA=5555
@@ -47,7 +50,7 @@ sh_(){ timeout 20 "$ADB" -s "$DEV" shell "$@" </dev/null 2>/dev/null | tr -d '\r
 
 conecta(){
   [ -n "$IP" ] || { echo "defina PFL_IP=<ip do projetor>"; exit 2; }
-  DEV="$IP:$PORTA"
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
   timeout 15 "$ADB" connect "$DEV" >/dev/null 2>&1
   local m; m=$(sh_ getprop ro.product.model)
   [ "$m" = "PFL7560" ] || { echo "não e um PFL7560 em $DEV (getprop devolveu '${m:-vazio}')"; exit 2; }
@@ -61,15 +64,30 @@ conecta(){
   esac
 }
 
+# .ini EFETIVO: o /atv/ini/ZYCustom_<projectid>.ini vence o /atv/ini/ZYCustom.ini,
+# que vence o /vendor/etc (docs 04, 06, 09). Ler so o do /vendor atestava um
+# arquivo que o firmware pode nem estar usando. Mesma ordem do effective_ini do
+# pfl7560-evidencias.sh.
+ini_efetivo(){
+  local pid cand
+  pid=$(sh_ getprop ro.boot.projectid | tr -d ' ')
+  for cand in "/atv/ini/ZYCustom_$pid.ini" "/atv/ini/ZYCustom.ini" "$INI"; do
+    [ -n "$(sh_ "[ -f '$cand' ] && echo s")" ] && { echo "$cand"; return 0; }
+  done
+  echo "$INI"
+}
+
 verifica(){
   local up; up=$(sh_ 'cut -d" " -f1 /proc/uptime')
   printf "${C}aparelho:${Z} %s  ${C}uptime:${Z} %ss  ${C}root:${Z} %s\n" \
     "$DEV" "${up%%.*}" "$([ "${ROOT:-0}" = 1 ] && echo sim || echo NÃO)"
 
   sec "1. os 3 fixes termicos em /vendor"
-  local m; m=$(sh_ "md5sum $INI" | awk '{print $1}')
+  local ini; ini=$(ini_efetivo)
+  [ "$ini" = "$INI" ] || warn ".ini efetivo NAO e o de /vendor" "$ini"
+  local m; m=$(sh_ "md5sum $ini" | awk '{print $1}')
   [ "$m" = "$INI_FIX_MD5" ] && pass "ZYCustom.ini e o config de correcao" "$m" \
-                            || fail "ZYCustom.ini DIVERGENTE" "${m:-ilegivel} (esperado $INI_FIX_MD5)"
+                            || fail "ZYCustom.ini DIVERGENTE" "${m:-ilegivel} (esperado $INI_FIX_MD5; $ini)"
 
   local w; w=$(sh_ "grep -a wifi_disconnect_on_boot $BP")
   case "$w" in *"=0") pass "Wi-Fi reconecta no boot" "$w" ;;
@@ -81,7 +99,7 @@ verifica(){
                       || fail "xiriservice ATIVO" "spam de log ~1x/s"
 
   sec "2. o conserto em si (o mux dos termistores)"
-  local ch; ch=$(sh_ "grep -ac 'HW_VIRTUAL_CHANNEL = 1' $INI")
+  local ch; ch=$(sh_ "grep -ac 'HW_VIRTUAL_CHANNEL = 1' $ini")
   [ "${ch:-0}" -ge 1 ] && pass "HW_VIRTUAL_CHANNEL = 1 presente" "mux pode comutar" \
                        || fail "mux TRAVADO no canal 0" "protecao volta a ser cega"
 
@@ -90,10 +108,10 @@ verifica(){
   [ -z "$atv" ] && pass "sem ZYCustom.ini em /atv/ini" "sem disputa de precedencia" \
                 || fail "EXISTE /atv/ini/ZYCustom.ini" "ele VENCE o de /vendor"
 
-  local e; e=$(sh_ "grep -a POLICY_0_THRESHOLD $INI | head -1")
+  local e; e=$(sh_ "grep -a POLICY_0_THRESHOLD $ini | head -1")
   case "$e" in *"$ESCADA"*) pass "escada de brilho nos limiares certos" "66-73 C" ;;
     *) warn "limiares de brilho inesperados" "$(echo "$e" | tr -s ' ')" ;; esac
-  local d; d=$(sh_ "grep -a POLICY_0_BRIGHTNESS $INI | head -1")
+  local d; d=$(sh_ "grep -a POLICY_0_BRIGHTNESS $ini | head -1")
   case "$d" in *"$DEGRAUS"*) pass "degraus de brilho 1000..850" "piso 850" ;;
     *) warn "degraus de brilho inesperados" "$(echo "$d" | tr -s ' ')" ;; esac
 
@@ -127,16 +145,34 @@ verifica(){
     fail "props de temperatura não respondem" "firmware pode estar em LSADC Error"
   fi
 
-  sec "4. correcao de cor do painel trocado (JEIDA)"
-  local fmt; fmt=$(sh_ 'cat /proc/msp/panel' | grep -a lvds_fmt | head -1 | awk -F'[: ]+' '{print $2}')
-  [ "$fmt" = "jeida" ] && pass "runtime em JEIDA" "painel -0600 com cor correta" \
-                       || warn "runtime em '${fmt:-?}'" "correto so se o painel for o -4300 de fabrica"
+  sec "4. formato de cor do painel (LVDS)"
+  # VESA=0, JEIDA=1 (doc 28 sec. 12). Quem decide o certo e o painel instalado,
+  # nao este script: o -4300 de fabrica e VESA, o -0600 e JEIDA e o VESA novo do
+  # doc 40 tambem. Por isso o criterio e o formato EM USO bater com o byte 0x5c
+  # GRAVADO no panelparam (senao o boot volta a outro formato); PFL_LVDS_ESPERADO
+  # (vesa|jeida) e opcional e exige tambem que o formato em uso seja esse.
+  local fmt; fmt=$(sh_ 'cat /proc/msp/panel' | grep -a lvds_fmt | head -1 | awk -F'[: ]+' '{print tolower($2)}')
+  local esp; esp=$(printf '%s' "${PFL_LVDS_ESPERADO:-}" | tr '[:upper:]' '[:lower:]')
+  if [ -z "$fmt" ]; then
+    warn "lvds_fmt ilegivel em /proc/msp/panel" "formato em uso nao verificado"
+  elif [ -n "$esp" ]; then
+    [ "$fmt" = "$esp" ] && pass "formato LVDS em uso e o esperado" "$fmt" \
+                        || fail "formato LVDS em uso difere do esperado" "em uso $fmt, esperado $esp (PFL_LVDS_ESPERADO)"
+  fi
   if [ "${ROOT:-0}" = 1 ]; then
-    local b; b=$(sh_ 'dd if=/dev/block/by-name/panelparam bs=1 skip=$((168 + 69*768 + 0x5c)) count=1 2>/dev/null | od -An -tu1' | tr -d ' ')
-    [ "$b" = "1" ] && pass "JEIDA gravado no panelparam" "persiste no boot nativamente" \
-                   || warn "byte 0x5c do perfil 69 = ${b:-?}" "sem persistencia nativa"
+    local b nome; b=$(sh_ 'dd if=/dev/block/by-name/panelparam bs=1 skip=$((168 + 69*768 + 0x5c)) count=1 2>/dev/null | od -An -tu1' | tr -d ' ')
+    case "$b" in 0) nome=vesa ;; 1) nome=jeida ;; *) nome="" ;; esac
+    if [ -z "$nome" ]; then
+      warn "byte 0x5c do perfil 69 = ${b:-?}" "valor fora de 0 (VESA) / 1 (JEIDA)"
+    elif [ -z "$fmt" ]; then
+      warn "byte 0x5c do perfil 69 = $b ($nome)" "sem o formato em uso para comparar"
+    elif [ "$fmt" = "$nome" ]; then
+      pass "formato em uso bate com o byte 0x5c gravado" "$fmt (byte=$b), persiste no boot"
+    else
+      warn "formato em uso ($fmt) difere do byte 0x5c ($nome)" "no proximo boot volta a $nome"
+    fi
   else
-    warn "panelparam exige root" "não verificado"
+    warn "panelparam exige root" "não verificado (em uso: ${fmt:-?})"
   fi
 
   printf "\n${C}resultado:${Z} ${V}%d OK${Z}  ${A}%d aviso(s)${Z}  ${X}%d falha(s)${Z}\n" "$OK" "$AVISO" "$FALHA"
@@ -166,12 +202,12 @@ PROP_OVERRIDE=vendor.zy.power.tm.temp
 INJETADO=71000
 
 vivacidade(){
-  local w e
+  local w e ini; ini=$(ini_efetivo)
   # head -1: se o grep casar mais de uma linha, o valor vem MULTILINHA e o
   # `[ 71000 -le "$w" ]` emite "integer expression expected" e retorna FALSO --
   # a cadeia de || não dispara e o fluxo cai no ramo que INJETA. Falha ABERTA.
-  w=$(sh_ "grep -a WARNING_VALUE $INI" | grep -ao '[0-9]\{4,\}' | head -1)
-  e=$(sh_ "grep -a EMERGENCY_VALUE $INI" | grep -ao '[0-9]\{4,\}' | head -1)
+  w=$(sh_ "grep -a WARNING_VALUE $ini" | grep -ao '[0-9]\{4,\}' | head -1)
+  e=$(sh_ "grep -a EMERGENCY_VALUE $ini" | grep -ao '[0-9]\{4,\}' | head -1)
   case "$w" in ''|*[!0-9]*) fail "WARNING_VALUE ilegivel" "não vou injetar"; return 1 ;; esac
   case "$e" in ''|*[!0-9]*) fail "EMERGENCY_VALUE ilegivel" "não vou injetar"; return 1 ;; esac
   # trava dura: so injeta se o valor ficar mesmo entre os dois limiares do
@@ -203,7 +239,13 @@ vivacidade(){
     printf "    adb connect %s && adb -s %s shell setprop %s ''\n" "$DEV" "$DEV" "$PROP_OVERRIDE"
     return 1
   }
-  trap limpa_override EXIT INT TERM
+  # INT/TERM precisam de `exit` explicito: sem ele o handler retorna e o script
+  # segue (um Ctrl-C no --vivacidade ainda injetava os 71000). O `exit 130` dispara
+  # o trap EXIT, que e quem limpa o override. Dentro da limpeza INT/TERM ficam
+  # ignorados: um 2o Ctrl-C ali rodaria o `exit 130` DENTRO do trap EXIT e
+  # abortaria a limpeza no meio, deixando os 71000 injetados.
+  trap 'trap "" INT TERM; limpa_override' EXIT
+  trap 'exit 130' INT TERM
 
   local tmp; tmp=$(mktemp)
   timeout 120 "$ADB" -s "$DEV" shell 'logcat -v time -s ZYThermalManager' </dev/null >"$tmp" 2>&1 &

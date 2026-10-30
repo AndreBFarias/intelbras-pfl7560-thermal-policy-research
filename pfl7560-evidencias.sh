@@ -31,6 +31,9 @@
 #   - NAO toca no bootloader. Reversivel: o stock e a build vivem em artifacts/.
 # ============================================================================
 set -uo pipefail
+# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
+# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
+export LC_ALL=C
 PORT=5555
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -93,12 +96,16 @@ discover(){
 
 # ---- conecta + root + valida o modelo; echo "ip:port" ----
 connect(){
-  local ip dev u m; ip="$(discover)" || return 1; dev="$ip:$PORT"
+  local ip dev u m; ip="$(discover)" || return 1; case "$ip" in *:*) dev="$ip" ;; *) dev="$ip:$PORT" ;; esac   # PFL_IP pode ja trazer a porta
   "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1 || true
   u="$("$ADB" -s "$dev" shell id 2>/dev/null | grep -oE 'uid=[0-9]+')"
   [ "$u" != "uid=0" ] && { "$ADB" -s "$dev" root >/dev/null 2>&1; sleep 2; "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1 || true; }
   m="$("$ADB" -s "$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r\n ')"
   [ "$m" = "PFL7560" ] || { err "dispositivo em $ip NAO e PFL7560 (model='$m'). Abortando."; return 1; }
+  # root conferido DE VERDADE: o "adb root" pode falhar em silencio e o hidebug entao
+  # responde errno = 13. So diz "(root)" se o id reler uid=0.
+  u="$("$ADB" -s "$dev" shell id 2>/dev/null|grep -oE 'uid=[0-9]+')"
+  [ "$u" = "uid=0" ] || { err "sem root em $ip (id devolveu '${u:-vazio}'): hidebug e escrita em /vendor nao funcionam. Abortando."; return 1; }
   ok "conectado ao PFL7560 em $ip (root)"
   echo "$dev"
 }
@@ -117,6 +124,7 @@ effective_ini(){
 read_hidebug(){
   local d="$1" raw; local -a t f
   raw="$("$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngtt 2\ngfs 0\ngfs 1\nquit\n" | /vendor/bin/hidebug' 2>/dev/null | tr -d '\r')"
+  case "$raw" in *"errno = 13"*) err "hidebug negou acesso (errno = 13): sem root no aparelho" ;; esac
   mapfile -t t < <(printf '%s\n' "$raw" | sed -n 's/.*single NTC temperature:\(-\?[0-9]\+\).*/\1/p')
   mapfile -t f < <(printf '%s\n' "$raw" | sed -n 's/.*fan speed:\([0-9]\+\).*/\1/p')
   # sentinela NA nos ausentes: mantem 5 campos p/ o 'read' nao desalinhar coluna
@@ -190,7 +198,9 @@ cmd_snapshot(){
   {
     echo "# snapshot $label - PFL7560 - $(date '+%Y-%m-%d %H:%M:%S')"
     echo "# (miliC/1000 = C; fan speed 0-1000)"
-    "$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngtt 2\ngfs 0\ngfs 1\nquit\n" | /vendor/bin/hidebug' 2>/dev/null | tr -d '\r'
+    local hb; hb="$("$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngtt 2\ngfs 0\ngfs 1\nquit\n" | /vendor/bin/hidebug' 2>/dev/null | tr -d '\r')"
+    case "$hb" in *"errno = 13"*) err "hidebug negou acesso (errno = 13): sem root no aparelho" ;; esac
+    printf '%s\n' "$hb"
   } >"$out"
   ok "snapshot salvo: $out"
   sed 's/^/   /' "$out" >&2
