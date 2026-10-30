@@ -41,11 +41,11 @@ case "$op" in
   3) read -r -p " Tem CERTEZA que quer voltar ao stock? [s/N]: " c
      if [ "$c" = "s" ] || [ "$c" = "S" ]; then "$FIX" revert; else echo " cancelado."; fi ;;
   4) if [ ! -x "$LCD" ]; then echo " ERRO: nao achei o pfl7560-lcd-color.sh."; else
-       echo " Correcao de cor pos-troca de painel (RX058B -4300 -> -0600)."
+       echo " Correcao de cor pos-troca de painel (formato LVDS VESA ou JEIDA)."
        echo "   a) VER o formato LVDS atual (nao muda nada)"
        echo "   b) WIZARD guiado (faz backup + testa VESA/JEIDA na tela)"
-       echo "   c) Aplicar JEIDA direto (corrige o -0600)"
-       echo "   d) Voltar para VESA (padrao de fabrica -4300)"
+       echo "   c) Aplicar JEIDA direto (o -0600 da 1a troca; grava na panelparam, com backup antes)"
+       echo "   d) Aplicar VESA direto (painel de fabrica e o da 2a troca; grava na panelparam, com backup antes)"
        read -r -p " Escolha [a-d]: " lop
        case "$lop" in
          a|A) "$LCD" status ;;

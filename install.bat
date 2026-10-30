@@ -268,11 +268,12 @@ if not exist "%LVDSCTL%" (
   goto :menu
 )
 echo.
-echo  Correcao de cor pos-troca de painel ^(RX058B -4300 -^> -0600^).
+echo  Correcao de cor pos-troca de painel ^(formato LVDS VESA ou JEIDA^).
 echo  So use se voce TROCOU o micro-painel LCD e as cores dos meios-tons sairam erradas.
 echo    a^) Ver o formato LVDS atual (nao muda nada^)
-echo    c^) Aplicar JEIDA  (corrige o -0600^)
-echo    d^) Voltar p/ VESA (padrao de fabrica -4300^)
+echo    c^) Aplicar JEIDA  (o -0600 da 1a troca^)
+echo    d^) Aplicar VESA   (painel de fabrica e o da 2a troca^)
+echo  ^(c e d GRAVAM na particao panelparam; o backup e feito antes, em backups-projetor\^)
 echo  ^(backup/restore/wizard completos: use o WSL -^> wsl ./pfl7560-lcd-color.sh wizard^)
 set /p "LOP=  Escolha [a/c/d]: "
 call :connect || goto :menu
@@ -286,6 +287,11 @@ if /i "%LOP%"=="c" set "FMT=1"
 if /i "%LOP%"=="d" set "FMT=0"
 if not defined FMT (
   echo  opcao invalida.
+  pause
+  goto :menu
+)
+call :backup_panelparam
+if errorlevel 1 (
   pause
   goto :menu
 )
@@ -317,6 +323,32 @@ pause
 goto :menu
 
 REM ---- helpers ----
+
+:backup_panelparam
+REM backup do panelparam ANTES de gravar (a lvdsctl grava o byte na particao). Um por dia: o do
+REM 1o uso do dia guarda o estado anterior a qualquer mudanca desse dia. exit /b 1 se nao confirmar.
+set "HOJE="
+for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd" 2^>nul') do set "HOJE=%%D"
+if not defined HOJE set "HOJE=semdata"
+if not exist "%HERE%\backups-projetor" mkdir "%HERE%\backups-projetor"
+set "PPBK=%HERE%\backups-projetor\panelparam.backup-%HOJE%.img"
+if exist "%PPBK%" (
+  echo  [OK] backup do dia ja existe: %PPBK%
+  exit /b 0
+)
+echo  backup do panelparam antes de gravar ...
+"%ADB%" -s %DEV% exec-out "dd if=/dev/block/by-name/panelparam 2>/dev/null" > "%PPBK%.tmp"
+set "PPSZ="
+for %%F in ("%PPBK%.tmp") do set "PPSZ=%%~zF"
+REM a particao panelparam tem 8 MiB; tamanho diferente = dd truncado ou sem root
+if not "%PPSZ%"=="8388608" (
+  del "%PPBK%.tmp" >nul 2>&1
+  echo  [ERRO] backup do panelparam invalido ^(%PPSZ% bytes, esperado 8388608^) - NAO vou gravar.
+  exit /b 1
+)
+move /y "%PPBK%.tmp" "%PPBK%" >nul
+echo  [OK] backup do panelparam salvo em %PPBK%
+exit /b 0
 
 :ask_ip
 REM herda PFL_IP do ambiente se ja estiver definido (set PFL_IP=x.x.x.x)
