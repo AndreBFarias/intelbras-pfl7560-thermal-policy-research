@@ -3,7 +3,11 @@
 Três formas de aplicar a **mesma** correção. Dependências: [`requirements`](requirements) · [`REQUIREMENTS.md`](REQUIREMENTS.md).
 Nada aqui toca no bootloader; tudo é reversível (métodos 1–3).
 
-**Alvo:** Intelbras PFL7560, firmware **V1.0.0.9**.
+**Alvo:** Intelbras PFL7560 com o firmware de fábrica **V1.0.0.9** (modelo com entrada USB-C) ou
+**V1.0.0.1** (modelo sem USB-C, "NOTYPEC", fabricado a partir de 25/08/2026;
+[doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md)). O kit de pendrive, o `pfl7560-fix.sh` e o
+builder servem aos dois; no V1.0.0.1 tudo foi provado **só em simulação**. A térmica de fábrica é a mesma
+nos dois, com o mesmo bug do mux.
 
 ---
 
@@ -39,12 +43,19 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    no Windows `install.bat` opção 5 (pede a letra do pendrive). Se um arquivo não conferir, não use o pendrive.
    O aparelho faz a mesma conferência e **aborta sem escrever nada** se faltar ou divergir qualquer arquivo.
 3. Com o projetor **desligado**, plugue o pendrive numa porta USB dele.
-4. **Ligue.** A correção é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se na 1ª vez não aplicar (pendrive montou tarde), reinicie de novo.
-5. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive aparece `newlink_update.log` com a linha `CORRECAO APLICADA COM SUCESSO`. Pode remover o pendrive.
+4. **Ligue.** Se aparecer "AJUSTANDO", espere: a parte térmica é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se nenhuma tela do kit aparecer em 2 minutos, desligue e ligue de novo (o pendrive montou tarde).
+5. **Teste de cor ("duas metades").** Aparece uma tela com duas metades cinzas. Iguais: não aperte nada, em 30 s ele segue e a cor não é mexida (é o caso do painel de fábrica). Uma metade bem mais clara: aperte qualquer tecla; ele mostra no outro formato, e só **mantém** se você apertar de novo diante de metades iguais. Sem a segunda tecla, volta sozinho ao formato de antes.
+6. Quando aparecer "PRONTO", tire o pendrive. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive ficam `newlink_update.log` (procure `CORRECAO APLICADA COM SUCESSO`) e `newlink_cor.log`.
 
-É **idempotente** (se já estiver aplicado, não faz nada) e só age se o modelo for `PFL7560`.
+É **idempotente** (rodar de novo não muda nada nem reinicia) e só age se o modelo for `PFL7560`. A parte
+térmica reconhece o `.ini` de fábrica **dos dois modelos** (e as versões anteriores nossas) e troca **só as
+seções térmicas** do `.ini` do próprio aparelho, mantendo o `CONFIG_MODEL`; `.ini` desconhecido = recusa e
+avisa. Antes de mexer na cor, faz backup da `panelparam` conferido com `cmp` e grava um journal: se a
+energia cair no meio do teste, o formato original volta no boot seguinte. O kit v2 foi provado **só em
+simulação** (`make check-kit`); a bancada no aparelho ainda não foi feita (etapa E4 do
+[bloco 5](docs/sprints/2026-10-29-bloco-5-kit-universal.md)).
 
-**Atenção:** não coloque `usb_update.bin` no mesmo pendrive do autorun. O pendrive de **resgate** (firmware de fábrica) deve ficar **separado** e desconectado no dia a dia.
+**Atenção:** o recomendado é **não** colocar `usb_update.bin` no mesmo pendrive do autorun: o pendrive de **resgate** (firmware de fábrica) fica **separado** e desconectado no dia a dia. O `LEIA-ME.txt` descreve também um "kit de emergência" pessoal com os dois juntos (arranjo B), aceitável só para quem conhece o risco: ligar segurando o power com ele plugado reflasha o aparelho.
 
 Instruções resumidas: `pendrive-autorun/LEIA-ME.txt`.
 
@@ -77,7 +88,8 @@ Exporte o IP antes se precisar: `export PFL_IP=...`.
 
 Alternativa com WSL2: `wsl ./install.sh` e depois `wsl bash -lc 'PFL_IP=... ./pfl7560-fix.sh apply'`.
 
-O script/batch faz backup do stock em `backups-projetor/` antes de mudar qualquer coisa.
+O script/batch faz backup do stock em `backups-projetor/` antes de mudar qualquer coisa (no modelo sem
+USB-C, em `backups-projetor/notypec/`; ver "Dois modelos" abaixo).
 
 ---
 
@@ -107,9 +119,12 @@ PFL_IP=<ip> ./pfl7560-saude.sh --idempotencia   # roda 2x e confere que o veredi
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade     # a prova FORTE: pergunta se a protecao reage
 ```
 
-No menu: opção **5**. Ele confere os 3 arquivos corrigidos, o mux destravado, a escada de brilho, se a
-proteção está **enxergando neste boot**, e a correção de cor do painel. Nas duas primeiras formas não
-escreve nada e não toca o sensor, então pode rodar quantas vezes quiser.
+No menu: opção **5**. Ele confere os 3 arquivos corrigidos (no `.ini` que o firmware lê de fato: um
+`/atv/ini/ZYCustom*.ini` vence o do `/vendor`), o mux destravado, a escada de brilho, se a proteção está
+**enxergando neste boot**, e o formato de cor do painel. Na cor, VESA e JEIDA são ambos válidos: passa
+quando o formato **em uso** bate com o byte **gravado** na `panelparam` (essa leitura exige root); para
+exigir um formato, `PFL_LVDS_ESPERADO=vesa` ou `jeida`. Nas duas primeiras formas não escreve nada e não
+toca o sensor, então pode rodar quantas vezes quiser.
 
 **A prova que decide é o teste de vivacidade:** `PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade`. Ele injeta
 71 °C por ~40 s pela propriedade `vendor.zy.power.tm.temp` e pergunta ao firmware se a política **reage**:
@@ -134,16 +149,25 @@ projetor** é o que restaura a proteção. Mecanismo em
 
 ## Acompanhar durante o uso
 
-A escada de brilho só atua quando a óptica passa de 66 °C, então ela não aparece num teste rápido: é
-preciso observar durante uso real. Para isso existe o vigia, que fica de fora e só lê o log:
+A escada de brilho só atua quando o sensor quente (`gtt1`, no bloco dissipador do LED) passa de 66 °C,
+então ela não aparece num teste rápido: é preciso observar durante uso real. Em 2026-10-29, com a sala a
+34 °C, ela atuou no uso normal (brilho entre 944 e 974 com o `gtt1` em 65,8-68,2 °C,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2). Para isso existe o vigia, que fica de fora e só lê o log:
 
 ```bash
 PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh            # acompanha (Ctrl-C para parar)
 PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh --resumo   # o que ja foi observado
 ```
 
-No menu: opção **6**. Ele anota quando o brilho baixa sozinho (a escada protegendo a óptica) e quando
+No menu: opção **6**. Ele anota quando o brilho baixa sozinho (a escada cortando o calor na fonte) e quando
 volta a subir, se algum ventilador sair do máximo, e se a proteção cegar.
+
+Para medir a curva térmica: `PFL_IP=<ip> ./pfl7560-monitor-props.sh --ambiente <sala_C>` (passivo, por
+props; a temperatura da sala é obrigatória). Ele separa os boots (lê o `boot_id` a cada amostra), marca
+lacuna quando o aparelho some e o override do teste de vivacidade, e o `--resumo` agrupa por boot. Todos
+os scripts que formatam ou comparam número fixam `LC_ALL=C`, então o resultado não muda com o idioma do PC.
+A coluna `optica_C` do TSV é o `gtt1`, que mede o bloco do LED
+([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
 
 > **Aviso — não deixe um sondador rodando durante o uso.** Não é a sondagem em si que faz mal: `gtt N`
 > avança o anel de amostras do termistor `N` **e só dele** ([doc 37](docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md)),
@@ -161,7 +185,7 @@ volta a subir, se algum ventilador sair do máximo, e se a proteção cegar.
 
 ## Reverter
 
-`PFL_IP=... ./pfl7560-fix.sh revert` (restaura o backup do stock) ou regrave o firmware de fábrica pela “Atualização local do sistema”.
+`PFL_IP=... ./pfl7560-fix.sh revert` (restaura o backup do stock) ou regrave o firmware de fábrica **do seu modelo** pela “Atualização local do sistema” (não grave o de um modelo no outro; quem trocou o painel LCD refaz o teste de cor depois, ver o fim deste guia).
 
 **Dois modelos.** O `pfl7560-fix.sh` detecta o modelo do aparelho (`CONFIG_MODEL` do `ZYCustom.ini` e
 `ro.newlink.projectname`): o com USB-C (V1.0.0.9) e o sem USB-C (V1.0.0.1, “NOTYPEC”, doc 42). O backup do
@@ -180,14 +204,26 @@ Resgate com boot travado: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-r
 
 ## Reparo relacionado — correção de cor (só se você **trocou** o painel LCD)
 
-Tema distinto do térmico. Se você substituiu o micro-painel por uma variante de sufixo diferente
-(ex.: `RX058B-4300` de fábrica → `RX058B-0600`) e as cores dos **meios-tons** saíram erradas, é
-mapeamento LVDS divergente (VESA vs JEIDA), corrigível **por software**. **Não** aplique isto num
-aparelho com o painel de fábrica — mudaria a cor para errado.
+Tema distinto do térmico. Se você substituiu o micro-painel e a imagem saiu com **primárias certas e
+preto/cinzas tingidos** (a cor do tingimento muda com a imagem), é o formato LVDS (VESA ou JEIDA) que não
+casa com o painel, corrigível **por software**. **O formato não se deduz do nome do painel:** o
+`RX058B-0600` da 1ª troca pediu JEIDA; o `RX058B-4300` instalado na 2ª troca (2026-10-29, o mesmo modelo
+do de fábrica) pediu VESA ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+§1). Quem decide é o teste de cinza.
 
-- **Linux / macOS:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (faz backup do painel e testa VESA/JEIDA
-  na tela), ou `./pfl7560-menu.sh` → opção **4**. Direto: `... jeida` (corrige o `-0600`) / `... vesa`.
-- **Windows:** `install.bat` → opção **6**. O wizard completo e o backup/restore usam WSL
+- **Sem PC:** o kit de pendrive do Método 1 já faz o teste das "duas metades". Metades iguais = cor
+  certa, nada é gravado. Só troca o formato com **duas** teclas do controle, com backup e journal antes.
+- **Linux / macOS:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (backup obrigatório antes de gravar,
+  testa JEIDA e VESA na tela e reverte sozinho se a tela apagar), ou `./pfl7560-menu.sh` → opção **4**.
+  Direto, se você já viu qual formato deixa o cinza neutro: `... jeida` / `... vesa` (também fazem o
+  backup do dia antes de gravar; `swap`/`bit` pedem confirmação).
+- **Windows:** `install.bat` → opção **6** (`c` = JEIDA, `d` = VESA, com backup antes em
+  `backups-projetor\`). O wizard completo e o backup/restore usam WSL
   (`wsl ./pfl7560-lcd-color.sh wizard`).
 
+Num aparelho com o painel de fábrica o teste mostra as metades iguais e nada muda. Depois de **regravar o
+firmware de fábrica**, refaça o teste: a `panelparam` parece estar dentro do `.bin` e o reflash pode
+devolver o formato ao de fábrica (VESA) ([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md) §5).
+
+Guia leigo: [`docs/guide/32-guia-troca-painel-lcd.md`](docs/guide/32-guia-troca-painel-lcd.md).
 Diagnóstico e detalhes: [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).

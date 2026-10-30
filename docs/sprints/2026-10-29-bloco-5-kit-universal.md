@@ -12,7 +12,10 @@ Substitui a T1.1 do bloco 1. Desenho e evidências no
 provando que a API grava só o byte `0x5c`, sem checksum, o que libera o plano B por `dd`.
 (c) `ls -la /data/local/nlsu`: esperado inexistente.
 (d) `getevent -ql` apertando OK, setas e Voltar: dispositivo e códigos das teclas.
-(e) PNG em `/data/local/tmp/kit/` aberto pela galeria com `am start ... VIEW`.
+(e) PNG em `/data/local/tmp/kit/` aberto pela galeria com `am start ... VIEW`. **Este item decide a
+OPT-S13:** em 2026-09-03 essa via abriu a galeria com tela preta
+([doc 39](../research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3), e o `cor.sh` mostra as telas
+do teste de cor por ela.
 (f) Câmera: `ls -l /dev/video*`; `readlink /sys/class/video4linux/*/device/driver` terminando em
 `uvcvideo`; `getprop | grep -iE 'camera|focus'`.
 (g) `md5sum /vendor/etc/ZYCustom.ini`; `ls -l /atv/ini/`.
@@ -64,3 +67,18 @@ modo automático liga (desligada por padrão).
 
 Uma terceira pessoa, só com o LEIA-ME novo, num PFL7560 de fábrica (e num com painel trocado, se houver):
 termina em até 5 passos sem perguntar nada; o md5 da `panelparam` só muda onde o formato estava errado.
+
+## Estado (2026-10-30)
+
+| Etapa | Estado |
+|---|---|
+| E1 (roteiro no aparelho) | **ABERTA** — depende do aparelho na rede. O `nl_camcheck` (`artifacts/camcheck/`, NDK r27c, `e78e2e7`) está pronto para o item (f), ainda não rodado no aparelho |
+| E2 (padrões e matemática) | **FEITA** (`d49f2f7`) |
+| E3 (script do kit) | **FEITA** (`5c68064` e correções seguintes), provada só em simulação (`make check-kit`) |
+| E3b (endurecimento) | **FEITA** (`a9e7832`, `c5b63da`, `a771cdc`) |
+| E3c (instaladores copiam o kit v2 e conferem o md5) | **FEITA** (`3c7682b`): `install.sh --pendrive` provado no harness; a opção 5 do `install.bat` só **conferida por texto** (não há cmd.exe aqui) |
+| E4 (bancada no aparelho) | **ABERTA** — requer pendrive FAT32 |
+| E5 (câmera) | **ABERTA** — portão do modo automático, desligado por padrão |
+| E6 (prova de leigo) | **ABERTA** |
+
+O bloco 6 estendeu o kit aos dois modelos (V1.0.0.9 e V1.0.0.1 sem USB-C), também só em simulação.

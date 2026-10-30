@@ -1,6 +1,6 @@
 # intelbras-pfl7560-thermal-policy-research
 
-Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defeito de configuração de fábrica** no projetor **Intelbras PFL7560** (firmware V1.0.0.9) que torna a proteção térmica ineficaz e contribui para **falha prematura** da óptica (polarizador/LCD).
+Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defeito de configuração de fábrica** no projetor **Intelbras PFL7560** (firmware V1.0.0.9; o mesmo defeito segue no V1.0.0.1 de outubro de 2026, [doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md)) que torna a proteção térmica ineficaz e contribui para **falha prematura** da óptica (polarizador/LCD).
 
 > **Aviso.** Projeto **sem vínculo com a Intelbras**. Os métodos 1–3 editam apenas a partição `/vendor`, por sua conta e risco. **São reversíveis, não tocam no bootloader e o aparelho permanece recuperável.** O firmware `.bin` completo experimental está em **quarentena** (não use).
 
@@ -20,24 +20,36 @@ Esta pesquisa foi conduzida de forma **independente**, com foco em **reparabilid
 
 ## O problema (em uma frase)
 
-A política térmica do aparelho é um arquivo de texto (`/vendor/etc/ZYCustom.ini`). Os dois termistores foram mapeados no **mesmo canal virtual** do multiplexador (`HW_VIRTUAL_CHANNEL=0`), de modo que o segundo sensor — o que enxerga o calor real da óptica — **nunca é lido**. O sistema opera como se estivesse frio; a refrigeração e o desligamento de proteção não acompanham a temperatura real.
+A política térmica do aparelho é um arquivo de texto (`/vendor/etc/ZYCustom.ini`). Os dois termistores foram mapeados no **mesmo canal virtual** do multiplexador (`HW_VIRTUAL_CHANNEL=0`), de modo que o segundo sensor — o que enxerga o calor real do motor óptico — **nunca é lido**. O sistema opera como se estivesse frio; a refrigeração e o desligamento de proteção não acompanham a temperatura real.
+
+> **Onde fica esse sensor (2026-10-29):** o 2º NTC (`gtt1`) é um termistor encapsulado num olhal parafusado
+> no topo do **bloco dissipador do LED**. Ele mede o dissipador do LED, não o polarizador nem o LCD:
+> **nenhum sensor do aparelho mede o polarizador/LCD** ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
+> Onde este repositório chama o `gtt1` de "óptica" (inclusive a coluna `optica_C` dos scripts), leia
+> "bloco do LED".
 
 Detalhes técnicos: [`docs/research/08-por-que-fica-cego.md`](docs/research/08-por-que-fica-cego.md).
 
-**Segundo defeito de configuração, da mesma natureza (2026-07-29):** o firmware também traz uma proteção
-por **ventilador travado** (desliga o aparelho se um soprador para). Ela só roda se `MONITOR_MODE = 1`, e o
-`ZYCustom.ini` de fábrica **não tem a seção `[FanMonitor]`** — o valor fica em zero e a proteção **nunca
-executa**. Ou seja: se um dos dois sopradores morrer, nada detecta, e a óptica cozinha em silêncio.
-Diagnóstico e plano de calibração em
+**Segunda proteção que não funciona (2026-07-29):** o firmware também traz uma proteção por **ventilador
+travado** (desliga o aparelho se um soprador para), e ela **nunca executa**. A primeira suspeita foi omissão
+de config (a seção `[FanMonitor]` falta no `ZYCustom.ini` de fábrica); o veredito final (**FAN-S1**) é
+outro: o monitor é **inarmável por software** neste aparelho. Mesmo com a seção, um portão
+(`SW_SENSE_TYPE = 0`) desliga a leitura, e os sopradores são de **2 fios, sem sinal de tacômetro**; a cura
+seria hardware (sopradores de 3 fios com o sinal ligado a um GPIO livre). **Não arme `SW_SENSE_TYPE` sem a
+fiação: é pior que deixar desarmado.** Ou seja: se um dos dois sopradores controlados morrer, nada detecta,
+e o motor óptico cozinha em silêncio. Diagnóstico em
 [`docs/research/34-escada-brilho-e-fanmonitor.md`](docs/research/34-escada-brilho-e-fanmonitor.md).
+O aparelho tem **3 ventiladores**: os 2 sopradores DFH8030S (12 V, 0,45 A) que a política térmica
+controla e 1 axial no exaustor do dissipador do LED, sem controle por software (OPT-S6,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
 
 ## O que a correção comunitária faz
 
 | Item | Configuração de fábrica | Após a correção |
 |---|---|---|
 | **2º sensor de temperatura** | mapeamento incorreto (`HW_VIRTUAL_CHANNEL=0` nos dois canais) → proteção térmica ineficaz | canal virtual `1` → mux comuta; proteção passa a enxergar o calor real |
-| **Ventiladores** | aceleram tarde, guiados pelo sensor inadequado | **100% desde o boot** |
-| **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% no uso normal**; escada de dimming ancorada no sensor **real**, caindo até 850 entre 66 °C e 70 °C e voltando sozinha na descida ([doc 34](docs/research/34-escada-brilho-e-fanmonitor.md)) |
+| **Ventiladores** (os 2 sopradores controlados) | aceleram tarde, guiados pelo sensor inadequado | **100% desde o boot** |
+| **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% abaixo de 66 °C**; escada de dimming ancorada no sensor **real**, caindo até 850 entre 66 °C e 70 °C e voltando sozinha na descida ([doc 34](docs/research/34-escada-brilho-e-fanmonitor.md)). Com a sala a 34 °C (2026-10-29) ela atuou no uso normal, brilho 944-974 ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2) |
 | **Desligamento de proteção** | limiar que quase nunca dispara na prática | **75 °C** (rede de segurança calibrada ao sensor real) |
 | **Wi-Fi** | não reconecta após reiniciar | reconecta sozinho |
 | **Log** | spam do serviço `xiriservice` ~1×/s | serviço desabilitado |
@@ -75,7 +87,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Idempotente.
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor das "duas metades" pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash
@@ -95,7 +107,7 @@ PFL_IP=<ip> ./pfl7560-saude.sh                # 12 checagens; exit 0 = tudo cert
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade   # a PROVA FORTE: a protecao reage?
 ```
 
-Confere os 3 arquivos, o mux destravado, a escada de brilho, a correção de cor **e** se a proteção está
+Confere os 3 arquivos (no `.ini` efetivo), o mux destravado, a escada de brilho, o formato de cor (o em uso tem de bater com o byte gravado) **e** se a proteção está
 **enxergando neste boot** — a configuração pode estar perfeita e a proteção estar cega mesmo assim
 (`LSADC Error`; um reboot restaura). Nessa forma não escreve nada e não toca o sensor. Menu: opção **5**.
 
@@ -135,20 +147,33 @@ Em especial, o **init do Android recusa parsear arquivos `.rc` group/world-writa
 
 ## Reparo relacionado: troca de painel LCD e correção de cor (VESA↔JEIDA)
 
-Investigação separada, no mesmo aparelho: ao substituir o micro-painel LCD do motor óptico por uma
-variante de sufixo diferente (`RX058B-4300` de fábrica → `RX058B-0600`, peça vendida p/ Thundeal TD96),
-a imagem sai com **cores erradas nos meios-tons** — os painéis usam **mapeamento LVDS diferente** (o
-`-0600` espera **JEIDA**; o firmware emitia **VESA**).
+Investigação separada, no mesmo aparelho: ao substituir o micro-painel LCD do motor óptico, a imagem
+pode sair com **primárias certas e preto/cinzas tingidos** (a cor do tingimento muda com a imagem). É o
+**formato LVDS** (VESA ou JEIDA) que o SoC emite não casar com o painel. Na 1ª troca (2026-07-10), o
+`RX058B-0600` (peça vendida p/ Thundeal TD96) pediu **JEIDA**; na 2ª troca (2026-10-29), o painel
+instalado é o `FPX-RX058B-4300-V0` `20241101 HT`, o mesmo modelo e data do painel de fábrica, e pediu
+**VESA** — o aparelho está hoje em VESA (byte `0x5c` = 0,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). **O formato não se
+deduz do nome do painel:** descobre-se olhando um padrão de cinza (o teste das "duas metades",
+[doc 41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 
-Resolvido **100% por software, sem trocar hardware**: decompilando a `libhitvservice.so` do aparelho
-(capstone), compilando um programa (`lvdsctl`, NDK) que chama `HiPanelCtrl::SetLvdsFormat(JEIDA)` — que
+Resolvido **por software, sem trocar hardware**: decompilando a `libhitvservice.so` do aparelho
+(capstone), compilando um programa (`lvdsctl`, NDK) que chama `HiPanelCtrl::SetLvdsFormat` — que
 grava **1 byte** (`0x5c`) no perfil de painel do `panelparam`. Persiste no boot nativamente. Diagnóstico
 completo, tentativa-e-erro e comandos em
 [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).
 
-**Como aplicar** (só quem trocou o painel): `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (faz backup do
-painel e testa VESA/JEIDA na tela) ou `./pfl7560-menu.sh` → opção 4; no Windows, `install.bat` → opção 6.
-**Não** aplique num aparelho com o painel de fábrica.
+**Como aplicar** (só quem trocou o painel):
+- **sem PC:** o kit de pendrive (método 1) projeta as duas metades; metades iguais = nada a fazer, e só
+  troca o formato com duas teclas do controle (backup e journal antes);
+- **com PC:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (backup obrigatório antes de gravar, testa
+  JEIDA e VESA na tela) ou `./pfl7560-menu.sh` → opção 4; no Windows, `install.bat` → opção 6.
+
+Todo comando que grava na `panelparam` faz backup antes e aborta se o backup falhar. Guia leigo:
+[`docs/guide/32-guia-troca-painel-lcd.md`](docs/guide/32-guia-troca-painel-lcd.md). **Regravar o firmware
+de fábrica provavelmente devolve o byte `0x5c` ao de fábrica (VESA)**: a `panelparam` parece estar dentro
+do `.bin` ([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md) §5); depois de um reflash,
+refaça o teste de cor.
 
 ## Estrutura do repositório
 
@@ -181,14 +206,17 @@ painel e testa VESA/JEIDA na tela) ou `./pfl7560-menu.sh` → opção 4; no Wind
 │   ├── lcd-color-fix/              # lvdsctl + padrões de teste de cor
 │   └── (ZYCustom stock/fix, históricos)
 ├── media/                          # fotos do teardown + evidências
-├── tests/                          # make check (integridade md5)
+├── tests/                          # make check (md5) · check-kit · check-bin · check-fix (simulação, sem aparelho)
 ├── firmware/                       # zip oficial (LFS) + .bin (fora do Git)
 └── referencia/                     # manuais PDF (fora do Git)
 ```
 
 ## Aparelho-alvo
 
-Intelbras **PFL7560** · SoC HiSilicon Hi3751V553 · Android 9 (HiDPT) · firmware **V1.0.0.9**. Outras versões podem diferir — confira antes.
+Intelbras **PFL7560** · SoC HiSilicon Hi3751V553 · Android 9 (HiDPT) · firmware **V1.0.0.9** (com USB-C) ou
+**V1.0.0.1** (sem USB-C, "NOTYPEC", fabricado a partir de 25/08/2026; só simulação). O kit e o `pfl7560-fix.sh`
+reconhecem os dois e recusam qualquer outro; o builder recusa `.ini` de modelo diferente do stock. **Não** grave o firmware de um modelo no outro
+([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md)).
 
 ## Licença
 

@@ -62,9 +62,9 @@ Escolha a melhor como `polarizador-danificado.jpg` para `media/`. **Guarde a pe�
 | Take | Arquivo | O que precisa aparecer |
 |---|---|---|
 | Visão geral | `teardown-visao-geral.jpg` | Interior montado, orientação. |
-| Sopradores | `teardown-blowers.jpg` | Os **2 blowers DFH8025S** (a refrigeração que fica lenta no stock). |
+| Sopradores | `teardown-blowers.jpg` | Os **2 blowers** (a refrigeração que fica lenta no stock). Modelo `DFH8030S`, 12 V, 0,45 A (não `DFH8025S`); há um 3º ventilador, axial, no exaustor do LED, sem controle (corrigido em 2026-10-29, [doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). |
 | Dissipador/óptica | `teardown-dissipador.jpg` | Caminho do ar até a óptica. |
-| **Termistores + mux** | `teardown-termistores-mux.jpg` | Região dos **2 NTC ZL103SAF** e do **mux BL1551B** — o coração do bug. Se conseguir identificar, é a foto técnica de ouro. |
+| **Termistores + mux** | `teardown-termistores-mux.jpg` | Região dos **2 NTC ZL103SAF** e do **mux BL1551B** — o coração do bug. Se conseguir identificar, é a foto técnica de ouro. O NTC do `gtt1` é o olhal parafusado no topo do bloco do LED (já fotografado: `media/2026-10-29-olhal-ntc-no-bloco-do-led.webp`). |
 | Placa/SoC | `teardown-placa.jpg` | Placa principal (SoC HiSilicon Hi3751V553). |
 
 ---

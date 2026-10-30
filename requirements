@@ -16,7 +16,8 @@
 # coreutils / iproute2 — Linux (comandos basicos + deteccao de sub-rede)
 
 # --- No aparelho ---
-# Intelbras PFL7560, firmware V1.0.0.9
+# Intelbras PFL7560, firmware V1.0.0.9 (com USB-C) ou V1.0.0.1 (sem USB-C, NOTYPEC;
+#   so provado em simulacao, doc 42)
 # adb TCP 5555 aberto (build userdebug de fabrica)
 # PC e projetor no mesmo Wi-Fi
 

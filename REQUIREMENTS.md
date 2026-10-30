@@ -7,13 +7,14 @@ O que você precisa depende do método ([`INSTALL.md`](INSTALL.md)).
 
 | Método | Precisa de |
 |---|---|
-| **1. Pendrive autorun** | só um **pendrive FAT32**. Nenhum software no PC. |
+| **1. Pendrive autorun** | só um **pendrive FAT32**. Nenhum software no aparelho além do kit; no PC, só para copiar (recomendado: `./install.sh --pendrive DIR` ou `install.bat` opção 5, que conferem o md5). |
 | **2. Script no PC** | `adb`. No Linux/macOS: `bash` + coreutils (`pfl7560-fix.sh`). No Windows: `install.bat` (adb puro). `nmap` **opcional** (só `PFL_MAC`). |
 | **3. Manual** | `adb`. |
 
 ## No aparelho
 
-- Intelbras **PFL7560**, firmware **V1.0.0.9**.
+- Intelbras **PFL7560**, firmware de fábrica **V1.0.0.9** (com USB-C) ou **V1.0.0.1** (sem USB-C, "NOTYPEC";
+  só simulação). Outra versão: o kit e o `pfl7560-fix.sh` recusam.
 - **adb por rede** (esta build vem `userdebug` com adb root na porta TCP **5555**). PC e projetor no **mesmo Wi-Fi**.
 
 ## Instalar as dependências (PC)
@@ -61,5 +62,8 @@ Testado com: `adb` (platform-tools) 34+, `bash` 5.x, `nmap` 7.x, `git` 2.34+. Ve
 | `PFL_IP` | **recomendado** — IP do projetor | `PFL_IP=192.168.0.50` |
 | `PFL_MAC` | busca por MAC via nmap (opcional) | `PFL_MAC=aa:bb:cc:dd:ee:ff` |
 | `PFL_SUBNET` | faixa que o nmap varre | `PFL_SUBNET=192.168.0.0/24` |
+| `PFL_LVDS_ESPERADO` | `pfl7560-saude.sh`: exige um formato de cor (`vesa`/`jeida`); sem ela, passa quando o em uso bate com o gravado | `PFL_LVDS_ESPERADO=vesa` |
+
+`PFL_IP` aceita `IP` ou `IP:porta` (sem porta, usa 5555).
 
 Sem `PFL_IP` e sem `PFL_MAC`, o script pede o IP e aborta (não há MAC de aparelho embutido).

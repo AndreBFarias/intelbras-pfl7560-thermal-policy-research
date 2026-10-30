@@ -31,5 +31,5 @@ python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom
 
 1. O zip e **propriedade da Intelbras**. Fica no repo como **backup pessoal / privado** de reparo. **Nao** redistribua em repositorio publico.
 2. Requer **Git LFS** no clone: `git lfs install` antes de `git clone`/`git pull`.
-3. Para resgate: extraia o `.bin` do zip, renomeie para `usb_update.bin` num pendrive FAT32 separado do autorun (ver `docs/guide/16-recuperacao-brick.md`).
+3. Para resgate: extraia o `.bin` do zip **do modelo do aparelho**, renomeie para `usb_update.bin` num pendrive FAT32 separado do autorun (ver `docs/guide/16-recuperacao-brick.md`; o `LEIA-ME.txt` do kit descreve o arranjo pessoal com os dois juntos e o risco dele). O reflash provavelmente devolve o formato de cor do painel ao de fábrica (VESA): quem trocou o LCD refaz o teste de cor.
 4. Integridade: LFS oid/sha256 do zip = `08d37bbb83699cfbf7a7cbeb8b1b3a399b3adf953a41e7ba02b900d167fc8b65`.

@@ -9,20 +9,37 @@ leigo: [`../guide/32-guia-troca-painel-lcd.md`](../guide/32-guia-troca-painel-lc
 
 ## 1. Matriz de painéis (LCD-S6)
 
-O firmware traz **83 perfis** de painel (53×1080p, 16×720p, 6×600p, 1×800p). Os da família do PFL7560
+O firmware V1.0.0.9 traz **83 perfis** de painel (53×1080p, 16×720p, 6×600p, 1×800p); o V1.0.0.1 de
+outubro de 2026 (modelo sem USB-C) traz **87**, com os perfis 0-82 byte-idênticos e 4 novos (83-86, tabela
+abaixo; [doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §5). Os da família do PFL7560
 (**RX058B**, 5.8", 1920×1080). O método seguro é **manter o perfil 69** (timing bom) e ajustar só o
 **formato LVDS** ao painel novo — trocar de perfil inteiro (timing diferente) dá tela preta.
 
 | Painel físico | Perfil/índice | Formato LVDS correto | Byte `0x5c` | Grau plug-and-play | Observação |
 |---|---|---|---|---|---|
-| `RX058B-4300` (fábrica) | 69 `RX058B_4300_5010E_1080P_M` | **VESA** | `0x00` | — (é o de fábrica) | 1920×1080, driver "SC5010E", 2-link 8-bit, clk 134.4 MHz |
-| `RX058B-0600` (= `058-0600-V2` = PengJi PJ058S1) | 69 + JEIDA | **JEIDA** | `0x01` | **Alto** (drop-in mecânico; só muda 1 byte) | Peça do Thundeal TD96. **Testado OK.** 1920×1080 físico real |
+| `RX058B-4300` (fábrica) | 69 `RX058B_4300_5010E_1080P_M` | **VESA** | `0x00` | — (é o de fábrica) | 1920×1080, driver "SC5010E", 2-link 8-bit, clk 134.4 MHz. Flat `FPX-RX058B-4300-V0`, fab. 2024-11-01 |
+| `RX058B-0600` (= `058-0600-V2` = PengJi PJ058S1) | 69 + JEIDA | **JEIDA** | `0x01` | **Alto** (drop-in mecânico; só muda 1 byte) | Peça do Thundeal TD96, **1ª troca (2026-07-10). Testado OK.** 1920×1080 físico real |
+| `FPX-RX058B-4300-V0` `20241101 HT` (**2ª troca**, 2026-10-29) | 69 | **VESA** | `0x00` | **Alto** (o mesmo modelo e data do de fábrica) | Instalado hoje. O aparelho estava em JEIDA por causa do `-0600`; voltou a VESA com `lvdsctl fmt 0` ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
 | `RX058B-4500` | 72 `RX058B_4500_ST5892B_1080P_M` | ? | ? | Baixo | Timing próprio (deu **sem imagem** no teste; requer perfil casado, não só formato) |
 | `RX058B-1800` | 10/30/49 (`ST5892B`) | ? | ? | Não testado | Variantes ST5892B |
 
 **Regra de compatibilidade (ver seção 3):** a chave confiável **não** é o nome do painel — é o timing
 (clk/HT/VT) casar com o perfil 69 e o **formato LVDS** (VESA/JEIDA) casar com o painel. Um painel de
-timing diferente do 69 dá tela preta, independentemente do formato.
+timing diferente do 69 dá tela preta, independentemente do formato. **O formato não se deduz do nome nem
+do anúncio:** descobre-se pelo teste de cinza ("duas metades", [doc 41](41-auto-pareamento-camera-e-kit-universal.md)
+§4; o kit de pendrive e o `wizard` fazem).
+
+### Perfis novos do firmware de outubro de 2026 (V1.0.0.1, doc 42 §5)
+
+Todos 1920×1080, 8 bits, **VESA** de fábrica. O índice gravado na `deviceinfo` continua **69**; estes
+perfis não foram testados neste aparelho.
+
+| idx | Nome | bw (`0x4c`) | `lvds_fmt` (`0x5c`) | link map | clk |
+|---|---|---|---|---|---|
+| 83 | `Z501080P_V02_AMC8603_1080P_ALLS_BL250` | 1 (8BIT) | 0 (VESA) | `[1,0,2,3]` | 134400000 |
+| 84 | `Z501080P_V02_AMC8603_1080P_ALLS` | 1 | 0 | `[1,0,2,3]` | 134400000 |
+| 85 | `Z501080P_V07_AMC8603_1080P_FM` | 1 | 0 | `[0,1,2,3]` | 134400000 |
+| 86 | `C445XFH129D_FL5892_1080P_F` | 1 | 0 | `[0,1,2,3]` | 135600000 |
 
 ### Projetores irmãos que usam o `-0600` (fonte de peça)
 Thundeal TD96, Vivibright F40 (Amlogic), AAO YG620, Rigal RD826 — plataformas mistas
@@ -34,16 +51,17 @@ conceito comum.
 ## 2. Como identificar o painel
 
 1. Código serigrafado no flat: `FPX-RX058B-<variante>-V?` (ex.: `-4300`, `-0600`).
-2. O sufixo de 4 dígitos (`4300`/`0600`/…) é a **sub-variante elétrica/óptica** — é o que muda o formato
-   LVDS. **Não** é a resolução.
-3. Painéis LVDS **não têm EDID** — não dá para "perguntar" o formato ao painel; testa-se projetando um
-   padrão de cinza (ver o `wizard` do `pfl7560-lcd-color.sh`).
+2. O sufixo de 4 dígitos (`4300`/`0600`/…) é a **sub-variante elétrica/óptica** — pode mudar o formato
+   LVDS, mas não o garante: o nome é pista, não prova. **Não** é a resolução.
+3. Painéis LVDS **não têm EDID** nem pino de ID ([doc 41](41-auto-pareamento-camera-e-kit-universal.md)
+   §2) — não dá para "perguntar" o formato ao painel; testa-se projetando um padrão de cinza: as "duas
+   metades" do kit de pendrive (sem PC) ou o `wizard` do `pfl7560-lcd-color.sh`.
 
 ---
 
 ## 3. Auditoria de nomenclatura dos perfis (LCD-S7)
 
-Os 83 perfis têm nomes como `RX058B_4300_5010E_1080P_M`. Decodificação de cada campo:
+Os 83 perfis do V1.0.0.9 (87 no V1.0.0.1) têm nomes como `RX058B_4300_5010E_1080P_M`. Decodificação de cada campo:
 
 | Campo | Significado | Cuidado |
 |---|---|---|

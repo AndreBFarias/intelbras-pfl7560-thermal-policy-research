@@ -40,6 +40,11 @@ regressão para quem já usa. Roda depois da integração do bloco 5.
 T6.1, T6.2 e T6.3 feitos; a T6.4 segue fora (decisão do dono). Só em software: nada disto foi para
 aparelho nem para boot real do `.bin`.
 
+> **Atualização (2026-10-30):** a **T6.4 foi feita**. O `artifacts/init.bigfish.rc.STOCK` ficou byte-exato
+> ao de fábrica (sem a quebra de linha final) e o `RC_STOCK_MD5` passou de `0fe1b8fb` a `8f7e02b2`
+> (`5bf7e80`; `make check` 9 OK). A parte de docs (doc 33 com os perfis 83-86; docs 11 e disclosure com o
+> defeito persistindo em outubro) entrou no [bloco 3](2026-10-29-bloco-3-docs-sem-autorrefutacao.md).
+
 - **T6.1:** `newlink_update.sh` reconhece os dois md5 de fábrica e monta o `.ini` por seções sobre o do
   aparelho. Acrescentou `[Thermal]` à lista de seções (os limites de 70/75 C moram nela). As versões
   anteriores nossas seguem trocadas pelo arquivo inteiro, porque uma delas (`5868d67f`) difere do atual até

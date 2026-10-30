@@ -36,7 +36,7 @@ ainda não testada.
 
 | # | Elemento | Observação |
 |---|---|---|
-| 1 | **LED + dissipador aletado** | Fan axial próprio, separado dos dois blowers DFH8025S |
+| 1 | **LED + dissipador aletado** | Fan axial próprio, separado dos dois blowers DFH8025S. **Atualização (2026-10-29):** são 3 ventiladores no total (este + os 2 sopradores, que são `DFH8030S` 12 V 0,45 A); o NTC do `gtt1` fica num olhal no topo deste bloco (OPT-S6 e OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
 | 2 | **Placa metálica com pintura branca** | Ao redor do LED; refletor da cavidade (o `光杯` / "light cup" da literatura) |
 | 3 | **Lente Fresnel traseira** | Colima o feixe para o painel |
 | 4 | **Vidro polarizador de isolamento térmico** | **A peça que queima.** Placa de vidro solta, retida por guias |
@@ -95,6 +95,11 @@ amarela.
 filme sadio. Mais absorção → mais calor no próprio filme → mais degradação. É realimentação positiva, e
 é a explicação direta de o aviso de temperatura (`WARNING_VALUE = 70000`, o do
 [doc 34](34-escada-brilho-e-fanmonitor.md)) ter ficado mais frequente com o tempo.
+
+> **Ressalva (2026-09-03 e 2026-10-29):** "aviso mais frequente" é a percepção do dono; nenhum `WARNING`
+> real de 70 °C foi capturado em log ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §2.8), e a
+> maior leitura real registrada é 68,2 °C ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+> §2). O `gtt1` mede o bloco do LED, não o filme (doc 40 §3).
 
 **Corolário operacional:** amarelamento homogêneo é sinal de fim de vida do filme **antes** de aparecer
 mancha. Não esperar a mancha para trocar.
@@ -201,7 +206,7 @@ Folha polarizadora solta vem com liner nos dois lados e **apenas um lado é ades
 | Peça | Papel | Entra no aparelho? |
 |---|---|---|
 | **Vidro isolamento térmico 136x85 (TD98)** | Substituição do item 4 da §1 | **Sim.** É a peça do reparo |
-| **Painel LCD RX058B-0600** | Sobressalente / contingência | Só se o painel atual estiver danificado. Cor já resolvida (JEIDA no `panelparam`) |
+| **Painel LCD RX058B-0600** | Sobressalente / contingência | Só se o painel atual estiver danificado. Cor já resolvida (JEIDA no `panelparam`). **Atualização (2026-10-29):** na 2ª troca de LCD o painel instalado é um `-4300` e o aparelho está em **VESA**; qualquer painel novo passa pelo teste de cor do [guia 32](../guide/32-guia-troca-painel-lcd.md) §3 ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
 | **Folha polarizada linear 0/90°, 20x30 cm** | **Instrumento de medida de eixo** + material do plano B (§5.5) | **Não** no caminho de luz: 380-700 nm, não bloqueia IR |
 | **Filme refletivo prata 200x170 mm** | — | **Não. Fica na gaveta** |
 
@@ -231,7 +236,11 @@ Suspeitos, em ordem:
    rasante** procurando ondulação. **Sobre a orientação, ver §7.1 — a nota anterior deste doc ("face
    ranhurada voltada para a lâmpada") era ambígua e não é conclusiva.**
 
-### 7.1. Orientação das duas Fresnel — EM ABERTO (OPT-S4)
+### 7.1. Orientação das duas Fresnel — OPT-S4 (fechado na prática em 2026-09-03)
+
+> **Atualização (2026-09-03):** OPT-S4 **FECHADO na prática** — o dono resolveu a orientação na bancada
+> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §1). A contradição entre as fontes abaixo
+> continua registrada.
 
 `CORREÇÃO (2026-09-03).` A versão anterior deste doc dizia "face ranhurada voltada para a lâmpada",
 frase herdada de um teardown do TD96. Ela é **ambígua na bancada** (não diz de qual das duas lentes fala)
@@ -317,12 +326,18 @@ PFL_IP=<ip> ./pfl7560-saude.sh
 # a protecao reage? (~65 s, mexe no brilho e volta sozinho)
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade
 
-# a cor continua correta apos mexer no caminho optico (painel -0600 => JEIDA):
-PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado: lvds_fmt: jeida
+# a cor continua correta apos mexer no caminho optico. Desde a 2a troca de LCD
+# (2026-10-29, painel -4300) o esperado e vesa; com o -0600 da 1a troca era jeida (doc 40 s1):
+PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado hoje: lvds_fmt: vesa
 ```
 
 **Critério de aceite da troca:** a temperatura da óptica em regime tem de **cair** contra a linha de base
 medida antes. Se não cair, a peça não era o gargalo e o problema é fluxo de ar.
+
+> **Ressalva (2026-10-29):** o único número disponível é o do `gtt1`, que mede o **bloco dissipador do
+> LED**, não o polarizador (OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
+> Ele só capta o efeito do filme de forma indireta. Para medir o filme, só um termopar na peça
+> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §5, item 2.4).
 
 > **Não usar "não desligou" como critério.** A política térmica deste aparelho só enxerga por causa do
 > fix do mux, e a proteção de ventilador está desarmada de fábrica. Ausência de desligamento não prova
@@ -332,13 +347,16 @@ medida antes. Se não cair, a peça não era o gargalo e o problema é fluxo de 
 
 ## 10. Pendências que este doc abre e fecha
 
+> **Estado em 2026-10-30** (a coluna "Estado" abaixo já reflete): OPT-S3 e OPT-S4 fecharam em 2026-09-03
+> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §6); OPT-S1, OPT-S2 e ART-S1 seguem abertos.
+
 | ID | Severidade | Estado | Item |
 |---|---|---|---|
 | ~~**POL-S1**~~ | — | **FECHADO (2026-09-02)** | Polarizador é **placa de vidro separada** entre a Fresnel traseira e o LCD, **não laminado**. Medida e eixo iguais aos da peça TD98 136x85. Gate da lista de compras liberado |
-| **OPT-S1** | média | **NOVO** | Transcrever a rota mecânica **deste** chassi (parafusos, ordem, o que é clipe e o que é cola). O dono já desmontou 3 vezes; nada foi anotado. É a última lacuna do §5.1 |
-| **OPT-S2** | média | **NOVO** | Caracterizar o **foco desigual** (§7). Inspecionar a Fresnel frontal com luz rasante antes de fechar |
-| **OPT-S3** | baixa | **NOVO** | Medir a linha de base de `gtt1` em regime antes/depois da troca e registrar em `evidencias/` |
-| **OPT-S4** | média | **NOVO** | **Orientação das duas Fresnel** (§7.1): fontes primárias em contradição direta; a regra de fabricante é convenção de molde, não lei. Resolver pelo teste do ponto no papel e **registrar com foto** a orientação adotada. Errar custa até ~20% de luz sem sintoma perceptível |
+| **OPT-S1** | média | **ABERTO** | Transcrever a rota mecânica **deste** chassi (parafusos, ordem, o que é clipe e o que é cola). O dono já desmontou 3 vezes; nada foi anotado. É a última lacuna do §5.1 |
+| **OPT-S2** | média | **ABERTO** | Caracterizar o **foco desigual** (§7). Inspecionar a Fresnel frontal com luz rasante antes de fechar |
+| ~~OPT-S3~~ | — | **FECHADO (2026-09-03)** | Medir a linha de base de `gtt1` em regime antes/depois da troca e registrar em `evidencias/`. Feito: 58,73 °C com a sala a 35,1 °C ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.1), com a ressalva de âncora do [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2 |
+| ~~OPT-S4~~ | — | **FECHADO na prática (2026-09-03)** | **Orientação das duas Fresnel** (§7.1): fontes primárias em contradição direta; a regra de fabricante é convenção de molde, não lei. Resolver pelo teste do ponto no papel e **registrar com foto** a orientação adotada. Errar custa até ~20% de luz sem sintoma perceptível |
 | **ART-S1** | média | aberto | Artefato/faixas ainda não caracterizado ([doc 35](35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md)) |
 
 ---

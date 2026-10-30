@@ -27,7 +27,7 @@ Tudo abaixo tem artefato em `evidencias/diagnostico-2026-08-17/`.
 | Wi-Fi | corrigido | `wifi-xiri.txt`: `vendor.newlink.wifi_disconnect_on_boot=0` |
 | `xiriservice` | silenciado | `wifi-xiri.txt`: `disabled` no `.rc`; `pos-reboot/artefatos-ausentes.txt`: `init.svc.xiriservice` vazio |
 | `/atv/ini/ZYCustom.ini` | **não existe** | `atv-ini.txt`: só `aq.ini`, `cfg.ini`, `db.ini`, `db_44.ini`, `programlist1/2.ini` |
-| Cor LCD (JEIDA) | ativa, persistente | `pos-reboot/proc-panel-pos-reboot.txt`: `lvds_fmt: jeida` **após o reboot desta sessão** |
+| Cor LCD (JEIDA) | ativa, persistente | `pos-reboot/proc-panel-pos-reboot.txt`: `lvds_fmt: jeida` **após o reboot desta sessão**. Desde a 2ª troca de LCD (2026-10-29) o aparelho está em **VESA** ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
 | Resolução | 1080p, modo único | `pos-reboot/display-modos.txt`: `supportedModes [{id=1, 1920x1080, 60.000004 fps}]` |
 
 ### 1.1. A persistência do JEIDA é NATIVA (corrige registro anterior)
@@ -118,7 +118,7 @@ intensa. O que falta determinar é se o regime travado ocorre **sem** sondagem �
 
 ### 2.4. Consequência metodológica: medir por props e logcat, nunca por `hidebug`
 
-As props `zysys.env_temp` (gtt1, óptica) e `zysys.light_temp` (gtt0, placa) são servidas pelo próprio
+As props `zysys.env_temp` (gtt1, o sensor quente; fica no bloco do LED, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) e `zysys.light_temp` (gtt0, placa) são servidas pelo próprio
 loop térmico, leem em ~29 ms e não forçam comutação de mux. Os nomes vêm invertidos de fábrica.
 
 **Correção de uma afirmação anterior:** a versão original deste doc dizia que valor congelado nas props
@@ -252,13 +252,13 @@ em `evidencias/` no mesmo comando que a produz. O `pfl7560-vigia-lsadc.sh` já n
 
 | ID | Severidade | Estado | Item |
 |---|---|---|---|
-| **LSADC-S1** | **alta** | **ABERTO, instrumentado** | Medir episódios por hora de uso real sem sondagem. `pfl7560-vigia-lsadc.sh` coletando. Critério: zero em ~30 h descarta taxa >= 1 a cada 10 h |
-| **LSADC-S2** | **alta** | **ABERTO** | `gtt` repetido via `hidebug` é gatilho? A doc trata `gtt` como seguro. Se for, inválida `pfl7560-autocaptura.sh` como método de medição |
+| **LSADC-S1** | **alta** | **ABERTO, despriorizado** (desde o [doc 37](37-mecanismo-lsadc-defasagem-dos-aneis.md) §11; instrumentado) | Medir episódios por hora de uso real sem sondagem. `pfl7560-vigia-lsadc.sh` coletando. Critério: zero em ~30 h descarta taxa >= 1 a cada 10 h |
+| **LSADC-S2** | **alta** | **ABERTO — prioridade máxima** ([doc 37](37-mecanismo-lsadc-defasagem-dos-aneis.md) §8 e §11) | `gtt` repetido via `hidebug` é gatilho? A doc trata `gtt` como seguro. Se for, inválida `pfl7560-autocaptura.sh` como método de medição |
 | ~~LSADC-S3~~ | — | **DESCARTADA** | Levantei "mau contato no chicote GND/NTC" como origem elétrica. O [doc 27](27-teardown-cabo-gnd-ntc.md) **já havia respondido**: o cabo solto é jumper de aterramento/EMI com terminal de anel, e o terra funcional do NTC entra pelo conector JST de 2 vias, que está **plugado**. Terminal de anel não entra em carcaça JST. Além disso o doc 27 já catalogou o glitch do `heat.logcat` e mostrou que o terra esteve íntegro (leituras finitas e válidas). **Causa elétrica no chicote está excluída; o vetor vivo é software/sondagem** |
-| **ART-S1** | média | **NOVO** | Artefato/faixas não caracterizado. Discriminar elétrico (LVDS `current` 300MV, flat) vs óptico |
+| **ART-S1** | média | **ABERTO** | Artefato/faixas não caracterizado. Discriminar elétrico (LVDS `current` 300MV, flat) vs óptico |
 | ~~POL-S1~~ | — | **FECHADO (2026-09-02)** | Polarizador é **placa de vidro separada** entre a Fresnel traseira e o LCD, **não laminado ao painel**; o de **entrada** é o que queimou; a peça de reposição bate medida, espessura e eixo. Ver [doc 38](38-motor-optico-e-troca-do-polarizador.md) |
-| **BRI-S1** | média | **NOVO** | Decidir o brilho base. Com 0,43 °C por 1% (doc 34), 1000→900 compra ~4,3 °C; 1000→850, ~6,5 °C |
-| VIGIA-S1 | média | revisado | Premissa do hook `/data/local/nlsu/` **refutada** |
+| **BRI-S1** | média | **ABERTO** (decisão do dono, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §5) | Decidir o brilho base. Com 0,43 °C por 1% (doc 34), 1000→900 compra ~4,3 °C; 1000→850, ~6,5 °C |
+| VIGIA-S1 | média | aberto, **premissa REFUTADA** (ver [doc 34](34-escada-brilho-e-fanmonitor.md)) | Premissa do hook `/data/local/nlsu/` **refutada** |
 
 ## 9. Proof-of-work
 

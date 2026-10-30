@@ -7,6 +7,22 @@
 **Data:** 2026-07-08
 **Canal:** CSIRT Intelbras (e, se aplicável, encaminhamento a P&D / qualidade de produto)
 
+> **NOTA (2026-10-30) — acréscimos sem alterar o relatório abaixo:**
+> 1. **O defeito persiste em outubro de 2026.** O firmware oficial publicado em 2026-10-20 para produtos
+>    fabricados a partir de 25/08/2026 (modelo sem USB-C, `V1.0.0.1`, build de 2026-08-08) mantém
+>    `HW_VIRTUAL_CHANNEL = 0` nos dois termistores, a mesma curva de ventiladores, a mesma escada de brilho e
+>    os mesmos 43/45 °C; a `libhitvservice.so` é byte-idêntica
+>    ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md) §3).
+> 2. **Posição do 2º sensor:** o NTC do `gtt 1` é um termistor encapsulado num olhal parafusado no topo do
+>    **bloco dissipador do LED**; nenhum sensor mede o polarizador/LCD
+>    ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). Onde o texto diz
+>    "bloco óptico" ou "temperatura real da óptica", o dado medido é o do bloco do LED.
+> 3. **Refrigeração:** 3 ventiladores — 2 sopradores `DFH8030S` (12 V, 0,45 A) controlados pela política e 1
+>    axial no exaustor do LED, sem controle; o anexo abaixo cita "2 sopradores DFH8025S", leitura de julho.
+> 4. **Brilho:** "pleno no uso normal" (tabela da §4) vale abaixo de 66 °C. Em 2026-10-29, com a sala a 34 °C,
+>    o `gtt 1` ficou em 65,8-68,2 °C e a escada atuou no uso normal (brilho 944-974), sem `WARNING` real
+>    ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2).
+
 ---
 
 ## 1. Resumo executivo

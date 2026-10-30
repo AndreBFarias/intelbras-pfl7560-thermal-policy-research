@@ -11,11 +11,23 @@ Temperaturas em milésimos de grau C (miliC); velocidades e brilho em por-mil (0
   mux analógico **`BL1551B`** no `GPIO4_4` (`[Multiplexer] DEFAULT_SWITCH_DELAY_MS=200`).
 - Modelo Beta/Steinhart: `FW_NTC_B=3345.646939`, `FW_NTC_LNa=-8.964791936`, faixa -40..120 C.
 - **Não há sensor de CPU/GPU/DDR.** Os NTCs são sensores de placa/ar perto da óptica.
+
+> **CORREÇÃO (2026-10-29)** — onde o NTC fica de verdade: o 2º termistor (`gtt1`) é um NTC encapsulado
+> num olhal parafusado no topo do **bloco dissipador do LED**; mede o dissipador do LED, não o
+> polarizador nem o LCD, e **nenhum sensor do aparelho mede o polarizador/LCD** (OPT-S7 fechado,
+> [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). Onde este doc fala em sensor
+> "perto da óptica", leia "no bloco do LED".
+
 - Leitura em runtime via HAL `cus`: `gtt <0-2>` (GetThermalTemp), `gtc` (GetThermalCount).
 
 ## Curva dos coolers - `[ThermalPolicy]`
 
-2x soprador **`DFH8025S`**, PWM 36 kHz. `POLICY_NUM=2`, mas as 2 políticas são idênticas
+2x soprador **`DFH8025S`**, PWM 36 kHz.
+
+> **CORREÇÃO (2026-10-29):** o modelo é **`DFH8030S`** (12 V, 0,45 A) e o aparelho tem **3 ventiladores**:
+> estes 2 sopradores, que a política controla, e 1 axial no exaustor do dissipador do LED, sem controle
+> por software (OPT-S6, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3 e §4).
+ `POLICY_NUM=2`, mas as 2 políticas são idênticas
 (`STANDARD` e `2ND_STANDARD`); os modos `COOLING/QUIET/FAST/NONE` que a HAL anuncia NAO estão configurados.
 
 | Temp NTC (C) | 25 | 27 | 29 | 31 | 33 | 35 | 36 |

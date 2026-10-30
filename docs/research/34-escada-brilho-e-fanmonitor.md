@@ -19,14 +19,30 @@ aparelho (adb por Wi-Fi, `94.140.14.52:5555`) ou extraído da `libhitvservice.so
 - **Descoberta grave e independente: a proteção de ventilador travado está DESARMADA.** O firmware tem
   `[FanMonitor]` com shutdown por fan parado; `MONITOR_MODE` precisa ser `1` e é `0` (`.bss`), porque o
   `ZYCustom.ini` de fábrica **não tem a seção**. Mesmo padrão do bug do mux: proteção existente,
-  desligada por omissão de config.
+  desligada por omissão de config. **Veredito final mais abaixo (FAN-S1): inarmável por software** — o
+  portão `SW_SENSE_TYPE = 0` e os sopradores de 2 fios, sem tacômetro; não é só omissão de config.
+
+> **CORREÇÕES POSTERIORES (2026-09-03 e 2026-10-29)** — leia este doc com elas:
+> - **O `gtt1` não é o sensor da óptica.** É um NTC encapsulado num olhal no topo do **bloco dissipador
+>   do LED**; nenhum sensor mede o polarizador/LCD (OPT-S7 fechado,
+>   [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). Onde este doc diz "óptica" para o
+>   `gtt1`, leia "bloco do LED". A amarração política → `gtt1` provada abaixo continua valendo.
+> - **O "patamar normal de 61-63 °C" não é fixo.** Em 2026-10-29, com a sala a 34 °C, o `gtt1` ficou em
+>   65,8 °C em regime (pico 68,2) e a escada **atuou no uso normal** (brilho 944-974), com ressalvas de
+>   medição ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2).
+> - **O "alarme de 70 °C" desta sessão é o relato do dono, na tela.** Nenhum `WARNING` real de 70 °C foi
+>   capturado em log neste aparelho ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §2.8); os
+>   `71,0 °C` do repositório são injetados pelo teste de vivacidade, e a maior leitura real registrada é
+>   68,2 °C (2026-10-29). Por isso o LSADC-S1 segue aberto.
+> - **Ventiladores:** são 3 — os 2 sopradores `DFH8030S` (12 V, 0,45 A) que a política controla e 1 axial
+>   no exaustor do LED, sem controle (OPT-S6, doc 40 §3).
 
 ## Estado medido (aparelho, brilho 1000)
 
 | Grandeza | Valor |
 |---|---|
 | `gtt0` (placa, sensor frio) | 30,1-31,9 °C |
-| `gtt1` (óptica, sensor real) | **61,15 °C** em regime, travado (n=20, variação zero) |
+| `gtt1` (sensor quente, real; fica no bloco do LED, doc 40 §3) | **61,15 °C** em regime, travado (n=20, variação zero) |
 | `gtt1` com screensaver escuro | 63,42 °C |
 | fans (`gfs 0/1`) | `1000` / `1000`, `bAbnormal=0`, `gfe`=1/1 |
 | `gbri 0` | `996` — é o **PWM real**, não o nível lógico; `996` é o que o aparelho lê no máximo (o nível lógico correspondente é `1000`) |
@@ -80,7 +96,7 @@ uma **config-sonda** por um boot: limiares de `[BacklightPolicy]` numa faixa **e
 | `gtt1` = 58,95 °C (acima de todos) | se a política lesse este: brilho no piso |
 | **`gbri 0` medido** | **850** |
 
-**Conclusão: `[BacklightPolicy]` consome o `gtt1`** — o sensor da óptica, o que o mux destravou. É
+**Conclusão: `[BacklightPolicy]` consome o `gtt1`** — o sensor quente (bloco do LED, doc 40 §3), o que o mux destravou. É
 exatamente o que o doc 08 pediu ("apontar fan-ramp/shutdown para o canal quente") e agora está provado,
 não inferido.
 
@@ -95,7 +111,7 @@ POLICY_0_BRIGHTNESS =  1000,  950,  900,  850,  850,  850;
 
 | `gtt1` | Brilho | Racional |
 |---|---|---|
-| até 66 °C | **1000** | patamar normal medido é 61,15-63,42 °C: **zero penalidade no uso normal** |
+| até 66 °C | **1000** | patamar normal medido é 61,15-63,42 °C: **zero penalidade no uso normal**. **Ressalva (2026-10-29):** com a sala a 34 °C o regime foi 65,8 °C e a escada atuou no uso normal (doc 40 §2) |
 | 67,5 °C | 950 | começa a cortar calor na fonte |
 | 69 °C | 900 | |
 | **70 °C** | **850** | coincide com o `WARNING_VALUE`: quando avisa, já está no piso |
@@ -162,7 +178,7 @@ O formato de report é `%4.2frpm` com divisor float **100,0** (constante em `0x2
 | `EMERGENCY_VALUE` | 10000 | 100 rpm |
 | `STOP_VALUE` | 0 | parado |
 
-Um DFH8025S a 100% gira ~4.000-6.000 rpm -> medido 400.000-600.000, com folga entre o WARNING e o teto.
+Um DFH8025S a 100% gira ~4.000-6.000 rpm (o modelo é `DFH8030S` e não tem ficha pública: a faixa de rpm é estimativa, doc 40 §5) -> medido 400.000-600.000, com folga entre o WARNING e o teto.
 **Numa primeira análise eu supus a escala 0-1000 e previ um loop de desligamento; estava errado.**
 
 **Kill switch provado, útil para observação:** o fim de `RunSimplifyFanMonitor` é
@@ -271,7 +287,7 @@ as linhas que crescem estão explicadas (arch_timer, áudio, GPU, VO, VICAP/VPSS
 
 > A etiqueta parece dizer **`DFH8030S`**, não `DFH8025S` como o doc 27 registra. Não foi possível resolver
 > o dígito na resolução disponível — **confirmar na etiqueta física** antes de corrigir o doc 27. Só
-> importa para spec de RPM num eventual swap.
+> importa para spec de RPM num eventual swap. (Fechado em 2026-10-29: `DFH8030S`, 12 V, 0,45 A, doc 40 §4.)
 
 **Veredito FAN-S1: não é "desarmado por omissão de config" como o bug do mux. É INARMÁVEL por software
 neste aparelho.** O firmware traz os 3 modos de tacômetro prontos; falta o fio. A via de correção deixa de
@@ -354,7 +370,7 @@ real (só o `gtt1` chega perto). Ganho marginal, risco desnecessário.
 
 ### Nomes de propriedade invertidos
 
-`zysys.env_temp` = 59,0 °C e `zysys.light_temp` = 31,4 °C. O sensor **quente** (óptica, `gtt1`) é publicado
+`zysys.env_temp` = 59,0 °C e `zysys.light_temp` = 31,4 °C. O sensor **quente** (`gtt1`, no bloco do LED) é publicado
 como `env_temp` ("ambiente") e o **frio** (placa, `gtt0`) como `light_temp` ("fonte de luz") — invertido em
 relação à física. É provavelmente o `env_temp` que a UI mostra no alarme de tela.
 
@@ -459,8 +475,8 @@ independente, mas o método foi por sorte. **Confirme call sites antes de tirar 
 | **FAN-S1** | **alta** | **FECHADO como inarmável** | O monitor é **inarmável por software**: portão `SW_SENSE_TYPE = 0` em `FanSpeedSense::Run()`, e os sopradores são de 2 fios (sem FG). Não é omissão de config como o bug do mux. Correção exigiria **hardware** (sopradores de 3 fios + as 6 chaves `*SENSE*`). **Não armar `SW_SENSE_TYPE` sem a fiação — é pior que deixar desarmado.** |
 | TM-S1 | média | **FECHADO** | Rigal vs KJM diferem só no despachante de atuação; sensoriamento idêntico. Divergência benigna, **não alterar**. |
 | ~~`[MonotonicTask]`~~ | — | **ANULADA** | Pista encerrada: `TASK_MODE` não é scheduler, é atuador extra que disputaria PWM/backlight com a política térmica. |
-| **LSADC-S1** | **alta** | **ABERTO** | Verificar, sob uso real e com o aparelho quente, se o `WARNING` de 70 °C é de fato avaliado (contar `Overheat Warning` vs `LSADC Error` com `gtt1 > 70 °C`). Hoje sabemos que a média fica válida em boot limpo, mas nunca vimos o `Overheat Warning` disparar. Somente leitura. |
+| **LSADC-S1** | **alta** | **ABERTO, despriorizado** (estado no [doc 37](37-mecanismo-lsadc-defasagem-dos-aneis.md) §11) | Verificar, sob uso real e com o aparelho quente, se o `WARNING` de 70 °C é de fato avaliado (contar `Overheat Warning` vs `LSADC Error` com `gtt1 > 70 °C`). Hoje sabemos que a média fica válida em boot limpo, mas nunca vimos o `Overheat Warning` disparar. Somente leitura. Em 2026-10-29 a maior leitura real foi 68,2 °C: continua sem `WARNING` real registrado. |
 | VIGIA-S1 | média | aberto, **premissa REFUTADA** | ~~Ancorar o vigia no hook `sys.boot_completed` que **já existe** no `.rc` stock (`exec … /data/local/nlsu/update_after_boot.sh`)~~ — **`/data/local/nlsu/` NÃO existe neste aparelho** (doc 35 §6; artefato `evidencias/diagnostico-2026-08-17/pos-reboot/artefatos-ausentes.txt`). O hook não tem diretório de destino aqui, então **não** dispensa `.rc` novo em `/vendor` — a ancoragem por `.rc` em `/vendor/etc/init/` volta a ser o caminho, com precedente empírico a favor (foi assim que o `nl_lvds.rc` funcionou). O item em si segue aberto: enquadrar como "resposta graduada esgotou e ainda esquenta", **não** como "detector de fan travada" (não isola a causa: obstrução, ambiente quente e pá quebrada dão a mesma assinatura). Premissa não provada da sprint 19: que o init varre `/vendor/etc/init/*.rc`. |
-| **ESC-S1** | baixa | **FECHADO** | Escada verificada atuando e recuperando em rampa, com log (`Level Change 926 => 1000`, subindo 2-3/tick). Falta apenas ver o pior caso de uso real (filme longo) para confirmar que o piso 850 segura abaixo de 75 °C. |
+| **ESC-S1** | baixa | **FECHADO** | Escada verificada atuando e recuperando em rampa, com log (`Level Change 926 => 1000`, subindo 2-3/tick). Falta apenas ver o pior caso de uso real (filme longo) para confirmar que o piso 850 segura abaixo de 75 °C. Em 2026-10-29 atuou no uso normal (brilho 944-974, doc 40 §2). |
 | PREF-S1 | baixa | aberto | Provar a grafia das chaves de `Thermal::Preference` se algum dia forem necessárias. |
 | **INT-S1** | média | **FECHADO** | Incidente: o pre-commit global apagou trailing whitespace dos `ZYCustom.ini` e derrubou o md5 (quebrando o gate do pendrive). Corrigido com atributo `byte-exact` no `.gitattributes` versionado, honrado pelo hook. |
