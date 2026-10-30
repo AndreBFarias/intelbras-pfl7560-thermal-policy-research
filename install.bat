@@ -107,7 +107,7 @@ echo.
 echo  [4] correcao de cor do painel trocado
 REM VESA ou JEIDA sao ambos validos: depende do painel que esta na optica. O que se confere aqui
 REM e se o formato em uso bate com o byte lvds_fmt gravado no perfil ativo da panelparam (exige root).
-"%ADB%" -s %DEV% shell "f=$(grep -a lvds_fmt /proc/msp/panel | head -1 | tr 'A-Z' 'a-z'); i=$(grep -a cut_idx /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^0-9]//g'); b=; case $i in ?*) b=$(dd if=/dev/block/by-name/panelparam bs=1 skip=$((168+i*768+92)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ');; esac; case $f:$b in *jeida:1|*vesa:0) echo COR_OK;; *) echo COR_DIVERGE;; esac" 2>nul | findstr /c:"COR_OK" >nul && (echo      OK    formato em uso bate com o byte gravado na panelparam) || (echo      ATENCAO formato em uso diverge do byte gravado, ou ilegivel ^(a leitura exige root^))
+"%ADB%" -s %DEV% shell "f=$(grep -a lvds_fmt /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^A-Za-z]//g' | tr 'A-Z' 'a-z'); i=$(grep -a cut_idx /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^0-9]//g'); b=; case $i in ?*) b=$(dd if=/dev/block/by-name/panelparam bs=1 skip=$((168+i*768+92)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ');; esac; case $f:$b in jeida:1|vesa:0) echo COR_OK;; *) echo COR_DIVERGE;; esac" 2>nul | findstr /c:"COR_OK" >nul && (echo      OK    formato em uso bate com o byte gravado na panelparam) || (echo      ATENCAO formato em uso diverge do byte gravado, ou ilegivel ^(a leitura exige root^))
 "%ADB%" -s %DEV% shell "grep -a lvds_fmt /proc/msp/panel" 2>nul
 echo      O software nao sabe qual painel esta na optica: confira a cor na tela.
 echo.
