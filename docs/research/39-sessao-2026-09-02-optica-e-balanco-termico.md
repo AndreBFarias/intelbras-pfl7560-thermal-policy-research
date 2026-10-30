@@ -591,7 +591,7 @@ degraus) para chamar de real.
 
 | ID | Sev | Estado | Item |
 |---|---|---|---|
-| **OPT-S12** | média | **ABERTO** | Efeito termico do brilho 750 vs 1000 não medido ate o regime (so 2 amostras, interrompido). Valida ou refuta o `0,43 C/%` do doc 34. Rodar `pfl7560-teste-brilho.sh --curva 750 --ambiente X --minutos 25` (§4.2) |
+| **OPT-S12** | média | **ABERTO** | Efeito térmico do brilho 750 vs 1000 não medido até o regime (só 2 amostras, interrompido). Valida ou refuta o `0,43 C/%` do doc 34. Rodar `pfl7560-teste-brilho.sh --curva 750 --ambiente X --minutos 25` (§4.2) |
 | **OPT-S13** | média | **ABERTO** | **Reabrir o gate de viabilidade da sprint 19.** O doc 19 dava `am start ... VIEW` como resolvido; **não funciona neste aparelho** (§4.3). Sem exibir imagem por shell, o vigia de tela precisa de outro mecanismo. **Atenção (2026-10-30):** o kit de pendrive v2 (bloco 5) mostra as telas do teste de cor pela mesma via (`am start ... VIEW`); a etapa E1(e) do [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) é o teste que decide |
 | ~~OPT-S3~~ | — | **FECHADO (2026-09-03)** | Linha de base medida: **58,73 °C** em regime com ambiente **35,1 °C** (§4.1). Queda real de **7,03 °C** contra a medição de agosto. Artefato: `evidencias/2026-09-03/props-033635.tsv`. Ressalva de âncora de ambiente no [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2 |
 | ~~OPT-S5~~ | — | **FECHADO (2026-10-29)** | `DFH8030S`, 12 V, 0,45 A, centrífugo, `PROVADO` pela etiqueta ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §4). Sem ficha pública (doc 40 §5) |

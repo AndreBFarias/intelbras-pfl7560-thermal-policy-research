@@ -49,7 +49,7 @@ controla e 1 axial no exaustor do dissipador do LED, sem controle por software (
 |---|---|---|
 | **2º sensor de temperatura** | mapeamento incorreto (`HW_VIRTUAL_CHANNEL=0` nos dois canais) → proteção térmica ineficaz | canal virtual `1` → mux comuta; proteção passa a enxergar o calor real |
 | **Ventiladores** (os 2 sopradores controlados) | aceleram tarde, guiados pelo sensor inadequado | **100% desde o boot** |
-| **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% no uso normal**; escada de dimming ancorada no sensor **real**, caindo até 850 entre 66 °C e 70 °C e voltando sozinha na descida ([doc 34](docs/research/34-escada-brilho-e-fanmonitor.md)) |
+| **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% abaixo de 66 °C**; escada de dimming ancorada no sensor **real**, caindo até 850 entre 66 °C e 70 °C e voltando sozinha na descida ([doc 34](docs/research/34-escada-brilho-e-fanmonitor.md)). Com a sala a 34 °C (2026-10-29) ela atuou no uso normal, brilho 944-974 ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2) |
 | **Desligamento de proteção** | limiar que quase nunca dispara na prática | **75 °C** (rede de segurança calibrada ao sensor real) |
 | **Wi-Fi** | não reconecta após reiniciar | reconecta sozinho |
 | **Log** | spam do serviço `xiriservice` ~1×/s | serviço desabilitado |

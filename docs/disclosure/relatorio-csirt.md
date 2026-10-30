@@ -19,6 +19,9 @@
 >    "bloco óptico" ou "temperatura real da óptica", o dado medido é o do bloco do LED.
 > 3. **Refrigeração:** 3 ventiladores — 2 sopradores `DFH8030S` (12 V, 0,45 A) controlados pela política e 1
 >    axial no exaustor do LED, sem controle; o anexo abaixo cita "2 sopradores DFH8025S", leitura de julho.
+> 4. **Brilho:** "pleno no uso normal" (tabela da §4) vale abaixo de 66 °C. Em 2026-10-29, com a sala a 34 °C,
+>    o `gtt 1` ficou em 65,8-68,2 °C e a escada atuou no uso normal (brilho 944-974), sem `WARNING` real
+>    ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2).
 
 ---
 

@@ -6,7 +6,8 @@ mesmo nos dois ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)).
 Métodos por `/vendor` são **reversíveis** e **não tocam no bootloader**.
 
 > **O que a correção faz:** ativa o 2º sensor de temperatura (desligado por defeito de configuração de fábrica),
-> força os fans a 100% sempre, mantém o brilho estável em 100% e define desligamento de proteção a 75 °C.
+> força os fans a 100% sempre, mantém o brilho em 100% abaixo de 66 °C (acima disso, uma escada desce até 850
+> e volta sozinha, [doc 34](../research/34-escada-brilho-e-fanmonitor.md)) e define desligamento de proteção a 75 °C.
 > Resultado medido: saída de ar de 46,7 °C → 37,2 °C.
 
 **Caminho recomendado para leigos:** use o **pendrive autorun** ou o script da raiz — veja [`../../INSTALL.md`](../../INSTALL.md).
@@ -44,4 +45,5 @@ Houve um deploy experimental por override em `/atv/ini/ZYCustom_*.ini`. Foi **su
 PFL_IP=<ip> ./pfl7560-fix.sh revert
 ```
 
-Ou reflash do firmware de fábrica (menu “Atualização local do sistema”). Segurança: [`12-seguranca-e-recuperacao.md`](12-seguranca-e-recuperacao.md).
+Ou reflash do firmware de fábrica **do seu modelo** (menu “Atualização local do sistema”; não grave o de
+um modelo no outro, [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)). Segurança: [`12-seguranca-e-recuperacao.md`](12-seguranca-e-recuperacao.md).

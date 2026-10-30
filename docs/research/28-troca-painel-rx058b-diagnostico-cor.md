@@ -212,6 +212,10 @@ Relatórios completos salvos em `.../tasks/*.output` da sessão.
 O tema original do projeto é térmico, então acompanhamos a óptica minuto a minuto durante a sessão.
 A rajada de reboots deu um "descanso térmico" involuntário:
 
+> **CORREÇÃO (2026-10-29):** o `env` (`zysys.env_temp`, `gtt1`) não mede a óptica: é um NTC no topo do
+> **bloco dissipador do LED**, e nenhum sensor mede o polarizador/LCD (OPT-S7,
+> [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). Leia "óptica" abaixo como "bloco do LED".
+
 | Momento | env (óptica) | Observação |
 |---|---|---|
 | 20:58 | 59,0 C | início (aparelho ligado há tempo) |

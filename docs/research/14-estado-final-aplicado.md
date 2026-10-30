@@ -16,7 +16,7 @@ Aplicado via `pfl7560-fix.sh apply` (na raiz do projeto), que faz backup do stoc
 
 | Fix | Onde | O que faz | Estado |
 |---|---|---|---|
-| Térmico | `/vendor/etc/ZYCustom.ini` (md5 `252ab7a7…`) | 2º sensor ativo (`HW_VIRTUAL_CHANNEL=1`), fans 100% sempre, brilho 100% no uso normal com escada 1000→850 acima de 66 °C, shutdown 75 °C | validado |
+| Térmico | `/vendor/etc/ZYCustom.ini` (md5 `252ab7a7…`) | 2º sensor ativo (`HW_VIRTUAL_CHANNEL=1`), fans 100% sempre, brilho 100% abaixo de 66 °C com escada 1000→850 acima disso (atuou no uso normal com a sala a 34 °C, doc 40 §2), shutdown 75 °C | validado |
 | Wi-Fi | `/vendor/build.prop` `wifi_disconnect_on_boot=0` | reconecta ao Wi-Fi sozinho após reboot | validado (reconectou sozinho) |
 | Xiri | `/vendor/etc/init/hw/init.bigfish.rc` (`disabled` no `xiriservice`) | para o spam de `xirivoice` no log | validado (spam = 0) |
 
