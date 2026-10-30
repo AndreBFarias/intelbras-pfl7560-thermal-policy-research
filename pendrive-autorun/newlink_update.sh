@@ -92,9 +92,9 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-dede08da1c538dbee71ddfea82555ec2  cor.sh
+e6ef8149115514ee9e0fdc8fd35da973  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
-242de46c444bf3dcdcfefd329153c141  nl_camcheck
+614c0df30730748f23341fcd37b76d53  nl_camcheck
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png

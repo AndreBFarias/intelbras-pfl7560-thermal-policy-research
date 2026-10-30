@@ -65,7 +65,7 @@ VIDEO="$R/dev/video0"
 # de cada execucao. DONO_UID: o dono exigido nas pastas e arquivos (root = 0).
 LVDSCTL_MD5="178d812872cb9306c0ae6faeed07184a"
 # idem para o nl_camcheck (artifacts/camcheck/nl_camcheck.c, NDK r27c)
-NLCAM_MD5="242de46c444bf3dcdcfefd329153c141"
+NLCAM_MD5="614c0df30730748f23341fcd37b76d53"
 DONO_UID=0
 # MODO_AUTO: ligado por padrao; PFL_TESTE=1 PFL_MODO_AUTO=0 o desliga (so o harness)
 MODO_AUTO=1

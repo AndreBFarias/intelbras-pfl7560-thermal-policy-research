@@ -156,8 +156,19 @@ static int grab(const char *dev, const char *fmt, int w, int h, const char *out,
 #define COL_INI_PCT 35   /* perfil de linhas nas colunas 35 a 65% da largura */
 #define COL_FIM_PCT 65
 #define MARGEM 0.03      /* queda/subida que conta como inversao: 3% da amplitude */
+#define LADO_MIN 16      /* quadro menor que isso nao tem colunas para o perfil */
+#define LADO_MAX 4096    /* e maior que isso nao e da camera interna (e estoura size_t de 32 bits) */
 
 struct quadro { unsigned char *dados; int larg, alt, stride; };
+
+/* dimensoes que o perfil aguenta: colunas c0 < c1 e linha inteira dentro do stride */
+static int dimensoes_ok(int larg, int alt, int stride) {
+  if (larg < LADO_MIN || alt < LADO_MIN || larg > LADO_MAX || alt > LADO_MAX || stride < larg * 2) {
+    fprintf(stderr, "quadro com dimensoes invalidas: %dx%d, %d bytes por linha\n", larg, alt, stride);
+    return 0;
+  }
+  return 1;
+}
 
 /* Captura UM quadro YUYV do V4L2 (descarta 'skip'). Tamanho: 640x480 se o
  * driver o oferece, senao o menor YUYV listado. Devolve 0 e preenche q. */
@@ -188,6 +199,7 @@ static int captura_yuyv(const char *dev, int skip, struct quadro *q) {
     fprintf(stderr, "driver nao entregou YUYV\n"); close(fd); return 1;
   }
   int stride = f.fmt.pix.bytesperline ? (int)f.fmt.pix.bytesperline : (int)f.fmt.pix.width * 2;
+  if (!dimensoes_ok((int)f.fmt.pix.width, (int)f.fmt.pix.height, stride)) { close(fd); return 1; }
 
   struct v4l2_requestbuffers rb;
   memset(&rb, 0, sizeof rb);
@@ -218,7 +230,11 @@ static int captura_yuyv(const char *dev, int skip, struct quadro *q) {
     if (xioctl(fd, VIDIOC_DQBUF, &b) < 0) { perror("DQBUF"); break; }
     if (n == skip) {
       size_t esperado = (size_t)stride * f.fmt.pix.height;
-      if (b.bytesused < esperado) {
+      if (b.flags & V4L2_BUF_FLAG_ERROR) {
+        fprintf(stderr, "quadro marcado com erro pelo driver\n");
+        break;
+      }
+      if (b.bytesused < esperado || b.length < esperado) {
         fprintf(stderr, "quadro curto: %u bytes, esperado %zu\n", b.bytesused, esperado);
         break;
       }
@@ -246,13 +262,14 @@ static int ler_arquivo(const char *spec, struct quadro *q) {
   if (!p1) { fprintf(stderr, "uso: arquivo:<caminho.yuyv>:<L>:<A>\n"); free(c); return 1; }
   *p1 = 0;
   int larg = atoi(p1 + 1), alt = atoi(p2 + 1);
-  if (larg <= 0 || alt <= 0) { fprintf(stderr, "L/A invalidos em %s\n", spec); free(c); return 1; }
+  if (!dimensoes_ok(larg, alt, larg > LADO_MAX ? 0 : larg * 2)) { free(c); return 1; }
   FILE *f = fopen(c, "rb");
   if (!f) { fprintf(stderr, "open %s: %s\n", c, strerror(errno)); free(c); return 1; }
   size_t n = (size_t)larg * 2 * alt;
   q->dados = malloc(n);
-  if (!q->dados || fread(q->dados, 1, n, f) != n) {
-    fprintf(stderr, "%s: menos de %zu bytes\n", c, n);
+  /* o arquivo tem de ter EXATAMENTE L*A*2 bytes: nem menos (curto) nem mais (outro tamanho) */
+  if (!q->dados || fread(q->dados, 1, n, f) != n || fgetc(f) != EOF) {
+    fprintf(stderr, "%s: tamanho diferente de %zu bytes (YUYV %dx%d)\n", c, n, larg, alt);
     fclose(f); free(c); free(q->dados); q->dados = NULL; return 1;
   }
   fclose(f); free(c);

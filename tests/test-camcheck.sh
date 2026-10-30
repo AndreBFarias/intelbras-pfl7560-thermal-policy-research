@@ -54,6 +54,13 @@ afirma '[ "$rc" = 1 ]' "quadro ausente deveria sair 1"
 head -c 1000 "$FIX/escada-f1.yuyv" > "$T/curto.yuyv"
 "$NL" niveis "arquivo:$T/curto.yuyv:640:480" "$T/faixas-f1.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "quadro curto deveria sair 1"
+# quadro de OUTRO tamanho (o de 640x480 lido como 320x480: sobram bytes) e dimensoes absurdas
+"$NL" faixas "arquivo:$FIX/calibracao-f1.yuyv:320:480" 16 "$T/w.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ] && [ ! -e "$T/w.txt" ]' "quadro maior que L*A*2 deveria sair 1 (saiu $rc)"
+"$NL" niveis "arquivo:$FIX/escada-f1.yuyv:2:2" "$T/faixas-f1.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "quadro 2x2 (sem colunas para o perfil) deveria sair 1 (saiu $rc)"
+"$NL" faixas "arquivo:$FIX/escada-f1.yuyv:2147483647:2147483647" 16 "$T/w.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "dimensao absurda deveria sair 1 (saiu $rc)"
 printf '1 2\n' > "$T/uma.txt"
 "$NL" niveis "$(arq escada-f1)" "$T/uma.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "faixas.txt com uma faixa so deveria sair 1"

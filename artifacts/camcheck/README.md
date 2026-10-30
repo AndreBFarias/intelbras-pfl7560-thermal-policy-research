@@ -29,11 +29,12 @@ ser o md5 novo (o `make check-kit` reprova se nao for) e a lista do
 | --- | --- |
 | `info [dev]` | driver, formatos, tamanhos e controles com o valor atual |
 | `grab dev MJPG\|YUYV larg alt saida [descarte]` | grava 1 quadro cru (descarta N antes, padrao 10) |
-| `faixas dev N saida.txt [descarte]` | captura 1 quadro YUYV (640x480, ou o menor YUYV), acha as faixas claras e exige EXATAMENTE N. Grava `ini fim` por faixa. Sai 0 se achou N, 3 se nao (imprime quantas achou), 1 se nao conseguiu abrir ou ler |
+| `faixas dev N saida.txt [descarte]` | captura 1 quadro YUYV (640x480, ou o menor YUYV), acha as faixas claras e exige EXATAMENTE N. Grava `ini fim` por faixa. Sai 0 se achou N, 3 se nao (imprime quantas achou), 1 se nao conseguiu abrir ou ler, ou se o quadro veio marcado com erro, curto ou de outro tamanho |
 | `niveis dev faixas.txt [descarte]` | captura 1 quadro e imprime a media do miolo de cada faixa, uma por linha, e `inv_cresc=X inv_decresc=Y` na ultima |
 
 `descarte` padrao 15 em `faixas` e `niveis`. No lugar de `dev`, vale
-`arquivo:<caminho.yuyv>:<L>:<A>` (quadro cru do disco, sem V4L2).
+`arquivo:<caminho.yuyv>:<L>:<A>` (quadro cru do disco, sem V4L2). O arquivo tem de ter
+exatamente `L*A*2` bytes; L e A entre 16 e 4096.
 
 ## Como mede (bloco 7)
 
