@@ -134,15 +134,17 @@ projetor** é o que restaura a proteção. Mecanismo em
 
 ## Acompanhar durante o uso
 
-A escada de brilho só atua quando a óptica passa de 66 °C, então ela não aparece num teste rápido: é
-preciso observar durante uso real. Para isso existe o vigia, que fica de fora e só lê o log:
+A escada de brilho só atua quando o sensor quente (`gtt1`, no bloco dissipador do LED) passa de 66 °C,
+então ela não aparece num teste rápido: é preciso observar durante uso real. Em 2026-10-29, com a sala a
+34 °C, ela atuou no uso normal (brilho entre 944 e 974 com o `gtt1` em 65,8-68,2 °C,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2). Para isso existe o vigia, que fica de fora e só lê o log:
 
 ```bash
 PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh            # acompanha (Ctrl-C para parar)
 PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh --resumo   # o que ja foi observado
 ```
 
-No menu: opção **6**. Ele anota quando o brilho baixa sozinho (a escada protegendo a óptica) e quando
+No menu: opção **6**. Ele anota quando o brilho baixa sozinho (a escada cortando o calor na fonte) e quando
 volta a subir, se algum ventilador sair do máximo, e se a proteção cegar.
 
 > **Aviso — não deixe um sondador rodando durante o uso.** Não é a sondagem em si que faz mal: `gtt N`

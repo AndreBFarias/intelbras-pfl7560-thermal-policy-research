@@ -118,7 +118,7 @@ intensa. O que falta determinar é se o regime travado ocorre **sem** sondagem �
 
 ### 2.4. Consequência metodológica: medir por props e logcat, nunca por `hidebug`
 
-As props `zysys.env_temp` (gtt1, óptica) e `zysys.light_temp` (gtt0, placa) são servidas pelo próprio
+As props `zysys.env_temp` (gtt1, o sensor quente; fica no bloco do LED, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) e `zysys.light_temp` (gtt0, placa) são servidas pelo próprio
 loop térmico, leem em ~29 ms e não forçam comutação de mux. Os nomes vêm invertidos de fábrica.
 
 **Correção de uma afirmação anterior:** a versão original deste doc dizia que valor congelado nas props

@@ -24,8 +24,8 @@ existem em duas versões (`-a`/`-b`) que discordam num rótulo; as duas ficam at
 | `guia-placa-forca-led-nl5h039.jpg` | Placa de força do LED `NL-5H039-LED`: conectores, bobina, shunts `R120`, local do dissipador 30x40 opcional | Etiqueta com QR/data-matrix da placa visível |
 | `guia-vista-de-cima-pasta-a.jpg` | Vista de cima: o que leva pasta e o que não leva | Diz "processador sob a chapinha preta"; bate com o [doc 27](../docs/research/27-teardown-cabo-gnd-ntc.md) |
 | `guia-vista-de-cima-pasta-b.jpg` | Mesma vista | Diz "processador sem dissipador"; diverge do doc 27 |
-| `guia-lateral-pasta-led-a.jpg` | Lateral: pasta entre o LED e o bloco dos heat pipes, passo a passo | Rotula a peça no topo do bloco como "fio com terminal parafusado" |
-| `guia-lateral-pasta-led-b.jpg` | Mesma lateral | Rotula a mesma peça como "sensor de temperatura (NTC)". **Não verificado** (OPT-S7, [doc 39](../docs/research/39-sessao-2026-09-02-optica-e-balanco-termico.md)); o doc 27 diz que o olhal com terminal é aterramento EMI |
+| `guia-lateral-pasta-led-a.jpg` | Lateral: pasta entre o LED e o bloco dos heat pipes, passo a passo | Rotula a peça no topo do bloco como "fio com terminal parafusado". **Incompleto:** o terminal é o NTC do `gtt1` (OPT-S7) |
+| `guia-lateral-pasta-led-b.jpg` | Mesma lateral | Rotula a mesma peça como "sensor de temperatura (NTC)". **Confirmado em 2026-10-29** (OPT-S7 fechado, [doc 40](../docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3): é o NTC do `gtt1`, encapsulado no olhal. O olhal que o doc 27 trata como aterramento EMI é outro, o solto entre os sopradores |
 | `guia-motor-optico-angulo.jpg` | Motor óptico em ângulo: funil, LCD, bloco do LED, ventoinha | — |
 | `guia-ordem-pecas-opticas.jpg` | Ordem e posição de Fresnel, polarizadores, LCD e espelho; 3 testes rápidos | Diz que "o firmware já está em JEIDA". **Desatualizado:** desde 2026-10-29 o aparelho está em VESA (2ª troca de LCD) |
 
@@ -59,7 +59,7 @@ fora do Git, só para o destino jurídico/CDC.
 | `teardown-02-interior-forca-led.jpg` | REVISAR | Recortar/desfocar o terço direito: perna nua + mão + relógio de uma pessoa (a área técnica está nos círculos verdes à esquerda). |
 | `teardown-03-olhal-solto-blowers.jpg` | **PUBLICÁVEL** | Só uma mão e componentes; sem serial/rosto/tela. |
 | `teardown-04-blower-removido.jpg` | **PUBLICÁVEL** | Só mão + etiqueta do ventilador (dado de componente). |
-| `teardown-05-blowers-dfh8025s.jpg` | REVISAR | Desfocar/recortar o topo: possível **reflexo de pessoa** no painel escuro ao fundo + bancada com objetos. |
+| `teardown-05-blowers-dfh8025s.jpg` (o nome do arquivo ficou com o modelo antigo; a etiqueta diz `DFH8030S`, doc 40 §4) | REVISAR | Desfocar/recortar o topo: possível **reflexo de pessoa** no painel escuro ao fundo + bancada com objetos. |
 | `placa-header-gnd-ntc.jpg` | REVISAR | Desfocar o **data-matrix (código 2D)** do módulo Wi-Fi/BT (canto sup. direito) — pode codificar MAC/serial. |
 | `mapa-placa-original-topo.jpg` | REVISAR | Desfocar a **etiqueta da placa** (anotação 19): data-matrix + código alfanumérico (possível serial da placa). |
 | `mapa-placa-original-visao-geral.jpg` | REVISAR | Recortar a borda inferior (perna nua) + desfocar o pequeno data-matrix da etiqueta da placa. |

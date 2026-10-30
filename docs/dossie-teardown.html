@@ -104,13 +104,22 @@
   </div>
 
   <section>
+    <div class="callout">
+      <p><strong>Correções posteriores (2026-10-29, <a href="research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md">doc 40</a>).</strong> Este dossiê registra a sessão de julho; três leituras dele mudaram com o aparelho aberto de novo:</p>
+      <p><strong>Ventiladores: são 3, não 2.</strong> Os 2 sopradores D-FAN <code>DFH8030S</code> (12 V, 0,45 A; não <code>DFH8025S</code> nem COFN), que a política térmica controla (<code>gfc</code> = 2), e 1 axial no exaustor do dissipador do LED, sem controle por software (OPT-S6). O mapa anterior, que contava 3, estava certo nesse ponto.</p>
+      <p><strong>NTC1 (<code>gtt1</code>) não mede a óptica.</strong> É um termistor encapsulado num olhal de latão parafusado no topo do bloco dissipador do LED; mede o dissipador do LED. Nenhum sensor do aparelho mede o polarizador ou o LCD (OPT-S7).</p>
+      <p><strong>Dois olhais diferentes.</strong> O olhal solto entre os sopradores, tratado abaixo, segue classificado como aterramento. O olhal parafusado no bloco do LED é o sensor.</p>
+    </div>
+  </section>
+
+  <section>
     <h2>Linha do tempo</h2>
     <p class="h2-title">O que foi feito nesta sessão</p>
     <div class="steps">
       <div class="step"><span class="n">01</span><div><h3>Diagnóstico por Wi-Fi</h3><p>O script <code>pfl7560-evidencias.sh</code> achou o projetor na rede sozinho (adb TCP 5555) e leu o estado. Veredito automático: já estava corrigido.</p></div></div>
       <div class="step"><span class="n">02</span><div><h3>Comparativo dos sensores</h3><p>Revertendo o térmico ao stock e reaplicando o fix, capturamos a assinatura do bug do mux: no stock os 2 NTC leem idêntico; com o fix o 2º sensor revela o calor real.</p></div></div>
       <div class="step"><span class="n">03</span><div><h3>Teste de persistência</h3><p>Gravamos o fix direto na partição <code>/vendor</code> (ext4 real, não overlay) e reiniciamos. Confirmado: o fix sobrevive ao reboot.</p></div></div>
-      <div class="step"><span class="n">04</span><div><h3>Teardown fotografado</h3><p>Abertura do gabinete: 2 sopradores DFH8025S, a placa NL-5H039-MAIN e um cabo que "sempre ficou solto".</p></div></div>
+      <div class="step"><span class="n">04</span><div><h3>Teardown fotografado</h3><p>Abertura do gabinete: 2 sopradores DFH8025S (corrigido em 2026-10-29: <code>DFH8030S</code>, e há um 3º ventilador no exaustor do LED), a placa NL-5H039-MAIN e um cabo que "sempre ficou solto".</p></div></div>
       <div class="step"><span class="n">05</span><div><h3>Identificação do cabo</h3><p>O cabo é o aterramento do header GND/NTC — bond de chassi/EMI, não o terra funcional do sensor. Não afeta a leitura de temperatura.</p></div></div>
       <div class="step"><span class="n">06</span><div><h3>Correção do mapa</h3><p>Inspeção da placa corrigiu o mapa anterior: o SoC e o Flash estavam trocados, entre outros ajustes.</p></div></div>
     </div>
@@ -123,8 +132,8 @@
       <figure><img src="../media/teardown-01-base-cabo-solto.jpg" alt="Base do projetor com o cabo solto visivel pela grade" /><figcaption><b>Base — o cabo solto</b>Visto pela grade de ventilação inferior (círculo): a ponta com olhal do jumper de aterramento.</figcaption></figure>
       <figure><img src="../media/teardown-02-interior-forca-led.jpg" alt="Interior com a forca do LED e terminais" /><figcaption><b>Interior — força do LED</b>Dissipador do LED, chicote de força vermelho/preto e terminais parafusados a metal.</figcaption></figure>
       <figure><img src="../media/teardown-03-olhal-solto-blowers.jpg" alt="Olhal dourado solto entre os dois blowers" /><figcaption><b>O olhal, de perto</b>Terminal de anel (ring-lug) pendurado entre os 2 sopradores — a outra ponta do jumper GND.</figcaption></figure>
-      <figure><img src="../media/teardown-05-blowers-dfh8025s.jpg" alt="Os dois sopradores DFH8025S montados" /><figcaption><b>Refrigeração — 2 sopradores</b>Dois blowers COFN <code>DFH8025S</code> (DC 12 V). Confirma o firmware: <code>CoolingFan = 2</code>.</figcaption></figure>
-      <figure><img src="../media/teardown-04-blower-removido.jpg" alt="Um dos blowers removido, na mao" /><figcaption><b>Soprador removido</b>Etiqueta legível do DFH8025S, o mesmo componente citado na config térmica.</figcaption></figure>
+      <figure><img src="../media/teardown-05-blowers-dfh8025s.jpg" alt="Os dois sopradores DFH8025S montados" /><figcaption><b>Refrigeração — 2 sopradores</b>Dois blowers COFN <code>DFH8025S</code> (DC 12 V). Confirma o firmware: <code>CoolingFan = 2</code>. Corrigido em 2026-10-29: D-FAN <code>DFH8030S</code>, 12 V, 0,45 A; o firmware conta só os 2 controlados, e há um 3º ventilador no exaustor do LED.</figcaption></figure>
+      <figure><img src="../media/teardown-04-blower-removido.jpg" alt="Um dos blowers removido, na mao" /><figcaption><b>Soprador removido</b>Etiqueta legível do soprador (lida depois como <code>DFH8030S</code>, 12 V, 0,45 A), o mesmo componente citado na config térmica.</figcaption></figure>
       <figure><img src="../media/placa-header-gnd-ntc.jpg" alt="Placa com serigrafia GND NTC" /><figcaption><b>Placa — header GND / NTC</b>Serigrafia <code>GND / NTC</code> com o conector de 2 vias plugado (o terra funcional do sensor).</figcaption></figure>
     </div>
   </section>
@@ -145,9 +154,9 @@
     <p class="h2-title">Correções ao mapa anterior</p>
     <div class="fixes">
       <div class="fix"><span class="tag crit">Crítica</span><p><strong>SoC e Flash estavam trocados.</strong> O chip rotulado "SoC" traz a serigrafia <code>SiliconGo T22CA2415T</code> — um controlador de armazenamento (eMMC/Flash), não um SoC Android. O <strong>SoC HiSilicon Hi3751V553</strong> é o chip grande ao lado das memórias, sob espalhador de calor. <span class="was">Rótulos 1 e 3 invertidos.</span></p></div>
-      <div class="fix"><span class="tag adj">Ajuste</span><p><strong>São 2 ventiladores, não 3</strong> — dois <code>DFH8025S</code>, confirmados no aparelho (<code>gfc</code> = 2) e no firmware.</p></div>
+      <div class="fix"><span class="tag adj">Ajuste</span><p><strong>São 2 ventiladores, não 3</strong> — dois <code>DFH8025S</code>, confirmados no aparelho (<code>gfc</code> = 2) e no firmware. <strong>Refutado em 2026-10-29:</strong> são 3 (2 sopradores <code>DFH8030S</code> controlados + 1 axial no exaustor do LED); o <code>gfc</code> conta só os controlados.</p></div>
       <div class="fix"><span class="tag adj">Ajuste</span><p><strong>Entrada ~35 Vdc / 6,85 A</strong> (etiqueta), não 24 V. RAM = <strong>1 GB</strong> (2× Rayson).</p></div>
-      <div class="fix"><span class="tag new">Novo</span><p><strong>Header GND/NTC identificado</strong> — 2 termistores muxados; o olhal solto é aterramento de chassi (ver acima).</p></div>
+      <div class="fix"><span class="tag new">Novo</span><p><strong>Header GND/NTC identificado</strong> — 2 termistores muxados; o olhal solto é aterramento de chassi (ver acima). O NTC do <code>gtt1</code> chega por fio a outro olhal, parafusado no topo do bloco do LED (2026-10-29).</p></div>
     </div>
 
     <div style="margin-top:24px">
@@ -167,7 +176,7 @@
         <div class="cmp" style="--cat:var(--cat-wl)"><div class="top"><span class="cn">04</span><span class="name">Wi-Fi + Bluetooth</span></div><p class="desc">Módulo combo. Wi-Fi ativo só na tela inicial.</p></div>
         <div class="cmp" style="--cat:var(--cat-pwr)"><div class="top"><span class="cn">10</span><span class="name">Entrada ~35 Vdc</span><span class="badge adj">ajuste</span></div><p class="desc">Alimentação principal (6,85 A).</p></div>
         <div class="cmp" style="--cat:var(--cat-pwr)"><div class="top"><span class="cn">12</span><span class="name">Força do LED</span></div><p class="desc">Conector de potência da fonte de luz.</p></div>
-        <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">13</span><span class="name">Ventiladores (2×)</span><span class="badge adj">ajuste</span></div><p class="desc">2 sopradores DFH8025S. Antes contados como 3.</p></div>
+        <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">13</span><span class="name">Ventiladores (3×)</span><span class="badge adj">ajuste</span></div><p class="desc">2 sopradores <code>DFH8030S</code> controlados + 1 axial no exaustor do LED (corrigido em 2026-10-29).</p></div>
         <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">14</span><span class="name">Header GND / NTC</span><span class="badge new">novo</span></div><p class="desc">2 termistores ZL103SAF muxados (BL1551B @ GPIO4_4).</p></div>
         <div class="cmp" style="--cat:var(--cat-cool)"><div class="top"><span class="cn">15</span><span class="name">Sensor ToF</span></div><p class="desc">Autofoco frontal.</p></div>
         <div class="cmp" style="--cat:var(--cat-img)"><div class="top"><span class="cn">08</span><span class="name">Conector do painel</span></div><p class="desc">Saída de imagem p/ o bloco óptico.</p></div>
@@ -178,7 +187,7 @@
 
     <div class="gallery" style="margin-top:24px">
       <figure><img src="../media/mapa-placa-original-topo.jpg" alt="Mapa anterior da placa (topo)" /><figcaption><b>Mapa anterior (topo)</b>Feito por IA numa sessão passada — aqui o rótulo 1 (SoC) estava no chip de Flash.</figcaption></figure>
-      <figure><img src="../media/mapa-placa-original-visao-geral.jpg" alt="Mapa anterior da placa (visao geral)" /><figcaption><b>Mapa anterior (visão geral)</b>Contava 3 ventiladores; são 2.</figcaption></figure>
+      <figure><img src="../media/mapa-placa-original-visao-geral.jpg" alt="Mapa anterior da placa (visao geral)" /><figcaption><b>Mapa anterior (visão geral)</b>Contava 3 ventiladores; em julho achamos que eram 2, e em 2026-10-29 confirmou-se que são 3.</figcaption></figure>
     </div>
   </section>
 
@@ -189,7 +198,7 @@
       <thead><tr><th>Métrica</th><th>Antes (stock)</th><th>Depois (fix)</th><th>Fonte</th></tr></thead>
       <tbody>
         <tr><td>Sensor NTC0</td><td class="num">26,4 °C</td><td class="num">24,5 °C</td><td>adb <code>gtt 0</code></td></tr>
-        <tr><td>Sensor NTC1 (óptica)</td><td class="num cold">26,4 °C</td><td class="num hot">65,8 °C</td><td>adb <code>gtt 1</code></td></tr>
+        <tr><td>Sensor NTC1 (bloco do LED)</td><td class="num cold">26,4 °C</td><td class="num hot">65,8 °C</td><td>adb <code>gtt 1</code></td></tr>
         <tr><td>Divergência entre sensores</td><td class="num">0 (mux morto)</td><td class="num hot">~41 °C (mux vivo)</td><td>—</td></tr>
         <tr><td>Ventiladores</td><td class="num">555 / 559</td><td class="num">1000 / 1000</td><td>adb <code>gfs</code></td></tr>
         <tr><td>Saída de ar (termômetro IR)</td><td class="num">46,7 °C</td><td class="num">37,2 °C</td><td>histórico (doc 09)</td></tr>

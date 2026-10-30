@@ -26,6 +26,9 @@ testada. `NÃO DETERMINADO` = não se sabe, e está dito que não se sabe.
    iteração — e a iteração de leitura dupla válida **nunca acontece**.
 4. Consequência: `Thermistor_1`, o sensor da óptica, **nunca é avaliado com dado real**: nem `WARNING`
    (70000), nem `EMERGENCY` (75000). Não é proteção lenta; para o sensor que importa é proteção zero.
+   (**Correção, 2026-10-29:** o `Thermistor_1`/`gtt1` fica no **bloco dissipador do LED**, não junto da
+   óptica, e nenhum sensor mede o polarizador; OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+   §3. O mecanismo deste doc não muda.)
 5. **Nada no loop normal ressincroniza os índices.** Só `resetBalance` / `startThermalMonitor` fazem
    isso — na prática, **só o reboot**.
 
@@ -115,7 +118,8 @@ do loop:
 | **1 de 10** | Thermistor_1 cheio, Thermistor_0 não → `r5` = ponteiro → `dispatchProcess(r5)` devolve 1 e `0x1fd2b2 cmp r0,#2` / `0x1fd2b4 blo.w 0x1fd43e` **aborta a iteração inteira** — a leitura válida de Thermistor_1 é jogada fora sem ser avaliada | `0x1fd2b2` |
 
 **Consequência dura, PROVADA sob a premissa da defasagem:** enquanto houver `k != 0`, **`Thermistor_1`
-— o sensor da óptica, o que lê 65,8 °C e guarda o polarizador — nunca é avaliado com dado real.**
+— o sensor quente, o que lê 65,8 °C — nunca é avaliado com dado real.** (Ele fica no bloco do LED e não
+mede o polarizador, que nenhum sensor mede: doc 40 §3.)
 Thermistor_0 (a placa, que fica em ~31 °C) é avaliado em 1 de cada 10 iterações e nunca chega perto de
 nenhum limiar.
 
@@ -416,7 +420,8 @@ central** e libera as ~30 h de campanha passiva (doc 35, LSADC-S1) como próxima
    controlado.
 4. **Use o teste de vivacidade (§6) no lugar do `grep 'LSADC Error'`** como check de saúde.
 5. **Na dúvida, reboot.** É a única operação provadamente capaz de re-sincronizar os dois `m_index`.
-   Um reboot custa 40 s; um boot cego custa horas de óptica a 65,8 °C com nenhum limiar sendo avaliado.
+   Um reboot custa 40 s; um boot cego custa horas de motor óptico quente (bloco do LED a 65,8 °C) com
+   nenhum limiar sendo avaliado.
 6. **Não compre peça com base nesta evidência.** Falha simultânea nos dois sensores, cura por reboot e
    valor de 32 bits arbitrário (em vez de saturação de um ADC de 8 bits) são todos **incompatíveis com
    defeito mecânico**. O doc 27 já havia excluído a causa elétrica no chicote.

@@ -37,6 +37,9 @@ Arquivo da build: `artifacts/ZYCustom_390.ini` (md5 `1ad641ed2dd99e61d8a987a675e
 - Havia **2 NTCs**, mas os dois foram configurados no **mesmo canal do mux** (`HW_VIRTUAL_CHANNEL=0`), então o
   mux **nunca trocava** e o **2º sensor (o que fica perto da óptica) nunca era lido**. O firmware só via o 1º
   (ar da placa, ~26 °C) → achava que estava frio → deixava os fans em ~55% → a lente cozinhava.
+
+  > **CORREÇÃO (2026-10-29):** o 2º sensor fica no **bloco dissipador do LED**, não junto do polarizador/LCD;
+  > nenhum sensor mede o polarizador (OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
 - **Nosso fix (`HW_VIRTUAL_CHANNEL=1`) destravou o mux.** Prova ao vivo, pós-reboot:
   - `gtt 0` = **26 °C** (sensor velho) · `gtt 1` = **59 °C** (2º sensor, agora lendo o calor REAL)
   - logcat: `Thermistor_1 Overheat Warning Temperature: 58954!` — o firmware reclamou do calor **pela 1ª vez**

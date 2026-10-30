@@ -36,7 +36,7 @@ ainda não testada.
 
 | # | Elemento | Observação |
 |---|---|---|
-| 1 | **LED + dissipador aletado** | Fan axial próprio, separado dos dois blowers DFH8025S |
+| 1 | **LED + dissipador aletado** | Fan axial próprio, separado dos dois blowers DFH8025S. **Atualização (2026-10-29):** são 3 ventiladores no total (este + os 2 sopradores, que são `DFH8030S` 12 V 0,45 A); o NTC do `gtt1` fica num olhal no topo deste bloco (OPT-S6 e OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
 | 2 | **Placa metálica com pintura branca** | Ao redor do LED; refletor da cavidade (o `光杯` / "light cup" da literatura) |
 | 3 | **Lente Fresnel traseira** | Colima o feixe para o painel |
 | 4 | **Vidro polarizador de isolamento térmico** | **A peça que queima.** Placa de vidro solta, retida por guias |
@@ -95,6 +95,11 @@ amarela.
 filme sadio. Mais absorção → mais calor no próprio filme → mais degradação. É realimentação positiva, e
 é a explicação direta de o aviso de temperatura (`WARNING_VALUE = 70000`, o do
 [doc 34](34-escada-brilho-e-fanmonitor.md)) ter ficado mais frequente com o tempo.
+
+> **Ressalva (2026-09-03 e 2026-10-29):** "aviso mais frequente" é a percepção do dono; nenhum `WARNING`
+> real de 70 °C foi capturado em log ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §2.8), e a
+> maior leitura real registrada é 68,2 °C ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+> §2). O `gtt1` mede o bloco do LED, não o filme (doc 40 §3).
 
 **Corolário operacional:** amarelamento homogêneo é sinal de fim de vida do filme **antes** de aparecer
 mancha. Não esperar a mancha para trocar.
@@ -324,6 +329,11 @@ PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado hoje: lvds_fmt: vesa
 
 **Critério de aceite da troca:** a temperatura da óptica em regime tem de **cair** contra a linha de base
 medida antes. Se não cair, a peça não era o gargalo e o problema é fluxo de ar.
+
+> **Ressalva (2026-10-29):** o único número disponível é o do `gtt1`, que mede o **bloco dissipador do
+> LED**, não o polarizador (OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
+> Ele só capta o efeito do filme de forma indireta. Para medir o filme, só um termopar na peça
+> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §5, item 2.4).
 
 > **Não usar "não desligou" como critério.** A política térmica deste aparelho só enxerga por causa do
 > fix do mux, e a proteção de ventilador está desarmada de fábrica. Ausência de desligamento não prova

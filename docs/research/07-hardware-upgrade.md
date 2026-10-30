@@ -30,9 +30,20 @@
 > berço. Substituto tem de ser **blower centrífugo** de mesma altura, mesmo diâmetro de voluta e mesma
 > orientação de saída. Ver [`39-sessao-2026-09-02-optica-e-balanco-termico.md`](39-sessao-2026-09-02-optica-e-balanco-termico.md).
 >
-> **E antes de trocar qualquer coisa:** o efeito dos ventiladores no sensor da óptica (`gtt1`)
+> **E antes de trocar qualquer coisa:** o efeito dos ventiladores no sensor quente (`gtt1`)
 > **nunca foi medido** — só na exaustão, e com o sensor ainda cego. Trocar soprador hoje é comprar sem
 > saber se a vazão é o gargalo. Ver doc 39 §4.
+>
+> **CORREÇÃO (2026-10-29), [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3 a §5:**
+> 1. **Modelo e contagem fechados.** A etiqueta diz `DFH8030S`, `DC 12V`, `0,45 A` (centrífugo). São **3
+>    ventiladores**: os 2 sopradores DFH8030S que a política controla (`gfc` = 2) e 1 axial no exaustor do
+>    dissipador do LED, sem controle por software (OPT-S6).
+> 2. **O `gtt1` não é sensor da óptica:** é um NTC no topo do bloco dissipador do LED (OPT-S7). Nenhum
+>    sensor mede o polarizador/LCD.
+> 3. **Os números do fan de fábrica abaixo não têm fonte.** Não existe ficha pública do DFH8025S nem do
+>    DFH8030S: RPM, CFM e pressão atribuídos a ele são estimativa. E a fonte Amazon citada
+>    (`amazon.com/dp/B00BK18KAA`, "8025S 12V 2 fios") é de **outro fabricante** (Skywalking 8025S), não da
+>    D-FAN.
 
 **Peça de fábrica:** Fan de fábrica: D-FAN DFH8025S — ventilador AXIAL 80x80x25 mm (o "8025" = 80x80x25mm), NÃO é um soprador centrífugo (blower). Rotor de plástico PBT, moldura de alumínio, rolamento sleeve ou ball, ~3000 RPM, 2 fios (alimentação apenas), faixa de operação -10 a +70°C. Fabricado pela Dongguan Xingdong Electronics. Existe em 12V E em 24V (ambas as versões são vendidas com o mesmo código) — no eBay aparecem unidades 24V 0,15A e 24V 0,32A; a Amazon lista 12V. Como é fan de 2 fios, o controle "PWM 36 kHz" do PFL7560 é feito chaveando a própria linha de alimentação (não há fio de sinal PWM dedicado). CFM/pressão estática não são publicados pelo fabricante, mas para um 8025 sleeve de ~3000 RPM ficam tipicamente na faixa de ~30-35 CFM e ~1,5-3 mmH2O — ou seja, há folga real para upgrade.
 
@@ -182,6 +193,9 @@ Fontes: Rafael Play Mobile (diagnóstico polarizador queimado) https://rafaelpla
 3. CAMINHO ÓPTICO - O QUE PODE E O QUE NÃO PODE. Motor óptico deste modelo: LCD TFT de painel único com POLARIZADOR (o teardown local confirma; a falha clássica desse conjunto e o polarizador superaquecer e gerar MANCHAS na tela / perda de brilho). PODE (com muito cuidado): soprar poeira solta com pera de ar (air blower) manual; passar pincel de lente MACIO nas superficies de VIDRO externas do bloco óptico e nas lentes; a regra e 'menos e mais' - prefira soprar/escovar a esfregar. NÃO PODE: tocar/esfregar a ÁREA ATIVA (região da imagem) do LCD e a face do POLARIZADOR - o revestimento descasca e o dano é permanente; REMOVER o painel LCD do prisma - perde-se o alinhamento calibrado de fábrica e não se recupera sem equipamento; usar cotonete/Q-tip (solta fibras que aparecem projetadas); usar QUALQUER solvente/químico (álcool, acetona, etanol, limpadores) - o manual proibe: danificam e infiltram, e etcham/mancham a óptica. Se precisar remover polarizadores para limpar, marque a posição/orientação de cada um antes (mas isso já é serviço de técnico).
 4. LENTE E CÂMERA DE FOCO. Conforme o manual (seção 6.1): com o projetor DESLIGADO, use SOMENTE o pano incluso na caixa OU um pano de limpeza de óculos SECO, de forma cuidadosa. Limpe a lente frontal com movimento leve do centro para a borda. Use O MESMO pano seco para limpar a lente da CÂMERA DE FOCO (o pontinho ao lado da lente, item 2 da Vista frontal - e ela que faz foco/keystone automáticos; suja, o foco automático falha). Nada de água, spray ou solvente na lente. (Nota: guias de fabricantes preferem caneta-lente/microfibra dedicada a pano de óculos comum; sigo aqui a recomendação explícita do manual Intelbras, mas se tiver uma caneta de lente/pano microfibra limpo e macio, e igualmente seguro e ate preferível.)
 5. REMONTAGEM. Passo 1 - Antes de fechar, confirme que nenhum flat cable ficou solto e que o painel/polarizador não foi tocado na área ativa. Passo 2 - Reconecte todos os conectores do soprador e da placa na mesma orientação (use as fotos). Passo 3 - Encaixe as metades do gabinete sem prensar fios; recoloque os 4 parafusos do gabinete em suas posições originais (não troque tamanhos). Passo 4 - RECOLOQUE o parafuso da tampa do FILTRO se você mexeu nele. Passo 5 - Reconecte a energia, ligue e verifique: imagem sem manchas novas, foco automático funcionando, e - importante - confira que os sopradores estão girando e o ar sai quente pela lateral (grade). Passo 6 - Deixe rodar 10-15 min observando se não há desligamento por superaquecimento (o firmware desliga em ~45 C de emergência).
+
+> **CORREÇÃO (2026-10-29):** são 3 ventiladores (2 sopradores DFH8030S controlados + 1 axial no exaustor do
+> LED, sem controle), não 2 DFH8025S ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
 
 **O que inspecionar:** "DUTO E SOPRADOR (inspeção): o modelo tem 2 sopradores (blowers) DFH8025S puxando ar pela 'Entrada de ar' inferior (onde fica o filtro) e expelindo pela grade lateral. Inspecione: (1) POEIRA ACUMULADA nas pas/rotor de cada blower - poeira nas palhetas desbalanceia e reduz vazão; limpe com pincel seco/aspirador leve, girando o rotor com o dedo, sem forcar o eixo. (2) OBSTRUÇÃO no duto entre a entrada inferior, os sopradores e a saída lateral - cotão/pelos formam 'tampão'. (3) ENTRADA de ar (base) e SAÍDA (grade lateral) desbloqueadas - o manual proibe bloquear as áreas de ventilação; mantenha 15-20 cm livres e nunca sobre superficie macia/móvel que tape a base. (4) Sinais de superaquecimento passado: manchas na tela, perda de brilho - indicam que o polarizador já sofreu (a entrada de ar entupida e a causa-raiz apontada no teardown; os NTCs ficam perto da óptica e o firmware faz dimming a partir de 27 C e desliga em 45 C). (5) Rotor travado/ruído anormal do fan - o firmware desliga por 'fan monitor' se detectar fan anormal; um blower que não gira exige troca."
 

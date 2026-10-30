@@ -20,23 +20,35 @@ Esta pesquisa foi conduzida de forma **independente**, com foco em **reparabilid
 
 ## O problema (em uma frase)
 
-A política térmica do aparelho é um arquivo de texto (`/vendor/etc/ZYCustom.ini`). Os dois termistores foram mapeados no **mesmo canal virtual** do multiplexador (`HW_VIRTUAL_CHANNEL=0`), de modo que o segundo sensor — o que enxerga o calor real da óptica — **nunca é lido**. O sistema opera como se estivesse frio; a refrigeração e o desligamento de proteção não acompanham a temperatura real.
+A política térmica do aparelho é um arquivo de texto (`/vendor/etc/ZYCustom.ini`). Os dois termistores foram mapeados no **mesmo canal virtual** do multiplexador (`HW_VIRTUAL_CHANNEL=0`), de modo que o segundo sensor — o que enxerga o calor real do motor óptico — **nunca é lido**. O sistema opera como se estivesse frio; a refrigeração e o desligamento de proteção não acompanham a temperatura real.
+
+> **Onde fica esse sensor (2026-10-29):** o 2º NTC (`gtt1`) é um termistor encapsulado num olhal parafusado
+> no topo do **bloco dissipador do LED**. Ele mede o dissipador do LED, não o polarizador nem o LCD:
+> **nenhum sensor do aparelho mede o polarizador/LCD** ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
+> Onde este repositório chama o `gtt1` de "óptica" (inclusive a coluna `optica_C` dos scripts), leia
+> "bloco do LED".
 
 Detalhes técnicos: [`docs/research/08-por-que-fica-cego.md`](docs/research/08-por-que-fica-cego.md).
 
-**Segundo defeito de configuração, da mesma natureza (2026-07-29):** o firmware também traz uma proteção
-por **ventilador travado** (desliga o aparelho se um soprador para). Ela só roda se `MONITOR_MODE = 1`, e o
-`ZYCustom.ini` de fábrica **não tem a seção `[FanMonitor]`** — o valor fica em zero e a proteção **nunca
-executa**. Ou seja: se um dos dois sopradores morrer, nada detecta, e a óptica cozinha em silêncio.
-Diagnóstico e plano de calibração em
+**Segunda proteção que não funciona (2026-07-29):** o firmware também traz uma proteção por **ventilador
+travado** (desliga o aparelho se um soprador para), e ela **nunca executa**. A primeira suspeita foi omissão
+de config (a seção `[FanMonitor]` falta no `ZYCustom.ini` de fábrica); o veredito final (**FAN-S1**) é
+outro: o monitor é **inarmável por software** neste aparelho. Mesmo com a seção, um portão
+(`SW_SENSE_TYPE = 0`) desliga a leitura, e os sopradores são de **2 fios, sem sinal de tacômetro**; a cura
+seria hardware (sopradores de 3 fios com o sinal ligado a um GPIO livre). **Não arme `SW_SENSE_TYPE` sem a
+fiação: é pior que deixar desarmado.** Ou seja: se um dos dois sopradores controlados morrer, nada detecta,
+e o motor óptico cozinha em silêncio. Diagnóstico em
 [`docs/research/34-escada-brilho-e-fanmonitor.md`](docs/research/34-escada-brilho-e-fanmonitor.md).
+O aparelho tem **3 ventiladores**: os 2 sopradores DFH8030S (12 V, 0,45 A) que a política térmica
+controla e 1 axial no exaustor do dissipador do LED, sem controle por software (OPT-S6,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
 
 ## O que a correção comunitária faz
 
 | Item | Configuração de fábrica | Após a correção |
 |---|---|---|
 | **2º sensor de temperatura** | mapeamento incorreto (`HW_VIRTUAL_CHANNEL=0` nos dois canais) → proteção térmica ineficaz | canal virtual `1` → mux comuta; proteção passa a enxergar o calor real |
-| **Ventiladores** | aceleram tarde, guiados pelo sensor inadequado | **100% desde o boot** |
+| **Ventiladores** (os 2 sopradores controlados) | aceleram tarde, guiados pelo sensor inadequado | **100% desde o boot** |
 | **Brilho** | curva de dimming atada ao sensor inadequado (`1000→750`) → imagem enfraquecia no uso | **100% no uso normal**; escada de dimming ancorada no sensor **real**, caindo até 850 entre 66 °C e 70 °C e voltando sozinha na descida ([doc 34](docs/research/34-escada-brilho-e-fanmonitor.md)) |
 | **Desligamento de proteção** | limiar que quase nunca dispara na prática | **75 °C** (rede de segurança calibrada ao sensor real) |
 | **Wi-Fi** | não reconecta após reiniciar | reconecta sozinho |

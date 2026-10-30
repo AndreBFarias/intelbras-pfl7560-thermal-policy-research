@@ -12,6 +12,23 @@ auditoria derrubou**.
 verificada em fonte primária. `REFUTADO` = registro anterior do repositório derrubado com evidência.
 `ABERTO` = não se sabe, e está dito que não se sabe.
 
+> **CORREÇÕES POSTERIORES (2026-10-29, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md))** —
+> o que este doc deixou aberto e já fechou, e o que mudou de leitura:
+> - **OPT-S7 FECHADO:** o NTC do `gtt1` (`zysys.env_temp`, coluna `optica_C`) é um termistor encapsulado
+>   num olhal parafusado no topo do **bloco dissipador do LED**. Nenhum sensor mede o polarizador/LCD.
+>   Onde este doc chama o `gtt1` de "óptica" ou o usa como proxy do polarizador, leia "bloco do LED"
+>   (doc 40 §3).
+> - **OPT-S6 FECHADO:** 3 ventiladores — os 2 sopradores `DFH8030S` 12 V 0,45 A que a política controla
+>   (`gfc` = 2) e 1 axial no exaustor do LED, sem controle. **OPT-S5 FECHADO:** modelo `DFH8030S`
+>   `PROVADO` pela etiqueta (doc 40 §4).
+> - **A medição da §4.1 ganhou uma segunda, e uma ressalva.** Em 2026-10-29, com pasta térmica nova entre o
+>   LED e o bloco, o `gtt1` ficou em 65,8 °C em regime com a sala a 34 °C (delta 31,80 contra 23,63 aqui:
+>   +8,17 °C). Mas o `gtt0` lê **abaixo** da sala anotada nas duas sessões, o que põe a âncora de ambiente em
+>   dúvida; pela placa como referência a diferença cai para +1,6 °C. Os boots ficaram misturados e esta base
+>   pode ter tido ventilador externo. Os +8 °C são compatíveis com a pasta funcionando (mais calor do LED
+>   chega ao bloco onde está o NTC). A escada atuou no uso normal (brilho 944-974), e a maior leitura real
+>   foi 68,2 °C: continua sem `WARNING` real registrado (doc 40 §2).
+
 ---
 
 ## 1. O que foi executado
@@ -116,7 +133,8 @@ grossos. Confirmação na etiqueta física continua valendo como conferência (*
 | [`38`](38-motor-optico-e-troca-do-polarizador.md) §1 | LED tem **fan axial próprio**, separado dos dois blowers (`OBSERVADO` na bancada) |
 
 Nenhuma nota reconcilia as duas. O doc 38 é mais recente e é observação direta, mas o total não foi
-recontado com o aparelho aberto. **Qualquer conta de vazão, qualquer swap e qualquer furação de chassi
+recontado com o aparelho aberto. **FECHADO em 2026-10-29 (OPT-S6):** são 3, os 2 sopradores controlados e
+1 axial no exaustor do LED ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). **Qualquer conta de vazão, qualquer swap e qualquer furação de chassi
 parte de um mapa térmico errado enquanto isso não fechar** (**OPT-S6**).
 
 ### 2.4. "O teto do software foi atingido" — `REFUTADO`
@@ -194,7 +212,9 @@ Em `evidencias/2026-08-17/props-233919.tsv` aparecem leituras de `71,0 °C` com 
 teste de vivacidade** (`setprop vendor.zy.power.tm.temp 71000`): `gtt0` e `gtt1` marcam `71,0`
 **simultaneamente**, o que é fisicamente impossível em sensores que passam horas separados por 30 °C.
 
-**Nunca se observou um `WARNING` real de 70 °C em log neste aparelho.**
+**Nunca se observou um `WARNING` real de 70 °C em log neste aparelho.** (Continua valendo em 2026-10-29: a
+maior leitura real registrada é 68,2 °C, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2.
+O "alarme de 70 °C" do [doc 34](34-escada-brilho-e-fanmonitor.md) é o relato do dono na tela, sem log.)
 
 ### 2.9. O piso de resolução é ~2,3 °C — e filtra quase tudo (`PROVADO`)
 
@@ -224,6 +244,12 @@ alternados pelo mux `BL1551B` no `GPIO4_4`. Logo:
 **Pendência (OPT-S7): seguir o chicote e registrar onde a ponta termina** — colada na moldura do LCD,
 presa num suporte, ou solta no fluxo de ar. Isso decide se o `gtt1` mede a **peça** ou o **ar ao redor**.
 
+> **FECHADO (2026-10-29, OPT-S7):** o fio do conector `NTC GND` termina num olhal de latão parafusado no
+> topo do **bloco dissipador do LED**, com dois fios entrando no tubo selado com resina: o `gtt1` mede o
+> **dissipador do LED**, não a óptica nem o ar ao redor dela. Nenhum sensor mede o polarizador/LCD
+> ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). O teste do secador abaixo perdeu o
+> objetivo original.
+
 **Teste de acoplamento (passivo, 2 min):** com `pfl7560-monitor-props.sh` rodando, aquecer o sensor
 localmente (secador em temperatura baixa, à distância). Sobe rápido e volta rápido = bem acoplado; sobe
 devagar e pouco = amortecido, e a proteção enxerga tarde.
@@ -232,6 +258,7 @@ devagar e pouco = amortecido, e a proteção enxerga tarde.
 > torno de 82-100 °C. Se o foco desigual (doc 38 §7) for mesmo empeno, a temperatura **local** dela é
 > muito maior que os 61-65 °C que o `gtt1` reporta. Isso é argumento **contra** o `gtt1` como proxy da
 > óptica — e implica que a escada de brilho pode estar calibrada por um número otimista. `HIPÓTESE`.
+> **Confirmado em 2026-10-29:** o `gtt1` não é proxy da óptica; mede o bloco do LED (OPT-S7, doc 40 §3).
 
 ---
 
@@ -290,7 +317,11 @@ um jato no ponto quente**.
 - O filme degradou **por inteiro** enquanto o `gtt1` passou meses entre 61 e 66 °C
 - A escada segura brilho `1000` até 66 °C e só chega a `850` em 70 °C. **O aparelho vive em 61-63 °C. No
   uso normal a escada entrega zero** — é margem anti-desligamento, não vida útil de polarizador
+  (**desatualizado em 2026-10-29:** com a sala a 34 °C e a pasta nova, o `gtt1` ficou em 65,8 °C e a
+  escada atuou no uso normal, brilho 944-974; [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+  §2. A conclusão do item se mantém: ela não protege o filme)
 - **Nunca se registrou um `WARNING` real de 70 °C.** Os únicos `71,0 °C` do repositório são injetados
+  (continua valendo em 2026-10-29: a maior leitura real foi 68,2 °C)
 - `70/75` **não são limiares de fábrica** (eram 43/45). Foram escolhidos por este projeto **acima do ponto
   de operação observado** — por construção, nunca disparam em uso normal
 - O filme queima em **90-105 °C**. O corte está em **75 °C**, e **num corpo diferente**
@@ -312,7 +343,8 @@ nova acabou de entrar.
 
 ```bash
 # 20 min em regime, tela branca, brilho fixo -- E ANOTE A TEMPERATURA DA SALA
-PFL_IP=<ip> ./pfl7560-monitor-props.sh
+# (o script hoje exige --ambiente e recusa rodar sem ele)
+PFL_IP=<ip> ./pfl7560-monitor-props.sh --ambiente <sala_C> --minutos 20
 ```
 
 | Resultado | Leitura |
@@ -334,7 +366,7 @@ na aposta entre R$ 90-240 de sopradores e furar o chassi.
 | Grandeza | Valor |
 |---|---|
 | **Ambiente da sala** | **35,1 °C** (informado pelo dono; primeira vez que o projeto anota) |
-| Óptica (`zysys.env_temp`) em regime | **58,73 °C** média · min 57,50 · max 59,00 |
+| Sensor quente (`zysys.env_temp`, `gtt1`; bloco do LED, doc 40 §3) em regime | **58,73 °C** média · min 57,50 · max 59,00 |
 | Placa (`zysys.light_temp`) | 28,2 °C, constante |
 | **Delta sobre o ambiente** | **23,63 °C** |
 | Amostras em regime | **55 de 60**; travado em `59,0` por 18 min seguidos |
@@ -352,6 +384,13 @@ na aposta entre R$ 90-240 de sopradores e furar o chassi.
 E o argumento fica **mais forte, não mais fraco**, quando se olha o calendário: as duas medições históricas são de **julho e agosto** (inverno/fim de inverno no Brasil) e a de hoje é de **setembro com a sala a 35,1 °C**. Se o ambiente de então era menor — o provável —, então a queda no **delta** é maior ainda que a queda no valor absoluto.
 
 Confirma a realimentação da §3.5: filme amarelado absorve mais → esquenta mais → amarela mais. Trocar reseta o relógio.
+
+> **Ressalva (2026-10-29, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §2):** a
+> conclusão "a peça velha era o gargalo" e a previsão por ambiente abaixo dependem da sala anotada, e o
+> `gtt0` leu **abaixo** dela nesta sessão e na de 2026-10-29: a âncora de ambiente está em dúvida. Esta base
+> pode também ter tido ventilador externo (o dono não lembra). E o `gtt1` mede o **bloco do LED**, não o
+> filme (doc 40 §3): a queda aqui é do bloco, que só reflete o filme de forma indireta. A segunda medição
+> (65,8 °C, sala 34 °C, pasta nova) não decide nada sozinha pelos mesmos motivos.
 
 ### O achado que ninguém tinha considerado: a SALA é a maior alavanca
 
@@ -424,7 +463,7 @@ PWM direto.**
 
 ### Observacao parcial do efeito termico (2 pontos, NÃO e medicao)
 
-Com o brilho clampado em 750 (**-25%**), a optica caiu de `59,0` para `56,4` C em **19 s**. Sao
+Com o brilho clampado em 750 (**-25%**), o `gtt1` caiu de `59,0` para `56,4` C em **19 s**. Sao
 **2,6 C, um degrau do ADC** — o menor movimento detectavel, na direção certa, e **muito mais rapido do que
 o esperado**. A serie foi interrompida em 2 amostras.
 
@@ -476,7 +515,8 @@ nunca foi medido. Deveria ter sido sempre o nº 1.
 
 ### Nível 1 — software, reversível, R$ 0. **A maior alavanca honesta da lista.**
 
-**Baixar o TETO de brilho permanentemente** — não a escada. A escada não faz nada em 61-63 °C.
+**Baixar o TETO de brilho permanentemente** — não a escada. A escada não faz nada em 61-63 °C (em
+2026-10-29, a 65,8 °C com a sala a 34 °C, ela atuou de leve: brilho 944-974, doc 40 §2).
 `FW_LEVEL` já contém `750`, então não precisa estender curva de LED nenhuma.
 
 | Teto | Potência absorvida | Ganho no filme | Vida |
@@ -549,9 +589,9 @@ degraus) para chamar de real.
 | **OPT-S12** | média | **NOVO** | Efeito termico do brilho 750 vs 1000 não medido ate o regime (so 2 amostras, interrompido). Valida ou refuta o `0,43 C/%` do doc 34. Rodar `pfl7560-teste-brilho.sh --curva 750 --ambiente X --minutos 25` (§4.2) |
 | **OPT-S13** | média | **NOVO** | **Reabrir o gate de viabilidade da sprint 19.** O doc 19 dava `am start ... VIEW` como resolvido; **não funciona neste aparelho** (§4.3). Sem exibir imagem por shell, o vigia de tela precisa de outro mecanismo |
 | ~~OPT-S3~~ | — | **FECHADO (2026-09-03)** | Linha de base medida: **58,73 °C** em regime com ambiente **35,1 °C** (§4.1). Queda real de **7,03 °C** contra a medição de agosto. Artefato: `evidencias/2026-09-03/props-033635.tsv` |
-| **OPT-S5** | média | **NOVO — [ABERTURA]** | Ler a etiqueta **física** do ventilador: `DFH8025S` ou `DFH8030S`? tensão e corrente? (§2.2) |
-| **OPT-S6** | média | **NOVO — [ABERTURA]** | Recontar os ventiladores e reconciliar doc 27 vs doc 38 (§2.3) |
-| **OPT-S7** | média | **NOVO — [ABERTURA]** | Seguir o chicote `GND/NTC` e registrar **onde a ponta do NTC termina** e se está acoplada (§3) |
+| ~~OPT-S5~~ | — | **FECHADO (2026-10-29)** | `DFH8030S`, 12 V, 0,45 A, centrífugo, `PROVADO` pela etiqueta ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §4). Sem ficha pública (doc 40 §5) |
+| ~~OPT-S6~~ | — | **FECHADO (2026-10-29)** | 3 ventiladores: 2 sopradores controlados (`gfc` = 2) + 1 axial no exaustor do LED, sem controle ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
+| ~~OPT-S7~~ | — | **FECHADO (2026-10-29)** | O NTC do `gtt1` é um olhal encapsulado no topo do bloco dissipador do LED; nenhum sensor mede o polarizador/LCD ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
 | **OPT-S8** | média | **NOVO** | Rodar o braço dos ventiladores no `gtt1` (§2.5) — o experimento pendente desde 2026-07-05 |
 | **OPT-S9** | baixa | **NOVO** | Refazer as medições de exaustão **com T_ambiente e apontando o IR para o fluxo de ar**, não para a grade (§2.6) |
 | ~~OPT-S1~~ | — | parcial | Rota mecânica: o dono desmontou de novo em 2026-09-02. **Continua sem transcrição** |
@@ -559,6 +599,8 @@ degraus) para chamar de real.
 | ~~OPT-S4~~ | — | **FECHADO na prática** | Orientação das Fresnel resolvida pelo dono na bancada. A contradição documental da §7.1 do doc 38 permanece registrada |
 | ~~POL-S1~~ | — | **FECHADO** | Ver [doc 38](38-motor-optico-e-troca-do-polarizador.md) |
 
+> **Atualização (2026-10-29):** na abertura seguinte (doc 40) fecharam OPT-S5, S6 e S7; OPT-S1 segue aberto.
+>
 > **Aparelho FECHADO em 2026-09-03.** As pendências marcadas **[ABERTURA]** (OPT-S1, S5, S6, S7)
 > exigem o motor óptico aberto e ficam **estacionadas para a próxima vez que ele for aberto** — não vale
 > reabrir só por elas, porque cada desmontagem põe em risco o flat de 60 pinos do painel e o polarizador
@@ -638,9 +680,11 @@ e menos certo.
    potência absorvida no filme carrega **fator 4,5 de incerteza** (2-9 W).
 3. **37,2 °C é plástico, não ar.** A subtração `gtt1 − exaustão` mistura duas escalas.
 4. **Posição física do `gtt1` desconhecida.** Toda conclusão ancorada nele carrega offset desconhecido.
+   **Resolvido em 2026-10-29:** ele fica no bloco dissipador do LED (OPT-S7, doc 40 §3); o offset até o
+   filme continua desconhecido, porque nenhum sensor mede o polarizador.
 5. **Contagem de ventiladores em aberto:** doc 27 diz 2, doc 38 viu um terceiro (axial do LED) na
    bancada, e o `.ini` fecha em 2 porque `SERIAL_NUM` conta só os **controlados**. São provavelmente
-   **3, com 2 controlados**.
+   **3, com 2 controlados**. **Confirmado em 2026-10-29 (OPT-S6):** 3, com 2 controlados.
 6. **Medir sempre por props (`zysys.env_temp`), nunca por `gtt` ímpar** — `gtt` avança o anel de um
    termistor só, e anéis defasados nunca ficam cheios juntos ([doc 37](37-mecanismo-lsadc-defasagem-dos-aneis.md)).
    Se precisar de `gtt`, sempre **em par**, sem interrupção.
@@ -651,8 +695,8 @@ e menos certo.
 ## 8. Proof-of-work
 
 ```bash
-# 1) linha de base com a peca nova (OPT-S3) -- anote a temperatura da sala
-PFL_IP=<ip> ./pfl7560-monitor-props.sh
+# 1) linha de base com a peca nova (OPT-S3) -- a temperatura da sala e obrigatoria
+PFL_IP=<ip> ./pfl7560-monitor-props.sh --ambiente <sala_C>
 
 # 2) estado geral da correcao (12 checagens passivas)
 PFL_IP=<ip> ./pfl7560-saude.sh
@@ -665,11 +709,12 @@ PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade
 PFL_IP=<ip> ./pfl7560-lcd-color.sh status     # esperado hoje: lvds_fmt: vesa
 
 # 5) integridade dos artefatos byte-exatos (offline)
-make check                                     # 6 OK
+make check                                     # 9 OK desde 2026-10-30 (6 em 2026-09-03)
 ```
 
 **Critério de aceite da troca:** `gtt1` em regime tem de cair **mais que um degrau** (> 2,3 °C) contra a
-linha de base, nas **mesmas condições e com T_ambiente anotado**. Um degrau não conta.
+linha de base, nas **mesmas condições e com T_ambiente anotado**. Um degrau não conta. (Lembrando: o
+`gtt1` mede o bloco do LED, não o filme; doc 40 §3.)
 
 **Nunca usar "não desligou" como critério** — a proteção deste aparelho só enxerga por causa do fix do mux
 e o monitor de ventilador está desarmado de fábrica ([doc 34](34-escada-brilho-e-fanmonitor.md), FAN-S1).

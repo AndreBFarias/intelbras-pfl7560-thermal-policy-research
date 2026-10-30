@@ -51,6 +51,13 @@ da placa, não o fluxo quente / a óptica.
   shutdown finalmente funcionariam (apontando-os para `gtt 1`).
   - É uma **aposta sobre hardware não confirmado**: o 2º NTC pode não existir ou estar também na parte fria.
 
+  > **CORREÇÃO (2026-10-29)** — onde o NTC fica de verdade: o 2º termistor (`gtt1`) é um NTC encapsulado
+  > num olhal parafusado no topo do **bloco dissipador do LED**; mede o dissipador do LED, não o
+  > polarizador nem o LCD, e **nenhum sensor do aparelho mede o polarizador/LCD** (OPT-S7 fechado,
+  > [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3). Onde este doc fala em sensor
+  > "perto da óptica", leia "no bloco do LED".
+
+
 ## Teste que decide (fazer no deploy da build)
 
 1. Aplicar `HW_VIRTUAL_CHANNEL=1` em `[Thermistor_1]` no override, reiniciar.
