@@ -161,18 +161,21 @@ preparar_trabalho(){
   fi
   trabalho_ok
 }
-# confere os arquivos do kit de $WORK: regulares (nao link), do root e com o md5 da lista
-trabalho_conferir(){
+# confere os arquivos do kit de $1 (a pasta de trabalho ou a de preparo dentro
+# dela): regulares (nao link), do root e com o md5 da lista
+conferir_em(){
+  _cb="$1"; shift
   _trc=0   # nome proprio: o kit_conferir tambem usa _rc e _n
   for _tn in "$@"; do
-    if ! arq_seguro "$WORK/$_tn"; then
-      LOG "[ERRO] kit: '$_tn' em $WORK nao e arquivo regular do root (link ou outro dono)."
+    if ! arq_seguro "$_cb/$_tn"; then
+      LOG "[ERRO] kit: '$_tn' em $_cb nao e arquivo regular do root (link ou outro dono)."
       _trc=1
     fi
   done
-  kit_conferir "$WORK" "$@" || _trc=1
+  kit_conferir "$_cb" "$@" || _trc=1
   return "$_trc"
 }
+trabalho_conferir(){ conferir_em "$WORK" "$@"; }
 # IMEDIATAMENTE antes de cada execucao do cor.sh (restaurar, tela, teste): pasta
 # so do root, cor.sh regular do root e md5 da lista embutida. O lvdsctl quem
 # confere, na hora de executa-lo, e o proprio cor.sh.
@@ -213,22 +216,45 @@ if ! kit_conferir "$MP" $(kit_nomes); then
 fi
 LOG "kit conferido: $(kit_nomes | wc -l | tr -dc '0-9') arquivos com md5 certo"
 
-# copia o kit para a pasta so do root (o cor.sh roda de la, destacado) e reconfere
-# a copia. Nao apaga o journal nem o backup: so kit/, cor.sh e lvdsctl sao
-# recriados (um link no lugar deles some, nunca e seguido).
+# copia o kit para a pasta so do root (o cor.sh roda de la, destacado). Nao apaga
+# o journal nem o backup: so kit/, cor.sh e lvdsctl sao trocados.
+# A copia vai primeiro para uma pasta de PREPARO dentro de $WORK, e conferida LA
+# e so entao cada arquivo vai para o lugar com mv (rename, atomico; um link no
+# lugar dele e substituido, nunca seguido). Assim $WORK/cor.sh e $WORK/lvdsctl
+# nunca tem, nem por um instante, um arquivo nao conferido: o pendrive pode ser
+# alterado em uso (o usuario shell grava nele) e um cor.sh do gancho de boot pode
+# estar rodando ao mesmo tempo; ele ve a versao velha ou a nova, as duas conferidas.
+# So os arquivos da lista sao copiados.
 if ! preparar_trabalho; then
   LOG "[ERRO] pasta de trabalho recusada - abortando (nada foi alterado)."
   exit 1
 fi
-rm -rf "$WORK/kit"
-rm -f "$WORK/cor.sh" "$WORK/lvdsctl"
-if ! { mkdir -p "$WORK/kit" && cp "$MP/cor.sh" "$MP/lvdsctl" "$WORK/" && cp "$MP"/kit/*.png "$WORK/kit/" \
-       && chmod 755 "$WORK/cor.sh" "$WORK/lvdsctl"; }; then
+KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
+PREP="$WORK/preparo.$$"
+copiar_preparo(){
+  rm -rf "$PREP"
+  ( umask 077; mkdir "$PREP" && mkdir "$PREP/kit" ) || return 1
+  for _cn in $KIT_COPIA; do cp "$MP/$_cn" "$PREP/$_cn" || return 1; done
+  chmod 755 "$PREP/cor.sh" "$PREP/lvdsctl"
+}
+por_no_lugar(){
+  rm -rf "$WORK/kit" && mkdir "$WORK/kit" || return 1
+  for _cn in $KIT_COPIA; do mv -f "$PREP/$_cn" "$WORK/$_cn" || return 1; done
+}
+if ! copiar_preparo; then
+  rm -rf "$PREP"
   LOG "[ERRO] nao consegui copiar o kit para $WORK - abortando (nada de /vendor foi alterado)."
   exit 1
 fi
-# shellcheck disable=SC2046
-if ! trabalho_conferir $(kit_nomes | grep -v '^ZYCustom.ini$'); then
+# shellcheck disable=SC2086  # lista de nomes sem espaco, divisao de proposito
+if ! conferir_em "$PREP" $KIT_COPIA || ! por_no_lugar; then
+  rm -rf "$PREP"
+  LOG "[ERRO] a copia do kit em $WORK nao confere - abortando (nada de /vendor foi alterado)."
+  exit 1
+fi
+rm -rf "$PREP"
+# shellcheck disable=SC2086
+if ! trabalho_conferir $KIT_COPIA; then
   LOG "[ERRO] a copia do kit em $WORK nao confere - abortando (nada de /vendor foi alterado)."
   exit 1
 fi

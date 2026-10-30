@@ -97,6 +97,11 @@ exit 0'
     conteudo) printf "touch \"$T/cor-adulterado-rodou\"\n" >> "$w/cor.sh" ;;
     link) cp "$w/cor.sh" "$T/cor.igual"; rm -f "$w/cor.sh"; ln -s "$T/cor.igual" "$w/cor.sh" ;;
   esac ;; esac; fi
+# e outra que adultera um arquivo NO PENDRIVE logo depois da conferencia la (o md5
+# do ultimo PNG da lista) e antes da copia para a pasta do root
+if [ -f "$T/troca-pendrive" ]; then case "$*" in *media_rw/USB1/kit/reiniciando.png)
+  a=$(cat "$T/troca-pendrive"); rm -f "$T/troca-pendrive"
+  printf "\ntouch \"$T/pendrive-adulterado-rodou\"\n" >> "$PFL_ROOT/mnt/media_rw/USB1/$a" ;; esac; fi
 exec '"$REAL_MD5SUM"' "$@"'
   # setsid de mentira: roda o comando e marca o fim (o script o lanca com &)
   stub setsid '"$@"; touch "$T/setsid.done"'
@@ -500,6 +505,24 @@ c_troca_apos_copia(){
   limpa
 }
 
+c_troca_no_pendrive(){
+  local a
+  for a in cor.sh lvdsctl; do
+    novo_cenario "$a adulterado NO PENDRIVE entre a conferencia e a copia = nunca chega ao caminho executavel"; aparelho_ok
+    echo "$a" > "$T/troca-pendrive"
+    roda key key
+    afirma '[ ! -e "$T/troca-pendrive" ]' "a injecao do harness nao disparou"
+    afirma '[ "$RC" = 1 ]' "deveria sair com 1 (saiu com $RC)"
+    nada_escrito "$PP0"
+    afirma '[ ! -e "$T/pendrive-adulterado-rodou" ] && [ ! -e "$T/setsid.done" ] && [ "$(chamadas getevent)" = 0 ]' "a fase de cor andou com o kit adulterado"
+    # o invariante: em $WORK/<arquivo> so existe (se existir) a versao conferida
+    afirma '[ ! -e "$(W)/$a" ] || [ "$(md5 "$(W)/$a")" = "$(md5 "$KIT/$a")" ]' "arquivo nao conferido ficou em $(W)/$a"
+    afirma '[ -z "$(ls -d "$(W)"/preparo.* 2>/dev/null)" ]' "sobrou pasta de preparo"
+    afirma 'grep -q "nao confere - abortando" "$T/out.log"' "log sem a recusa"
+    limpa
+  done
+}
+
 c_lvdsctl_na_hora(){
   novo_cenario "lvdsctl adulterado ANTES do uso = nao executa e nao escreve nada"; aparelho_ok
   : > "$T/adultera-lvdsctl-1"
@@ -839,7 +862,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   command -v "$SHELL_BIN" >/dev/null 2>&1 || { echo "(sem $SHELL_BIN: pulado)"; continue; }
   echo "== cenarios sob $SHELL_NOME =="
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
-           c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug}; do
+           c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug}; do
     echo "  $c"
     "$c"
   done
