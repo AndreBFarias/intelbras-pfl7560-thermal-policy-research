@@ -19,6 +19,10 @@ Regras do bloco:
 > leigo**, para cor e térmica. A sentinela `fmt=` abaixo exige que a pessoa saiba o formato, então não
 > atende. O desenho final depende da pesquisa de auto-pareamento (câmera interna, LCD-S3 do doc 29; ID
 > elétrico do painel). Não implementar T1.1 antes dessa decisão; T1.2 a T1.5 seguem valendo.
+>
+> **SUBSTITUÍDA (2026-10-29):** a pesquisa decidiu o desenho. A T1.1 vira o
+> [bloco 5](2026-10-29-bloco-5-kit-universal.md) (kit universal, critério "duas metades",
+> [doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md)).
 
 - **Medido:** `newlink_update.sh:93-113,274-305` só grava `1` (JEIDA) e trata qualquer valor diferente
   de 1 como pendente; a autorização casa o serial com `grep -q` (substring, linha 96).
