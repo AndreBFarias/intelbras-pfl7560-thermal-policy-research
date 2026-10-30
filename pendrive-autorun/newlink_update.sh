@@ -66,7 +66,7 @@ INI_MD5_ANTERIORES="bbf82dd17d4523b7df8a86bec0e850ce 1ad641ed2dd99e61d8a987a675e
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-1c751b7c27e8e2fef8af9098e67e2c9d  cor.sh
+a478d9bd9c67fcf5bbcdde55dde5f52f  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 1afd05f32600385e0587acf062262988  kit/erro.png
@@ -303,6 +303,9 @@ fi
 # (inferido do AOSP), entao a pergunta de ate ~90 s nao pode rodar aqui dentro;
 # lancamos o cor.sh destacado (setsid, ou nohup se nao houver) com log proprio,
 # que ele copia para o pendrive no fim. E o unico ponto que depende disso.
+# Segunda premissa, do mesmo ponto: ao fim do exec o init NAO mata o grupo de
+# processos do servico temporario (oneshot) e o cor.sh destacado sobrevive. Se
+# matar, a fase de cor morre no inicio: sem journal ainda, nada foi escrito.
 if [ "$AVISO" = "1" ]; then AVISO_ARG="termica-falhou"; else AVISO_ARG=""; fi
 LOG "lancando a fase de cor (cor.sh) destacada; log em $WORK/cor.log e, no fim, newlink_cor.log no pendrive"
 if command -v setsid >/dev/null 2>&1; then

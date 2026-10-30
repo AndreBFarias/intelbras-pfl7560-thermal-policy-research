@@ -150,6 +150,9 @@ aguardar_autofoco(){
 # tecla (o codigo e desconhecido). Se a saida for bufferizada ou o formato
 # diferir, nada casa e o resultado e "sem tecla", que e sempre o lado seguro:
 # nada e gravado na primeira pergunta e tudo e revertido na segunda.
+# Na E1-d, confira ESTE comando com pipe (getevent -ql | grep), nao o getevent
+# sozinho num terminal: no terminal a saida sai por linha e esconderia uma
+# bufferizacao por bloco quando a saida e um pipe.
 esperar_tecla(){
   timeout "$TEMPO_TECLA" getevent -ql 2>/dev/null | grep -q 'EV_KEY.*DOWN'
 }
