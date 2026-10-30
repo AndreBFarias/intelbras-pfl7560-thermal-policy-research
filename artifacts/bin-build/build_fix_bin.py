@@ -254,8 +254,14 @@ def main():
             + edit('/build.prop', f'{tmp}/bp.mod')
             + edit('/etc/init/hw/init.bigfish.rc', f'{tmp}/rc.mod'))
         dfs(f'{tmp}/edit.raw', cmds)
-        subprocess.run(['e2fsck', '-fy', f'{tmp}/edit.raw'],
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        # e2fsck -fy: 0 = limpo, 1/2 = corrigiu (esperado apos o debugfs); >= 4 = erros
+        # NAO corrigidos ou falha operacional -> a imagem nao e confiavel.
+        fsck = subprocess.run(['e2fsck', '-fy', f'{tmp}/edit.raw'],
+                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False)
+        if fsck.returncode >= 4:
+            raise SystemExit(
+                f"ERRO: e2fsck terminou com codigo {fsck.returncode} (>= 4) - imagem nao "
+                "confiavel, abortado.")
 
         # Reaplica metadados apos e2fsck (defesa: e2fsck nao deve stripar, mas garantimos)
         cmds2 = f'{tmp}/cmds_meta'
@@ -303,6 +309,25 @@ def main():
             got = verify_meta(f'{tmp}/check.raw', p, stock_meta[p])
             print(f"     OK {p}: mode={got['mode']} type={got.get('type')} "
                   f"selinux={got['selinux']}")
+
+        # round-trip do conteudo: as trocas do wifi e do xiri tem de estar na imagem final
+        # (o replace/insert acima falha em silencio se o stock nao tiver o texto procurado)
+        def conteudo(path):
+            alvo = f'{tmp}/chk_conteudo'
+            if os.path.exists(alvo):
+                os.remove(alvo)
+            dump(f'{tmp}/check.raw', path, alvo)
+            return open(alvo, encoding='utf-8').read() if os.path.exists(alvo) else ''
+
+        bp_final = conteudo('/build.prop')
+        if bp_final != open(f'{tmp}/bp.mod').read() or 'wifi_disconnect_on_boot=0' not in bp_final \
+                or 'wifi_disconnect_on_boot=1' in bp_final:
+            raise SystemExit("ERRO: /build.prop final sem a troca wifi_disconnect_on_boot=0 - abortado.")
+        rc_final = conteudo('/etc/init/hw/init.bigfish.rc')
+        if rc_final != open(f'{tmp}/rc.mod').read() or marker not in rc_final \
+                or 'disabled' not in rc_final.split(marker, 1)[1][:40]:
+            raise SystemExit("ERRO: init.bigfish.rc final sem o 'disabled' do xiriservice - abortado.")
+        print("[5c] conteudo final conferido: wifi_disconnect_on_boot=0 e xiriservice disabled")
 
         # 6) CRC novo da particao (sobre os `size` bytes do sparse, incl. pad)
         newcrc = crc32_mpeg2(f'{tmp}/vendor.new')

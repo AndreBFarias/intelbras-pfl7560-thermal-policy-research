@@ -105,7 +105,11 @@ echo      sensores (o 1o e a optica, o 2o a placa; iguais = mux nao comutou^):
 "%ADB%" -s %DEV% shell "getprop zysys.env_temp; getprop zysys.light_temp" 2>nul
 echo.
 echo  [4] correcao de cor do painel trocado
-"%ADB%" -s %DEV% shell "cat /proc/msp/panel" 2>nul | findstr /c:"jeida" >nul && (echo      OK    runtime em JEIDA) || (echo      ATENCAO nao esta em JEIDA - so correto se o painel for o de fabrica)
+REM VESA ou JEIDA sao ambos validos: depende do painel que esta na optica. O que se confere aqui
+REM e se o formato em uso bate com o byte lvds_fmt gravado no perfil ativo da panelparam (exige root).
+"%ADB%" -s %DEV% shell "f=$(grep -a lvds_fmt /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^A-Za-z]//g' | tr 'A-Z' 'a-z'); i=$(grep -a cut_idx /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^0-9]//g'); b=; case $i in ?*) b=$(dd if=/dev/block/by-name/panelparam bs=1 skip=$((168+i*768+92)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ');; esac; case $f:$b in jeida:1|vesa:0) echo COR_OK;; *) echo COR_DIVERGE;; esac" 2>nul | findstr /c:"COR_OK" >nul && (echo      OK    formato em uso bate com o byte gravado na panelparam) || (echo      ATENCAO formato em uso diverge do byte gravado, ou ilegivel ^(a leitura exige root^))
+"%ADB%" -s %DEV% shell "grep -a lvds_fmt /proc/msp/panel" 2>nul
+echo      O software nao sabe qual painel esta na optica: confira a cor na tela.
 echo.
 echo  ============================================================
 echo   A configuracao pode estar perfeita e a protecao estar cega
@@ -268,11 +272,12 @@ if not exist "%LVDSCTL%" (
   goto :menu
 )
 echo.
-echo  Correcao de cor pos-troca de painel ^(RX058B -4300 -^> -0600^).
+echo  Correcao de cor pos-troca de painel ^(formato LVDS VESA ou JEIDA^).
 echo  So use se voce TROCOU o micro-painel LCD e as cores dos meios-tons sairam erradas.
 echo    a^) Ver o formato LVDS atual (nao muda nada^)
-echo    c^) Aplicar JEIDA  (corrige o -0600^)
-echo    d^) Voltar p/ VESA (padrao de fabrica -4300^)
+echo    c^) Aplicar JEIDA  (o -0600 da 1a troca^)
+echo    d^) Aplicar VESA   (painel de fabrica e o da 2a troca^)
+echo  ^(c e d GRAVAM na particao panelparam; o backup e feito antes, em backups-projetor\^)
 echo  ^(backup/restore/wizard completos: use o WSL -^> wsl ./pfl7560-lcd-color.sh wizard^)
 set /p "LOP=  Escolha [a/c/d]: "
 call :connect || goto :menu
@@ -286,6 +291,11 @@ if /i "%LOP%"=="c" set "FMT=1"
 if /i "%LOP%"=="d" set "FMT=0"
 if not defined FMT (
   echo  opcao invalida.
+  pause
+  goto :menu
+)
+call :backup_panelparam
+if errorlevel 1 (
   pause
   goto :menu
 )
@@ -318,6 +328,38 @@ goto :menu
 
 REM ---- helpers ----
 
+:backup_panelparam
+REM backup do panelparam ANTES de gravar (a lvdsctl grava o byte na particao). Um por dia: o do
+REM 1o uso do dia guarda o estado anterior a qualquer mudanca desse dia. exit /b 1 se nao confirmar.
+REM O nome leva o serial: o backup do dia de OUTRO aparelho nao pode ser reaproveitado.
+set "HOJE="
+for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd" 2^>nul') do set "HOJE=%%D"
+if not defined HOJE set "HOJE=semdata"
+set "PPSN="
+for /f "delims=" %%S in ('"%ADB%" -s %DEV% shell getprop ro.serialno 2^>nul') do set "PPSN=%%S"
+if defined PPSN set "PPSN=%PPSN: =%"
+REM serial ilegivel = nome unico, entao nunca reaproveita (sempre faz backup novo)
+if not defined PPSN set "PPSN=semserial-%RANDOM%"
+if not exist "%HERE%\backups-projetor" mkdir "%HERE%\backups-projetor"
+set "PPBK=%HERE%\backups-projetor\panelparam.backup-%PPSN%-%HOJE%.img"
+if exist "%PPBK%" (
+  echo  [OK] backup do dia ja existe: %PPBK%
+  exit /b 0
+)
+echo  backup do panelparam antes de gravar ...
+"%ADB%" -s %DEV% exec-out "dd if=/dev/block/by-name/panelparam 2>/dev/null" > "%PPBK%.tmp"
+set "PPSZ="
+for %%F in ("%PPBK%.tmp") do set "PPSZ=%%~zF"
+REM a particao panelparam tem 8 MiB; tamanho diferente = dd truncado ou sem root
+if not "%PPSZ%"=="8388608" (
+  del "%PPBK%.tmp" >nul 2>&1
+  echo  [ERRO] backup do panelparam invalido ^(%PPSZ% bytes, esperado 8388608^) - NAO vou gravar.
+  exit /b 1
+)
+move /y "%PPBK%.tmp" "%PPBK%" >nul
+echo  [OK] backup do panelparam salvo em %PPBK%
+exit /b 0
+
 :ask_ip
 REM herda PFL_IP do ambiente se ja estiver definido (set PFL_IP=x.x.x.x)
 if not defined PFL_IP set /p "PFL_IP=  IP do projetor (ex 192.168.0.50): "
@@ -325,7 +367,12 @@ if "%PFL_IP%"=="" (
   echo  [ERRO] IP vazio. Dica: set PFL_IP=x.x.x.x antes de rodar, ou digite agora.
   exit /b 1
 )
-set "DEV=%PFL_IP%:%PORT%"
+REM aceita IP puro (acrescenta a porta padrao) ou IP:porta (usa como veio)
+if not "%PFL_IP::=%"=="%PFL_IP%" (
+  set "DEV=%PFL_IP%"
+) else (
+  set "DEV=%PFL_IP%:%PORT%"
+)
 exit /b 0
 
 :connect
@@ -342,7 +389,13 @@ if /i not "%MODEL%"=="PFL7560" (
   echo  [ERRO] Dispositivo em %PFL_IP% nao e PFL7560 ^(model='%MODEL%'^). Abortado.
   exit /b 1
 )
-echo  [OK] PFL7560 em %PFL_IP% ^(root^)
+REM 'adb root' falha em silencio: confere o id de verdade antes de dizer root
+"%ADB%" -s %DEV% shell id 2>nul | findstr /c:"uid=0(" >nul
+if errorlevel 1 (
+  echo  [OK] PFL7560 em %PFL_IP% ^(ATENCAO: SEM root - o id nao e uid=0; gravar e ler particoes pode falhar^)
+) else (
+  echo  [OK] PFL7560 em %PFL_IP% ^(root confirmado^)
+)
 exit /b 0
 
 :backup_stock

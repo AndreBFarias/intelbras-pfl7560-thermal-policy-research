@@ -4,7 +4,9 @@
 #
 # Contexto: trocar o painel RX058B por variante de sufixo diferente (ex.: -4300 -> -0600)
 # quebra a cor dos meios-tons por mapeamento LVDS divergente (VESA vs JEIDA).
-# Este script projeta os padroes de teste e aplica/reverte o formato LVDS ao vivo.
+# Este script projeta os padroes de teste e aplica/reverte o formato LVDS. Cada
+# aplicacao GRAVA o byte lvds_fmt na particao panelparam (persiste no boot), por
+# isso todo comando que grava faz backup antes e aborta se o backup falhar.
 # Detalhes: docs/research/28-troca-painel-rx058b-diagnostico-cor.md
 #
 # Uso:
@@ -13,9 +15,9 @@
 #
 # Comandos:
 #   status                  mostra o formato LVDS atual (/proc/msp/panel)
-#   jeida                   aplica LVDS JEIDA  (corrige o RX058B-0600)   [ao vivo + persiste]
-#   vesa                    aplica LVDS VESA   (padrao do RX058B-4300)   [reverter]
-#   swap <0-5> | bit <0-1>  ajustes finos (experimental; so se jeida/vesa nao bastar)
+#   jeida                   aplica LVDS JEIDA  (o -0600 da 1a troca)     [grava na panelparam]
+#   vesa                    aplica LVDS VESA   (painel de fabrica e o da 2a troca) [grava na panelparam]
+#   swap <0-5> | bit <0-1>  ajustes finos (experimental; pede confirmacao; grava na panelparam)
 #   test <padrao>           projeta um padrao de teste (barras|gamma|bits|nitidez|resolucao|help)
 #   wizard                  guia VESA<->JEIDA (e eixos avancados) com backup automatico + watchdog
 #   backup [arq]            salva a particao panelparam (default: panelparam.backup.img) + .md5
@@ -51,9 +53,13 @@ connect() {
 }
 sh_() { "$ADB" -s "$DEV" shell "$@"; }
 
+# 1 so depois de um backup validado desta execucao; o lvds() recusa gravar sem isso
+BACKUP_OK=0
+
 status() { sh_ "cat /proc/msp/panel 2>/dev/null | grep -iE 'panel_name|lvds_fmt|bit_width|intf_enable|power_on'"; }
 
-lvds() {   # lvds <fmt|swap|bit|map> <valor>
+lvds() {   # lvds <fmt|swap|bit|map> <valor>   (GRAVA na panelparam: exige backup feito)
+  [ "$BACKUP_OK" = "1" ] || die "lvds sem backup do panelparam - abortado antes de gravar"
   "$ADB" -s "$DEV" push "$ASSETS/lvdsctl" /data/local/tmp/lvdsctl >/dev/null
   sh_ "chmod 755 /data/local/tmp/lvdsctl"
   sh_ "cd /data/local/tmp && LD_LIBRARY_PATH=$LIBS ./lvdsctl $1 $2"
@@ -91,12 +97,43 @@ do_backup() {   # do_backup <arq>
   echo "$md5"
 }
 
+# backup do dia antes de gravar na panelparam: um por dia basta (o do primeiro uso
+# do dia, que guarda o estado anterior a qualquer mudanca desse dia, e mantido).
+# Aborta se o backup falhar. O nome leva o serial: o backup do dia de OUTRO
+# aparelho nao pode ser reaproveitado (serial ilegivel = nome unico, backup novo).
+backup_antes() {
+  local bk md5 sn
+  sn="$(sh_ "getprop ro.serialno" 2>/dev/null | tr -dc 'A-Za-z0-9' || true)"
+  [ -n "$sn" ] || sn="semserial-$$"
+  bk="panelparam.backup-$sn-$(date +%Y%m%d).img"
+  if [ -f "$bk" ] && [ -f "$bk.md5" ] && [ "$(md5sum "$bk" | awk '{print $1}')" = "$(cat "$bk.md5")" ]; then
+    echo ">> backup do dia ja existe e confere: $bk"
+  else
+    echo ">> backup de seguranca do panelparam antes de gravar..."
+    md5="$(do_backup "$bk")" || die "backup do panelparam falhou - NAO vou gravar"
+    echo "   backup: $bk (md5 $md5) - 'restore $bk' desfaz."
+  fi
+  BACKUP_OK=1
+}
+
+# confirmacao explicita (sem terminal = nao confirma)
+confirma() {   # confirma <aviso>
+  local r=""
+  echo "$1"
+  read -r -p "Continuar? [s/N] " r || r=""
+  [ "${r,,}" = "s" ] || die "cancelado - nada foi gravado"
+}
+
 case "${1:-help}" in
   status)  connect; status ;;
-  jeida)   connect; lvds fmt 1; echo "--- estado ---"; status ;;
-  vesa)    connect; lvds fmt 0; echo "--- estado ---"; status ;;
-  swap)    connect; lvds swap "${2:?valor 0-5}"; status ;;
-  bit)     connect; lvds bit  "${2:?valor 0-1}"; status ;;
+  jeida)   connect; backup_antes; lvds fmt 1; echo "--- estado ---"; status ;;
+  vesa)    connect; backup_antes; lvds fmt 0; echo "--- estado ---"; status ;;
+  swap)    v="${2:?valor 0-5}"; connect
+           confirma "swap e experimental e GRAVA na panelparam; pode apagar a tela."
+           backup_antes; lvds swap "$v"; status ;;
+  bit)     v="${2:?valor 0-1}"; connect
+           confirma "bit e experimental e GRAVA na panelparam; pode apagar a tela."
+           backup_antes; lvds bit "$v"; status ;;
   test)
     connect
     case "${2:-help}" in
@@ -120,6 +157,7 @@ case "${1:-help}" in
     BK="${WIZ_BACKUP:-panelparam.wizard.img}"
     echo ">> backup de seguranca do panelparam antes de mexer..."
     WANT_MD5="$(do_backup "$BK")"
+    BACKUP_OK=1
     echo "   backup: $BK (md5 $WANT_MD5) - guarde-o; 'restore $BK' desfaz tudo."
     echo
     echo "Vou testar formatos AO VIVO. Se a tela ficar PRETA e voce nao responder"
@@ -148,16 +186,24 @@ case "${1:-help}" in
       return 1
     }
 
-    # ordem: os dois formatos LVDS (nunca apagam a tela; um deles e o certo p/ o -0600/-4300)
-    ask "JEIDA (corrige o RX058B-0600)" fmt 1 seguro || \
-    ask "VESA (padrao do RX058B-4300)"  fmt 0 seguro || {
+    # formato em uso antes do wizard: base dos eixos avancados se nenhum for aceito
+    case "$(status | grep -ai lvds_fmt | head -1 | tr -d '\r' | tr '[:upper:]' '[:lower:]')" in
+      *jeida*) BASE_FMT=1; BASE_NOME=JEIDA ;;
+      *vesa*)  BASE_FMT=0; BASE_NOME=VESA ;;
+      *)       BASE_FMT="";  BASE_NOME="formato atual" ;;
+    esac
+
+    # ordem: os dois formatos LVDS (nunca apagam a tela; um deles e o certo para o painel)
+    ask "JEIDA (o -0600 da 1a troca)" fmt 1 seguro || \
+    ask "VESA (painel de fabrica e o da 2a troca)"  fmt 0 seguro || {
       echo
       echo "Nem VESA nem JEIDA resolveram. Vou tentar os eixos AVANCADOS (podem apagar a tela)."
       for s in 0 1 2 3 4 5; do
-        # REAFIRMA a base JEIDA a cada iteracao: um timeout-risco anterior pode ter
-        # revertido para fmt 0, entao sem isto o teste seria VESA+swap (rotulo errado).
-        lvds fmt 1 >/dev/null 2>&1 || true
-        ask "JEIDA + swap $s" swap "$s" risco && break
+        # REAFIRMA a base (o formato em uso antes do wizard) a cada iteracao: um
+        # timeout-risco anterior pode ter revertido para fmt 0, entao sem isto o
+        # teste seria outro formato + swap (rotulo errado).
+        [ -n "$BASE_FMT" ] && { lvds fmt "$BASE_FMT" >/dev/null 2>&1 || true; }
+        ask "$BASE_NOME + swap $s" swap "$s" risco && break
       done
     }
 
