@@ -26,9 +26,18 @@ Sem PC de jeito nenhum → pule para o **Método 1**.
 Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
 
 1. Formate um pendrive em **FAT32 (MBR)**.
-2. Copie para a **raiz** do pendrive:
+2. Copie o **kit v2 completo** para a **raiz** do pendrive (os arquivos soltos na raiz, não a pasta `pendrive-autorun`):
    - `pendrive-autorun/newlink_update.sh`
+   - `pendrive-autorun/cor.sh`
+   - `pendrive-autorun/lvdsctl`
    - `pendrive-autorun/ZYCustom.ini`
+   - `pendrive-autorun/LEIA-ME.txt`
+   - `pendrive-autorun/kit/*.png` (seis imagens, na subpasta `kit/` do pendrive)
+
+   O jeito certo é pelo instalador, que copia tudo e **confere o md5 de cada arquivo depois da cópia**
+   contra a lista embutida no `newlink_update.sh`: no Linux/macOS `./install.sh --pendrive /caminho/do/pendrive`,
+   no Windows `install.bat` opção 5 (pede a letra do pendrive). Se um arquivo não conferir, não use o pendrive.
+   O aparelho faz a mesma conferência e **aborta sem escrever nada** se faltar ou divergir qualquer arquivo.
 3. Com o projetor **desligado**, plugue o pendrive numa porta USB dele.
 4. **Ligue.** A correção é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se na 1ª vez não aplicar (pendrive montou tarde), reinicie de novo.
 5. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive aparece `newlink_update.log` com a linha `CORRECAO APLICADA COM SUCESSO`. Pode remover o pendrive.

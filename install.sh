@@ -7,6 +7,8 @@
 #  Uso:
 #    ./install.sh              # instala deps se faltar + verifica
 #    ./install.sh --check      # so verifica (sem instalar)
+#    ./install.sh --pendrive DIR   # copia o kit v2 COMPLETO para a raiz do pendrive
+#                                  # (DIR = ponto de montagem) e confere os md5
 #    ./install.sh --help
 #
 #  Depois:
@@ -19,14 +21,19 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 cd "$HERE" || exit 1
 
 CHECK_ONLY=0
+PENDRIVE_DIR=""
 case "${1:-}" in
   -h|--help)
-    sed -n '2,16p' "$0" | sed 's/^# \?//'
+    sed -n '2,18p' "$0" | sed 's/^# \?//'
     exit 0
     ;;
   --check|-c) CHECK_ONLY=1 ;;
+  --pendrive|-p)
+    PENDRIVE_DIR="${2:-}"
+    [ -n "$PENDRIVE_DIR" ] || { echo "uso: $0 --pendrive <pasta-raiz-do-pendrive>"; exit 1; }
+    ;;
   "") ;;
-  *) echo "uso: $0 [--check|--help]"; exit 1 ;;
+  *) echo "uso: $0 [--check|--pendrive DIR|--help]"; exit 1 ;;
 esac
 
 say(){ printf '\033[1;36m>> %s\033[0m\n' "$*"; }
@@ -102,6 +109,60 @@ chmod_scripts(){
   [ -f "$HERE/PFL7560-Corrigir.desktop" ] && chmod +x "$HERE/PFL7560-Corrigir.desktop" || true
 }
 
+# ---- kit v2 no pendrive ------------------------------------------------------
+# Copia o kit COMPLETO para a RAIZ do pendrive (newlink_update.sh, cor.sh, lvdsctl,
+# ZYCustom.ini, LEIA-ME.txt e kit/*.png) e confere, depois da copia, o md5 de cada
+# arquivo contra a lista embutida no proprio newlink_update.sh (a mesma que o
+# aparelho confere antes de escrever). O newlink_update.sh nao esta na lista (nao
+# pode conter o proprio md5) e o LEIA-ME.txt tambem nao: os dois sao comparados byte
+# a byte com a origem. NAO grava nada no projetor.
+md5_de(){
+  if have md5sum; then md5sum "$1" | cut -d' ' -f1
+  elif have md5; then md5 -q "$1"
+  else return 1
+  fi
+}
+copiar_pendrive(){
+  local dest="$1" src="$HERE/pendrive-autorun" lista h n f falhas=0 total=0
+  [ -d "$dest" ] || { err "'$dest' nao e uma pasta (informe o ponto de montagem do pendrive FAT32)"; return 1; }
+  dest="$(cd "$dest" && pwd)"
+  [ "$dest" != "$src" ] || { err "o destino e a propria pasta do kit"; return 1; }
+  have md5sum || have md5 || { err "sem md5sum/md5: nao consigo conferir a copia"; return 1; }
+  lista="$(sed -n '/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p' "$src/newlink_update.sh" \
+           | sed -n 's/^\(KIT_LISTA="\)\{0,1\}\([0-9a-f]\{32\}\)  \(.*\)$/\2  \3/p')"
+  [ -n "$lista" ] || { err "nao achei a lista de md5 em pendrive-autorun/newlink_update.sh"; return 1; }
+  say "copiando o kit v2 completo para a raiz de $dest"
+  mkdir -p "$dest/kit" || { err "nao consegui criar $dest/kit"; return 1; }
+  cp "$src/newlink_update.sh" "$src/LEIA-ME.txt" "$dest/" || { err "falha ao copiar para $dest"; return 1; }
+  while read -r h n; do
+    [ -n "$n" ] || continue
+    cp "$src/$n" "$dest/$n" || { err "falha ao copiar $n"; falhas=$((falhas+1)); }
+  done <<LISTA
+$lista
+LISTA
+  sync
+  say "conferindo a copia contra a lista embutida no newlink_update.sh"
+  while read -r h n; do
+    [ -n "$n" ] || continue
+    total=$((total+1))
+    if [ "$(md5_de "$dest/$n" 2>/dev/null)" = "$h" ]; then ok "$n"
+    else err "$n: md5 diferente do esperado ($h) ou ausente"; falhas=$((falhas+1)); fi
+  done <<LISTA
+$lista
+LISTA
+  for f in newlink_update.sh LEIA-ME.txt; do
+    total=$((total+1))
+    if cmp -s "$src/$f" "$dest/$f"; then ok "$f"
+    else err "$f: copia diferente da origem"; falhas=$((falhas+1)); fi
+  done
+  if [ "$falhas" = "0" ]; then
+    ok "kit v2 completo no pendrive: $total arquivos conferidos. Desligue o projetor, plugue o pendrive e ligue."
+    return 0
+  fi
+  err "$falhas arquivo(s) NAO conferem - nao use este pendrive. Copie de novo."
+  return 1
+}
+
 verify(){
   local rc=0 adb_path
   say "verificando ferramentas do PC..."
@@ -127,7 +188,9 @@ verify(){
     rc=1
   fi
 
-  if [ -f "$HERE/pendrive-autorun/ZYCustom.ini" ] && [ -f "$HERE/pendrive-autorun/newlink_update.sh" ]; then
+  if [ -f "$HERE/pendrive-autorun/ZYCustom.ini" ] && [ -f "$HERE/pendrive-autorun/newlink_update.sh" ] \
+     && [ -f "$HERE/pendrive-autorun/cor.sh" ] && [ -f "$HERE/pendrive-autorun/lvdsctl" ] \
+     && [ -d "$HERE/pendrive-autorun/kit" ]; then
     ok "pendrive-autorun/ completo (metodo sem PC)"
   else
     warn "pendrive-autorun/ incompleto"
@@ -160,8 +223,9 @@ print_next(){
 
      (troque o IP pelo do seu projetor)
 
-  Sem PC: copie pendrive-autorun/* para a raiz de um FAT32
-  e ligue o projetor com o pendrive plugado. Ver INSTALL.md.
+  Sem PC: ./install.sh --pendrive /caminho/do/pendrive (FAT32) copia o kit
+  v2 completo para a raiz e confere os md5; ligue o projetor com o pendrive
+  plugado. Ver INSTALL.md.
 
   NAO flashar nenhum .bin em firmware/ (quarentena).
 ------------------------------------------------------------
@@ -169,6 +233,10 @@ EOF
 }
 
 # --- main ---
+if [ -n "$PENDRIVE_DIR" ]; then
+  copiar_pendrive "$PENDRIVE_DIR"
+  exit $?
+fi
 OS="$(detect_os)"
 say "PFL7560 — setup do PC ($OS)"
 chmod_scripts
