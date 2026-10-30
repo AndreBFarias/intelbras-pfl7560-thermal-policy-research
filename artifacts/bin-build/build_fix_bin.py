@@ -23,7 +23,14 @@ import subprocess
 import tempfile
 import sparse
 
-PFX = 0x4b0b1d54                      # prefixo [size BE][crc BE] da particao vendor
+# O vendor e o record 14 da tabela do container LOAD (em 0x40, 19 entradas de 32 B,
+# tudo big-endian): tamanho em +0x14 e offset do prefixo [size BE][crc BE] em +0x18.
+# O offset NAO e fixo: no V1.0.0.9 e 0x4b0b1d54 e no V1.0.0.1 (sem USB-C) 0x4b0bc954,
+# porque a panelparam e o system crescem (doc 42). Por isso e lido do stock.
+TABLE_OFF = 0x40
+TABLE_ENTRY = 32
+VENDOR_REC = 14
+N_RECORDS = 19
 CRC_POLY = 0x04C11DB7
 
 # Fallback V1.0.0.9 (medido no stock oficial) — preferimos ler do stock em runtime.
@@ -47,6 +54,37 @@ TARGET_PATHS = (
     '/build.prop',
     '/etc/init/hw/init.bigfish.rc',
 )
+
+
+def vendor_slot(stock):
+    """Le da tabela do stock o offset do prefixo e o tamanho do payload do vendor.
+    Devolve (pfx, size). Aborta (SystemExit, nada e gravado) se o container nao for um
+    LOAD coerente: magic, record 14 dentro do arquivo e tamanho igual ao do prefixo."""
+    total = os.path.getsize(stock)
+    with open(stock, 'rb') as f:
+        head = f.read(TABLE_OFF + N_RECORDS * TABLE_ENTRY)
+        if len(head) < TABLE_OFF + N_RECORDS * TABLE_ENTRY or head[:4] != b'LOAD':
+            raise SystemExit("ERRO: o stock nao e um container LOAD (magic/tabela ausente) - abortado.")
+        ent = head[TABLE_OFF + VENDOR_REC * TABLE_ENTRY:TABLE_OFF + (VENDOR_REC + 1) * TABLE_ENTRY]
+        tsize, pfx = struct.unpack('>II', ent[0x14:0x1c])
+        if pfx < TABLE_OFF + N_RECORDS * TABLE_ENTRY or pfx + 8 + tsize > total:
+            raise SystemExit(
+                f"ERRO: record {VENDOR_REC} da tabela (offset 0x{pfx:x}, tamanho {tsize}) "
+                f"fora do arquivo ({total} B) - abortado.")
+        f.seek(pfx)
+        psize = struct.unpack('>I', f.read(4))[0]
+    if psize != tsize:
+        raise SystemExit(
+            f"ERRO: tamanho do prefixo do vendor ({psize}) difere do da tabela ({tsize}) - abortado.")
+    return pfx, tsize
+
+
+def config_model(path):
+    """CONFIG_MODEL do [Global] de um ZYCustom.ini (None se nao achar). Leitura latin-1:
+    o arquivo mistura ASCII, chines GBK e mojibake, e so interessa a linha em ASCII."""
+    with open(path, encoding='latin-1') as f:
+        m = re.search(r'(?m)^CONFIG_MODEL\s*=\s*([A-Za-z0-9_]+)', f.read())
+    return m.group(1) if m else None
 
 
 def crc32_mpeg2(path):
@@ -204,17 +242,29 @@ def main():
     stock, zy, out = sys.argv[1], sys.argv[2], sys.argv[3]
     tmp = tempfile.mkdtemp(prefix='pflbin_')
     try:
-        # 1) size do payload vendor + extrai o sparse
+        # 1) offset e size do payload vendor (record 14 da tabela) + extrai o sparse
+        PFX, size = vendor_slot(stock)
         with open(stock, 'rb') as f:
-            f.seek(PFX)
-            size = struct.unpack('>I', f.read(4))[0]
             f.seek(PFX + 8)
             open(f'{tmp}/vendor.img', 'wb').write(f.read(size))
-        print(f"[1] vendor sparse extraido: {size} bytes")
+        print(f"[1] vendor (record {VENDOR_REC}) em 0x{PFX:x}: sparse extraido, {size} bytes")
 
         # 2) expande para ext4 raw
         blk, total, chunks = sparse.expand(f'{tmp}/vendor.img', f'{tmp}/orig.raw')
         shutil.copy(f'{tmp}/orig.raw', f'{tmp}/edit.raw')
+
+        # 2a) o ini novo tem de ser DO MESMO MODELO do stock: o CONFIG_MODEL difere entre o
+        #     V1.0.0.9 (KJM_5H039_412) e o V1.0.0.1 sem USB-C (..._NOTYPEC_TP, doc 42). Gravar o
+        #     ini de um no stock do outro rebaixaria o CONFIG_MODEL; recusa antes de gravar.
+        dump(f'{tmp}/orig.raw', '/etc/ZYCustom.ini', f'{tmp}/zy.stock')
+        cm_stock = config_model(f'{tmp}/zy.stock') if os.path.exists(f'{tmp}/zy.stock') else None
+        cm_novo = config_model(zy)
+        if not cm_stock or cm_stock != cm_novo:
+            raise SystemExit(
+                f"ERRO: CONFIG_MODEL do ini ({cm_novo!r}) difere do do stock ({cm_stock!r}). "
+                "Use o ini corrigido do MESMO modelo do stock: ZYCustom_390.ini (V1.0.0.9) ou "
+                "ZYCustom_390.NOTYPEC.ini (V1.0.0.1, sem USB-C) - abortado, nada foi gravado.")
+        print(f"[2a] CONFIG_MODEL do ini = do stock ({cm_stock})")
 
         # 2b) captura metadados STOCK dos 3 alvos (antes de sobrescrever)
         stock_meta = {}

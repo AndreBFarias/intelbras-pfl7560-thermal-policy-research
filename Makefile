@@ -1,4 +1,4 @@
-.PHONY: check check-kit
+.PHONY: check check-kit check-bin
 
 check:
 	bash tests/check-stock-md5.sh
@@ -8,3 +8,9 @@ check-kit:
 	python3 -I tests/simula-padroes-kit.py
 	bash tests/atualizar-md5-kit.sh --check
 	bash tests/test-kit-pendrive.sh
+
+# builder do .bin (bloco 6): offset do vendor lido da tabela, em containers sinteticos.
+# Com PFL_STOCK_ANTIGO=<PFL7560.bin V1.0.0.9> e PFL_STOCK_NOVO=<PFL7560.bin V1.0.0.1> roda
+# tambem com os stocks de verdade (so leitura; 1,3 GB cada, leva alguns minutos).
+check-bin:
+	python3 tests/test-builder-bin.py
