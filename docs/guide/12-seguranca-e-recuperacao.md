@@ -19,9 +19,10 @@ ligar, e tudo é reversível.
 | Arquivo | O que é | Para quê |
 |---|---|---|
 | `pfl7560-fix.sh` (raiz do projeto) | **script mestre auto-suficiente** (config embutida em base64) | reaplica/reverte TUDO com 1 comando |
-| `backups-projetor/*.STOCK` (gerado no 1º `apply`) | os 3 arquivos de fábrica que o `apply` puxou do aparelho | fonte do `revert` |
-| `artifacts/ZYCustom.ini.ORIGINAL` | `.ini` de fábrica versionado (md5 `29d8ba36…`) | stock de referência p/ backup/revert |
-| `pendrive-autorun/` (`newlink_update.sh` + `ZYCustom.ini`) | autorun por pendrive | aplicar sem PC |
+| `backups-projetor/*.STOCK` (gerado no 1º `apply`; no modelo sem USB-C, em `backups-projetor/notypec/`) | os 3 arquivos de fábrica que o `apply` puxou do aparelho | fonte do `revert` (só restaura backup do mesmo modelo) |
+| `artifacts/ZYCustom.ini.ORIGINAL` / `artifacts/ZYCustom.ini.NOTYPEC.STOCK` | `.ini` de fábrica versionado do modelo com USB-C (md5 `29d8ba36…`) e do sem USB-C (`ed3f314c…`) | stock de referência p/ backup/revert |
+| `backups-projetor/panelparam.backup-<serial>-<data>.img` (só se você gravou cor) | backup da partição de cor feito antes de cada gravação | `./pfl7560-lcd-color.sh restore <arquivo>` |
+| `pendrive-autorun/` (kit v2 completo: `newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `kit/*.png`) | autorun por pendrive | aplicar sem PC |
 | `Software PFL7560.zip` | **firmware de fábrica completo** | recuperação máxima (reflash oficial) |
 | `docs/*.md` (01–20) | toda a pesquisa | conhecimento |
 
@@ -46,8 +47,10 @@ ligar, e tudo é reversível.
   intacto e ele **aborta sem reiniciar**. Você só roda `./pfl7560-fix.sh apply` de novo. **Sem risco.**
 
 ### 4. Perdi o PC / a pasta do projeto
-- O `pfl7560-fix.sh` é **auto-contido** (a config está embutida em base64 dentro dele). Basta ter esse 1 arquivo
-  para reaplicar. Ou use o **pendrive autorun** (`newlink_update.sh` + `ZYCustom.ini`), que aplica sem PC.
+- O `pfl7560-fix.sh` é **auto-contido** para o modelo com USB-C (V1.0.0.9): a config está embutida em base64
+  dentro dele. No modelo sem USB-C ele precisa também dos artefatos `artifacts/*NOTYPEC*` do repositório.
+  Ou use o **pendrive autorun** (o kit v2 completo, copiado com `./install.sh --pendrive`), que aplica sem PC
+  nos dois modelos.
 - Se perder até isso: o firmware de fábrica está no `Software PFL7560.zip`, e a correção inteira está
   documentada em `09` e `10` (dá pra refazer o `.ini` do zero).
 
@@ -64,8 +67,9 @@ ligar, e tudo é reversível.
    (só funciona se o backup existir e for válido; o `apply` o cria na 1ª vez). Alternativa manual: com adb
    root e `/vendor` remontado rw, empurrar de volta os 3 `.STOCK` (`ZYCustom.ini`, `build.prop`,
    `init.bigfish.rc`) para `/vendor/…` e reiniciar.
-3. **Reflash total:** gravar o `Software PFL7560.zip` de fábrica por pen drive FAT32 pela "Atualização local
-   do sistema" (menu do projetor). Volta 100% ao original — **inclusive o formato de cor do painel**: a
+3. **Reflash total:** gravar o firmware de fábrica **do seu modelo** (`Software PFL7560.zip` é o V1.0.0.9, com
+   USB-C; não grave o de um modelo no outro, [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)) por
+   pen drive FAT32 pela "Atualização local do sistema" (menu do projetor). Volta 100% ao original — **inclusive o formato de cor do painel**: a
    `panelparam` provavelmente está dentro do `.bin` ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)
    §5). Quem trocou o painel LCD refaz o teste de cor depois ([guia 32](32-guia-troca-painel-lcd.md) §3).
 
@@ -78,5 +82,6 @@ ligar, e tudo é reversível.
 PFL_IP=<ip> ./pfl7560-fix.sh status   # se a busca automática falhar, informe o IP
 ```
 
-Enquanto o `.ini` de fábrica não mudar (ele é o mesmo em todo PFL7560 V1.0.0.9), essa correção é estável e
-re-aplicável quantas vezes precisar. **Pode dormir tranquilo.**
+Enquanto o `.ini` de fábrica não mudar (há dois conhecidos: o do V1.0.0.9 e o do V1.0.0.1 sem USB-C, que
+difere só no `CONFIG_MODEL`), essa correção é estável e re-aplicável quantas vezes precisar. Num `.ini`
+desconhecido, o kit e o script recusam em vez de sobrescrever. **Pode dormir tranquilo.**

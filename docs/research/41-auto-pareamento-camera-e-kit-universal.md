@@ -20,7 +20,9 @@ execução. Nada aqui foi executado no aparelho ainda.
 | No aparelho: `vendor.newlink.camera_exist=1`, `vendor.focus.camera.is_focused=true`, `cameraserver` rodando, SELinux `permissive` | `artifacts/diagnostico/audit-logs/getprop.txt` |
 
 **Caminho de captura:** um binário ARM pequeno, com root, falando V4L2 direto em `/dev/video0`, compilado
-com o mesmo NDK do `lvdsctl` (o NDK **não está instalado** nesta máquina). Pela API de câmera do Android
+com o mesmo NDK do `lvdsctl` (o NDK **não está instalado** nesta máquina). **Atualização (2026-10-29):** o
+NDK r27c foi instalado e o `nl_camcheck` (`artifacts/camcheck/`, só leitura: `info` e `grab`) foi
+compilado no commit `e78e2e7`; ainda não rodou no aparelho (bloco 5, E1/E5). Pela API de câmera do Android
 não dá para travar exposição e balanço de branco; direto no V4L2 talvez dê, conforme a câmera.
 
 **Riscos:** câmera de baixa resolução, talvez só MJPEG ou monocromática; disputa com o `AutoFocusService`
@@ -62,7 +64,10 @@ Kit único de pendrive, sem serial, sem arquivo para editar, mesmo pendrive para
 
 1. **Térmica:** estado-alvo = md5 do `.ini` que o firmware lê (`252ab7a7…`). Só troca se o md5 atual for
    de fábrica ou de versão anterior nossa; md5 desconhecido = recusa. Troca atômica e um reboot.
-   Avisa se houver `/atv/ini/ZYCustom*.ini` com precedência.
+   Avisa se houver `/atv/ini/ZYCustom*.ini` com precedência. **Como ficou (bloco 6, T6.1):** o kit
+   reconhece o `.ini` de fábrica dos **dois** modelos (V1.0.0.9 `29d8ba36…` e V1.0.0.1 sem USB-C
+   `ed3f314c…`, [doc 42](42-firmware-2026-10-modelo-sem-usbc.md)) e monta o corrigido a partir do `.ini` do
+   aparelho, trocando só as seções térmicas; o alvo é `252ab7a7…` no modelo antigo e `bdf5c464…` no novo.
 2. **Cor:** projeta "duas metades". **Hoje:** metades iguais → nada a fazer (30 s e segue). Metades
    diferentes → a pessoa aperta **qualquer tecla**, o kit troca o formato ao vivo e mostra de novo; só
    mantém com uma **segunda** tecla; sem ela, reverte e confere relendo o byte. **Depois da prova da
@@ -84,8 +89,12 @@ painel de fábrica mostra metades iguais; errar exige duas teclas, a segunda dia
 - **Automação sem tecla hoje:** só depois da E5 (captura provada no aparelho).
 - Garantir que o autorun rode no 1º boot (o `nl_usb_update.sh` de fábrica só olha o pendrive em
   `sys.boot_completed=1`; se a montagem atrasar, perde a vez; a instrução é religar).
+- Garantir, sem a bancada, que as telas aparecem: o kit as mostra por `am start ... VIEW`, que deu tela
+  preta em 2026-09-03 (OPT-S13, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3). A
+  etapa E1(e) do bloco 5 decide.
 - Painéis que precisem de `swap`/`bit`/`map`: ficam no wizard com PC, de propósito.
-- Térmica em firmware diferente de V1.0.0.9 (md5 de fábrica desconhecido: o kit recusa).
+- Térmica em firmware diferente de V1.0.0.9 e V1.0.0.1 (md5 de fábrica desconhecido: o kit recusa). O
+  V1.0.0.1, do modelo sem USB-C, passou a ser reconhecido no bloco 6.
 
 ## 7. Plano
 

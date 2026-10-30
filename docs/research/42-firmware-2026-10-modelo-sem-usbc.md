@@ -90,7 +90,7 @@ Usei Python sempre com `-I`. Nenhum binário do firmware foi executado. Os dados
   - **A8.** A `deviceinfo` que o `.bin` grava traz projectid 390 em `+0x8000` e um bloco de PWM dos ventiladores em `+0x7000`, iguais aos do V1.0.0.9. Não é risco novo, mas o flash sobrescreve a `deviceinfo` inteira, inclusive o índice de painel 69.
   - **A9.** O kernel do boot também tem a nota GNU build-id alterada (`0xee3434`). O último perfil da panelparam (86 no NOVO, 82 no ANTIGO) tem 732 B, sem o pad de 36 B, o que confirma o formato "36 + 732".
 - **Kit do repo:**
-  - **A10.** O `RC_STOCK_MD5 = 0fe1b8fb` do `pfl7560-fix.sh` **não** casa com o `init.bigfish.rc` de nenhum dos dois `.bin` (`8f7e02b2`, que difere só pelo `\n` final). Num aparelho recém-flashado (com qualquer das duas versões), o kit cai no artefato versionado, e um `revert` regrava o arquivo com 1 byte a mais. É problema pré-existente do repo, não deste firmware. O analista viu o fato, mas não tirou a consequência.
+  - **A10.** O `RC_STOCK_MD5 = 0fe1b8fb` do `pfl7560-fix.sh` **não** casa com o `init.bigfish.rc` de nenhum dos dois `.bin` (`8f7e02b2`, que difere só pelo `\n` final). Num aparelho recém-flashado (com qualquer das duas versões), o kit cai no artefato versionado, e um `revert` regrava o arquivo com 1 byte a mais. É problema pré-existente do repo, não deste firmware. O analista viu o fato, mas não tirou a consequência. **Resolvido em 2026-10-30 (T6.4, `5bf7e80`):** o artefato ficou byte-exato e o `RC_STOCK_MD5` passou a `8f7e02b2`.
 
 ---
 
@@ -162,7 +162,7 @@ Os offsets andam **+0xc00** a partir do record 5 (a panelparam cresceu 3072 B = 
 
 ### 2.3 O `build_fix_bin.py` do repo funciona com este stock?
 
-- **Como está, NÃO.** O script fixa `PFX = 0x4b0b1d54` (`artifacts/bin-build/build_fix_bin.py`, l.26). No NOVO, o vendor está em `0x4b0bc954`.
+- **Como está, NÃO.** O script fixa `PFX = 0x4b0b1d54` (`artifacts/bin-build/build_fix_bin.py`, l.26). No NOVO, o vendor está em `0x4b0bc954`. (**Resolvido em 2026-10-30, bloco 6 T6.2:** o builder lê offset e tamanho do record 14 da tabela; com o stock NOVO e o `.ini` NOTYPEC gera `0d294cb3…`, só em software.)
   - Lido em `0x4b0b1d54` do NOVO, o "tamanho" vale 3631910283. O script lê até o fim do arquivo e o `sparse.parse` aborta com `AssertionError: magic 0xdf6d12ea nao e sparse`.
   - Testei uma cópia sem alteração no scratchpad, e ela falhou exatamente assim. CONFIRMADO.
   - A falha é **segura**: o script para antes de gravar qualquer `.bin` de saída.
@@ -346,7 +346,7 @@ Formato: cada perfil ocupa 768 B (cabeçalho `indexN` de 36 B + struct de 732 B)
      - Daria para reverter recolocando as 2 linhas no `/vendor/build.prop` pelo método `/vendor` do repo. Não testado.
   2. **Canal OTA trocado e versão "menor"** (`V1.0.0.1` < `V1.0.0.9`). A partir daí o aparelho seguiria o canal NOTYPEC (INFERIDO). Voltar ao V1.0.0.9 por pendrive deve funcionar, porque o loader é o mesmo e não há anti-rollback visível. INFERIDO.
   3. **Apaga a correção térmica do /vendor e os dados do usuário.** O record 14 é regravado e o `misc` pede `--wipe_data`.
-     - O kit `pfl7560-fix.sh` não reconheceria o INI stock: `INI_STOCK_MD5 = 29d8ba36` contra `ed3f314c`, e o mesmo vale para `BP_STOCK_MD5`.
+     - O kit `pfl7560-fix.sh` não reconheceria o INI stock: `INI_STOCK_MD5 = 29d8ba36` contra `ed3f314c`, e o mesmo vale para `BP_STOCK_MD5`. (**Resolvido em 2026-10-30, bloco 6 T6.1/T6.3:** o kit de pendrive e o `pfl7560-fix.sh` reconhecem os dois modelos e o revert só usa backup do mesmo modelo.)
      - Ele cairia no backup versionado do repo (V1.0.0.9). Um `revert` posterior regravaria o `build.prop` do V1.0.0.9, o que mistura SKU e canal OTA.
      - CONFIRMADO no código (`pfl7560-fix.sh` l.38-40 e `backup_stock` l.82-102). O efeito é INFERIDO.
   4. **Painel: risco igual ao do V1.0.0.9.** O perfil 69 é idêntico (`0x5c = 0`, VESA) e a deviceinfo traz o índice 69. Para o -4300 (VESA), que o doc 40 diz estar instalado agora, isso é inócuo. Para um painel JEIDA, o reflash desfaria o `0x5c = 1` (doc 41 §3). CONFIRMADO (bytes) / INFERIDO (efeito).
@@ -361,7 +361,7 @@ Formato: cada perfil ocupa 768 B (cabeçalho `indexN` de 36 B + struct de 732 B)
 2. **A térmica é idêntica.** O `ZYCustom.ini` muda só o nome do modelo. O bug do mux (`HW_VIRTUAL_CHANNEL = 0` nos dois termistores), a curva dos ventiladores, a escada de brilho, 43/45 °C e o FanMonitor sem sense continuam iguais. A `libhitvservice.so` é byte-idêntica.
 3. **No seu aparelho, você perderia a entrada USB-C no menu** e passaria para o canal de atualização do modelo sem USB-C, sem ganhar nada. Além disso, o pendrive apaga dados e a correção do /vendor. **Recomendação: não aplicar.**
 4. **O painel não muda.** O perfil 69 (RX058B-4300, VESA) é idêntico e o índice gravado continua 69. A Intelbras só adicionou 4 perfis novos (83-86) para outros fornecedores.
-5. **O builder do repo quebra com este `.bin`**, porque o offset do vendor mudou para `0x4b0bc954`. Ele falha de forma segura, por assert. Lendo o offset da tabela, o build funcionou em software. Vale corrigir isso antes de usar este stock em algum momento.
+5. **O builder do repo quebra com este `.bin`**, porque o offset do vendor mudou para `0x4b0bc954`. Ele falha de forma segura, por assert. Lendo o offset da tabela, o build funcionou em software. Vale corrigir isso antes de usar este stock em algum momento. (Corrigido no bloco 6, T6.2.)
 
 ## O que não consegui verificar
 
@@ -373,7 +373,7 @@ Formato: cada perfil ocupa 768 B (cabeçalho `indexN` de 36 B + struct de 732 B)
 - Se o hardware USB-C (DP-alt) das unidades antigas continua funcional sem as props. E se a ausência de USB-C nas unidades novas é física, já que o datasheet de 2025 ainda lista USB-C.
 - O conteúdo dos XML de OTA no servidor da Newlink (nenhum acesso de rede foi feito) e a regra de comparação de versão do cliente OTA.
 - Boot real do `.bin` gerado pelo builder corrigido. O teste foi só em software, e o arquivo foi apagado.
-- Observação à parte, fora do escopo: o artefato `artifacts/init.bigfish.rc.STOCK` do repo (md5 `0fe1b8fb`) difere do stock extraído (`8f7e02b2`, igual nas duas versões) só pela quebra de linha final.
+- Observação à parte, fora do escopo: o artefato `artifacts/init.bigfish.rc.STOCK` do repo (md5 `0fe1b8fb`) difere do stock extraído (`8f7e02b2`, igual nas duas versões) só pela quebra de linha final. (Resolvido na T6.4, ver A10.)
 
 ---
 
@@ -399,3 +399,7 @@ O firmware novo serviu de gabarito da fabricante. O que ele ensina:
 6. **Higiene:** `artifacts/init.bigfish.rc.STOCK` difere do stock real só pela quebra de linha final.
 
 Tarefas no [bloco 6](../sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md).
+
+**Estado (2026-10-30):** lições 2, 3, 4 e 6 aplicadas no bloco 6 (T6.1 a T6.4), só em software; lição 5
+aplicada no [doc 33](33-matriz-paineis.md); lição 1 registrada no [doc 11](11-email-intelbras.md) e no
+[relatório CSIRT](../disclosure/relatorio-csirt.md) como nota datada.

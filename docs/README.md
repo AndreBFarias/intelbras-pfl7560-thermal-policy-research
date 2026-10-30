@@ -66,6 +66,19 @@ Resolvido por software, sem trocar hardware.
 
 Artefatos da correção de cor em [`../artifacts/lcd-color-fix/`](../artifacts/lcd-color-fix/) (`lvdsctl.c` + padrões de teste).
 
+## Tarefas por bloco (2026-10)
+
+Os blocos de correção abertos a partir da sessão do doc 40, cada um com a seção "Estado" no fim.
+
+| Doc | Conteúdo |
+|---|---|
+| [`sprints/2026-10-29-bloco-1-cor-e-gravacao.md`](sprints/2026-10-29-bloco-1-cor-e-gravacao.md) | Backup antes de gravar na `panelparam`, `term_ok`, `install.bat`, builder (feito; T1.1 virou o bloco 5) |
+| [`sprints/2026-10-29-bloco-2-medicao.md`](sprints/2026-10-29-bloco-2-medicao.md) | Locale, boots, root, `saude` pelo byte gravado, IP com porta e Ctrl-C (feito) |
+| [`sprints/2026-10-29-bloco-3-docs-sem-autorrefutacao.md`](sprints/2026-10-29-bloco-3-docs-sem-autorrefutacao.md) | Docs sem autorrefutação |
+| [`sprints/2026-10-29-bloco-4-prova-da-build.md`](sprints/2026-10-29-bloco-4-prova-da-build.md) | Prova de que a build é funcional (partes no aparelho abertas) |
+| [`sprints/2026-10-29-bloco-5-kit-universal.md`](sprints/2026-10-29-bloco-5-kit-universal.md) | Kit universal de pendrive: térmica + cor "duas metades" (software feito; bancada aberta) |
+| [`sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md`](sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md) | Kit, builder e fix para os dois modelos (feito, só em software) |
+
 ## Arquivo interno (histórico de auditorias)
 
 Pasta [`archive/`](archive/) — sprints e auditorias internas (não é o caminho leigo).

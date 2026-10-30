@@ -1,6 +1,6 @@
 # intelbras-pfl7560-thermal-policy-research
 
-Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defeito de configuração de fábrica** no projetor **Intelbras PFL7560** (firmware V1.0.0.9) que torna a proteção térmica ineficaz e contribui para **falha prematura** da óptica (polarizador/LCD).
+Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defeito de configuração de fábrica** no projetor **Intelbras PFL7560** (firmware V1.0.0.9; o mesmo defeito segue no V1.0.0.1 de outubro de 2026, [doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md)) que torna a proteção térmica ineficaz e contribui para **falha prematura** da óptica (polarizador/LCD).
 
 > **Aviso.** Projeto **sem vínculo com a Intelbras**. Os métodos 1–3 editam apenas a partição `/vendor`, por sua conta e risco. **São reversíveis, não tocam no bootloader e o aparelho permanece recuperável.** O firmware `.bin` completo experimental está em **quarentena** (não use).
 
@@ -87,7 +87,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Idempotente.
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor das "duas metades" pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash
@@ -107,7 +107,7 @@ PFL_IP=<ip> ./pfl7560-saude.sh                # 12 checagens; exit 0 = tudo cert
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade   # a PROVA FORTE: a protecao reage?
 ```
 
-Confere os 3 arquivos, o mux destravado, a escada de brilho, a correção de cor **e** se a proteção está
+Confere os 3 arquivos (no `.ini` efetivo), o mux destravado, a escada de brilho, o formato de cor (o em uso tem de bater com o byte gravado) **e** se a proteção está
 **enxergando neste boot** — a configuração pode estar perfeita e a proteção estar cega mesmo assim
 (`LSADC Error`; um reboot restaura). Nessa forma não escreve nada e não toca o sensor. Menu: opção **5**.
 
@@ -206,14 +206,17 @@ refaça o teste de cor.
 │   ├── lcd-color-fix/              # lvdsctl + padrões de teste de cor
 │   └── (ZYCustom stock/fix, históricos)
 ├── media/                          # fotos do teardown + evidências
-├── tests/                          # make check (integridade md5)
+├── tests/                          # make check (md5) · check-kit · check-bin · check-fix (simulação, sem aparelho)
 ├── firmware/                       # zip oficial (LFS) + .bin (fora do Git)
 └── referencia/                     # manuais PDF (fora do Git)
 ```
 
 ## Aparelho-alvo
 
-Intelbras **PFL7560** · SoC HiSilicon Hi3751V553 · Android 9 (HiDPT) · firmware **V1.0.0.9**. Outras versões podem diferir — confira antes.
+Intelbras **PFL7560** · SoC HiSilicon Hi3751V553 · Android 9 (HiDPT) · firmware **V1.0.0.9** (com USB-C) ou
+**V1.0.0.1** (sem USB-C, "NOTYPEC", fabricado a partir de 25/08/2026; só simulação). O kit e o `pfl7560-fix.sh`
+reconhecem os dois e recusam qualquer outro; o builder recusa `.ini` de modelo diferente do stock. **Não** grave o firmware de um modelo no outro
+([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md)).
 
 ## Licença
 

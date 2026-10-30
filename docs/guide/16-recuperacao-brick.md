@@ -36,7 +36,10 @@ O **init do Android recusa parsear arquivos `.rc` que sejam group-writable ou wo
 `init.bigfish.rc` no `.bin` ficou **0664** (bit de escrita para o grupo). Isso é causa suficiente de hang na
 logo: o init não carrega o script de bring-up do vendor. O `debugfs write` também **não copia** o xattr
 `security.selinux` nem restaura o mode/owner do stock — o script de build (`artifacts/bin-build/build_fix_bin.py`)
-ainda não faz `sif … mode` nem `ea_set`.
+ainda não faz `sif … mode` nem `ea_set`. (**Corrigido depois:** o builder atual lê e reaplica mode, dono e
+rótulo SELinux do stock nos 3 arquivos, com gate fatal; ver
+[`../../artifacts/bin-build/README.md`](../../artifacts/bin-build/README.md). O `.bin` dele continua sem
+boot real, BIN-S4a.)
 
 Nota: SELinux nesta build é **permissivo**, então “só o rótulo ausente” era hipótese fraca para o hang; o
 **mode 0664 no `.rc`** é o achado mais sólido. Rótulos e modes corretos devem ser restaurados juntos num `.bin`
@@ -60,9 +63,13 @@ segurando o botão de power.**
 >   **formata o `/data`** (perde apps/configuração do usuário). Só use isto para **recuperar um boot travado**,
 >   não como uso normal.
 > - O **pendrive de resgate** (com `usb_update.bin`) deve ficar **FISICAMENTE SEPARADO** do pendrive de autorun
->   (`newlink_update.sh` + `ZYCustom.ini`) e **desconectado no dia a dia**. Nunca junte os dois arquivos no
->   mesmo pendrive: um resgate acidental (power-hold com o pendrive plugado) apagaria a correção.
-> - `usb_update.bin` deve **SEMPRE** ser o **firmware de FÁBRICA** (do `Software PFL7560.zip`). **NUNCA** renomeie
+>   (o kit v2) e **desconectado no dia a dia**. Juntar os dois arquivos no mesmo pendrive tem um risco: um
+>   resgate acidental (power-hold com o pendrive plugado) apagaria a correção. O `LEIA-ME.txt` do kit aceita
+>   esse "kit de emergência" pessoal (arranjo B) só para quem conhece o risco e mantém o pendrive
+>   desconectado no uso normal; para dar a outra pessoa, use o arranjo A, só com o kit.
+> - `usb_update.bin` deve **SEMPRE** ser o **firmware de FÁBRICA do seu modelo** (do `Software PFL7560.zip`
+>   para o V1.0.0.9 com USB-C; o modelo sem USB-C tem o seu, V1.0.0.1,
+>   [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)). **NUNCA** renomeie
 >   o `PFL7560-FIX.bin` (em quarentena) para `usb_update.bin`: como ele brica o boot (rótulo SELinux ausente,
 >   ver seção 2), o power-hold o gravaria e **bricaria o aparelho** — o oposto de um resgate.
 
@@ -103,7 +110,7 @@ placa e vice-versa, GND comum, **não** ligar VCC.) Método que a própria assis
 
 ## 5. Resumo (a regra de ouro atualizada)
 
-- **Aplicar a correção:** método `/vendor` (autorun `newlink_update.sh` ou `pfl7560-fix.sh`). **Seguro, nunca
+- **Aplicar a correção:** método `/vendor` (kit de pendrive ou `pfl7560-fix.sh`). **Seguro, nunca
   bricou.**
 - **`PFL7560-FIX.bin`:** só depois de corrigir os rótulos SELinux e **testar**. Por ora, **não usar**.
 - **Recuperar de qualquer brick:** `usb_update.bin` (**SEMPRE o firmware de fábrica**, nunca o `.bin` da

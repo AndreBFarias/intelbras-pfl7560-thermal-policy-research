@@ -1,6 +1,8 @@
 # 10 - Guia de replicação (outros donos do PFL7560)
 
-Aplica a correção térmica em qualquer **PFL7560** com firmware **V1.0.0.9**.
+Aplica a correção térmica em qualquer **PFL7560** com firmware de fábrica **V1.0.0.9** (com USB-C) ou
+**V1.0.0.1** (sem USB-C, fabricado a partir de 25/08/2026; neste, só provado em simulação). O bug do mux é o
+mesmo nos dois ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)).
 Métodos por `/vendor` são **reversíveis** e **não tocam no bootloader**.
 
 > **O que a correção faz:** ativa o 2º sensor de temperatura (desligado por defeito de configuração de fábrica),
@@ -20,8 +22,11 @@ Validação esperada após reboot: fans 1000/1000; `gtt 1` bem acima de `gtt 0` 
 
 ## Método B — pendrive autorun
 
-Copie `pendrive-autorun/newlink_update.sh` + `pendrive-autorun/ZYCustom.ini` para a raiz de um FAT32,
-plugue com o projetor desligado e ligue. Ver `pendrive-autorun/LEIA-ME.txt`.
+Copie o kit v2 **completo** para a raiz de um FAT32 com `./install.sh --pendrive /caminho/do/pendrive`
+(Windows: `install.bat`, opção 5), que confere o md5 de cada arquivo depois da cópia; plugue com o projetor
+desligado e ligue. O mesmo pendrive serve a qualquer PFL7560 (sem serial, sem arquivo para editar) e
+também faz o teste de cor das "duas metades". Passo a passo: [`../../INSTALL.md`](../../INSTALL.md) e
+`pendrive-autorun/LEIA-ME.txt`.
 
 ## Método C — `.bin` completo
 
