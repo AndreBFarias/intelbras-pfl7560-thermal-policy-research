@@ -22,6 +22,9 @@
 #   PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh            # vigia (roda ate Ctrl-C)
 #   PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh --resumo   # calcula a taxa e sai
 set -u
+# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
+# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
+export LC_ALL=C
 
 ADB="${ADB:-adb}"
 PORTA=5555

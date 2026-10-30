@@ -31,6 +31,9 @@
 #   - NAO toca no bootloader. Reversivel: o stock e a build vivem em artifacts/.
 # ============================================================================
 set -uo pipefail
+# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
+# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
+export LC_ALL=C
 PORT=5555
 
 HERE="$(cd "$(dirname "$0")" && pwd)"

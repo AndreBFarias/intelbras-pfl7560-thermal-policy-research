@@ -20,6 +20,9 @@
 #       PFL_IP=<ip> ./pfl7560-saude.sh --idempotencia  # roda 2x e compara
 #       PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade    # prova ATIVA (~65 s, mexe na tela)
 set -u
+# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
+# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
+export LC_ALL=C
 
 ADB="${ADB:-adb}"
 PORTA=5555
