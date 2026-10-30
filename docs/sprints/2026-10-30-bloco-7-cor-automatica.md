@@ -128,3 +128,24 @@ Substitui as tarefas E2b, E3d e E5 do [bloco 5](2026-10-29-bloco-5-kit-universal
 5. **Coordenador, no aparelho:** rodar o `cor.sh` real via adb nos dois formatos de partida (JEIDA e
    VESA). Esperado: a partir de JEIDA, nada escrito; a partir de VESA, termina em JEIDA sozinho. Conferir
    com `cmp -l` e com a câmera.
+
+## Estado (2026-10-30, pausa pedida pelo dono)
+
+- **Provas 1 a 4: verdes** depois do merge (`e3ae407`): `make check` OK, `make check-kit` 29 + 487
+  verificações, `make check-fix` 48, 0 falha. Conferente achou e corrigiu 4 defeitos (`12fa554`,
+  `048fa6d`, `d60544f`, `456a01b`).
+- **Prova 5 (aparelho), sem pendrive:** o kit foi copiado por adb para `/mnt/media_rw/KITTESTE` (imita
+  o pendrive) e rodado com `sh /mnt/media_rw/KITTESTE/newlink_update.sh KITTESTE`, o mesmo caminho do
+  autorun. Térmica: "já estava ok", nada a reiniciar.
+  1. **Partindo de JEIDA (certo): PASSOU.** Calibração com 16 faixas; escada
+     `235 235 233 227 217 206 195 185 174 165 152 136 121 108 98 95`, `inv_decresc=0`, amplitude 140;
+     "formato certo, nada foi escrito"; `panelparam` continuou `4899eefc…`.
+  2. **Partindo de VESA (errado): LANÇADA, RESULTADO NÃO COLETADO.** `lvdsctl fmt 0` (partição
+     `92c63448…`), kit lançado às 16:4x; o dono pediu pausa com o kit ainda na tela `aguarde`. O kit
+     termina sozinho: ou corrige para JEIDA (tela "corrigida", 30 s sem tecla mantém), ou reverte para
+     VESA e cai na pergunta manual da escada (sem tecla = mantém VESA).
+- **Ao retomar (só leitura primeiro):**
+  `adb shell 'cat /mnt/media_rw/KITTESTE/newlink_cor.log; md5sum /dev/block/mmcblk0p6; grep lvds_fmt /proc/msp/panel'`.
+  Esperado: log terminando em `tela: pronto`, md5 `4899eefc…`, `jeida`. Se tiver ficado em VESA, o log
+  diz por quê; a correção manual é `/data/local/tmp/lvdsctl fmt 1`. Depois, apagar `/mnt/media_rw/KITTESTE`
+  (some no reboot de qualquer jeito: `/mnt` é tmpfs).
