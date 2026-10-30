@@ -18,7 +18,7 @@
 #  uma copia em /data/vendor/pfl7560-kit (pasta so do root, 0700), pelo cor.sh.
 #
 #  Coloque na RAIZ do pendrive (FAT32) tudo o que esta na pasta pendrive-autorun:
-#      newlink_update.sh  cor.sh  lvdsctl  ZYCustom.ini  LEIA-ME.txt  kit/*.png
+#      newlink_update.sh  cor.sh  lvdsctl  nl_camcheck  ZYCustom.ini  LEIA-ME.txt  kit/*.png
 #  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
 #  IDEMPOTENTE:
@@ -28,15 +28,17 @@
 #     desconhecido = RECUSA. O .ini novo e montado a partir do .ini DO APARELHO,
 #     trocando so as secoes termicas pelas do ZYCustom.ini do pendrive: o resto
 #     (CONFIG_MODEL inclusive) fica byte a byte. 2a execucao: nada e escrito.
-#   - COR: o cor.sh pergunta olhando a tela e so grava com DUAS teclas; sem
-#     tecla nada muda. 2a execucao: nada e escrito e nada reinicia.
+#   - COR: o cor.sh mede a escada de cinzas pela camera interna (nl_camcheck) e,
+#     se ela estiver fora de ordem, troca o formato; sem camera ele pergunta olhando
+#     a tela e so grava com DUAS teclas; sem tecla nada muda. 2a execucao: nada e
+#     escrito e nada reinicia.
 #   - Reinicia UMA vez, e so quando a fase termica mudou algo.
 #
 #  SEGURANCA: o md5 de CADA arquivo do kit e conferido contra a lista embutida
 #  abaixo ANTES de qualquer escrita. Divergiu ou faltou = aborta. Este script
 #  NUNCA chama hidebug nem gtt (doc 37). Limite honesto: um newlink_update.sh
 #  adulterado roda como root e nao ha defesa contra ele.
-#  E3b: o cor.sh e o lvdsctl rodam como root, entao ficam so numa pasta do root
+#  E3b: o cor.sh, o lvdsctl e o nl_camcheck rodam como root, entao ficam so numa pasta do root
 #  (nunca em /data/local/tmp, que o usuario shell grava), verificada a cada uso
 #  (diretorio real, nao link, dono root); e o md5 do cor.sh e conferido
 #  IMEDIATAMENTE antes de cada execucao (restaurar, tela e teste de cor).
@@ -90,12 +92,15 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-eb5d4052e857f323caa09d746a4e7cd7  cor.sh
+dede08da1c538dbee71ddfea82555ec2  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
+242de46c444bf3dcdcfefd329153c141  nl_camcheck
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
+cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
+b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
 1afd05f32600385e0587acf062262988  kit/erro.png
-a21d35e144a6f18c2af7f69c6a52bdef  kit/metades-1.png
-d631a0d5929746c4cfe2e797cb1eaa3f  kit/metades-2.png
+0afaa2345ab1082d73171003922f5277  kit/escada-1.png
+85fc83ce25d4d44a1bb7b7baafc3c090  kit/escada-2.png
 7cd6dca3430ab476de9bb4c30b3dd4b5  kit/pronto.png
 ab1ca6ffb16e52c7fed90f6db418965b  kit/reiniciando.png
 "
@@ -249,7 +254,7 @@ copiar_preparo(){
   rm -rf "$PREP"
   ( umask 077; mkdir "$PREP" && mkdir "$PREP/kit" ) || return 1
   for _cn in $KIT_COPIA; do cp "$MP/$_cn" "$PREP/$_cn" || return 1; done
-  chmod 755 "$PREP/cor.sh" "$PREP/lvdsctl"
+  chmod 755 "$PREP/cor.sh" "$PREP/lvdsctl" "$PREP/nl_camcheck"
 }
 por_no_lugar(){
   rm -rf "$WORK/kit" && mkdir "$WORK/kit" || return 1

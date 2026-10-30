@@ -19,12 +19,18 @@
 #  SEGURANCA (E3b): tudo aqui roda como root. A pasta de trabalho e verificada a
 #  cada uso (diretorio real, nao link, dono root, sem acesso de grupo/outros);
 #  arquivo dela que seja link ou de outro dono e recusado; o lvdsctl so executa
-#  com o md5 embutido conferido NA HORA; o backup so restaura com o md5 gravado
-#  no journal.
+#  com o md5 embutido conferido NA HORA (o nl_camcheck, a camera, igual); o backup
+#  so restaura com o md5 gravado no journal.
 #
 #  O QUE FAZ (idempotente, sem serial, sem arquivo para editar):
-#   1. Projeta as DUAS METADES de cinza (63|64 e 127|128). Formato certo = metades
-#      iguais; formato errado = uma bem mais clara (rotacao de 2 bits, doc 41 s4).
+#   0. MODO AUTOMATICO (bloco 7, ligado por padrao): projeta a CALIBRACAO (faixas
+#      brancas), a camera interna acha as 16 faixas; projeta a ESCADA de 16 cinzas
+#      e mede a ordem de brilho. Em ordem = formato certo = NADA e escrito. Fora de
+#      ordem (>= 2 inversoes) = troca o formato AO VIVO e mede de novo; ficou em
+#      ordem = mantem (a pessoa pode desfazer com uma tecla em 30 s). Qualquer
+#      duvida (camera, calibracao, 1 inversao so) cai no fluxo manual abaixo.
+#   1. Fluxo manual: projeta a ESCADA de 16 cinzas. Formato certo = sobe em ordem;
+#      formato errado = a rotacao de 2 bits embaralha as faixas (doc 41 s4).
 #   2. Sem tecla em 30 s: NADA e escrito. Esta e a saida do aparelho de fabrica.
 #   3. Com uma tecla: backup do panelparam (conferido com cmp), journal em /data,
 #      troca o formato AO VIVO (lvdsctl fmt) e projeta de novo.
@@ -43,7 +49,7 @@
 # do ambiente, para que nenhuma delas seja porta de entrada em producao. O gancho
 # de boot gerado por este script apaga todas antes de qualquer coisa.
 if [ "${PFL_TESTE:-}" != "1" ]; then
-  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE
 fi
 R="${PFL_ROOT:-}"
 PP="$R/dev/block/by-name/panelparam"
@@ -53,13 +59,21 @@ NLSU="$R/data/local/nlsu"
 HOOK="$NLSU/update_after_boot.sh"
 LOCK="$R/dev/pfl7560-kit.lock"
 LVDSCTL="${PFL_LVDSCTL:-$WORK/lvdsctl}"
+NLCAM="${PFL_NLCAMCHECK:-$WORK/nl_camcheck}"
+VIDEO="$R/dev/video0"
 # md5 do lvdsctl do kit (o mesmo da lista do newlink_update.sh); conferido na hora
 # de cada execucao. DONO_UID: o dono exigido nas pastas e arquivos (root = 0).
 LVDSCTL_MD5="178d812872cb9306c0ae6faeed07184a"
+# idem para o nl_camcheck (artifacts/camcheck/nl_camcheck.c, NDK r27c)
+NLCAM_MD5="242de46c444bf3dcdcfefd329153c141"
 DONO_UID=0
+# MODO_AUTO: ligado por padrao; PFL_TESTE=1 PFL_MODO_AUTO=0 o desliga (so o harness)
+MODO_AUTO=1
 if [ "${PFL_TESTE:-}" = "1" ]; then
   [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
   [ -n "${PFL_LVDSCTL_MD5:-}" ] && LVDSCTL_MD5="$PFL_LVDSCTL_MD5"
+  [ -n "${PFL_NLCAMCHECK_MD5:-}" ] && NLCAM_MD5="$PFL_NLCAMCHECK_MD5"
+  [ -n "${PFL_MODO_AUTO:-}" ] && MODO_AUTO="$PFL_MODO_AUTO"
 fi
 LIBHITV="$R/vendor/lib/libhitvservice.so"
 LIBS="/vendor/lib:/system/lib"
@@ -77,21 +91,18 @@ PP_TAM=8388608
 # tempos (s)
 TEMPO_TECLA=30        # sem tecla neste prazo = nao mexe / reverte
 TEMPO_ASSENTAR=2      # tela nova + folga para a 1a tecla nao valer de 2a
+TEMPO_TELA=3          # depois de abrir uma tela: a galeria desenhar e a camera assentar
 AUTOFOCO_MAX=60
 AUTOFOCO_FOLGA=30
 ESPERA_REBOOT=5
 # gancho de teste (so com PFL_TESTE=1): o harness (tests/) zera as esperas
-[ -n "${PFL_RAPIDO:-}" ] && { TEMPO_ASSENTAR=0; AUTOFOCO_MAX=0; AUTOFOCO_FOLGA=0; ESPERA_REBOOT=0; }
+[ -n "${PFL_RAPIDO:-}" ] && { TEMPO_ASSENTAR=0; TEMPO_TELA=0; AUTOFOCO_MAX=0; AUTOFOCO_FOLGA=0; ESPERA_REBOOT=0; }
 
-# ---- MODO AUTOMATICO (E5, camera) -- DESLIGADO ---------------------------------
-# Ponto de chamada reservado: com MODO_AUTO=1, em vez de esperar a tecla da
-# pessoa, o kit chamaria um binario de camera (nl_camcheck, ainda inexistente)
-# que mede a luma das duas metades e devolve 0 = formato certo, 1 = errado,
-# 2 = sem margem (a pessoa decide). So liga depois do portao da etapa E5
-# (docs/sprints/2026-10-29-bloco-5-kit-universal.md). Hoje a funcao abaixo nunca
-# e chamada e devolve "sem decisao".
-MODO_AUTO=0
-decidir_por_camera(){ return 2; }
+# limites do modo automatico (bloco 7)
+FAIXAS_N=16           # faixas da calibracao e da escada
+CAM_DESCARTE=15       # quadros descartados antes de medir (a exposicao assenta)
+AMPLITUDE_MIN=40      # luma: abaixo disso a camera nao viu a escada (tampada, escura)
+INV_ERRADO=2          # >= 2 inversoes = formato errado; 1 = indeciso; 0 = em ordem
 
 LOG(){ echo "[PFL7560-cor] $*"; }
 
@@ -179,7 +190,18 @@ mostrar(){
   _f="$TELA_DIR/$1.png"
   [ -f "$_f" ] || { LOG "[AVISO] tela $1 ausente em $TELA_DIR"; return 1; }
   LOG "tela: $1"
+  # A galeria (NetworkHiGallery) aberta recebe o 2o 'am start' como "intent delivered
+  # to currently running top-most instance" e NAO troca a imagem (medido no aparelho,
+  # bloco 7). Fechar a galeria a forca antes de cada tela resolve. O pacote vem do
+  # proprio resolvedor de VIEW de PNG (ultima linha: pacote/atividade).
+  _pk=$(cmd package resolve-activity --brief -a android.intent.action.VIEW -d "file://${_f#"$R"}" -t image/png 2>/dev/null | tail -1)
+  _pk="${_pk%%/*}"
+  case "$_pk" in
+    ''|android|*[!A-Za-z0-9._]*) _pk="com.hisilicon.higallery" ;;
+  esac
+  am force-stop "$_pk" >/dev/null 2>&1
   am start -a android.intent.action.VIEW -d "file://${_f#"$R"}" -t image/png >/dev/null 2>&1
+  sleep "$TEMPO_TELA"
 }
 
 # PREMISSA NAO CONFIRMADA (doc 41, modos de falha): o autofoco/keystone pode
@@ -223,6 +245,20 @@ aplicar_vivo(){
   lvdsctl_confere || return 1
   LOG "lvdsctl fmt $1"
   LD_LIBRARY_PATH="$LIBS" timeout 30 "$LVDSCTL" fmt "$1" >/dev/null 2>&1
+}
+
+# ---- camera (modo automatico, bloco 7) ---------------------------------------
+# O nl_camcheck tambem roda como root: so executa se for arquivo regular do root
+# (nao link) e com o md5 embutido, conferido AGORA, imediatamente antes de CADA
+# execucao. So le a camera (sem controle nenhum); timeout para nao travar o kit.
+nlcam_confere(){
+  if arq_seguro "$NLCAM" && [ -x "$NLCAM" ] && [ "$(md5_de "$NLCAM")" = "$NLCAM_MD5" ]; then return 0; fi
+  LOG "[ERRO] nl_camcheck ($NLCAM) ausente, link, de outro dono ou com md5 diferente do esperado - NAO vou executar."
+  return 1
+}
+nlcam_exec(){
+  nlcam_confere || return 1
+  timeout 30 "$NLCAM" "$@"
 }
 
 # ---- journal -----------------------------------------------------------------
@@ -362,7 +398,7 @@ gerar_gancho(){
   echo '#!/vendor/bin/sh'
   echo '# pfl7560-kit-gancho: criado pelo kit de pendrive. Restaura o formato LVDS se um'
   echo '# teste de cor foi interrompido e se apaga quando o journal some.'
-  echo 'unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE'
+  echo 'unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE'
   if [ "${PFL_TESTE:-}" = "1" ]; then
     echo "PFL_TESTE=1; PFL_ROOT='$R'; PFL_RAPIDO='${PFL_RAPIDO:-}'; PFL_DONO='$DONO_UID'; PFL_LVDSCTL='${PFL_LVDSCTL:-}'; PFL_LVDSCTL_MD5='$LVDSCTL_MD5'"
     echo 'export PFL_TESTE PFL_ROOT PFL_RAPIDO PFL_DONO PFL_LVDSCTL PFL_LVDSCTL_MD5'
@@ -479,6 +515,122 @@ finalizar(){ # tela
   exit 0
 }
 
+# ---- modo automatico: decide o formato pela camera (bloco 7) ------------------
+# Mede a escada e preenche ESC_NIVEIS, ESC_INV (menor entre quedas e subidas) e
+# ESC_AMPL (maximo menos minimo dos niveis). Devolve !=0 se nao mediu direito.
+medir_escada(){ # $1 = rotulo para o log
+  _o=$(nlcam_exec niveis "$VIDEO" "$FAIXAS" "$CAM_DESCARTE") || { LOG "[AVISO] nl_camcheck niveis falhou ($1): $_o"; return 1; }
+  _ult=$(echo "$_o" | tail -1)
+  _ic=$(echo "$_ult" | sed -n 's/^inv_cresc=\([0-9][0-9]*\) inv_decresc=[0-9][0-9]*$/\1/p')
+  _id=$(echo "$_ult" | sed -n 's/^inv_cresc=[0-9][0-9]* inv_decresc=\([0-9][0-9]*\)$/\1/p')
+  ESC_NIVEIS=$(echo "$_o" | sed '$d' | tr '\n' ' ')
+  _nn=$(echo "$_o" | sed '$d' | grep -c '^[0-9][0-9]*$')
+  if [ -z "$_ic" ] || [ -z "$_id" ] || [ "$_nn" != "$FAIXAS_N" ]; then
+    LOG "[AVISO] saida do nl_camcheck niveis ilegivel ($1): '$_o'"
+    return 1
+  fi
+  ESC_INV="$_ic"; [ "$_id" -lt "$_ic" ] && ESC_INV="$_id"
+  _mn=255; _mx=0
+  for _v in $ESC_NIVEIS; do
+    [ "$_v" -lt "$_mn" ] && _mn="$_v"
+    [ "$_v" -gt "$_mx" ] && _mx="$_v"
+  done
+  ESC_AMPL=$(( _mx - _mn ))
+  LOG "escada ($1): niveis= ${ESC_NIVEIS}inv_cresc=$_ic inv_decresc=$_id amplitude=$ESC_AMPL"
+  return 0
+}
+
+# Projeta a escada-1 e mede. Resultado em ESC_RES: ordem (0 inversoes), errado
+# (>= INV_ERRADO), duvida (1 inversao, ou a camera nao viu a escada).
+escada_medir(){ # $1 = rotulo
+  mostrar escada-1
+  medir_escada "$1" || { ESC_RES=duvida; return 1; }
+  if [ "$ESC_AMPL" -lt "$AMPLITUDE_MIN" ]; then
+    LOG "[AVISO] amplitude $ESC_AMPL < $AMPLITUDE_MIN: a camera nao viu a escada (tampada ou escura)."
+    ESC_RES=duvida; return 1
+  fi
+  if [ "$ESC_INV" = "0" ]; then ESC_RES=ordem
+  elif [ "$ESC_INV" -ge "$INV_ERRADO" ]; then ESC_RES=errado
+  else ESC_RES=duvida; fi
+  return 0
+}
+
+# Devolve !=0 para "cai no fluxo manual" (sem ter deixado nada escrito). Termina o
+# kit (finalizar) quando decide: formato certo, formato trocado e mantido, ou desfeito.
+decidir_por_camera(){
+  if [ ! -e "$VIDEO" ]; then LOG "[AVISO] $VIDEO nao existe: modo automatico indisponivel."; return 1; fi
+  nlcam_confere || return 1
+  FAIXAS="$WORK/faixas.txt"
+  rm -f "$FAIXAS"
+  mostrar calibracao
+  _o=$(nlcam_exec faixas "$VIDEO" "$FAIXAS_N" "$FAIXAS" "$CAM_DESCARTE"); _rc=$?
+  if [ "$_rc" != "0" ]; then
+    LOG "[AVISO] calibracao pela camera falhou (rc=$_rc: $_o): fluxo manual."
+    return 1
+  fi
+  LOG "calibracao: $_o"
+
+  escada_medir "formato atual lvds_fmt=$CVAL" || { LOG "modo automatico sem decisao: a pessoa decide"; return 1; }
+  case "$ESC_RES" in
+    ordem)
+      LOG "[OK] escada em ordem com lvds_fmt=$CVAL: formato certo, nada foi escrito"
+      finalizar pronto ;;
+    duvida)
+      LOG "escada com $ESC_INV inversao: sem margem para decidir, nada foi escrito: a pessoa decide"
+      return 1 ;;
+  esac
+
+  # escada fora de ordem: troca ao vivo, com backup, journal e gancho como no manual
+  LOG "escada FORA de ordem ($ESC_INV inversoes) com lvds_fmt=$CVAL: tentando lvds_fmt=$NOVO"
+  vivo_disponivel || { LOG "[AVISO] lvdsctl ou libhitvservice ausente: nada foi escrito: a pessoa decide"; return 1; }
+  preparar_backup || finalizar erro
+  jornal_gravar "$CIDX" "$OFF" "$CVAL" "$BKP_MD5" || { LOG "[ERRO] nao consegui gravar o journal - NAO vou escrever."; finalizar erro; }
+  instalar_gancho
+  LOG "trocando lvds_fmt $CVAL -> $NOVO ao vivo (journal guarda o original)"
+  aplicar_vivo "$NOVO"
+  if [ "$(cor_valor "$CIDX")" != "$NOVO" ]; then
+    LOG "[ERRO] depois do lvdsctl o byte lido e '$(cor_valor "$CIDX")', nao $NOVO - revertendo."
+    reverter || LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
+    finalizar erro
+  fi
+  sleep "$TEMPO_ASSENTAR"
+  escada_medir "depois da troca para lvds_fmt=$NOVO"
+
+  if [ "$ESC_RES" = "ordem" ]; then
+    mostrar corrigida
+    if esperar_tecla; then
+      LOG "tecla recebida: a pessoa quer desfazer a correcao automatica - revertendo para lvds_fmt=$CVAL"
+      if reverter; then
+        LOG "[OK] revertido: lvds_fmt=$CVAL"
+        [ "$VIVO_OK" = "1" ] || LOG "[AVISO] o lvdsctl nao confirmou a volta ao vivo: o formato original vale a partir do proximo boot."
+        finalizar pronto
+      fi
+      LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
+      finalizar erro
+    fi
+    if [ "$(cor_valor "$CIDX")" = "$NOVO" ] && particao_so_difere_no_fmt "$OFF"; then
+      LOG "[OK] escada em ordem depois da troca, sem tecla para desfazer: lvds_fmt=$NOVO mantido, relido e a particao confere (so o byte 0x5c mudou)"
+      rm -f "$JOURNAL"
+      remover_gancho
+      finalizar pronto
+    fi
+    LOG "[ERRO] a releitura nao confirmou (byte ou perfil diferente do esperado) - revertendo."
+    reverter || { LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."; finalizar erro; }
+    finalizar erro
+  fi
+
+  LOG "a troca nao deixou a escada em ordem ($ESC_RES, $ESC_INV inversoes): revertendo para lvds_fmt=$CVAL e caindo no fluxo manual"
+  if ! reverter; then
+    LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
+    finalizar erro
+  fi
+  if [ "$VIVO_OK" != "1" ]; then
+    LOG "[AVISO] o lvdsctl nao confirmou a volta ao vivo: o formato original vale a partir do proximo boot. NAO vou perguntar."
+    finalizar erro
+  fi
+  return 1
+}
+
 # ============================================================================
 #  modos
 # ============================================================================
@@ -555,19 +707,20 @@ modo_teste(){
   NOVO=$(( 1 - CVAL ))
   LOG "perfil $CIDX '$PNOME': lvds_fmt=$CVAL (0=VESA, 1=JEIDA)"
 
+  # modo automatico (camera): termina o kit se decidir; devolve se a pessoa decide
   if [ "$MODO_AUTO" = "1" ]; then
     decidir_por_camera
-    LOG "modo automatico sem decisao (E5 nao implementada): a pessoa decide"
+    LOG "modo automatico sem decisao: a pessoa decide (fluxo manual)"
   fi
 
-  # ---- pergunta 1: as metades estao iguais? ----
-  mostrar metades-1
+  # ---- pergunta 1: a escada esta em ordem? ----
+  mostrar escada-1
   if ! esperar_tecla; then
     LOG "sem tecla em ${TEMPO_TECLA}s: formato mantido ($CVAL), nada foi escrito"
     finalizar pronto
   fi
-  LOG "tecla recebida: a pessoa viu as metades DIFERENTES"
-  mostrar metades-1   # reabre: a galeria pode ter trocado de imagem ou aberto um menu
+  LOG "tecla recebida: a pessoa viu a escada FORA de ordem"
+  mostrar escada-1   # reabre: a galeria pode ter trocado de imagem ou aberto um menu
 
   vivo_disponivel || {
     LOG "[ERRO] lvdsctl ou libhitvservice ausente: nao da para testar ao vivo. Nada foi escrito. Use o wizard do PC (pfl7560-lcd-color.sh wizard)."
@@ -587,7 +740,7 @@ modo_teste(){
 
   # ---- pergunta 2: agora estao iguais? so mantem com a SEGUNDA tecla ----
   sleep "$TEMPO_ASSENTAR"
-  mostrar metades-2
+  mostrar escada-2
   sleep "$TEMPO_ASSENTAR"
   if esperar_tecla; then
     if [ "$(cor_valor "$CIDX")" = "$NOVO" ] && particao_so_difere_no_fmt "$OFF"; then
