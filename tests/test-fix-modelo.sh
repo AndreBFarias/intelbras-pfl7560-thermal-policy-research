@@ -208,6 +208,10 @@ c_install_bat_recusa_outro_modelo(){
   CASO="install.bat recusa o modelo sem USB-C"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c "CONFIG_MODEL \*= \*KJM_5H039_412;" "$b")" = 2 ]' "esperava a conferencia do CONFIG_MODEL no apply e no revert"
+  # o CONFIG_MODEL sozinho nao basta: um aparelho sem USB-C que ja levou o ini do V1.0.0.9 (pelo
+  # install.bat/fix.sh de antes do bloco 6) tem o CONFIG_MODEL rebaixado, e o revert lhe daria o
+  # build.prop do V1.0.0.9. A mesma linha tem de conferir tambem o ro.newlink.projectname.
+  afirma '[ "$(grep "CONFIG_MODEL \*= \*KJM_5H039_412;" "$b" | grep -c "getprop ro.newlink.projectname | grep -qx KJM_5H039_412_INTELBRAS_TP")" = 2 ]' "a conferencia do install.bat nao exige tambem o ro.newlink.projectname do V1.0.0.9"
   afirma 'awk '"'"'/^:do_apply/{a=1} /^:do_revert/{a=0} a&&/call :connect/{c=NR} a&&/CONFIG_MODEL \*=/{m=NR} a&&/call :backup_stock/{k=NR} END{exit !(c&&m&&k&&c<m&&m<k)}'"'"' "$b"' "apply: a conferencia do modelo nao esta entre o connect e o backup"
   afirma 'awk '"'"'/^:do_revert/{a=1} /^:no_bk/{a=0} a&&/call :connect/{c=NR} a&&/CONFIG_MODEL \*=/{m=NR} a&&/remount/{k=NR} END{exit !(c&&m&&k&&c<m&&m<k)}'"'"' "$b"' "revert: a conferencia do modelo nao esta entre o connect e o remount"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF"
