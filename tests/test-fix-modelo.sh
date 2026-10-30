@@ -162,6 +162,23 @@ c_modelo_desconhecido(){
     afirma '[ "$RC" != 0 ] && [ "$(estado)" = "$e0" ] && [ "$(reboots)" = 0 ] && [ ! -d "$(BKD)" ]' "$cmd num modelo desconhecido nao recusou limpo"
     afirma 'grep -q "modelo nao reconhecido" "$T/out.log"' "$cmd: mensagem"
   done
+  # um sinal conhecido e o outro presente mas DESCONHECIDO: nao basta o conhecido, recusa
+  # (senao o apply gravaria o ini do V1.0.0.9 por cima do CONFIG_MODEL de outro modelo)
+  echo KJM_5H039_412_INTELBRAS_TP > "$T/projectname"
+  e0="$(estado)"
+  for cmd in apply revert; do
+    fix "$cmd"
+    afirma '[ "$RC" != 0 ] && [ "$(estado)" = "$e0" ] && [ "$(reboots)" = 0 ] && [ ! -d "$(BKD)" ]' "$cmd com CONFIG_MODEL desconhecido e projectname conhecido nao recusou limpo"
+    afirma 'grep -q "modelo nao reconhecido" "$T/out.log"' "$cmd (CONFIG_MODEL desconhecido): mensagem"
+  done
+  cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$FAKE/vendor/etc/ZYCustom.ini"
+  echo OUTRO_MODELO_TP > "$T/projectname"
+  e0="$(estado)"
+  for cmd in apply revert; do
+    fix "$cmd"
+    afirma '[ "$RC" != 0 ] && [ "$(estado)" = "$e0" ] && [ "$(reboots)" = 0 ] && [ ! -d "$(BKD)" ]' "$cmd com projectname desconhecido e CONFIG_MODEL conhecido nao recusou limpo"
+    afirma 'grep -q "modelo nao reconhecido" "$T/out.log"' "$cmd (projectname desconhecido): mensagem"
+  done
   # ini diz antigo, propriedade diz sem USB-C
   cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$FAKE/vendor/etc/ZYCustom.ini"
   echo KJM_5H039_412_INTELBRAS_NOTYPEC_TP > "$T/projectname"

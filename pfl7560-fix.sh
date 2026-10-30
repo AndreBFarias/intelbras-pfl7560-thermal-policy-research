@@ -70,6 +70,8 @@ detecta_modelo(){
   prj="$("$ADB" -s "$d" shell "getprop ro.newlink.projectname" 2>/dev/null | tr -d '\r\n ')"
   case "$cfg" in KJM_5H039_412) mc=antigo ;; KJM_5H039_412_INTELBRAS_NOTYPEC_TP) mc=novo ;; *) mc="" ;; esac
   case "$prj" in KJM_5H039_412_INTELBRAS_TP) mp=antigo ;; KJM_5H039_412_INTELBRAS_NOTYPEC_TP) mp=novo ;; *) mp="" ;; esac
+  # um sinal PRESENTE e desconhecido (outro modelo) nao e compensado pelo outro sinal: recusa
+  if { [ -n "$cfg" ] && [ -z "$mc" ]; } || { [ -n "$prj" ] && [ -z "$mp" ]; }; then mc=""; mp=""; fi
   if [ -n "$mc" ] && [ -n "$mp" ] && [ "$mc" != "$mp" ]; then
     err "sinais contraditorios sobre o modelo (CONFIG_MODEL='$cfg', ro.newlink.projectname='$prj') - recusado, nada foi alterado."; return 1
   fi
