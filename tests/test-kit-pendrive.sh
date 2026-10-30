@@ -736,6 +736,56 @@ c_sem_hidebug(){
 }
 
 # ---------------------------------------------------------------------------
+# E3c: instaladores copiam o kit v2 COMPLETO para a raiz do pendrive e conferem
+# ---------------------------------------------------------------------------
+c_instalador(){
+  CASO="install.sh --pendrive"; SHELL_NOME="-"
+  local d x f n
+  d="$(mktemp -d)"
+  afirma 'bash "$ROOT/install.sh" --pendrive "$d" >"$d.log" 2>&1' "install.sh --pendrive falhou: $(tail -3 "$d.log" 2>/dev/null | tr '\n' ' ')"
+  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt kit/aguarde.png kit/erro.png kit/metades-1.png kit/metades-2.png kit/pronto.png kit/reiniciando.png; do
+    afirma 'cmp -s "$KIT/$f" "$d/$f"' "pendrive sem $f ou com copia diferente"
+  done
+  n="$(cd "$d" && find . -type f | wc -l)"
+  afirma '[ "$n" = 11 ]' "esperava 11 arquivos no pendrive, achei $n"
+  # o pendrive copiado confere, arquivo a arquivo, com a lista que o aparelho usa
+  afirma '( cd "$d" && sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh" \
+            | sed -n "s/^\(KIT_LISTA=\"\)\{0,1\}\([0-9a-f]\{32\}  .*\)\$/\2/p" | md5sum -c --quiet - )' "o pendrive nao confere com a lista embutida"
+  # destino inexistente e destino = pasta do kit: recusa
+  afirma '! bash "$ROOT/install.sh" --pendrive "$d/nao-existe" >/dev/null 2>&1' "aceitou destino inexistente"
+  afirma '! bash "$ROOT/install.sh" --pendrive "$KIT" >/dev/null 2>&1' "aceitou a propria pasta do kit como destino"
+  afirma '! bash "$ROOT/install.sh" --pendrive >/dev/null 2>&1' "aceitou --pendrive sem destino"
+
+  # origem com arquivo adulterado (uma copia da arvore): a conferencia depois da copia reprova
+  x="$(mktemp -d)"
+  mkdir -p "$x/pendrive-autorun" && cp -r "$KIT"/. "$x/pendrive-autorun/" && cp "$ROOT/install.sh" "$x/"
+  printf 'X' >> "$x/pendrive-autorun/kit/pronto.png"
+  mkdir -p "$d.2"
+  afirma '! bash "$x/install.sh" --pendrive "$d.2" >"$d.2.log" 2>&1' "install.sh aceitou um kit com PNG adulterado"
+  afirma 'grep -q "kit/pronto.png" "$d.2.log"' "a recusa nao aponta o arquivo"
+  rm -rf "$d" "$d.log" "$d.2" "$d.2.log" "$x"
+
+  # install.bat: texto estatico (nao ha Windows aqui; a prova de execucao e a mao)
+  CASO="install.bat"
+  local b="$ROOT/install.bat"
+  afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
+  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt 'kit\*.png'; do
+    afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -qF "$f"' "install.bat nao copia/lista $f"
+  done
+  afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
+  afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "newlink_update.sh.*\\x22"' "install.bat nao le a lista embutida no newlink_update.sh"
+  # o regex da lista do install.bat acha as mesmas 9 entradas da lista embutida
+  afirma '[ "$(python3 -I -c "
+import re,sys
+t=open(sys.argv[1]).read()
+print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\", t)))" "$KIT/newlink_update.sh")" = 9 ]' "regex da lista do install.bat nao acha as 9 entradas"
+  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt; do
+    afirma 'grep -q "$f" "$ROOT/INSTALL.md"' "INSTALL.md nao lista $f"
+  done
+  afirma 'grep -q "kit/\*.png" "$ROOT/INSTALL.md"' "INSTALL.md nao lista kit/*.png"
+}
+
+# ---------------------------------------------------------------------------
 # estaticos
 # ---------------------------------------------------------------------------
 c_estaticos(){
@@ -778,6 +828,8 @@ c_estaticos(){
 # ---------------------------------------------------------------------------
 echo "== estaticos =="
 c_estaticos
+echo "== instaladores (E3c) =="
+c_instalador
 
 for SHELL_NOME in ${SHELLS:-dash}; do
   case "$SHELL_NOME" in

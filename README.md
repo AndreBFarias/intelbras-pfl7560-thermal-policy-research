@@ -75,7 +75,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie `pendrive-autorun/newlink_update.sh` e `pendrive-autorun/ZYCustom.ini` para a raiz de um pendrive FAT32, plugue no projetor **desligado** e ligue. Idempotente.
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Idempotente.
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash
