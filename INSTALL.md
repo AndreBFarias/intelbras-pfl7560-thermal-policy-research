@@ -185,7 +185,7 @@ A coluna `optica_C` do TSV é o `gtt1`, que mede o bloco do LED
 
 ## Reverter
 
-`PFL_IP=... ./pfl7560-fix.sh revert` (restaura o backup do stock) ou regrave o firmware de fábrica pela “Atualização local do sistema”.
+`PFL_IP=... ./pfl7560-fix.sh revert` (restaura o backup do stock) ou regrave o firmware de fábrica **do seu modelo** pela “Atualização local do sistema” (não grave o de um modelo no outro; quem trocou o painel LCD refaz o teste de cor depois, ver o fim deste guia).
 
 **Dois modelos.** O `pfl7560-fix.sh` detecta o modelo do aparelho (`CONFIG_MODEL` do `ZYCustom.ini` e
 `ro.newlink.projectname`): o com USB-C (V1.0.0.9) e o sem USB-C (V1.0.0.1, “NOTYPEC”, doc 42). O backup do

@@ -123,7 +123,8 @@ Checklist completo de pré-condições e recuperação: doc 18, seção "Pré-re
   endurecidos e integrada ao menu e ao `install.bat` (LCD-S1, `a9d3fa2`), backup obrigatório antes de
   gravar (bloco 1), e o kit de pendrive com o teste das "duas metades" (bloco 5) — trilha B, fora do
   caminho crítico.
-- **A higiene do repo** — 4 dos 5 checks da REPO-S1 já passam; `make check` 6/6 (doc 30).
+- **A higiene do repo** — 4 dos 5 checks da REPO-S1 já passam; `make check` 6/6 (doc 30); desde
+  2026-10-30, 9 OK (os 3 artefatos do modelo sem USB-C, bloco 6).
 
 ---
 

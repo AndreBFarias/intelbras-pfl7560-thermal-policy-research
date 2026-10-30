@@ -264,6 +264,8 @@ quiser correção nativa por firmware, seria preciso um empacotador que grave o 
 
 **Mas confirmar:** se algum dia se descobrir que o resgate toca o `panelparam`, adicionar ao doc 16 e ao guia
 leigo (LCD-S5): "após resgate, se as cores voltarem erradas, rode `pfl7560-lcd-color.sh jeida`".
+(**Superado (2026-10-30):** o formato não se deduz do painel; os guias 16 e 32 mandam refazer o teste de
+cor, não aplicar `jeida` às cegas.)
 
 **Proof-of-work:** a resposta documentada da Task 1 (record de `panelparam` existe? sim/não, com
 evidência do header + cmdline). **Esforço:** médio (é análise binária + decisão, não build).

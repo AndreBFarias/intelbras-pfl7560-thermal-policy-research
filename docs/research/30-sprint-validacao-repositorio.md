@@ -48,7 +48,9 @@ deixou link quebrado, caminho órfão nem referência ao diretório antigo.
    local antigo. Estado atual: **PASSA** (as únicas ocorrências de "artefatos" são prosa em comentários).
 4. **Integridade dos artefatos stock:** `make check` (= `tests/check-stock-md5.sh`) passa. Estado atual:
    **PASSA** — 6 OK: `ZYCustom.ini.ORIGINAL`, `build.prop.STOCK` (`fd8406c4...`), `init.bigfish.rc.STOCK`,
-   `ZYCustom_390.ini`, `pendrive-autorun/ZYCustom.ini`, `CONFIG_B64` decodificado.
+   `ZYCustom_390.ini`, `pendrive-autorun/ZYCustom.ini`, `CONFIG_B64` decodificado. (**Atualização
+   (2026-10-30):** 9 OK; entraram os 3 artefatos do modelo sem USB-C, bloco 6, e o `init.bigfish.rc.STOCK`
+   ficou byte-exato ao de fábrica, md5 `8f7e02b2…`, T6.4.)
 5. **Sem órfãos:** todo doc citado no índice (`docs/README.md`) existe; todo artefato de caminho literal
    `artifacts/...` citado nos docs existe. Método do checker: extrair paths com `grep -oE 'artifacts/[^ )`]+'`
    e testar `-e` cada um. Estado atual: **PASSA**. *Achado lateral (não é FAIL):*
