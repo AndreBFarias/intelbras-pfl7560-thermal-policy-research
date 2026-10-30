@@ -23,7 +23,7 @@ Substitui as tarefas E2b, E3d e E5 do [bloco 5](2026-10-29-bloco-5-kit-universal
    formato errado dá **no mínimo 3 inversões**; o certo dá 0.
 4. **Localização sem depender do formato:** uma tela `calibracao` com faixas **brancas (255)** nas mesmas
    posições sobre preto (0). 0 e 255 não mudam entre VESA e JEIDA.
-5. **Câmera:** `/dev/video0`, uvcvideo, YUYV e MJPG em 1280x720/640x480/640x360. O quadro sai girado 180°
+5. **Câmera:** `/dev/video0`, uvcvideo, YUYV e MJPG em 1280x720/640x480/640x360. O quadro sai espelhado de cima para baixo (corrigido no [bloco 8](2026-10-30-bloco-8-camera-robusta.md); antes estava "girado 180°")
    e só luma. Sem controle de exposição (só brilho, contraste, saturação, matiz, WB auto, gamma). Topo da
    escada satura em 235 na câmera.
 6. **Fixtures reais em `tests/fixtures/camera/`** (YUYV 640x480, 614400 bytes, `grab ... 15` quadros

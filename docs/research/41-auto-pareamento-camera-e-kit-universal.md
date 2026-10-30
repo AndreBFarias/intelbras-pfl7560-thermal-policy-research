@@ -147,7 +147,7 @@ O dono trocou o LCD de novo. O aparelho bootou em VESA (byte `0x5c` = 0, o da 2�
 | (a) `/proc/msp/panel` | `lvds_fmt vesa`, `cut_idx 69`, `RX058B_4300_5010E_1080P_M` | `CONFIRMADO` |
 | (b) a API grava só o byte `0x5c` | `cmp -l` antes/depois de `lvdsctl fmt 1`: **uma** linha, `53253 0 1`. A imagem em JEIDA tem md5 `4899eefc…`, **idêntico** ao backup JEIDA de 2026-10-29 | `CONFIRMADO` |
 | (e) `am start ... VIEW` de `/sdcard` | a **1ª** tela abre; a **2ª** não substitui a 1ª ("intent has been delivered to currently running top-most instance": a galeria `com.hisilicon.higallery` continua na imagem antiga). Com `am force-stop com.hisilicon.higallery` antes, troca | `CONFIRMADO`, defeito do kit |
-| (f) câmera | `/dev/video0` `0660 system:camera`, driver `uvcvideo`, "Integrated Camera", MJPG e YUYV em 1280x720/640x480/640x360. `nl_camcheck grab` funcionou como root. O quadro sai **girado 180°** e **sem cor** (só luma) | `CONFIRMADO` |
+| (f) câmera | `/dev/video0` `0660 system:camera`, driver `uvcvideo`, "Integrated Camera", MJPG e YUYV em 1280x720/640x480/640x360. `nl_camcheck grab` funcionou como root. O quadro sai **espelhado de cima para baixo** (bloco 8; antes anotado como "girado 180°") e **sem cor** (só luma) | `CONFIRMADO` |
 
 **Decisão do formato, pela câmera e pelo olho.** Luma média das metades no quadro da câmera,
 |L−R|/(L+R):
@@ -173,3 +173,10 @@ Painel desta troca = **JEIDA**, gravado por `lvdsctl fmt 1` (persiste). `saude.s
    1ª tela ficaria parada. Corrigir com `force-stop` da galeria antes de cada tela.
 
 Tarefas no [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) (E2b e E3d).
+
+## 9. Modo automático provado no aparelho (2026-10-30, [bloco 8](../sprints/2026-10-30-bloco-8-camera-robusta.md))
+
+A janela larga de colunas (35 a 65 %) falhou com a imagem inclinada para a câmera (10 de 16 faixas). Com
+a janela de 47 a 53 % e a captura em 1280x720, o kit real, a partir de VESA gravado à mão e depois de
+um reboot, achou as 16 faixas, viu a escada fora de ordem, trocou para JEIDA, conferiu a escada em
+ordem e gravou só o byte 0x5c (`4899eefc`). Num 2º reboot, JEIDA persistiu e o kit não escreveu nada.
