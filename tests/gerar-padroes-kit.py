@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
-"""Gera os PNG 1920x1080 do kit universal de pendrive (bloco 5, etapa E2).
+"""Gera os PNG 1920x1080 do kit universal de pendrive (blocos 5 e 7).
 
 Uso:  python3 -I tests/gerar-padroes-kit.py [pasta-de-saida]
       (padrão: pendrive-autorun/kit)
 
-Desenho (doc 41 §4): as telas do teste de cor trazem DUAS METADES de cinza,
-63|64 em cima e 127|128 embaixo. VESA e JEIDA diferem por uma rotação de 2 bits
-igual em R, G e B; no formato certo as metades saem iguais (63|64), no errado
-viram 252|1 ou 207|16. Os textos ficam só em bandas de preto e branco PUROS
-(0 e 255), os únicos valores que a rotação não altera, então a instrução
-continua legível nos dois formatos.
+Desenho (bloco 7, docs/sprints/2026-10-30-bloco-7-cor-automatica.md): VESA e
+JEIDA diferem por uma rotação de 2 bits igual em R, G e B. O pipeline de imagem
+do aparelho (gamma, DCI, balanço de branco) muda os valores antes do LVDS, então
+"duas metades iguais" não é confiável (medido no aparelho). O que aparece sempre
+é a ORDEM DE BRILHO: uma ESCADA de 16 faixas cinza, níveis 10 + 15k (k = 0..15),
+cada uma com 34 px de altura e passo de 50 px a partir de y = 140, separadas por
+preto, na largura toda. No formato certo ela sobe em ordem; no errado a rotação
+embaralha (zigue-zague, no mínimo 3 inversões). A tela "calibracao" traz as
+mesmas faixas em BRANCO (255) sobre preto (0): 0 e 255 não mudam entre VESA e
+JEIDA, e é por elas que a câmera acha as faixas sem depender do formato.
+
+Os textos ficam só em bandas de preto e branco PUROS (0 e 255), acima de
+y = 140 e a partir de y = 940: a instrução continua legível nos dois formatos.
 
 Os PNG gerados são versionados e o md5 de cada um vai na lista embutida no
 newlink_update.sh (tests/atualizar-md5-kit.sh). Este gerador existe para
@@ -22,12 +29,13 @@ from PIL import Image, ImageDraw, ImageFont
 
 LARGURA, ALTURA = 1920, 1080
 # Geometria compartilhada com tests/simula-padroes-kit.py (que a confere).
-BANDA_TOPO = (0, 230)
-FAIXA_A = (230, 580)      # cinza 63 | 64
-FAIXA_B = (580, 830)      # cinza 127 | 128
-BANDA_BASE = (830, 1080)
-CINZAS_A = (63, 64)
-CINZAS_B = (127, 128)
+NFAIXAS = 16
+NIVEIS = tuple(10 + 15 * k for k in range(NFAIXAS))
+FAIXA_ALTURA = 34
+FAIXA_PASSO = 50
+FAIXA_Y0 = 140
+BANDA_TOPO = (0, FAIXA_Y0)
+BANDA_BASE = (940, ALTURA)
 
 FONTES = (
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
@@ -68,19 +76,25 @@ def texto_centrado(d, caixa, linhas, tamanho):
         y += altura_linha
 
 
-def faixa_dupla(d, faixa, cinzas):
-    y0, y1 = faixa
-    meio = LARGURA // 2
-    d.rectangle([0, y0, meio - 1, y1 - 1], fill=(cinzas[0],) * 3)
-    d.rectangle([meio, y0, LARGURA - 1, y1 - 1], fill=(cinzas[1],) * 3)
+def faixas_y():
+    """(y0, y1) de cada faixa, de cima para baixo (k = 0 em cima)."""
+    return [(FAIXA_Y0 + k * FAIXA_PASSO, FAIXA_Y0 + k * FAIXA_PASSO + FAIXA_ALTURA)
+            for k in range(NFAIXAS)]
 
 
-def tela_metades(topo, base):
+def tela_calibracao():
     img, d = novo_quadro()
-    texto_centrado(d, BANDA_TOPO, topo, 54)
-    faixa_dupla(d, FAIXA_A, CINZAS_A)
-    faixa_dupla(d, FAIXA_B, CINZAS_B)
-    texto_centrado(d, BANDA_BASE, base, 42)
+    for y0, y1 in faixas_y():
+        d.rectangle([0, y0, LARGURA - 1, y1 - 1], fill=BRANCO)
+    return img
+
+
+def tela_escada(topo, base):
+    img, d = novo_quadro()
+    for (y0, y1), nivel in zip(faixas_y(), NIVEIS):
+        d.rectangle([0, y0, LARGURA - 1, y1 - 1], fill=(nivel,) * 3)
+    texto_centrado(d, BANDA_TOPO, topo, 36)
+    texto_centrado(d, BANDA_BASE, base, 34)
     return img
 
 
@@ -91,14 +105,21 @@ def tela_texto(linhas, tamanho=74):
 
 
 TELAS = {
-    "metades-1.png": lambda: tela_metades(
-        ["TESTE DE COR (1 de 2)", "As duas metades cinzas abaixo parecem IGUAIS?"],
-        ["SIM, iguais: não faça nada. Em 30 segundos o teste segue sozinho.",
-         "NÃO, uma metade está bem mais clara: aperte qualquer tecla do controle."]),
-    "metades-2.png": lambda: tela_metades(
-        ["TESTE DE COR (2 de 2)", "Agora as duas metades parecem IGUAIS?"],
-        ["SIM, iguais: aperte qualquer tecla do controle para MANTER.",
-         "NÃO ou tela escura: não aperte nada. Em 30 segundos volta ao anterior."]),
+    "calibracao.png": tela_calibracao,
+    "escada-1.png": lambda: tela_escada(
+        ["TESTE DE COR (1 de 2)",
+         "A escada vai do escuro ao claro em ordem, sem faixa fora do lugar e sem cor?"],
+        ["SIM: não faça nada. Em 30 segundos o teste segue sozinho.",
+         "NÃO: aperte qualquer tecla do controle."]),
+    "escada-2.png": lambda: tela_escada(
+        ["TESTE DE COR (2 de 2)",
+         "Agora a escada está em ordem, sem faixa fora do lugar e sem cor?"],
+        ["SIM, agora em ordem: aperte qualquer tecla do controle para MANTER.",
+         "Sem tecla em 30 segundos volta ao anterior."]),
+    "corrigida.png": lambda: tela_texto(
+        ["COR CORRIGIDA AUTOMATICAMENTE",
+         "Se a imagem piorou, aperte qualquer tecla",
+         "do controle em 30 segundos para desfazer."], 60),
     "aguarde.png": lambda: tela_texto(
         ["AGUARDE", "Preparando o teste de cor.", "Isso leva até 1 minuto."]),
     "reiniciando.png": lambda: tela_texto(

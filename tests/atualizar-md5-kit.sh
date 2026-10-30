@@ -5,7 +5,9 @@
 #   bash tests/atualizar-md5-kit.sh           grava a lista
 #   bash tests/atualizar-md5-kit.sh --check   so confere; sai !=0 se estiver velha
 # Tambem exige que pendrive-autorun/lvdsctl seja byte-identico ao binario
-# versionado em artifacts/lcd-color-fix/lvdsctl (md5 178d8128...). Nao toca no aparelho.
+# versionado em artifacts/lcd-color-fix/lvdsctl (md5 178d8128...), e que o
+# pendrive-autorun/nl_camcheck (binario ARM da camera, bloco 7) seja byte-identico ao
+# versionado em artifacts/camcheck/nl_camcheck. Nao toca no aparelho.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
@@ -18,7 +20,11 @@ if [ "$(md5sum "$ROOT/artifacts/lcd-color-fix/lvdsctl" | cut -d' ' -f1)" != "$LV
   echo "FALHA: lvdsctl (artifacts ou pendrive-autorun) nao tem o md5 $LVDS_MD5"; exit 1
 fi
 
-lista="$(cd "$KIT" && for f in ZYCustom.ini cor.sh lvdsctl kit/*.png; do md5sum "$f"; done)"
+if ! cmp -s "$ROOT/artifacts/camcheck/nl_camcheck" "$KIT/nl_camcheck"; then
+  echo "FALHA: pendrive-autorun/nl_camcheck difere de artifacts/camcheck/nl_camcheck"; exit 1
+fi
+
+lista="$(cd "$KIT" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck kit/*.png; do md5sum "$f"; done)"
 novo="$(mktemp)"
 awk -v lista="$lista" '
   /^# KIT_LISTA_INICIO/ { print; print "KIT_LISTA=\"" lista; print "\""; pula=1; next }

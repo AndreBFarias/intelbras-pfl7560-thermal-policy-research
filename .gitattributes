@@ -34,4 +34,8 @@ artifacts/historico/perfis/*    -text byte-exact
 # Os PNG e o lvdsctl sao binarios; o cor.sh e ASCII puro como o autorun.
 pendrive-autorun/cor.sh             -text byte-exact
 pendrive-autorun/lvdsctl            -text byte-exact
+pendrive-autorun/nl_camcheck        -text byte-exact
 pendrive-autorun/kit/*.png          -text byte-exact
+# Quadros crus da camera interna (bloco 7, YUYV 640x480): sem byte 0 nem fim de linha,
+# o git os toma por texto; byte-exact impede que o pre-commit "conserte" algum byte.
+tests/fixtures/camera/*.yuyv        -text byte-exact

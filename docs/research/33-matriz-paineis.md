@@ -27,8 +27,8 @@ abaixo; [doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §5). Os da família do
 **Regra de compatibilidade (ver seção 3):** a chave confiável **não** é o nome do painel — é o timing
 (clk/HT/VT) casar com o perfil 69 e o **formato LVDS** (VESA/JEIDA) casar com o painel. Um painel de
 timing diferente do 69 dá tela preta, independentemente do formato. **O formato não se deduz do nome nem
-do anúncio:** descobre-se pelo teste de cinza ("duas metades", [doc 41](41-auto-pareamento-camera-e-kit-universal.md)
-§4; o kit de pendrive e o `wizard` fazem).
+do anúncio:** descobre-se por um teste de cinza (no kit de pendrive, a escada de 16 cinzas do
+[doc 41](41-auto-pareamento-camera-e-kit-universal.md) §4; no `wizard`, os cinzas neutros).
 
 ### Perfis novos do firmware de outubro de 2026 (V1.0.0.1, doc 42 §5)
 
@@ -55,8 +55,8 @@ conceito comum.
 2. O sufixo de 4 dígitos (`4300`/`0600`/…) é a **sub-variante elétrica/óptica** — pode mudar o formato
    LVDS, mas não o garante: o nome é pista, não prova. **Não** é a resolução.
 3. Painéis LVDS **não têm EDID** nem pino de ID ([doc 41](41-auto-pareamento-camera-e-kit-universal.md)
-   §2) — não dá para "perguntar" o formato ao painel; testa-se projetando um padrão de cinza: as "duas
-   metades" do kit de pendrive (sem PC) ou o `wizard` do `pfl7560-lcd-color.sh`.
+   §2) — não dá para "perguntar" o formato ao painel; testa-se projetando um padrão de cinza: a escada
+   de cinzas do kit de pendrive (sem PC, pela câmera ou pelo olho) ou o `wizard` do `pfl7560-lcd-color.sh`.
 
 ---
 

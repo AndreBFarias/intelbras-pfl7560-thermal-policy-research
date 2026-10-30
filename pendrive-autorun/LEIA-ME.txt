@@ -8,8 +8,9 @@ Convencao fixada na sprint 25 (auditoria de acentuacao).
 ========================================================================
 
 PARA QUE SERVE
-  Aplica a correcao (termica + wi-fi + xiri) e confere a COR da imagem, tudo
-  pelo controle remoto, SEM PC e SEM adb. Vale para qualquer PFL7560 com o
+  Aplica a correcao (termica + wi-fi + xiri) e confere a COR da imagem, sozinho
+  (pela camera do proprio projetor) ou pelo controle remoto, SEM PC e SEM adb.
+  Vale para qualquer PFL7560 com o
   firmware de fabrica V1.0.0.9 (com entrada USB-C) ou V1.0.0.1 (modelo NOTYPEC,
   sem USB-C, de fabricacao a partir de 25/08/2026). Serve para:
     - recuperar SEU projetor se um dia regravarem o firmware de fabrica;
@@ -21,22 +22,25 @@ PARA QUE SERVE
 COMO USAR (5 passos)
   1. Formate um pendrive em FAT32 (MBR). Copie TUDO o que esta nesta pasta para
      a RAIZ do pendrive (nao deixe dentro de outra pasta):
-        newlink_update.sh   cor.sh   lvdsctl   ZYCustom.ini   pasta kit
+        newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   ZYCustom.ini   pasta kit
      (a pasta "kit" tem as telas .png; este LEIA-ME e opcional).
   2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
      Se aparecer "AJUSTANDO", espere: ele reinicia sozinho uma vez (~1 min).
      Se NENHUMA tela do kit aparecer em 2 minutos, desligue e ligue de novo
      (o pendrive montou tarde).
-  3. Vai aparecer uma tela com DUAS METADES cinzas ("TESTE DE COR 1 de 2").
-     - Se as duas metades parecem IGUAIS: nao faca nada. Em 30 segundos ele
-       segue sozinho e a cor NAO e mexida.
-     - Se uma metade esta BEM MAIS CLARA que a outra: aperte qualquer tecla do
-       controle.
-  4. Se voce apertou, a mesma tela volta no outro formato ("TESTE DE COR 2 de 2").
-     - Agora as metades parecem IGUAIS? Aperte qualquer tecla de novo, para
-       MANTER.
-     - Continuam diferentes, ou a tela ficou escura? Nao aperte nada. Em 30
-       segundos o kit volta sozinho ao formato de antes.
+  3. O projetor testa a cor SOZINHO, pela camera dele: mostra uma tela de faixas
+     brancas e depois uma ESCADA de cinzas (do escuro ao claro) e confere a ordem.
+     NAO coloque nada na frente da lente e nao mexa no projetor por ~1 minuto.
+     - Escada em ordem: a cor esta certa. Nao e mexida e nao precisa apertar nada.
+     - Escada fora de ordem: ele troca o formato da cor sozinho e confere de novo.
+       Se melhorou, aparece "COR CORRIGIDA AUTOMATICAMENTE". Se a imagem piorou,
+       aperte qualquer tecla do controle em 30 segundos para DESFAZER.
+  4. Se a camera nao conseguir ajudar, ele faz a pergunta na tela ("TESTE DE COR 1
+     de 2"): a escada vai do escuro ao claro em ordem, sem faixa fora do lugar?
+     - SIM: nao faca nada. Em 30 segundos o teste segue sozinho e a cor NAO e mexida.
+     - NAO: aperte qualquer tecla do controle. A tela volta no outro formato
+       ("TESTE DE COR 2 de 2"); se agora esta em ordem, aperte qualquer tecla de
+       novo para MANTER. Sem tecla em 30 segundos o kit volta ao formato de antes.
   5. Quando aparecer "PRONTO - pode retirar o pendrive", tire o pendrive.
      Rodar de novo e inofensivo: com a cor certa, nada e mexido nem reiniciado.
      Se aparecer "ALGO NAO DEU CERTO", tire o pendrive, ligue de novo e, se
@@ -50,9 +54,10 @@ COMO USAR (5 passos)
   proposital: corta o calor na fonte antes do desligamento de protecao em 75 C.
   Perda maxima de brilho: 15%.
 
-  ATENCAO: o aparelho de FABRICA mostra as metades IGUAIS. Quem nao aperta
-  nada nao altera nada. Errar a cor exige DUAS teclas seguidas, a segunda
-  diante de uma imagem visivelmente pior.
+  ATENCAO: no aparelho de FABRICA a escada sai em ordem. Quem nao aperta nada
+  nao altera nada. No modo manual, errar a cor exige DUAS teclas seguidas, a
+  segunda diante de uma imagem visivelmente pior; no automatico, uma tecla em 30
+  segundos desfaz.
 
 COMO SABER QUE FUNCIONOU (3 sinais)
   - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos;
@@ -77,8 +82,10 @@ O QUE O KIT FAZ POR DENTRO (resumo)
     [CoolingFan_0/1]); o resto, CONFIG_MODEL inclusive, fica como esta. Se existir
     /atv/ini/ZYCustom*.ini, ele tem precedencia sobre o do /vendor: o kit avisa
     e mostra ERRO em vez de dizer que deu certo.
-  - COR: so mexe no byte lvds_fmt do perfil ativo da particao panelparam, e so
-    com as DUAS teclas. Antes de trocar, faz backup (conferido byte a byte com
+  - COR: so mexe no byte lvds_fmt do perfil ativo da particao panelparam: no modo
+    automatico, so se a camera ve a escada fora de ordem e depois da troca ve
+    em ordem (a camera so le a imagem, nao muda nenhum ajuste dela); no manual,
+    so com as DUAS teclas. Antes de trocar, faz backup (conferido byte a byte com
     cmp) em /data e uma copia no pendrive (panelparam-backup-<serial>.img, com
     .md5) e grava um journal. Qualquer coisa fora do esperado reverte e confere.
   - QUEDA DE ENERGIA NO MEIO DO TESTE: no boot seguinte o formato original e
@@ -104,8 +111,8 @@ CUIDADO COM AS FERRAMENTAS QUE "CUTUCAM" O SENSOR
   pfl7560-monitor-props.sh.
 
 LIMITES (o que o kit NAO faz)
-  - Nao descobre sozinho o formato da cor: nao ha ID no painel; alguem precisa
-    olhar a tela uma vez (e o que os passos 3 e 4 fazem).
+  - Nao ha ID de formato no painel: ele deduz olhando a escada (a camera, ou
+    voce, nos passos 3 e 4). Camera tampada, escura ou ocupada = ele pergunta.
   - Nao garante rodar no 1o boot: o firmware so olha o pendrive depois de ligar;
     se a montagem atrasar, ele perde a vez (por isso "ligue de novo").
   - Nao corrige painel que precise de swap, bit ou map: isso fica no wizard do

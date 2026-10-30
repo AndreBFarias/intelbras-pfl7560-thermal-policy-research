@@ -87,7 +87,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor das "duas metades" pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash
@@ -156,7 +156,7 @@ instalado é o `FPX-RX058B-4300-V0` `20241101 HT`, o mesmo modelo e data do pain
 [doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). Na 3ª troca (2026-10-30) o painel
 pediu **JEIDA**, e o aparelho está hoje em JEIDA (byte `0x5c` = 1,
 [doc 41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) §8). **O formato não se
-deduz do nome do painel:** descobre-se olhando um padrão de cinza (o teste das "duas metades",
+deduz do nome do painel:** descobre-se olhando um padrão de cinza (a escada de 16 cinzas,
 [doc 41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 
 Resolvido **por software, sem trocar hardware**: decompilando a `libhitvservice.so` do aparelho
@@ -166,8 +166,8 @@ completo, tentativa-e-erro e comandos em
 [`docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](docs/research/28-troca-painel-rx058b-diagnostico-cor.md).
 
 **Como aplicar** (só quem trocou o painel):
-- **sem PC:** o kit de pendrive (método 1) projeta as duas metades; metades iguais = nada a fazer, e só
-  troca o formato com duas teclas do controle (backup e journal antes);
+- **sem PC:** o kit de pendrive (método 1) projeta a escada de cinzas e a câmera interna confere; escada em ordem =
+  nada a fazer, e a troca do formato tem backup e journal antes (sem câmera, só com duas teclas do controle);
 - **com PC:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (backup obrigatório antes de gravar, testa
   JEIDA e VESA na tela) ou `./pfl7560-menu.sh` → opção 4; no Windows, `install.bat` → opção 6.
 

@@ -26,7 +26,7 @@ Validação esperada após reboot: fans 1000/1000; `gtt 1` bem acima de `gtt 0` 
 Copie o kit v2 **completo** para a raiz de um FAT32 com `./install.sh --pendrive /caminho/do/pendrive`
 (Windows: `install.bat`, opção 5), que confere o md5 de cada arquivo depois da cópia; plugue com o projetor
 desligado e ligue. O mesmo pendrive serve a qualquer PFL7560 (sem serial, sem arquivo para editar) e
-também faz o teste de cor das "duas metades". Passo a passo: [`../../INSTALL.md`](../../INSTALL.md) e
+também faz o teste de cor da escada de 16 cinzas. Passo a passo: [`../../INSTALL.md`](../../INSTALL.md) e
 `pendrive-autorun/LEIA-ME.txt`.
 
 ## Método C — `.bin` completo

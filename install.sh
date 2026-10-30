@@ -111,7 +111,7 @@ chmod_scripts(){
 
 # ---- kit v2 no pendrive ------------------------------------------------------
 # Copia o kit COMPLETO para a RAIZ do pendrive (newlink_update.sh, cor.sh, lvdsctl,
-# ZYCustom.ini, LEIA-ME.txt e kit/*.png) e confere, depois da copia, o md5 de cada
+# nl_camcheck, ZYCustom.ini, LEIA-ME.txt e kit/*.png) e confere, depois da copia, o md5 de cada
 # arquivo contra a lista embutida no proprio newlink_update.sh (a mesma que o
 # aparelho confere antes de escrever). O newlink_update.sh nao esta na lista (nao
 # pode conter o proprio md5) e o LEIA-ME.txt tambem nao: os dois sao comparados byte
@@ -190,6 +190,7 @@ verify(){
 
   if [ -f "$HERE/pendrive-autorun/ZYCustom.ini" ] && [ -f "$HERE/pendrive-autorun/newlink_update.sh" ] \
      && [ -f "$HERE/pendrive-autorun/cor.sh" ] && [ -f "$HERE/pendrive-autorun/lvdsctl" ] \
+     && [ -f "$HERE/pendrive-autorun/nl_camcheck" ] \
      && [ -d "$HERE/pendrive-autorun/kit" ]; then
     ok "pendrive-autorun/ completo (metodo sem PC)"
   else

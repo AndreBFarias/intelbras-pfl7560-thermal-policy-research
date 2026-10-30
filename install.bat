@@ -341,7 +341,7 @@ goto :menu
 echo.
 echo  Metodo SEM PC: copia o kit v2 COMPLETO para a RAIZ de um pendrive FAT32
 echo  e confere o md5 de cada arquivo contra a lista do newlink_update.sh.
-echo    Arquivos: newlink_update.sh, cor.sh, lvdsctl, ZYCustom.ini, LEIA-ME.txt e kit\*.png
+echo    Arquivos: newlink_update.sh, cor.sh, lvdsctl, nl_camcheck, ZYCustom.ini, LEIA-ME.txt e kit\*.png
 echo    Origem:   %HERE%\pendrive-autorun
 echo    O pendrive tem de estar em FAT32 ^(MBR^). NAO use o pendrive de resgate do firmware.
 echo.
@@ -365,7 +365,7 @@ set "DST=%DRV%:"
 set "SRC=%HERE%\pendrive-autorun"
 set "KITFAIL=0"
 if not exist "%DST%\kit\" mkdir "%DST%\kit"
-for %%F in (newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt) do copy /y "%SRC%\%%F" "%DST%\%%F" >nul || set "KITFAIL=1"
+for %%F in (newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt) do copy /y "%SRC%\%%F" "%DST%\%%F" >nul || set "KITFAIL=1"
 copy /y "%SRC%\kit\*.png" "%DST%\kit\" >nul || set "KITFAIL=1"
 if "%KITFAIL%"=="1" (
   echo  [ERRO] a copia falhou ^(pendrive cheio, protegido ou removido?^). NAO use este pendrive.
@@ -377,7 +377,7 @@ set "PFL_SRC=%SRC%"
 set "PFL_DST=%DST%"
 REM a lista (md5  nome) esta embutida no newlink_update.sh entre KIT_LISTA_INICIO e KIT_LISTA_FIM;
 REM o proprio newlink_update.sh e o LEIA-ME.txt nao estao nela e sao comparados com a origem.
-powershell -NoProfile -Command "$s=$env:PFL_SRC; $d=$env:PFL_DST; $txt=Get-Content -Raw -LiteralPath ($s+'\newlink_update.sh'); $bad=0; $n=0; foreach($m in [regex]::Matches($txt,'(?m)^(?:KIT_LISTA=\x22)?([0-9a-f]{32})  (\S+)\s*$')){ $n++; $h=$m.Groups[1].Value; $f=$m.Groups[2].Value -replace '/','\'; $g=''; if(Test-Path -LiteralPath ($d+'\'+$f)){ $g=(Get-FileHash -Algorithm MD5 -LiteralPath ($d+'\'+$f)).Hash.ToLower() }; if($g -eq $h){ Write-Host ('     OK    '+$f) } else { Write-Host ('     FALHA '+$f); $bad++ } }; foreach($f in 'newlink_update.sh','LEIA-ME.txt'){ $n++; if((Test-Path -LiteralPath ($d+'\'+$f)) -and ((Get-FileHash -LiteralPath ($s+'\'+$f)).Hash -eq (Get-FileHash -LiteralPath ($d+'\'+$f)).Hash)){ Write-Host ('     OK    '+$f) } else { Write-Host ('     FALHA '+$f); $bad++ } }; if($n -lt 11){ Write-Host '     FALHA lista de md5 nao encontrada'; $bad++ }; if($bad -gt 0){ exit 1 }"
+powershell -NoProfile -Command "$s=$env:PFL_SRC; $d=$env:PFL_DST; $txt=Get-Content -Raw -LiteralPath ($s+'\newlink_update.sh'); $bad=0; $n=0; foreach($m in [regex]::Matches($txt,'(?m)^(?:KIT_LISTA=\x22)?([0-9a-f]{32})  (\S+)\s*$')){ $n++; $h=$m.Groups[1].Value; $f=$m.Groups[2].Value -replace '/','\'; $g=''; if(Test-Path -LiteralPath ($d+'\'+$f)){ $g=(Get-FileHash -Algorithm MD5 -LiteralPath ($d+'\'+$f)).Hash.ToLower() }; if($g -eq $h){ Write-Host ('     OK    '+$f) } else { Write-Host ('     FALHA '+$f); $bad++ } }; foreach($f in 'newlink_update.sh','LEIA-ME.txt'){ $n++; if((Test-Path -LiteralPath ($d+'\'+$f)) -and ((Get-FileHash -LiteralPath ($s+'\'+$f)).Hash -eq (Get-FileHash -LiteralPath ($d+'\'+$f)).Hash)){ Write-Host ('     OK    '+$f) } else { Write-Host ('     FALHA '+$f); $bad++ } }; if($n -lt 14){ Write-Host '     FALHA lista de md5 nao encontrada'; $bad++ }; if($bad -gt 0){ exit 1 }"
 if errorlevel 1 (
   echo.
   echo  [ERRO] algum arquivo NAO confere com a lista. NAO use este pendrive: copie de novo.

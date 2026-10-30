@@ -9,6 +9,10 @@
 # entra na checagem de sintaxe (sh -n): ele embute mount/sleep/reboot como
 # applets, que passam por cima dos stubs do PATH, entao NAO serve para cenarios.
 #
+# Bloco 7: o modo automatico (camera) roda com um nl_camcheck de mentira que le o byte
+# lvds_fmt da panelparam de mentira e devolve uma escada em ordem (ou embaralhada);
+# o nl_camcheck de verdade e provado a parte (tests/test-camcheck.sh).
+#
 # Precisa de: dash, busybox, shellcheck (opcional), pkill, python3 com PIL e numpy.
 #
 #   bash tests/test-kit-pendrive.sh
@@ -32,24 +36,28 @@ W(){ echo "$T/root/data/vendor/pfl7560-kit"; }   # pasta de trabalho do cenario
 # nas pastas e o do usuario que roda o harness (no aparelho e o root, uid 0).
 amb(){
   env PFL_TESTE=1 PFL_DONO="${DONO_TESTE:-$(id -u)}" PFL_RAPIDO=1 PFL_ROOT="$T/root" \
-      PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" PATH="$T/bin:$PATH" "$@"
+      PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" \
+      PFL_NLCAMCHECK="$T/bin/nl_camcheck" PFL_NLCAMCHECK_MD5="$(md5 "$T/bin/nl_camcheck")" \
+      PFL_MODO_AUTO="${MODO_AUTO_TESTE:-0}" PATH="$T/bin:$PATH" "$@"
 }
 pp_md5(){ md5 "$T/root/dev/block/by-name/panelparam"; }
 pp_byte(){ dd if="$T/root/dev/block/by-name/panelparam" bs=1 skip="$OFF" count=1 2>/dev/null | od -An -tu1 | tr -dc '0-9'; }
 chamadas(){ grep -c "^$1" "$T/calls.log" 2>/dev/null || true; }
 tem_chamada(){ grep -q "$1" "$T/calls.log" 2>/dev/null; }
-telas(){ grep '^am ' "$T/calls.log" 2>/dev/null | sed 's#.*/\([a-z0-9-]*\)\.png.*#\1#' | tr '\n' ' '; }
+telas(){ grep '^am start' "$T/calls.log" 2>/dev/null | sed 's#.*/\([a-z0-9-]*\)\.png.*#\1#' | tr '\n' ' '; }
 
 # ---------------------------------------------------------------------------
 # cenario: arvore de mentira + stubs
 # ---------------------------------------------------------------------------
 novo_cenario(){ # $1 = nome do caso
   CASO="$1"
+  MODO_AUTO_TESTE=0     # os casos do fluxo manual rodam com o modo automatico desligado
   T="$(mktemp -d)"
   local r="$T/root" b="$T/bin"
   mkdir -p "$r/vendor/etc/init/hw" "$r/vendor/lib" "$r/atv" "$r/proc/msp" "$r/dev/block/by-name" \
            "$r/data/local/tmp" "$r/sdcard" "$r/mnt/media_rw/USB1" "$b"
   : > "$r/vendor/lib/libhitvservice.so"
+  : > "$r/dev/video0"
   # termico/wi-fi/xiri: aparelho de FABRICA
   cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$r/vendor/etc/ZYCustom.ini"
   cp "$ROOT/artifacts/build.prop.STOCK" "$r/vendor/build.prop"
@@ -80,10 +88,38 @@ k=$(head -1 "$T/keys"); sed -i 1d "$T/keys"
 [ "$k" = "key" ] && echo "/dev/input/event2: EV_KEY       KEY_OK                DOWN"
 exit 0'
   stub am 'echo "am $*" >> "$T/calls.log"
+[ "$1" = "force-stop" ] && exit 0
 f=$(echo "$*" | sed "s#.*-d file://\([^ ]*\).*#\1#")
 f="$PFL_ROOT$f"
 [ -f "$f" ] || echo "AM_ARQUIVO_AUSENTE $f" >> "$T/calls.log"
 exit 0'
+  # resolvedor de VIEW de PNG (ultima linha = pacote/atividade); a 1a chamada de cada tela
+  stub cmd 'echo "cmd $*" >> "$T/calls.log"
+n=$(cat "$T/n-cmd" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-cmd"
+[ -f "$T/adultera-nlcam-$n" ] && echo "# adulterado" >> "$T/bin/nl_camcheck"
+[ -f "$T/cmd-falha" ] && exit 1
+echo "priority=0 isDefault=false"
+if [ -f "$T/cmd-pkg" ]; then echo "$(cat "$T/cmd-pkg")/.Atividade"; else echo "com.hisilicon.higallery/.NetworkHiGallery"; fi'
+  # nl_camcheck de mentira: faixas acha 16 (ou 15 com cam-faixas-rc); niveis olha o byte
+  # lvds_fmt da panelparam de mentira: igual ao de cam-certo = escada em ordem
+  stub nl_camcheck 'echo "nl_camcheck $*" >> "$T/calls.log"
+JEIDA="235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63"
+VESA="235 235 235 231 192 148 105 86 220 212 156 90 185 116 195 128"
+saida(){ for v in $1; do echo $v; done; echo "$2"; exit 0; }
+case "$1" in
+  faixas)
+    [ -f "$T/cam-faixas-rc" ] && { echo "faixas achadas: 15 (esperadas 16)"; exit 3; }
+    i=0; : > "$4"; while [ $i -lt 16 ]; do echo "$((100+i*20)) $((114+i*20))" >> "$4"; i=$((i+1)); done
+    echo "faixas achadas: 16 (esperadas 16)"; exit 0 ;;
+  niveis)
+    [ -f "$T/cam-falha-niveis" ] && { echo "open: Device or resource busy" >&2; exit 1; }
+    byte=$(dd if="$PFL_ROOT/dev/block/by-name/panelparam" bs=1 skip='"$OFF"' count=1 2>/dev/null | od -An -tu1 | tr -dc 0-9)
+    [ -f "$T/cam-escuro" ] && saida "20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20" "inv_cresc=0 inv_decresc=0"
+    [ -f "$T/cam-indeciso" ] && saida "$JEIDA" "inv_cresc=1 inv_decresc=4"
+    if [ -f "$T/cam-nao-resolve" ] || [ "$byte" != "$(cat "$T/cam-certo")" ]; then saida "$VESA" "inv_cresc=9 inv_decresc=3"; fi
+    saida "$JEIDA" "inv_cresc=10 inv_decresc=0" ;;
+esac
+exit 2'
   stub reboot 'echo "reboot" >> "$T/calls.log"'
   stub sleep 'echo "sleep $*" >> "$T/calls.log"'
   stub mount 'echo "mount $*" >> "$T/calls.log"; exit 0'
@@ -183,7 +219,7 @@ c_sem_tecla(){
   afirma '[ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "gancho criado sem tecla"
   afirma '[ "$(chamadas reboot)" = 0 ]' "reboot sem motivo"
   afirma '[ "$(estado_vendor)" = "$v0" ]' "/vendor mudou"
-  afirma '[ "$(telas)" = "aguarde metades-1 pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "sem tecla em 30s: formato mantido"' "log sem a linha de 'sem tecla'"
   afirma '! grep -q AM_ARQUIVO_AUSENTE "$T/calls.log"' "tela apontou arquivo inexistente"
   limpa
@@ -199,7 +235,7 @@ c_tecla_timeout(){
   afirma 'cmp -s "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup do pendrive nao confere com o original"
   afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ]' "journal sobrou"
   afirma '[ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "gancho sobrou"
-  afirma '[ "$(telas)" = "aguarde metades-1 metades-1 metades-2 pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 escada-1 escada-2 pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "sem segunda tecla"' "log sem 'sem segunda tecla'"
   afirma 'log_tudo | grep -q "revertido: lvds_fmt=0"' "log sem confirmacao da reversao"
   limpa
@@ -215,7 +251,7 @@ c_tecla_tecla(){
   afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ]' "journal sobrou depois de confirmar"
   afirma '[ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "gancho sobrou depois de confirmar"
   afirma 'cmp -s "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup nao guarda o original"
-  afirma '[ "$(telas)" = "aguarde metades-1 metades-1 metades-2 pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 escada-1 escada-2 pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "segunda tecla: lvds_fmt=1 mantido, relido"' "log sem a confirmacao"
   # segunda execucao sobre o estado confirmado (JEIDA): sem tecla = nada muda
   local pp1; pp1="$(pp_md5)"; : > "$T/calls.log"
@@ -240,7 +276,7 @@ c_idempotencia(){
   afirma '[ "$(estado_vendor)" = "$v1" ]' "2a execucao escreveu em /vendor"
   afirma '[ "$(chamadas mount)" = 0 ]' "2a execucao remontou /vendor"
   afirma '[ "$(pp_md5)" = "$PP0" ]' "2a execucao mexeu na panelparam"
-  afirma '[ "$(telas)" = "aguarde metades-1 pronto " ]' "telas da 2a: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 pronto " ]' "telas da 2a: '$(telas)'"
   limpa
 }
 
@@ -275,7 +311,7 @@ c_ini_desconhecido(){
   afirma '[ ! -e "$T/root/vendor/etc/ZYCustom.ini.new" ]' ".new sobrou"
   afirma 'grep -q "wifi_disconnect_on_boot=0" "$T/root/vendor/build.prop"' "wi-fi e xiri sao independentes e deviam aplicar"
   afirma 'grep -q "PARCIAL" "$T/out.log"' "log sem PARCIAL"
-  afirma '[ "$(telas)" = "aguarde metades-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
   limpa
 }
 
@@ -285,14 +321,14 @@ c_atv_override(){
   roda nokey
   afirma 'grep -q "TEM PRECEDENCIA" "$T/out.log"' "sem aviso de precedencia"
   afirma '! grep -q "CORRECAO APLICADA COM SUCESSO" "$T/out.log"' "disse sucesso apesar do override"
-  afirma '[ "$(telas)" = "aguarde metades-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
   afirma '[ "$(pp_md5)" = "$PP0" ]' "panelparam mudou"
   limpa
 }
 
 c_adulterado(){
   local alvo
-  for alvo in "kit/metades-1.png" "cor.sh" "lvdsctl" "ZYCustom.ini" "kit/pronto.png"; do
+  for alvo in "kit/escada-1.png" "cor.sh" "lvdsctl" "nl_camcheck" "ZYCustom.ini" "kit/pronto.png"; do
     novo_cenario "arquivo do kit adulterado ($alvo) = aborta antes de escrever"
     local v0; v0="$(estado_vendor)"
     printf 'X' >> "$T/root/mnt/media_rw/USB1/$alvo"
@@ -524,7 +560,7 @@ c_troca_apos_copia(){
 
 c_troca_no_pendrive(){
   local a
-  for a in cor.sh lvdsctl; do
+  for a in cor.sh lvdsctl nl_camcheck; do
     novo_cenario "$a adulterado NO PENDRIVE entre a conferencia e a copia = nunca chega ao caminho executavel"; aparelho_ok
     echo "$a" > "$T/troca-pendrive"
     roda key key
@@ -547,7 +583,7 @@ c_lvdsctl_na_hora(){
   nada_escrito "$PP0"
   afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ] && [ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ] && [ ! -e "$T/root/data/local/nlsu" ]' "preparou backup/journal/gancho com lvdsctl invalido"
   afirma 'log_tudo | grep -q "lvdsctl.*md5 diferente"' "log sem a recusa do lvdsctl"
-  afirma '[ "$(telas)" = "aguarde metades-1 metades-1 erro " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 escada-1 erro " ]' "telas: '$(telas)'"
   limpa
 
   novo_cenario "lvdsctl trocado por LINK antes do uso = nao executa"; aparelho_ok
@@ -613,7 +649,7 @@ c_gancho_adulterado(){
   novo_cenario "gancho gerado: ambiente de teste apagado e md5 do cor.sh embutido"; aparelho_ok
   gera_gancho_interrompido
   g="$T/root/data/local/nlsu/update_after_boot.sh"
-  afirma 'grep -q "^unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE$" "$g"' "gancho sem o unset dos ganchos de teste"
+  afirma 'grep -q "^unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE$" "$g"' "gancho sem o unset dos ganchos de teste"
   afirma '[ "$(grep -n "PFL_" "$g" | head -1 | cut -d: -f1)" = "$(grep -n "^unset PFL_" "$g" | cut -d: -f1)" ]' "alguma referencia PFL_ vem antes do unset"
   afirma '! grep -vE "^(unset PFL_|PFL_TESTE=1;|export PFL_)" "$g" | grep -q "PFL_"' "gancho cita PFL_* fora do unset e do bloco do harness"
   afirma 'grep -q "^COR_MD5=\"$(md5 "$KIT/cor.sh")\"$" "$g"' "gancho sem o md5 do cor.sh"
@@ -693,13 +729,205 @@ c_ambiente_sem_teste(){
   limpa
 }
 
+# ---------------------------------------------------------------------------
+# bloco 7: modo automatico pela camera (nl_camcheck de mentira, ver novo_cenario)
+# ---------------------------------------------------------------------------
+auto_on(){ MODO_AUTO_TESTE=1; echo "$1" > "$T/cam-certo"; }   # $1 = byte lvds_fmt que da a escada em ordem
+# 0 se TODO 'am start' vem logo depois de 'am force-stop <pacote>' ($1; padrao: a galeria)
+force_stop_antes(){
+  grep '^am ' "$T/calls.log" | awk -v pkg="${1:-com.hisilicon.higallery}" \
+    '/^am start/ { n++; if (prev != "am force-stop " pkg) bad=1 } { prev=$0 } END { exit (bad || !n) }'
+}
+nl_chamadas(){ grep -c "^nl_camcheck $1" "$T/calls.log" 2>/dev/null || true; }
+
+c_auto_certo(){
+  novo_cenario "auto: escada em ordem (formato certo) = nada escrito"; aparelho_ok
+  auto_on 0
+  local v0; v0="$(estado_vendor)"
+  roda
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "mexeu na panelparam com a escada em ordem"
+  afirma '[ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ] && [ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "backup, journal ou gancho criados"
+  afirma '[ "$(chamadas getevent)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "pediu tecla ou reiniciou"
+  afirma '[ "$(nl_chamadas faixas)" = 1 ] && [ "$(nl_chamadas niveis)" = 1 ]' "esperava 1 faixas e 1 niveis: $(grep '^nl_camcheck' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 pronto " ]' "telas: '$(telas)'"
+  afirma 'log_tudo | grep -q "escada em ordem com lvds_fmt=0: formato certo, nada foi escrito"' "log sem a decisao"
+  afirma 'log_tudo | grep -q "niveis= 235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63 inv_cresc=10 inv_decresc=0 amplitude=172"' "log sem os 16 valores e as inversoes"
+  afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(estado_vendor)" = "$v0" ]' "/vendor mudou"
+  # 2a execucao no mesmo estado: igual
+  : > "$T/calls.log"; roda
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(nl_chamadas niveis)" = 1 ]' "2a execucao mexeu em algo"
+  limpa
+
+  novo_cenario "auto: ja em JEIDA e em ordem = nada escrito (idempotente)"; aparelho_ok
+  printf '\001' | dd of="$T/root/dev/block/by-name/panelparam" bs=1 seek="$OFF" conv=notrunc 2>/dev/null
+  PP0="$(pp_md5)"
+  auto_on 1
+  roda
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(chamadas getevent)" = 0 ]' "mexeu em JEIDA ja em ordem"
+  afirma 'log_tudo | grep -q "formato certo, nada foi escrito"' "log sem a decisao"
+  limpa
+}
+
+c_auto_errado(){
+  novo_cenario "auto: fora de ordem, a troca resolve, sem tecla = mantem"; aparelho_ok
+  auto_on 1
+  roda nokey
+  afirma '[ "$(pp_byte)" = 1 ]' "o byte nao ficou em 1"
+  afirma '[ "$(cmp -l "$T/pp-original.img" "$T/root/dev/block/by-name/panelparam" | wc -l)" = 1 ] && cmp -l "$T/pp-original.img" "$T/root/dev/block/by-name/panelparam" | grep -q "^ *53253 "' "mais de um byte mudou, ou nao foi o 0x5c do perfil 69"
+  afirma '[ "$(chamadas lvdsctl)" = 1 ] && tem_chamada "lvdsctl fmt 1"' "so uma chamada fmt 1 era esperada"
+  afirma 'cmp -s "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup nao guarda o original"
+  afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
+  afirma '[ "$(chamadas getevent)" = 1 ] && [ "$(nl_chamadas niveis)" = 2 ]' "esperava 1 espera de tecla e 2 medicoes"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 corrigida pronto " ]' "telas: '$(telas)'"
+  afirma 'log_tudo | grep -q "escada FORA de ordem (3 inversoes)"' "log sem a medicao antes"
+  afirma 'log_tudo | grep -q "lvds_fmt=1 mantido, relido e a particao confere"' "log sem a confirmacao"
+  afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(chamadas hidebug)" = 0 ] && [ "$(chamadas gtt)" = 0 ]' "chamou hidebug/gtt"
+  # 2a execucao: agora em ordem, nada muda
+  local pp1; pp1="$(pp_md5)"; : > "$T/calls.log"
+  roda
+  afirma '[ "$(pp_md5)" = "$pp1" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "2a execucao mexeu em algo"
+  limpa
+
+  novo_cenario "auto: fora de ordem, a troca resolve, tecla = desfaz"; aparelho_ok
+  auto_on 1
+  roda key
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(pp_byte)" = 0 ]' "a particao nao voltou ao original"
+  afirma 'tem_chamada "lvdsctl fmt 1" && tem_chamada "lvdsctl fmt 0"' "esperava fmt 1 (troca) e fmt 0 (desfazer)"
+  afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 corrigida pronto " ]' "telas: '$(telas)'"
+  afirma 'log_tudo | grep -q "quer desfazer a correcao automatica"' "log sem o desfazer"
+  limpa
+
+  novo_cenario "auto: a troca nao resolve = reverte e cai no manual (sem tecla: nada escrito)"; aparelho_ok
+  auto_on 1; : > "$T/cam-nao-resolve"
+  roda nokey
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "a particao nao voltou ao original"
+  afirma 'tem_chamada "lvdsctl fmt 1" && tem_chamada "lvdsctl fmt 0"' "esperava fmt 1 e a reversao fmt 0"
+  afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
+  afirma '[ "$(chamadas getevent)" = 1 ]' "o fluxo manual deveria pedir a 1a tecla"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 escada-1 pronto " ]' "telas: '$(telas)'"
+  afirma 'log_tudo | grep -q "a troca nao deixou a escada em ordem" && log_tudo | grep -q "fluxo manual"' "log sem a queda para o manual"
+  limpa
+
+  novo_cenario "auto: a troca nao resolve + o manual ainda segue (tecla, tecla = grava)"; aparelho_ok
+  auto_on 1; : > "$T/cam-nao-resolve"
+  roda key key
+  afirma '[ "$(pp_byte)" = 1 ] && [ "$(chamadas getevent)" = 2 ]' "o fluxo manual nao gravou com as duas teclas"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 escada-1 escada-1 escada-2 pronto " ]' "telas: '$(telas)'"
+  afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start"
+  limpa
+
+  # queda de energia na tela "corrigida": a troca automatica ja tinha backup, journal e
+  # gancho; o gancho de boot que o proprio cor.sh gerou devolve o original
+  novo_cenario "auto: queda de energia depois da troca = journal e gancho restauram"; aparelho_ok
+  auto_on 1
+  stub getevent 'echo "getevent $*" >> "$T/calls.log"; pkill -9 -f "pfl7560-kit/cor.sh"; sleep 1; exit 0'
+  roda
+  rmdir "$T/root/dev/pfl7560-kit.lock" 2>/dev/null
+  afirma '[ "$(pp_byte)" = 1 ] && tem_chamada "lvdsctl fmt 1"' "a troca automatica deveria ter deixado o byte em 1"
+  afirma '[ -f "$(W)/journal" ] && grep -q "^J_FMT=0$" "$(W)/journal"' "a troca automatica nao deixou journal com o formato original"
+  afirma 'cmp -s "$(W)/panelparam-original.img" "$T/pp-original.img"' "backup da troca automatica nao guarda o original"
+  afirma 'grep -q "pfl7560-kit-gancho" "$T/root/data/local/nlsu/update_after_boot.sh"' "a troca automatica nao instalou o gancho"
+  amb $SHELL_BIN_RUN "$T/root/data/local/nlsu/update_after_boot.sh" > "$T/hook.log" 2>&1
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "o gancho nao restaurou o formato depois da troca automatica"
+  afirma '[ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "o gancho nao se apagou"
+  limpa
+
+  novo_cenario "auto: lvdsctl nao muda o byte = reverte, erro, sem journal"; aparelho_ok
+  auto_on 1; : > "$T/lvds-falha"
+  roda
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ ! -e "$(W)/journal" ]' "panelparam mudou ou journal sobrou"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 erro " ]' "telas: '$(telas)'"
+  limpa
+}
+
+c_auto_duvida(){
+  local caso arq
+  for caso in "faixas 15" "indeciso" "escuro" "falha-niveis" "sem-camera"; do
+    novo_cenario "auto: $caso = cai no manual sem escrever"; aparelho_ok
+    auto_on 1
+    case "$caso" in
+      "faixas 15") : > "$T/cam-faixas-rc" ;;
+      indeciso) : > "$T/cam-indeciso" ;;
+      escuro) : > "$T/cam-escuro" ;;
+      falha-niveis) : > "$T/cam-falha-niveis" ;;
+      sem-camera) rm -f "$T/root/dev/video0" ;;
+    esac
+    roda nokey
+    afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "escreveu na panelparam"
+    afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ] && [ ! -e "$T/root/data/local/nlsu" ]' "backup/journal/gancho"
+    afirma '[ "$(chamadas getevent)" = 1 ]' "o fluxo manual deveria pedir a 1a tecla"
+    afirma 'log_tudo | grep -q "fluxo manual"' "log sem a queda para o manual"
+    case "$caso" in
+      "faixas 15") arq='[ "$(nl_chamadas niveis)" = 0 ] && [ "$(telas)" = "aguarde calibracao escada-1 pronto " ]' ;;
+      sem-camera) arq='[ "$(chamadas nl_camcheck)" = 0 ] && [ "$(telas)" = "aguarde escada-1 pronto " ]' ;;
+      *) arq='[ "$(telas)" = "aguarde calibracao escada-1 escada-1 pronto " ]' ;;
+    esac
+    afirma "$arq" "telas/chamadas ($caso): '$(telas)'"
+    limpa
+  done
+}
+
+c_auto_nlcam_adulterado(){
+  local n
+  for n in 1 3; do
+    novo_cenario "auto: nl_camcheck adulterado antes do uso #$n = nao executa e nao escreve"; aparelho_ok
+    auto_on 1; : > "$T/adultera-nlcam-$n"
+    roda nokey
+    nada_escrito "$PP0"
+    afirma '[ "$n" != 1 ] || [ "$(chamadas nl_camcheck)" = 0 ]' "o nl_camcheck adulterado foi executado"
+    afirma '[ "$n" != 3 ] || { [ "$(nl_chamadas faixas)" = 1 ] && [ "$(nl_chamadas niveis)" = 0 ]; }' "medicao feita com o binario adulterado"
+    afirma 'log_tudo | grep -q "nl_camcheck.*md5 diferente"' "log sem a recusa do nl_camcheck"
+    afirma '[ "$(chamadas getevent)" = 1 ]' "deveria cair no manual"
+    limpa
+  done
+  novo_cenario "auto: nl_camcheck trocado por LINK = nao executa"; aparelho_ok
+  auto_on 1; : > "$T/linka-nlcam"
+  cp "$T/bin/nl_camcheck" "$T/nlcam.copia"; rm -f "$T/bin/nl_camcheck"; ln -s "$T/nlcam.copia" "$T/bin/nl_camcheck"
+  roda nokey
+  nada_escrito "$PP0"
+  afirma '[ "$(chamadas nl_camcheck)" = 0 ] && log_tudo | grep -q "nl_camcheck.*link"' "executou o nl_camcheck que e link"
+  limpa
+}
+
+c_troca_de_tela(){
+  local pk
+  for pk in "com.outra.galeria" "android" "FALHA"; do
+    novo_cenario "tela: pacote do resolvedor '$pk'"; aparelho_ok
+    case "$pk" in FALHA) : > "$T/cmd-falha" ;; *) echo "$pk" > "$T/cmd-pkg" ;; esac
+    roda nokey
+    if [ "$pk" = "com.outra.galeria" ]; then
+      afirma 'force_stop_antes com.outra.galeria' "force-stop nao usou o pacote do resolvedor: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
+    else
+      afirma 'force_stop_antes com.hisilicon.higallery' "sem resolver (ou 'android'), deveria cair em com.hisilicon.higallery: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
+    fi
+    afirma '[ "$(chamadas cmd)" -ge 3 ] && grep -q "^cmd package resolve-activity --brief -a android.intent.action.VIEW" "$T/calls.log"' "o resolvedor nao foi consultado a cada tela"
+    afirma '! grep -q "^am force-stop android$" "$T/calls.log"' "force-stop do pacote android"
+    limpa
+  done
+}
+
+c_modo_auto_ambiente(){
+  novo_cenario "PFL_MODO_AUTO=0 sem PFL_TESTE=1 e ignorado; com PFL_TESTE=1 vale"
+  # cor.sh sem o despacho final: so imprime o MODO_AUTO que ele calculou
+  sed '/^case "\$1" in$/,$d' "$KIT/cor.sh" > "$T/cor-sem-despacho.sh"
+  echo 'echo "MODO_AUTO=$MODO_AUTO"' >> "$T/cor-sem-despacho.sh"
+  afirma '[ "$(env PFL_MODO_AUTO=0 dash "$T/cor-sem-despacho.sh")" = "MODO_AUTO=1" ]' "PFL_MODO_AUTO=0 sem PFL_TESTE desligou o modo automatico"
+  afirma '[ "$(env PFL_TESTE=1 PFL_MODO_AUTO=0 dash "$T/cor-sem-despacho.sh")" = "MODO_AUTO=0" ]' "PFL_MODO_AUTO=0 com PFL_TESTE nao desligou"
+  afirma '[ "$(env dash "$T/cor-sem-despacho.sh")" = "MODO_AUTO=1" ]' "o padrao nao e MODO_AUTO=1"
+  afirma '[ "$(env PFL_NLCAMCHECK=/tmp/x PFL_NLCAMCHECK_MD5=0 dash -c ". \"$T/cor-sem-despacho.sh\" >/dev/null; echo \$NLCAM \$NLCAM_MD5")" = "/data/vendor/pfl7560-kit/nl_camcheck $(sed -n "s/^NLCAM_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" ]' "PFL_NLCAMCHECK* valeram sem PFL_TESTE"
+  limpa
+}
+
 c_falhas_seguras(){
   novo_cenario "lvdsctl nao muda o byte = reverte e nao deixa journal"; aparelho_ok
   : > "$T/lvds-falha"
   roda key key
   afirma '[ "$(pp_md5)" = "$PP0" ]' "panelparam mudou"
   afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ]' "journal sobrou"
-  afirma '[ "$(telas)" = "aguarde metades-1 metades-1 erro " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 escada-1 erro " ]' "telas: '$(telas)'"
   afirma '[ "$(chamadas getevent)" = 1 ]' "nao devia pedir a 2a tecla se o formato nao trocou"
   limpa
 
@@ -738,7 +966,7 @@ c_falhas_seguras(){
   afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "escreveu sem backup valido"
   afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ]' "journal criado sem backup"
   afirma '[ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ]' "backup invalido ficou no pendrive"
-  afirma '[ "$(telas)" = "aguarde metades-1 metades-1 erro " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 escada-1 erro " ]' "telas: '$(telas)'"
   limpa
 
   novo_cenario "nome do perfil na particao nao bate com o driver = nao escreve"; aparelho_ok
@@ -823,7 +1051,7 @@ c_modelo_novo_secoes(){
   local v0; v0="$(estado_vendor)"
   roda nokey
   afirma '[ "$(estado_vendor)" = "$v0" ] && [ "$(chamadas reboot)" = 0 ] && [ "$(chamadas mount)" = 0 ]' "mexeu em aparelho novo ja corrigido"
-  afirma '[ "$(telas)" = "aguarde metades-1 pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 pronto " ]' "telas: '$(telas)'"
   limpa
 }
 
@@ -836,7 +1064,7 @@ c_modelo_novo_desconhecido(){
   afirma 'grep -q "NAO vou sobrescrever" "$T/out.log"' "log sem a recusa"
   afirma 'grep -q "ed3f314ca89698cb057a74ef64dca38e" "$T/out.log" && grep -q "29d8ba36149413e899563029df078f6d" "$T/out.log"' "a recusa nao cita os dois md5 de fabrica"
   afirma '[ "$(chamadas reboot)" = 0 ] && [ ! -e "$f.new" ] && [ ! -e "$f.STOCK" ]' "reiniciou, deixou .new ou guardou STOCK apesar da recusa"
-  afirma '[ "$(telas)" = "aguarde metades-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde escada-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
   limpa
 }
 
@@ -853,7 +1081,7 @@ c_secoes_resultado_errado(){
     afirma '[ "$(md5 "$f")" = "$m0" ]' "gravou um ini montado errado ($m)"
     afirma 'grep -q "nao consegui montar o ZYCustom.ini corrigido" "$T/out.log"' "log sem o erro de montagem ($m)"
     afirma '[ "$(chamadas reboot)" = 0 ] && [ ! -e "$f.new" ] && [ ! -e "$(W)/ini.composto" ]' "reiniciou, .new ou arquivo de trabalho sobrou ($m)"
-    afirma '[ "$(telas)" = "aguarde metades-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
+    afirma '[ "$(telas)" = "aguarde escada-1 erro " ]' "tela final deveria ser erro: '$(telas)'"
     limpa
   done
 }
@@ -877,11 +1105,11 @@ c_instalador(){
   local d x f n
   d="$(mktemp -d)"
   afirma 'bash "$ROOT/install.sh" --pendrive "$d" >"$d.log" 2>&1' "install.sh --pendrive falhou: $(tail -3 "$d.log" 2>/dev/null | tr '\n' ' ')"
-  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt kit/aguarde.png kit/erro.png kit/metades-1.png kit/metades-2.png kit/pronto.png kit/reiniciando.png; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png; do
     afirma 'cmp -s "$KIT/$f" "$d/$f"' "pendrive sem $f ou com copia diferente"
   done
   n="$(cd "$d" && find . -type f | wc -l)"
-  afirma '[ "$n" = 11 ]' "esperava 11 arquivos no pendrive, achei $n"
+  afirma '[ "$n" = 14 ]' "esperava 14 arquivos no pendrive, achei $n"
   # o pendrive copiado confere, arquivo a arquivo, com a lista que o aparelho usa
   afirma '( cd "$d" && sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh" \
             | sed -n "s/^\(KIT_LISTA=\"\)\{0,1\}\([0-9a-f]\{32\}  .*\)\$/\2/p" | md5sum -c --quiet - )' "o pendrive nao confere com a lista embutida"
@@ -903,17 +1131,17 @@ c_instalador(){
   CASO="install.bat"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
-  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt 'kit\*.png'; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt 'kit\*.png'; do
     afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -qF "$f"' "install.bat nao copia/lista $f"
   done
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "newlink_update.sh.*\\x22"' "install.bat nao le a lista embutida no newlink_update.sh"
-  # o regex da lista do install.bat acha as mesmas 9 entradas da lista embutida
+  # o regex da lista do install.bat acha as mesmas 12 entradas da lista embutida
   afirma '[ "$(python3 -I -c "
 import re,sys
 t=open(sys.argv[1]).read()
-print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\", t)))" "$KIT/newlink_update.sh")" = 9 ]' "regex da lista do install.bat nao acha as 9 entradas"
-  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini LEIA-ME.txt; do
+print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\", t)))" "$KIT/newlink_update.sh")" = 12 ]' "regex da lista do install.bat nao acha as 12 entradas"
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt; do
     afirma 'grep -q "$f" "$ROOT/INSTALL.md"' "INSTALL.md nao lista $f"
   done
   afirma 'grep -q "kit/\*.png" "$ROOT/INSTALL.md"' "INSTALL.md nao lista kit/*.png"
@@ -951,15 +1179,18 @@ c_estaticos(){
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/newlink_update.sh" | grep -qw awk' "o newlink_update.sh usa awk (o shell do aparelho so garante sed/grep/head/tail)"
   afirma '[ "$(md5 "$KIT/lvdsctl")" = 178d812872cb9306c0ae6faeed07184a ]' "lvdsctl do kit com md5 errado"
   afirma '[ "$(sed -n "s/^LVDSCTL_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/lvdsctl")" ]' "LVDSCTL_MD5 do cor.sh difere do md5 do lvdsctl"
+  afirma '[ "$(sed -n "s/^NLCAM_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/nl_camcheck")" ]' "NLCAM_MD5 do cor.sh difere do md5 do nl_camcheck do kit"
+  afirma 'cmp -s "$KIT/nl_camcheck" "$ROOT/artifacts/camcheck/nl_camcheck"' "nl_camcheck do kit difere do versionado em artifacts/camcheck"
+  afirma '[ ! -e "$KIT/kit/metades-1.png" ] && [ ! -e "$KIT/kit/metades-2.png" ]' "metades-*.png ainda no kit"
   afirma '! grep -q "data/local/tmp/pfl7560-kit" "$KIT/cor.sh" "$KIT/newlink_update.sh"' "script ainda usa a pasta gravavel pelo shell"
   afirma 'git -C "$ROOT" diff --quiet HEAD -- artifacts/lcd-color-fix/lvdsctl artifacts/lcd-color-fix/lvdsctl.c' "lvdsctl/lvdsctl.c de artifacts foram alterados"
-  for f in cor.sh newlink_update.sh LEIA-ME.txt lvdsctl kit/metades-1.png; do
+  for f in cor.sh newlink_update.sh LEIA-ME.txt lvdsctl nl_camcheck kit/escada-1.png kit/calibracao.png kit/corrigida.png; do
     afirma 'git -C "$ROOT" check-attr byte-exact -- "pendrive-autorun/$f" | grep -q "byte-exact: set"' "$f nao esta como byte-exact no .gitattributes"
   done
   afirma 'python3 -I "$ROOT/tests/simula-padroes-kit.py" >/dev/null' "simulacao dos padroes falhou"
   # LEIA-ME: fluxo de leigo com ate 5 passos numerados e todos os arquivos do kit citados
   afirma '[ "$(sed -n "/^COMO USAR/,/^  Resultado da parte termica/p" "$KIT/LEIA-ME.txt" | grep -cE "^  [0-9]\. ")" = 5 ]' "o fluxo do LEIA-ME nao tem exatamente 5 passos"
-  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini kit; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini kit; do
     afirma 'grep -q "$f" "$KIT/LEIA-ME.txt"' "LEIA-ME nao cita $f"
   done
 }
@@ -979,7 +1210,8 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   echo "== cenarios sob $SHELL_NOME =="
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
-           c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado}; do
+           c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente}; do
     echo "  $c"
     "$c"
   done
