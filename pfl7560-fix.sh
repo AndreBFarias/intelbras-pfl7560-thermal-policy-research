@@ -64,12 +64,18 @@ connect(){
   [ "$u" != "uid=0" ] && { "$ADB" -s "$dev" root >/dev/null 2>&1; sleep 2; "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1||true; }
   m="$("$ADB" -s "$dev" shell getprop ro.product.model 2>/dev/null|tr -d '\r\n ')"
   [ "$m" = "PFL7560" ] || { err "dispositivo em $ip NAO e PFL7560 (model='$m'). Abortando."; exit 1; }
+  # root conferido DE VERDADE: o "adb root" pode falhar em silencio e o hidebug entao
+  # responde errno = 13. So diz "(root)" se o id reler uid=0.
+  u="$("$ADB" -s "$dev" shell id 2>/dev/null|grep -oE 'uid=[0-9]+')"
+  [ "$u" = "uid=0" ] || { err "sem root em $ip (id devolveu '${u:-vazio}'): hidebug e escrita em /vendor nao funcionam. Abortando."; exit 1; }
   ok "conectado ao PFL7560 em $ip (root)"; echo "$dev"
 }
 cmd_status(){
   local d; d="$(connect)" || exit 1; [ -n "$d" ] || { err "sem dispositivo"; exit 1; }
   say "estado atual:"
-  "$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngfs 0\ngfs 1\ngbri 0\nquit\n"|/vendor/bin/hidebug' 2>/dev/null|grep -E "NTC|fan speed|brightness" >&2
+  local hb; hb="$("$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngfs 0\ngfs 1\ngbri 0\nquit\n"|/vendor/bin/hidebug' 2>/dev/null)"
+  case "$hb" in *"errno = 13"*) err "hidebug negou acesso (errno = 13): sem root no aparelho" ;; esac
+  printf '%s\n' "$hb"|grep -E "NTC|fan speed|brightness" >&2
   "$ADB" -s "$d" shell "grep -aE 'HW_VIRTUAL_CHANNEL|POLICY_0_SPEED|POLICY_0_THRESHOLD|POLICY_0_BRIGHTNESS' $INI; grep -a wifi_disconnect_on_boot $BP; getprop init.svc.xiriservice" 2>/dev/null >&2
 }
 # backup_stock <d> <nome> <device_path> <stock_md5> <artefato_versionado>
