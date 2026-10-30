@@ -819,6 +819,22 @@ c_auto_errado(){
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start"
   limpa
 
+  # queda de energia na tela "corrigida": a troca automatica ja tinha backup, journal e
+  # gancho; o gancho de boot que o proprio cor.sh gerou devolve o original
+  novo_cenario "auto: queda de energia depois da troca = journal e gancho restauram"; aparelho_ok
+  auto_on 1
+  stub getevent 'echo "getevent $*" >> "$T/calls.log"; pkill -9 -f "pfl7560-kit/cor.sh"; sleep 1; exit 0'
+  roda
+  rmdir "$T/root/dev/pfl7560-kit.lock" 2>/dev/null
+  afirma '[ "$(pp_byte)" = 1 ] && tem_chamada "lvdsctl fmt 1"' "a troca automatica deveria ter deixado o byte em 1"
+  afirma '[ -f "$(W)/journal" ] && grep -q "^J_FMT=0$" "$(W)/journal"' "a troca automatica nao deixou journal com o formato original"
+  afirma 'cmp -s "$(W)/panelparam-original.img" "$T/pp-original.img"' "backup da troca automatica nao guarda o original"
+  afirma 'grep -q "pfl7560-kit-gancho" "$T/root/data/local/nlsu/update_after_boot.sh"' "a troca automatica nao instalou o gancho"
+  amb $SHELL_BIN_RUN "$T/root/data/local/nlsu/update_after_boot.sh" > "$T/hook.log" 2>&1
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "o gancho nao restaurou o formato depois da troca automatica"
+  afirma '[ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "o gancho nao se apagou"
+  limpa
+
   novo_cenario "auto: lvdsctl nao muda o byte = reverte, erro, sem journal"; aparelho_ok
   auto_on 1; : > "$T/lvds-falha"
   roda
