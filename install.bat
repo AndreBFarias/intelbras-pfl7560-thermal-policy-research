@@ -331,11 +331,17 @@ REM ---- helpers ----
 :backup_panelparam
 REM backup do panelparam ANTES de gravar (a lvdsctl grava o byte na particao). Um por dia: o do
 REM 1o uso do dia guarda o estado anterior a qualquer mudanca desse dia. exit /b 1 se nao confirmar.
+REM O nome leva o serial: o backup do dia de OUTRO aparelho nao pode ser reaproveitado.
 set "HOJE="
 for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd" 2^>nul') do set "HOJE=%%D"
 if not defined HOJE set "HOJE=semdata"
+set "PPSN="
+for /f "delims=" %%S in ('"%ADB%" -s %DEV% shell getprop ro.serialno 2^>nul') do set "PPSN=%%S"
+if defined PPSN set "PPSN=%PPSN: =%"
+REM serial ilegivel = nome unico, entao nunca reaproveita (sempre faz backup novo)
+if not defined PPSN set "PPSN=semserial-%RANDOM%"
 if not exist "%HERE%\backups-projetor" mkdir "%HERE%\backups-projetor"
-set "PPBK=%HERE%\backups-projetor\panelparam.backup-%HOJE%.img"
+set "PPBK=%HERE%\backups-projetor\panelparam.backup-%PPSN%-%HOJE%.img"
 if exist "%PPBK%" (
   echo  [OK] backup do dia ja existe: %PPBK%
   exit /b 0

@@ -99,10 +99,13 @@ do_backup() {   # do_backup <arq>
 
 # backup do dia antes de gravar na panelparam: um por dia basta (o do primeiro uso
 # do dia, que guarda o estado anterior a qualquer mudanca desse dia, e mantido).
-# Aborta se o backup falhar.
+# Aborta se o backup falhar. O nome leva o serial: o backup do dia de OUTRO
+# aparelho nao pode ser reaproveitado (serial ilegivel = nome unico, backup novo).
 backup_antes() {
-  local bk md5
-  bk="panelparam.backup-$(date +%Y%m%d).img"
+  local bk md5 sn
+  sn="$(sh_ "getprop ro.serialno" 2>/dev/null | tr -dc 'A-Za-z0-9' || true)"
+  [ -n "$sn" ] || sn="semserial-$$"
+  bk="panelparam.backup-$sn-$(date +%Y%m%d).img"
   if [ -f "$bk" ] && [ -f "$bk.md5" ] && [ "$(md5sum "$bk" | awk '{print $1}')" = "$(cat "$bk.md5")" ]; then
     echo ">> backup do dia ja existe e confere: $bk"
   else
