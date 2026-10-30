@@ -4,41 +4,84 @@ incerto, onde acento pt-BR viraria mojibake. NAO acentuar este arquivo.
 Convencao fixada na sprint 25 (auditoria de acentuacao).
 
 ========================================================================
- PFL7560 - AUTORUN por pendrive (instala a correcao sozinho)
+ PFL7560 - KIT DE PENDRIVE (instala a correcao sozinho, sem PC)
 ========================================================================
 
-O QUE E
-  Um jeito de aplicar a correcao (termica + wi-fi + xiri) SEM PC e SEM adb:
-  basta plugar o pendrive e ligar o projetor. O proprio firmware executa o
-  newlink_update.sh como root no boot. Serve para:
+PARA QUE SERVE
+  Aplica a correcao (termica + wi-fi + xiri) e confere a COR da imagem, tudo
+  pelo controle remoto, SEM PC e SEM adb. Vale para qualquer PFL7560 com o
+  firmware de fabrica V1.0.0.9. Serve para:
     - recuperar SEU projetor se um dia regravarem o firmware de fabrica;
-    - instalar a correcao em OUTROS PFL7560 (mesma versao V1.0.0.9).
+    - instalar a correcao em OUTROS PFL7560;
+    - acertar a cor depois de trocar o micro-painel (VESA ou JEIDA).
+  O MESMO pendrive serve para qualquer aparelho. Nao tem serial, nao tem
+  arquivo para editar.
 
-COMO USAR
-  1. Formate um pendrive em FAT32 (MBR).
-  2. Copie para a RAIZ do pendrive estes 2 arquivos:
-        newlink_update.sh
-        ZYCustom.ini
-  3. Com o projetor DESLIGADO, plugue o pendrive numa porta USB dele.
-  4. Ligue o projetor. Ele aplica e REINICIA sozinho uma vez (~30-60 s).
-     Se na 1a vez nao aplicar (pendrive montou tarde), so reiniciar de novo.
-  5. Pronto: fans no maximo SEMPRE, tela 100% no uso normal, wi-fi reconecta
-     sozinho, sem spam. Pode remover o pendrive.
-     Obs. sobre o brilho: fica 100% na faixa normal de temperatura. Se a optica
-     passar de 66 C ele cai em degraus (950 / 900 / 850) e chega a 850 nos 70 C,
-     onde o aparelho tambem mostra o aviso de superaquecimento; ao esfriar volta
-     a 100% sozinho, em rampa suave. Isso e proposital: corta o calor na fonte
-     antes do desligamento de protecao em 75 C. Perda maxima de brilho: 15%.
+COMO USAR (5 passos)
+  1. Formate um pendrive em FAT32 (MBR). Copie TUDO o que esta nesta pasta para
+     a RAIZ do pendrive (nao deixe dentro de outra pasta):
+        newlink_update.sh   cor.sh   lvdsctl   ZYCustom.ini   pasta kit
+     (a pasta "kit" tem as telas .png; este LEIA-ME e opcional).
+  2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
+     Se aparecer "AJUSTANDO", espere: ele reinicia sozinho uma vez (~1 min).
+     Se NENHUMA tela do kit aparecer em 2 minutos, desligue e ligue de novo
+     (o pendrive montou tarde).
+  3. Vai aparecer uma tela com DUAS METADES cinzas ("TESTE DE COR 1 de 2").
+     - Se as duas metades parecem IGUAIS: nao faca nada. Em 30 segundos ele
+       segue sozinho e a cor NAO e mexida.
+     - Se uma metade esta BEM MAIS CLARA que a outra: aperte qualquer tecla do
+       controle.
+  4. Se voce apertou, a mesma tela volta no outro formato ("TESTE DE COR 2 de 2").
+     - Agora as metades parecem IGUAIS? Aperte qualquer tecla de novo, para
+       MANTER.
+     - Continuam diferentes, ou a tela ficou escura? Nao aperte nada. Em 30
+       segundos o kit volta sozinho ao formato de antes.
+  5. Quando aparecer "PRONTO - pode retirar o pendrive", tire o pendrive.
+     Rodar de novo e inofensivo: com a cor certa, nada e mexido nem reiniciado.
+     Se aparecer "ALGO NAO DEU CERTO", tire o pendrive, ligue de novo e, se
+     repetir, veja o arquivo newlink_update.log que ficou no pendrive.
+
+  Resultado da parte termica: fans no maximo SEMPRE, tela 100% no uso normal,
+  wi-fi reconecta sozinho, sem spam. Sobre o brilho: fica 100% na faixa normal
+  de temperatura. Se a optica passar de 66 C ele cai em degraus (950 / 900 /
+  850) e chega a 850 nos 70 C, onde o aparelho tambem mostra o aviso de
+  superaquecimento; ao esfriar volta a 100% sozinho, em rampa suave. Isso e
+  proposital: corta o calor na fonte antes do desligamento de protecao em 75 C.
+  Perda maxima de brilho: 15%.
+
+  ATENCAO: o aparelho de FABRICA mostra as metades IGUAIS. Quem nao aperta
+  nada nao altera nada. Errar a cor exige DUAS teclas seguidas, a segunda
+  diante de uma imagem visivelmente pior.
 
 COMO SABER QUE FUNCIONOU (3 sinais)
-  - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos.
-  - LOG: aparece um arquivo "newlink_update.log" na raiz do pendrive com o
-    passo a passo (procure a linha "CORRECAO APLICADA COM SUCESSO").
+  - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos;
+    no fim aparece a tela PRONTO.
+  - LOG: ficam na raiz do pendrive "newlink_update.log" (parte termica; procure
+    "CORRECAO APLICADA COM SUCESSO") e "newlink_cor.log" (parte da cor).
   - adb (se tiver PC): ./pfl7560-saude.sh -> 12 checagens de uma vez, e diz
     tambem se a protecao esta ENXERGANDO neste boot, que e coisa diferente de
     "o arquivo esta certo". Prova ativa: ./pfl7560-saude.sh --vivacidade
     (injeta 71 C por 40 s; o aviso aparece na tela e o brilho cai ate 850 e
     volta sozinho - e proposital, nao e defeito).
+
+O QUE O KIT FAZ POR DENTRO (resumo)
+  - ANTES de escrever qualquer coisa, confere o md5 de CADA arquivo do kit contra
+    uma lista embutida no newlink_update.sh. Arquivo faltando, corrompido ou
+    adulterado = aborta e nao altera nada (copie de novo a pasta inteira).
+  - TERMICO: o alvo e o md5 do ZYCustom.ini que o firmware le. So troca se o atual
+    for o de fabrica ou o de uma versao anterior nossa; md5 desconhecido
+    (firmware diferente?) = RECUSA e avisa, em vez de sobrescrever. Se existir
+    /atv/ini/ZYCustom*.ini, ele tem precedencia sobre o do /vendor: o kit avisa
+    e mostra ERRO em vez de dizer que deu certo.
+  - COR: so mexe no byte lvds_fmt do perfil ativo da particao panelparam, e so
+    com as DUAS teclas. Antes de trocar, faz backup (conferido byte a byte com
+    cmp) em /data e uma copia no pendrive (panelparam-backup-<serial>.img, com
+    .md5) e grava um journal. Qualquer coisa fora do esperado reverte e confere.
+  - QUEDA DE ENERGIA NO MEIO DO TESTE: no boot seguinte o formato original e
+    restaurado antes de qualquer outra coisa (pelo proprio kit, se o pendrive
+    estiver plugado, ou por um gancho de boot que o kit cria so durante o teste).
+  - Reinicia UMA vez, e so quando a parte termica mudou algo.
+  - NUNCA chama hidebug nem gtt (ver o proximo bloco).
 
 CUIDADO COM AS FERRAMENTAS QUE "CUTUCAM" O SENSOR
   ./pfl7560-fix.sh status, pfl7560-evidencias.sh, pfl7560-monitor-termico.sh e
@@ -56,66 +99,40 @@ CUIDADO COM AS FERRAMENTAS QUE "CUTUCAM" O SENSOR
   Para acompanhar sem risco: pfl7560-saude.sh, pfl7560-vigia-lsadc.sh e
   pfl7560-monitor-props.sh.
 
-SEGURANCA
-  - Idempotente: se ja estiver aplicado, nao faz nada (nao fica reiniciando).
-  - So age em aparelho cujo modelo e PFL7560 (trava no inicio do script).
-  - Nao toca no bootloader. So edita a particao /vendor (reversivel).
-  - So altera o que existe: se o wi-fi/xiri ja estiverem ok, pula.
-
-CORRECAO DE COR (FIX 4) - OPCIONAL, DESLIGADA POR PADRAO
-  Por padrao o autorun aplica so os 3 fixes TERMICOS. A cor do painel
-  (VESA/JEIDA) vive na particao panelparam (mmcblk0p6), separada, e NAO e
-  tocada - a menos que voce ligue o FIX 4 de proposito, como abaixo.
-
-  QUANDO LIGAR: so se o micro-painel DESTE aparelho foi trocado pelo RX058B-0600
-  (peca do Thundeal TD96). Num aparelho com o painel DE FABRICA (-4300), forcar
-  JEIDA QUEBRA a cor dos meios-tons. Na duvida, NAO ligue.
-
-  COMO LIGAR (duas travas, as duas obrigatorias):
-    1. Descubra o serial do aparelho:  adb shell getprop ro.serialno
-       (ou Configuracoes -> Sobre; e o mesmo numero)
-    2. Crie na RAIZ do pendrive um arquivo chamado exatamente
-          EU-TROQUEI-O-PAINEL-PARA-0600.txt
-       e escreva o serial DENTRO dele, numa linha.
-    3. Pronto. No proximo boot com o pendrive plugado, se a cor estiver em VESA
-       o autorun faz backup da particao (8 MiB, no proprio pendrive), grava o
-       byte e reinicia uma vez.
-
-  POR QUE O SERIAL: este pendrive foi feito para ser emprestado e corrigir
-  OUTROS PFL7560. Um arquivo vazio sobreviveria ao emprestimo e estragaria a cor
-  do aparelho do outro. Com o serial dentro, a autorizacao vale para UM aparelho
-  so e nao viaja junto com a midia.
-
-  O software NAO consegue saber qual painel esta no motor optico: depois da
-  troca fisica, o driver continua reportando RX058B_4300. Quem afirma a troca e
-  voce, escrevendo o serial no arquivo. O script confere se o nome do perfil
-  gravado na particao bate com o que o driver reporta - isso prova que o OFFSET
-  esta certo, nao qual painel esta instalado.
-
-  SE ALGO DER ERRADO: o backup fica em panelparam-backup-<serial>.img na raiz do
-  pendrive, com .md5 ao lado. Restaure com ./pfl7560-lcd-color.sh restore.
-  Falha na cor NUNCA bloqueia os fixes termicos: sao independentes.
-
-  Nota util: a particao panelparam NAO faz parte do container do firmware, entao
-  REGRAVAR o firmware de fabrica NAO apaga a correcao de cor. Ela so volta ao
-  errado se alguem rodar nl_lvdsctl fmt 0 ou trocar o indice do perfil de
-  proposito. Na pratica, e um cenario raro.
+LIMITES (o que o kit NAO faz)
+  - Nao descobre sozinho o formato da cor: nao ha ID no painel; alguem precisa
+    olhar a tela uma vez (e o que os passos 3 e 4 fazem).
+  - Nao garante rodar no 1o boot: o firmware so olha o pendrive depois de ligar;
+    se a montagem atrasar, ele perde a vez (por isso "ligue de novo").
+  - Nao corrige painel que precise de swap, bit ou map: isso fica no wizard do
+    PC (./pfl7560-lcd-color.sh wizard).
+  - Termico so vale no firmware V1.0.0.9 (em outro, o kit recusa).
+  - Este kit v2 foi provado so em SIMULACAO (harness com stubs, tests/). A
+    bancada no aparelho (etapa E4) ainda nao foi feita: se algo se comportar
+    diferente, guarde os dois .log do pendrive.
 
 OBSERVACOES
   - Testado no firmware V1.0.0.9. Em outra versao, confira antes.
-  - Reverter: use ./pfl7560-fix.sh revert (pelo PC) ou regrave o firmware
-    de fabrica (Software PFL7560.zip) pela "Atualizacao local do sistema".
+  - A particao panelparam (onde mora a cor) PARECE estar dentro do container do
+    firmware (doc 41, ainda a confirmar no aparelho). Se for, REGRAVAR o firmware
+    de fabrica pode devolver a cor ao formato de fabrica (VESA): depois de um
+    reflash, rode este pendrive de novo e refaca a pergunta da cor.
+  - Reverter a parte termica: use ./pfl7560-fix.sh revert (pelo PC) ou regrave o
+    firmware de fabrica (Software PFL7560.zip) pela "Atualizacao local do
+    sistema".
+  - Se a cor sair errada e nao voltar, restaure o backup do pendrive com
+    ./pfl7560-lcd-color.sh restore panelparam-backup-<serial>.img
 
   DOIS ARRANJOS POSSIVEIS - escolha com consciencia:
 
   (A) DISTRIBUICAO / pendrive de autorun "limpo" - RECOMENDADO para dar a
-      outra pessoa ou para o dia a dia: SO newlink_update.sh + ZYCustom.ini,
+      outra pessoa ou para o dia a dia: SO os arquivos do kit (lista do passo 1),
       sem nenhum .bin junto. Nao ha como um power-hold acidental reflashear.
 
-  (B) KIT DE EMERGENCIA pessoal - um pendrive so, com o autorun E o
-      usb_update.bin de fabrica. E um arranjo legitimo: cobre tanto "liguei e a
-      correcao sumiu" (plugar, ligar, deixar aplicar, tirar) quanto "brickei e
-      preciso reflashear" (power-hold). O preco e conhecer o risco abaixo.
+  (B) KIT DE EMERGENCIA pessoal - um pendrive so, com o kit E o usb_update.bin de
+      fabrica. E um arranjo legitimo: cobre tanto "liguei e a correcao sumiu"
+      (plugar, ligar, deixar aplicar, tirar) quanto "brickei e preciso
+      reflashear" (power-hold). O preco e conhecer o risco abaixo.
 
   ATENCAO - o risco do arranjo (B), e como conviver com ele:
   - Com o pendrive plugado, LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de

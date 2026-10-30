@@ -441,7 +441,11 @@ c_estaticos(){
     afirma 'git -C "$ROOT" check-attr byte-exact -- "pendrive-autorun/$f" | grep -q "byte-exact: set"' "$f nao esta como byte-exact no .gitattributes"
   done
   afirma 'python3 -I "$ROOT/tests/simula-padroes-kit.py" >/dev/null' "simulacao dos padroes falhou"
-  afirma '[ "$(wc -l < "$KIT/LEIA-ME.txt")" -gt 0 ]' "LEIA-ME vazio"
+  # LEIA-ME: fluxo de leigo com ate 5 passos numerados e todos os arquivos do kit citados
+  afirma '[ "$(sed -n "/^COMO USAR/,/^  Resultado da parte termica/p" "$KIT/LEIA-ME.txt" | grep -cE "^  [0-9]\. ")" = 5 ]' "o fluxo do LEIA-ME nao tem exatamente 5 passos"
+  for f in newlink_update.sh cor.sh lvdsctl ZYCustom.ini kit; do
+    afirma 'grep -q "$f" "$KIT/LEIA-ME.txt"' "LEIA-ME nao cita $f"
+  done
 }
 
 # ---------------------------------------------------------------------------
