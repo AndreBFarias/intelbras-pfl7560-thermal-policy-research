@@ -12,7 +12,11 @@ derrubado.
 
 ## 1. Cor: o painel novo é VESA (`OBSERVADO`)
 
-- Sufixo do flat ilegível (`FPX-RX058B-…`, coberto por um fio na foto).
+- Flat lido com o aparelho aberto: **`FPX-RX058B-4300-V0`, `20241101 HT`**
+  (`media/2026-10-29-flat-lcd-rx058b-4300.jpg`). Mesmo modelo e mesma data de fabricação do painel
+  **original de fábrica** registrado no [doc 28](28-troca-painel-rx058b-diagnostico-cor.md). Por isso
+  pede VESA, como o perfil 69 (`RX058B_4300_5010E`) sempre previu: o aparelho estava em JEIDA por causa
+  do `-0600` da 1ª troca.
 - Sintoma relatado: "verde virou azul, canais trocados". As barras puras mostraram **primárias certas**;
   o preto e os cinzas saíram tingidos, com cor que **mudava conforme a imagem** (verde num padrão,
   laranja noutro). Assinatura de formato LVDS invertido, não de troca de canal nem de bit preso.
@@ -47,7 +51,22 @@ Artefato: `evidencias/2026-10-29/props-221947.tsv`. Branco `#FFFFFF`, brilho 100
   dúvida. Pela placa como referência, a diferença cai para +1,6 °C (abaixo de um degrau do ADC).
 - A base de 2026-09-03 pode ter tido ventilador externo (o dono não lembra).
 
-## 3. Onde está o NTC do `gtt1` (OPT-S7, ainda aberto)
+## 3. Onde está o NTC do `gtt1` (OPT-S7)
+
+> **ATUALIZAÇÃO (mesma sessão, aparelho aberto) — `OBSERVADO`, confiança ~85 %:** o dono seguiu o fio do
+> conector `NTC GND` da placa principal (`media/2026-10-29-trajeto-fio-ntc-gnd.jpg`). São **dois fios
+> pretos finos trançados** (formato de sensor de 2 fios) que descem pela lateral da placa de força do LED
+> e terminam no parafuso do canto inferior, onde o **olhal de latão** fica preso no topo do **bloco
+> dissipador do LED**. Leitura: **o `gtt1` mede o bloco do LED, não a óptica.** O que falta para 100 %:
+> ver o olhal com os dois fios entrando nele (sem outro fio no mesmo parafuso). O olhal solto na base,
+> com luva metálica, é outra peça (o do doc 27).
+>
+> Consequências: (1) a coluna `optica_C` e o nome "óptica" nos scripts e docs são rótulo errado; o
+> valor é a temperatura do dissipador do LED. (2) Os +8 °C depois da pasta nova são compatíveis com a
+> pasta **funcionando** (mais calor sai do LED para o bloco). (3) A temperatura do polarizador e do LCD
+> **não é medida por nenhum sensor** do aparelho. (4) A placa de força do LED traz a marcação
+> **`NeoPix 725 NPX725 CN LED`** (`media/2026-10-29-placa-led-neopix-npx725.jpg`), pista nova para a
+> ficha do LED.
 
 - `OBSERVADO`: em cima do bloco do LED há um **olhal de latão parafusado** (já aparece em
   `media/teardown-02-interior-forca-led.jpg`, de julho) e um **cabo cinza terminado num tubinho metálico**.
