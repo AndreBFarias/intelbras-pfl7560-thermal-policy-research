@@ -1,116 +1,79 @@
 #!/vendor/bin/sh
 # ---------------------------------------------------------------------------
 #  CONVENCAO DE CHARSET (NAO MEXER): este arquivo e ASCII PURO de proposito.
-#  Roda no shell do projetor (/vendor/bin/sh, BusyBox/Android, locale incerto)
-#  e vive num pendrive FAT32; acento pt-BR pode virar mojibake ou quebrar o
-#  parser do shell. NAO acentuar este arquivo. Convencao fixada na sprint 25
-#  (auditoria de acentuacao) - decisao registrada para o proximo auditor.
+#  Roda no shell do projetor (/vendor/bin/sh, mksh/toybox do Android 9, locale
+#  incerto) e vive num pendrive FAT32; acento pt-BR pode virar mojibake ou
+#  quebrar o parser do shell. NAO acentuar este arquivo. Convencao fixada na
+#  sprint 25 (auditoria de acentuacao) - decisao registrada para o proximo
+#  auditor.
 # ---------------------------------------------------------------------------
 # ============================================================================
-#  PFL7560 - AUTOINSTALADOR via pendrive (termico + wi-fi + xiri)
+#  PFL7560 - KIT UNIVERSAL de pendrive, v2 (termico + wi-fi + xiri + cor)
 #
 #  Como funciona: o proprio firmware roda /vendor/bin/nl_usb_update.sh a cada
 #  boot (gatilho: sys.boot_completed=1). Esse script varre os pendrives e, se
-#  achar um "newlink_update.sh" na raiz, EXECUTA ele como ROOT. Ou seja: basta
-#  este arquivo + o ZYCustom.ini estarem na raiz do pendrive, plugar e ligar.
+#  achar um "newlink_update.sh" na raiz, EXECUTA ele como ROOT (via exec do
+#  init). Por isso aqui roda so o que e CURTO: conferir o kit e a fase termica.
+#  A fase de COR (pergunta a pessoa, ate ~90 s) e lancada DESTACADA, a partir de
+#  uma copia em /data/local/tmp, pelo cor.sh.
 #
-#  IDEMPOTENTE: checa os TRES estados-alvo (termico, wi-fi, xiri). Se os tres
-#  ja estiverem aplicados, sai sem fazer nada (nao entra em loop de reboot).
-#  Reaplica so o que faltar, e reinicia UMA vez, apenas quando algo mudou.
+#  Coloque na RAIZ do pendrive (FAT32) tudo o que esta na pasta pendrive-autorun:
+#      newlink_update.sh  cor.sh  lvdsctl  ZYCustom.ini  kit/*.png
+#  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
-#  Coloque na RAIZ do pendrive (FAT32):  newlink_update.sh  +  ZYCustom.ini
+#  IDEMPOTENTE:
+#   - TERMICO: o estado-alvo e o md5 do ZYCustom.ini que o firmware le. Troca
+#     (escrita atomica) so se o md5 atual for o de fabrica ou o da versao
+#     anterior nossa; md5 desconhecido = RECUSA. 2a execucao: nada e escrito.
+#   - COR: o cor.sh pergunta olhando a tela e so grava com DUAS teclas; sem
+#     tecla nada muda. 2a execucao: nada e escrito e nada reinicia.
+#   - Reinicia UMA vez, e so quando a fase termica mudou algo.
+#
+#  SEGURANCA: o md5 de CADA arquivo do kit e conferido contra a lista embutida
+#  abaixo ANTES de qualquer escrita. Divergiu ou faltou = aborta. Este script
+#  NUNCA chama hidebug nem gtt (doc 37). Limite honesto: um newlink_update.sh
+#  adulterado roda como root e nao ha defesa contra ele.
 # ============================================================================
-MP="/mnt/media_rw/$1"
-INI=/vendor/etc/ZYCustom.ini
-BP=/vendor/build.prop
-RC=/vendor/etc/init/hw/init.bigfish.rc
-INI_MD5_OK="252ab7a72a007a8b79b3fc86bd5c0d19"   # md5 esperado do ZYCustom.ini corrigido
 
-# ---------------------------------------------------------------------------
-#  FIX 4 (OPCIONAL) - cor do painel trocado, VESA -> JEIDA.
-#
-#  DESLIGADO POR PADRAO, e com DUAS travas. So roda se existir na raiz do
-#  pendrive um arquivo chamado EU-TROQUEI-O-PAINEL-PARA-0600.txt E se o SERIAL
-#  deste aparelho (ro.serialno) estiver escrito dentro dele. Sem as duas coisas,
-#  este bloco e ignorado e o autorun se comporta exatamente como antes.
-#
-#  POR QUE DUAS TRAVAS: forcar JEIDA num PFL7560 com o painel DE FABRICA
-#  (RX058B-4300) QUEBRA a cor dos meios-tons dele. So o arquivo nao basta: este
-#  pendrive e feito para ser emprestado e corrigir OUTROS PFL7560, e um arquivo
-#  vazio sobrevive a emprestimo, copia de pasta e clonagem de midia. Amarrando
-#  ao serial, a autorizacao vale para UM aparelho e nao viaja junto.
-#  O software NAO consegue saber qual painel esta fisicamente no motor optico:
-#  depois da troca, o driver continua reportando RX058B_4300. Quem afirma a
-#  troca e o dono, escrevendo o serial no arquivo.
-#
-#  O QUE ELE FAZ: grava 1 byte (lvds_fmt) no perfil de painel ATIVO dentro da
-#  particao panelparam. Isso persiste no boot nativamente, sem servico extra e
-#  sem depender do nl_lvdsctl (que nao existe num aparelho recem-reflashado).
-#  Layout: tabela comeca em 168; cada perfil tem 768 bytes; lvds_fmt fica em
-#  0x5c (92) dentro do perfil. 0 = VESA, 1 = JEIDA.
-# ---------------------------------------------------------------------------
-SENTINELA="EU-TROQUEI-O-PAINEL-PARA-0600.txt"
-PP=/dev/block/by-name/panelparam
-PERFIL_TAM=768
-TABELA_BASE=168
-LVDS_FMT_OFF=92
-PERFIL_MAX=82
+# ---- ganchos de teste -------------------------------------------------------
+# Em producao PFL_ROOT nao existe e R fica vazio. O harness (tests/) o define
+# para apontar o script para uma arvore de mentira.
+R="${PFL_ROOT:-}"
+MP="$R/mnt/media_rw/$1"
+INI="$R/vendor/etc/ZYCustom.ini"
+BP="$R/vendor/build.prop"
+RC="$R/vendor/etc/init/hw/init.bigfish.rc"
+ATV_INI_DIR="$R/atv/ini"
+WORK="$R/data/local/tmp/pfl7560-kit"
+JOURNAL="$WORK/journal"
+ESPERA_REBOOT=8
+# gancho de teste: o harness (tests/) zera a espera; em producao nao existe
+[ -n "${PFL_RAPIDO:-}" ] && ESPERA_REBOOT=0
+
+# md5 do ZYCustom.ini: o corrigido (alvo), o de fabrica V1.0.0.9 e o da versao
+# anterior nossa (artifacts/ZYCustom_390.PREV-211927.ini). Qualquer outro =
+# desconhecido = o kit recusa em vez de sobrescrever um mapa que nao conhece.
+INI_MD5_OK="252ab7a72a007a8b79b3fc86bd5c0d19"
+INI_MD5_FABRICA="29d8ba36149413e899563029df078f6d"
+INI_MD5_ANTERIOR="bbf82dd17d4523b7df8a86bec0e850ce"
+
+# md5 de CADA arquivo do kit, relativo a raiz do pendrive. Gerado por
+# tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
+# KIT_LISTA_INICIO
+KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
+a9387fbd01b496522b7223f67cc16a92  cor.sh
+178d812872cb9306c0ae6faeed07184a  lvdsctl
+acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
+1afd05f32600385e0587acf062262988  kit/erro.png
+a21d35e144a6f18c2af7f69c6a52bdef  kit/metades-1.png
+d631a0d5929746c4cfe2e797cb1eaa3f  kit/metades-2.png
+7cd6dca3430ab476de9bb4c30b3dd4b5  kit/pronto.png
+ab1ca6ffb16e52c7fed90f6db418965b  kit/reiniciando.png
+"
+# KIT_LISTA_FIM
 
 LOG(){ echo "[PFL7560-fix] $*"; }
 LOG "==== autorun iniciado (mountpoint=$1) ===="
-
-# indice e nome do perfil ativo, lidos de /proc/msp/panel - a mesma fonte que o
-# pfl7560-saude.sh ja usa, e a unica com captura versionada no repo
-# (evidencias/diagnostico-2026-08-17/proc-panel.txt). O "+0" do awk evita a
-# armadilha de o shell interpretar um valor com zero a esquerda como octal.
-cor_idx(){ awk -F'[:|]' '/cut_idx/{v=$2; gsub(/[^0-9]/,"",v); if(v!=""){print v+0; exit}}' /proc/msp/panel 2>/dev/null; }
-cor_pnome(){ awk -F'[:|]' '/panel_name/{v=$2; gsub(/^[ \t]+|[ \t]+$/,"",v); if(v!=""){print v; exit}}' /proc/msp/panel 2>/dev/null; }
-
-# nome do perfil gravado NA PARTICAO, no indice dado.
-# O campo tem tamanho fixo e o nome termina em NUL; o resto do struct sao bytes
-# binarios. Trocar NUL por quebra de linha e pegar a 1a linha corta exatamente
-# no fim do nome - com 'tr -d' os bytes seguintes vinham colados (visto na
-# bancada com imagem sintetica).
-cor_nome(){
-  _i="$1"; [ -n "$_i" ] || return 1
-  dd if="$PP" bs=1 skip=$(( TABELA_BASE + _i * PERFIL_TAM )) count=32 2>/dev/null \
-    | tr '\000' '\n' | head -1
-}
-
-# valor atual do byte lvds_fmt (0=VESA, 1=JEIDA); vazio se nao conseguir ler
-cor_valor(){
-  _i="$1"; [ -n "$_i" ] || return 1
-  dd if="$PP" bs=1 skip=$(( TABELA_BASE + _i * PERFIL_TAM + LVDS_FMT_OFF )) count=1 2>/dev/null \
-    | od -An -tu1 | tr -dc '0-9'
-}
-
-# A sentinela so vale para o aparelho cujo SERIAL esta escrito dentro dela.
-# Sem isso, o pendrive emprestado, copiado ou clonado quebraria a cor de um
-# PFL7560 com painel de fabrica (invariante 10) - e o proprio LEIA-ME preve
-# emprestar o pendrive para corrigir OUTROS aparelhos. Serial ilegivel =
-# correcao de cor desligada (falha fechada).
-cor_serial(){ getprop ro.serialno 2>/dev/null | tr -dc 'A-Za-z0-9'; }
-cor_habilitada(){
-  _s=$(cor_serial); [ -n "$_s" ] || return 1
-  [ -f "$MP/$SENTINELA" ] || return 1
-  grep -q "$_s" "$MP/$SENTINELA" 2>/dev/null
-}
-
-# ATENCAO: o nome do perfil NAO distingue painel -4300 de -0600. Depois da troca
-# fisica o driver continua reportando RX058B_4300_... Este gate prova que o
-# OFFSET esta certo (o nome lido na particao bate com o que o driver reporta),
-# nunca QUE PAINEL esta no motor optico. A unica trava contra estragar a cor de
-# um aparelho de fabrica e a sentinela amarrada ao serial.
-cor_pendente(){
-  cor_habilitada || return 1
-  _i=$(cor_idx); [ -n "$_i" ] || return 1
-  case "$_i" in ''|*[!0-9]*) return 1 ;; esac
-  [ "$_i" -le "$PERFIL_MAX" ] || return 1
-  _p=$(cor_pnome); [ -n "$_p" ] || return 1
-  case "$(cor_nome "$_i")" in "$_p"*) ;; *) return 1 ;; esac
-  _v=$(cor_valor "$_i"); [ -n "$_v" ] || return 1
-  [ "$_v" != "1" ]
-}
 
 # trava de seguranca: so age no PFL7560
 MODEL=$(getprop ro.product.model 2>/dev/null)
@@ -119,48 +82,117 @@ if [ "$MODEL" != "PFL7560" ]; then
   exit 0
 fi
 
-# estados-alvo (idempotencia): considera aplicado so quando os TRES estao ok
-# termico: com md5sum, o ini em uso tem de ser IDENTICO ao corrigido (um .ini
-# antigo, anterior a escada, tem o mux mas nao a escada e antes passava como
-# aplicado). Sem md5sum, exige o mux E a escada de brilho (POLICY_0_THRESHOLD).
-term_ok(){
-  _m=$(md5sum "$INI" 2>/dev/null | awk '{print $1}')
-  if [ -n "$_m" ]; then
-    [ "$_m" = "$INI_MD5_OK" ]
-    return
-  fi
-  grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI" 2>/dev/null \
-    && grep -q "POLICY_0_THRESHOLD *= 66000, 67500, 69000, 70000, 71500, 73000" "$INI" 2>/dev/null
-}
-wifi_ok(){ [ -f "$BP" ] && grep -q "wifi_disconnect_on_boot=0" "$BP" 2>/dev/null; }
-xiri_ok(){ grep -A1 "service xiriservice" "$RC" 2>/dev/null | grep -q "disabled"; }
-
-# A cor entra na conta do early-exit, senao o caso "termico ok, so a cor errada"
-# sairia aqui sem fazer nada. Sem a sentinela, cor_pendente e sempre falso e o
-# comportamento fica identico ao de antes.
-if term_ok && wifi_ok && xiri_ok && ! cor_pendente; then
-  LOG "correcao JA aplicada (termico + wi-fi + xiri). Nada a fazer. (pode remover o pendrive)"
-  exit 0
+# sem md5sum nao ha como conferir o kit: aborta antes de qualquer escrita
+if ! command -v md5sum >/dev/null 2>&1; then
+  LOG "[ERRO] md5sum ausente - nao consigo conferir o kit. Abortado (nada foi alterado)."
+  exit 1
 fi
 
-# validacoes ANTES de remontar /vendor rw (nao deixar a particao gravavel ao abortar)
 if [ ! -d "$MP" ]; then
   LOG "[ERRO] mountpoint '$MP' nao existe - abortando (nada foi alterado)."
   exit 1
 fi
 
-# O /vendor so e aberto rw se algum dos 3 fixes DE /vendor estiver pendente.
-# O FIX 4 (cor) escreve na particao panelparam, fora de qualquer superbloco
-# montado: nao precisa de /vendor gravavel e nao deve morrer junto com ele.
-# Sem isso, um aparelho recem-reflashado onde o remount falha ficaria com a cor
-# inalcancavel, e uma cor cronicamente pendente remontaria /vendor rw em todo
-# boot, para sempre.
-VENDOR_RW=0
-if ! term_ok || ! wifi_ok || ! xiri_ok; then
-  if [ ! -f "$MP/ZYCustom.ini" ]; then
-    LOG "[ERRO] ZYCustom.ini NAO esta na raiz do pendrive - abortando (nada foi alterado)."
-    exit 1
+# ---- conferencia do kit ------------------------------------------------------
+kit_nomes(){ echo "$KIT_LISTA" | sed -n 's/^[0-9a-f][0-9a-f]*  //p'; }
+kit_md5_esperado(){ echo "$KIT_LISTA" | sed -n "s|^\\([0-9a-f][0-9a-f]*\\)  $1\$|\\1|p" | head -1; }
+# confere cada arquivo de $2... em $1; devolve !=0 se algum faltar ou divergir
+kit_conferir(){
+  _base="$1"; shift
+  _rc=0
+  for _n in "$@"; do
+    _esp=$(kit_md5_esperado "$_n")
+    _got=$(md5sum "$_base/$_n" 2>/dev/null | cut -d' ' -f1)
+    if [ -z "$_esp" ] || [ "$_got" != "$_esp" ]; then
+      LOG "[ERRO] kit: '$_n' ausente ou md5 diferente do esperado (achado '$_got', esperado '$_esp')."
+      _rc=1
+    fi
+  done
+  return "$_rc"
+}
+
+# ---- recuperacao: journal de um teste de cor interrompido --------------------
+# Roda ANTES de qualquer outra coisa. Usa a copia do cor.sh que ficou em /data
+# (a que o proprio journal usa), reconferida contra a lista embutida.
+if [ -f "$JOURNAL" ]; then
+  LOG "journal de cor pendente: um teste anterior foi interrompido; restaurando o formato original antes de tudo"
+  if [ -f "$WORK/cor.sh" ] && [ "$(md5sum "$WORK/cor.sh" 2>/dev/null | cut -d' ' -f1)" = "$(kit_md5_esperado cor.sh)" ]; then
+    sh "$WORK/cor.sh" --restaurar
+    if [ "$?" = "3" ]; then
+      LOG "restauracao pediu reboot; encerrando por aqui."
+      exit 0
+    fi
+  else
+    LOG "[AVISO] cor.sh de recuperacao ausente ou com md5 diferente em $WORK; o gancho de boot ou o proximo teste tenta."
   fi
+fi
+
+# ---- md5 de cada arquivo do kit ANTES de qualquer escrita --------------------
+# shellcheck disable=SC2046
+if ! kit_conferir "$MP" $(kit_nomes); then
+  LOG "[ERRO] kit incompleto ou adulterado - ABORTADO. Nada foi alterado. Copie de novo TODOS os arquivos da pasta do kit para a raiz do pendrive."
+  # unica escrita permitida aqui: a tela de erro, e so se ela propria confere
+  if kit_conferir "$MP" kit/erro.png >/dev/null 2>&1; then
+    mkdir -p "$R/sdcard/pfl7560-kit" && cp "$MP/kit/erro.png" "$R/sdcard/pfl7560-kit/erro.png" \
+      && am start -a android.intent.action.VIEW -d "file:///sdcard/pfl7560-kit/erro.png" -t image/png >/dev/null 2>&1
+  fi
+  exit 1
+fi
+LOG "kit conferido: $(kit_nomes | wc -l | tr -dc '0-9') arquivos com md5 certo"
+
+# copia o kit para /data/local/tmp (o cor.sh roda de la, destacado) e reconfere
+# a copia. Nao apaga o journal: so o diretorio kit/ e recriado.
+rm -rf "$WORK/kit"
+if ! { mkdir -p "$WORK/kit" && cp "$MP/cor.sh" "$MP/lvdsctl" "$WORK/" && cp "$MP"/kit/*.png "$WORK/kit/" \
+       && chmod 755 "$WORK/cor.sh" "$WORK/lvdsctl"; }; then
+  LOG "[ERRO] nao consegui copiar o kit para $WORK - abortando (nada de /vendor foi alterado)."
+  exit 1
+fi
+# shellcheck disable=SC2046
+if ! kit_conferir "$WORK" $(kit_nomes | grep -v '^ZYCustom.ini$'); then
+  LOG "[ERRO] a copia do kit em $WORK nao confere - abortando (nada de /vendor foi alterado)."
+  exit 1
+fi
+
+# ---- estados-alvo (idempotencia) ---------------------------------------------
+# termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior
+# a escada tem o mux mas nao a escada e antes passava como aplicado.
+ini_md5(){ md5sum "$INI" 2>/dev/null | cut -d' ' -f1; }
+term_ok(){ [ "$(ini_md5)" = "$INI_MD5_OK" ]; }
+term_aplicavel(){
+  _m=$(ini_md5)
+  [ "$_m" = "$INI_MD5_FABRICA" ] || [ "$_m" = "$INI_MD5_ANTERIOR" ]
+}
+wifi_ok(){ [ -f "$BP" ] && grep -q "wifi_disconnect_on_boot=0" "$BP" 2>/dev/null; }
+xiri_ok(){ grep -A1 "service xiriservice" "$RC" 2>/dev/null | grep -q "disabled"; }
+
+CHG=0
+FAIL=0
+AVISO=0   # 1 = a fase termica nao ficou efetiva; a tela final sera ERRO
+
+# /atv/ini/ZYCustom*.ini tem precedencia sobre o /vendor (doc 06): se existir,
+# o ini do /vendor nao vale e o kit avisa em vez de dizer que deu certo.
+for _f in "$ATV_INI_DIR"/ZYCustom*.ini; do
+  if [ -f "$_f" ]; then
+    LOG "[AVISO] termico: existe $_f e ele TEM PRECEDENCIA sobre $INI - a correcao termica do /vendor NAO esta valendo. Remova esse arquivo (ver docs/research/06)."
+    AVISO=1
+  fi
+done
+
+TERM_ACAO=0
+if term_ok; then
+  LOG "termico ja estava ok (md5 do ZYCustom.ini = corrigido)"
+elif term_aplicavel; then
+  TERM_ACAO=1
+else
+  LOG "[ERRO] termico: md5 do ZYCustom.ini em uso ('$(ini_md5)') nao e o de fabrica ($INI_MD5_FABRICA) nem o de versao anterior nossa - NAO vou sobrescrever (firmware diferente de V1.0.0.9?)."
+  FAIL=$((FAIL+1))
+  AVISO=1
+fi
+
+# O /vendor so e aberto rw se algum dos 3 fixes DE /vendor estiver pendente.
+VENDOR_RW=0
+if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok; then
   LOG "correcao ausente/incompleta -> aplicando o que faltar no /vendor ..."
   if ! mount -o rw,remount /vendor; then
     LOG "[ERRO] nao consegui remontar /vendor rw (dm-verity/particao ocupada?) - retentar no proximo boot."
@@ -168,40 +200,30 @@ if ! term_ok || ! wifi_ok || ! xiri_ok; then
   fi
   VENDOR_RW=1
 fi
-CHG=0
-FAIL=0
-FAIL_COR=0
 
 # ---- FIX 1: termico (copia a config agressiva) ----
-if term_ok; then
-  LOG "termico ja estava ok (ZYCustom.ini com mux e escada de brilho)"
-else
-  # valida o md5 do ini do pendrive ANTES de copiar (se md5sum existir).
-  # Se md5sum faltar no PATH do boot, SRC_MD5 fica vazio e caimos no guard real: o grep pos-copia abaixo.
-  SRC_MD5="$(md5sum "$MP/ZYCustom.ini" 2>/dev/null | awk '{print $1}')"
-  if [ -n "$SRC_MD5" ] && [ "$SRC_MD5" != "$INI_MD5_OK" ]; then
-    LOG "[ERRO] termico: md5 do ZYCustom.ini do pendrive ('$SRC_MD5') != esperado ($INI_MD5_OK) - NAO copiado."
-    FAIL=$((FAIL+1))
-  else
-    # salva o stock UMA vez, antes de sobrescrever
-    if [ ! -f "$INI.STOCK" ]; then
-      cp "$INI" "$INI.STOCK" || LOG "[AVISO] nao consegui salvar $INI.STOCK"
-    fi
-    # escrita atomica: .new + validacao + mv
-    if cp "$MP/ZYCustom.ini" "$INI.new" && chmod 644 "$INI.new" && grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI.new" && grep -q "= 66000, 67500, 69000, 70000, 71500, 73000" "$INI.new"; then
-      if mv "$INI.new" "$INI"; then
-        LOG "[OK] termico: ZYCustom.ini gravado (fans 100% sempre, 2o sensor, escada de brilho 1000->850 entre 66C e 70C, shutdown 75C)"
-        CHG=1
-      else
-        LOG "[ERRO] termico: falha no mv final - original intacto."
-        rm -f "$INI.new"
-        FAIL=$((FAIL+1))
-      fi
+if [ "$TERM_ACAO" = "1" ]; then
+  # salva o stock UMA vez, antes de sobrescrever, e so se o atual for o de fabrica
+  if [ ! -f "$INI.STOCK" ] && [ "$(ini_md5)" = "$INI_MD5_FABRICA" ]; then
+    cp "$INI" "$INI.STOCK" || LOG "[AVISO] nao consegui salvar $INI.STOCK"
+  fi
+  # escrita atomica: .new + validacao por md5 + mv + releitura por md5
+  if cp "$MP/ZYCustom.ini" "$INI.new" && chmod 644 "$INI.new" \
+     && [ "$(md5sum "$INI.new" 2>/dev/null | cut -d' ' -f1)" = "$INI_MD5_OK" ]; then
+    if mv "$INI.new" "$INI" && term_ok; then
+      LOG "[OK] termico: ZYCustom.ini gravado e conferido por md5 (fans 100% sempre, 2o sensor, escada de brilho 1000->850 entre 66C e 70C, shutdown 75C)"
+      CHG=1
     else
-      LOG "[ERRO] termico: destino .new nao contem 'HW_VIRTUAL_CHANNEL = 1' - NAO vou reiniciar."
+      LOG "[ERRO] termico: falha no mv final ou a releitura nao confere."
       rm -f "$INI.new"
       FAIL=$((FAIL+1))
+      AVISO=1
     fi
+  else
+    LOG "[ERRO] termico: o .new copiado nao tem o md5 esperado - NAO vou reiniciar."
+    rm -f "$INI.new"
+    FAIL=$((FAIL+1))
+    AVISO=1
   fi
 fi
 
@@ -244,107 +266,38 @@ else
   fi
 fi
 
-# ---- FIX 4 (OPCIONAL, so com a sentinela do PROPRIO aparelho): cor do painel ----
-# Falhas daqui vao para FAIL_COR, NUNCA para FAIL: uma correcao opcional e
-# cosmetica nao pode vetar a ativacao da politica termica, que e o fix de
-# seguranca. A unica excecao e o caso ambiguo (gravei e a releitura nao
-# confirmou), que precisa da atencao do dono antes de reiniciar.
-if ! cor_habilitada; then
-  if [ -f "$MP/$SENTINELA" ]; then
-    _s=$(cor_serial)
-    if [ -z "$_s" ]; then
-      LOG "cor: nao consegui ler ro.serialno - correcao de cor desligada por seguranca."
-    else
-      LOG "cor: o arquivo de autorizacao nao cobre ESTE aparelho (serial $_s)."
-      LOG "cor: se o painel DESTE aparelho foi trocado pelo -0600, escreva '$_s' dentro dele. Se nao foi, NAO faca isso: quebraria a cor deste aparelho."
-    fi
-  else
-    LOG "cor: correcao opcional de painel nao habilitada neste aparelho (ver LEIA-ME)."
-  fi
-else
-  CIDX=$(cor_idx)
-  PNOME=$(cor_pnome)
-  CNOME=$(cor_nome "$CIDX")
-  CVAL=$(cor_valor "$CIDX")
-  OKIDX=0
-  case "$CIDX" in ''|*[!0-9]*) ;; *) [ "$CIDX" -le "$PERFIL_MAX" ] && OKIDX=1 ;; esac
-  if [ "$OKIDX" != "1" ] || [ -z "$PNOME" ] || [ -z "$CVAL" ]; then
-    LOG "[ERRO] cor: nao consegui ler o perfil de painel (idx='$CIDX' nome_driver='$PNOME' val='$CVAL') - NAO vou escrever."
-    FAIL_COR=$((FAIL_COR+1)); CIDX=""
-  else
-    # prova de offset: o nome gravado em TABELA_BASE+idx*768 tem de bater com o
-    # nome que o driver reporta agora. Fonte independente; substitui o antigo
-    # gate *RX058B*, que casava em cinco perfis diferentes (doc 28).
-    case "$CNOME" in
-      "$PNOME"*) ;;
-      *) LOG "[ERRO] cor: offset $(( TABELA_BASE + CIDX * PERFIL_TAM )) devolveu '$CNOME' mas o driver diz '$PNOME' - offset errado, NAO vou escrever."
-         FAIL_COR=$((FAIL_COR+1)); CIDX="" ;;
-    esac
-  fi
-  if [ -n "$CIDX" ]; then
-    if [ "$CVAL" = "1" ]; then
-      LOG "cor ja estava ok (perfil $CIDX '$PNOME', lvds_fmt=1 JEIDA)"
-    else
-      OFF=$(( TABELA_BASE + CIDX * PERFIL_TAM + LVDS_FMT_OFF ))
-      LOG "cor: perfil $CIDX '$PNOME' esta com lvds_fmt=$CVAL (VESA); corrigindo para 1 (JEIDA) no offset $OFF"
-      # invariante 5: backup 8 MiB + md5 ANTES de gravar. O cmp -s valida tamanho
-      # E conteudo de uma vez; um backup byte-identico a ESTA particao e, por
-      # definicao, um backup valido dela - cobre backup truncado por queda de
-      # energia e backup de outro aparelho. Extensao .img porque o arranjo (A)
-      # do LEIA-ME promete pendrive de autorun sem nenhum .bin junto.
-      BKP="$MP/panelparam-backup-$(cor_serial).img"
-      BKPOK=0
-      if [ -f "$BKP" ] && cmp -s "$BKP" "$PP"; then
-        LOG "cor: backup $BKP confere byte a byte com a particao - reaproveitado"
-        BKPOK=1
-      elif dd if="$PP" of="$BKP" bs=4096 2>/dev/null && sync && cmp -s "$BKP" "$PP"; then
-        md5sum "$BKP" > "$BKP.md5" 2>/dev/null
-        LOG "[OK] cor: backup do panelparam salvo e conferido em $BKP"
-        BKPOK=1
-      else
-        LOG "[ERRO] cor: backup do panelparam invalido ou impossivel - NAO vou escrever."
-        rm -f "$BKP" "$BKP.md5"
-        FAIL_COR=$((FAIL_COR+1))
-      fi
-      if [ "$BKPOK" = "1" ]; then
-        if printf '\1' | dd of="$PP" bs=1 seek="$OFF" count=1 conv=notrunc 2>/dev/null; then
-          sync
-          # le de volta: so conta como aplicado se o byte realmente virou 1
-          CVAL2=$(cor_valor "$CIDX")
-          if [ "$CVAL2" = "1" ]; then
-            LOG "[OK] cor: lvds_fmt=1 (JEIDA) gravado e conferido - vale no proximo boot"
-            CHG=1
-          elif [ "$CVAL2" = "$CVAL" ]; then
-            LOG "[ERRO] cor: o dd retornou ok mas o byte continua $CVAL - NADA foi gravado, nao ha o que restaurar."
-            FAIL_COR=$((FAIL_COR+1))
-          else
-            LOG "[ERRO] cor: gravei e a releitura devolveu '$CVAL2' - estado AMBIGUO. Restaure $BKP com ./pfl7560-lcd-color.sh restore antes de reiniciar."
-            FAIL=$((FAIL+1))
-          fi
-        else
-          LOG "[ERRO] cor: dd de escrita falhou - particao intacta (nada foi gravado)."
-          FAIL_COR=$((FAIL_COR+1))
-        fi
-      fi
-    fi
-  fi
-fi
-
 sync
 # fecha o /vendor em TODOS os ramos, inclusive no de reboot - antes ele ficava
 # gravavel durante os 8 s de sleep.
 if [ "$VENDOR_RW" = "1" ]; then
   mount -o ro,remount /vendor 2>/dev/null
 fi
-if [ "$FAIL_COR" != "0" ]; then
-  LOG "[AVISO] cor: $FAIL_COR falha(s) na correcao OPCIONAL de cor - nada foi gravado no panelparam. Nao bloqueia os fixes termicos."
-fi
+
 if [ "$CHG" = "1" ] && [ "$FAIL" = "0" ]; then
   LOG "==== CORRECAO APLICADA COM SUCESSO! reiniciando em 8s para ativar ===="
-  sleep 8
+  # a fase de cor roda no boot seguinte, com o pendrive ainda plugado
+  sh "$WORK/cor.sh" --tela reiniciando
+  sleep "$ESPERA_REBOOT"
   reboot
-elif [ "$FAIL" != "0" ]; then
-  LOG "==== [PARCIAL] $FAIL fix(es) falharam - reexecute o pendrive (reinicie o projetor). ===="
-else
-  LOG "==== nada foi alterado (os fixes pendentes ja estavam ok). ===="
+  exit 0
 fi
+if [ "$FAIL" != "0" ]; then
+  LOG "==== [PARCIAL] $FAIL fix(es) falharam - reexecute o pendrive (reinicie o projetor). ===="
+  AVISO=1
+else
+  LOG "==== fixes de /vendor ja estavam ok; nada a reiniciar. ===="
+fi
+
+# ---- FASE DE COR (destacada do exec do init) ---------------------------------
+# PREMISSA NAO CONFIRMADA (doc 41): o init processa o 'exec' de forma bloqueante
+# (inferido do AOSP), entao a pergunta de ate ~90 s nao pode rodar aqui dentro;
+# lancamos o cor.sh destacado (setsid, ou nohup se nao houver) com log proprio,
+# que ele copia para o pendrive no fim. E o unico ponto que depende disso.
+if [ "$AVISO" = "1" ]; then AVISO_ARG="termica-falhou"; else AVISO_ARG=""; fi
+LOG "lancando a fase de cor (cor.sh) destacada; log em $WORK/cor.log e, no fim, newlink_cor.log no pendrive"
+if command -v setsid >/dev/null 2>&1; then
+  setsid sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" >>"$WORK/cor.log" 2>&1 </dev/null &
+else
+  nohup sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" >>"$WORK/cor.log" 2>&1 </dev/null &
+fi
+exit 0
