@@ -203,13 +203,23 @@ c_idempotencia(){
 }
 
 c_ini_anterior(){
-  novo_cenario "ini da versao anterior e atualizado"
-  cp "$ROOT/artifacts/ZYCustom_390.PREV-211927.ini" "$T/root/vendor/etc/ZYCustom.ini"
-  roda nokey
-  afirma '[ "$(md5 "$T/root/vendor/etc/ZYCustom.ini")" = 252ab7a72a007a8b79b3fc86bd5c0d19 ]' "ini anterior nao foi atualizado"
-  afirma '[ ! -e "$T/root/vendor/etc/ZYCustom.ini.STOCK" ]' "versao anterior foi guardada como STOCK"
-  afirma '[ "$(chamadas reboot)" = 1 ]' "sem reboot"
-  limpa
+  # cada versao NOSSA que ja foi para aparelho: a do artifacts e as que o pendrive
+  # levou antes da escada (git: d10f6da = 1ad641ed) e com espacos cortados (cd5a80f)
+  local v f
+  for v in artifacts:PREV-211927 d10f6da cd5a80f; do
+    novo_cenario "ini da versao anterior ($v) e atualizado"
+    f="$T/root/vendor/etc/ZYCustom.ini"
+    case "$v" in
+      artifacts:*) cp "$ROOT/artifacts/ZYCustom_390.PREV-211927.ini" "$f" ;;
+      *) git -C "$ROOT" show "$v:pendrive-autorun/ZYCustom.ini" > "$f" 2>/dev/null \
+           || { echo "  (sem historico git de $v: caso pulado)"; limpa; continue; } ;;
+    esac
+    roda nokey
+    afirma '[ "$(md5 "$f")" = 252ab7a72a007a8b79b3fc86bd5c0d19 ]' "ini anterior nao foi atualizado"
+    afirma '[ ! -e "$T/root/vendor/etc/ZYCustom.ini.STOCK" ]' "versao anterior foi guardada como STOCK"
+    afirma '[ "$(chamadas reboot)" = 1 ]' "sem reboot"
+    limpa
+  done
 }
 
 c_ini_desconhecido(){

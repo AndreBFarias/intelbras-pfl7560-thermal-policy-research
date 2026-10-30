@@ -50,12 +50,17 @@ ESPERA_REBOOT=8
 # gancho de teste: o harness (tests/) zera a espera; em producao nao existe
 [ -n "${PFL_RAPIDO:-}" ] && ESPERA_REBOOT=0
 
-# md5 do ZYCustom.ini: o corrigido (alvo), o de fabrica V1.0.0.9 e o da versao
-# anterior nossa (artifacts/ZYCustom_390.PREV-211927.ini). Qualquer outro =
-# desconhecido = o kit recusa em vez de sobrescrever um mapa que nao conhece.
+# md5 do ZYCustom.ini: o corrigido (alvo), o de fabrica V1.0.0.9 e o de CADA
+# versao anterior nossa que ja foi para aparelho. Qualquer outro = desconhecido
+# = o kit recusa em vez de sobrescrever um mapa que nao conhece.
+#   bbf82dd1  artifacts/ZYCustom_390.PREV-211927.ini
+#   1ad641ed  pendrive-autorun/ZYCustom.ini de 23169d6 a d10f6da (antes da
+#             escada; a que o pendrive e o adb levaram, docs 26 e 34)
+#   5868d67f  pendrive-autorun/ZYCustom.ini de cd5a80f (escada com os espacos
+#             de fim de linha cortados)
 INI_MD5_OK="252ab7a72a007a8b79b3fc86bd5c0d19"
 INI_MD5_FABRICA="29d8ba36149413e899563029df078f6d"
-INI_MD5_ANTERIOR="bbf82dd17d4523b7df8a86bec0e850ce"
+INI_MD5_ANTERIORES="bbf82dd17d4523b7df8a86bec0e850ce 1ad641ed2dd99e61d8a987a675e9aced 5868d67fd8d47564842494aa8f14c37c"
 
 # md5 de CADA arquivo do kit, relativo a raiz do pendrive. Gerado por
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
@@ -161,7 +166,12 @@ ini_md5(){ md5sum "$INI" 2>/dev/null | cut -d' ' -f1; }
 term_ok(){ [ "$(ini_md5)" = "$INI_MD5_OK" ]; }
 term_aplicavel(){
   _m=$(ini_md5)
-  [ "$_m" = "$INI_MD5_FABRICA" ] || [ "$_m" = "$INI_MD5_ANTERIOR" ]
+  [ -n "$_m" ] || return 1
+  [ "$_m" = "$INI_MD5_FABRICA" ] && return 0
+  for _a in $INI_MD5_ANTERIORES; do
+    [ "$_m" = "$_a" ] && return 0
+  done
+  return 1
 }
 wifi_ok(){ [ -f "$BP" ] && grep -q "wifi_disconnect_on_boot=0" "$BP" 2>/dev/null; }
 xiri_ok(){ grep -A1 "service xiriservice" "$RC" 2>/dev/null | grep -q "disabled"; }
@@ -185,7 +195,7 @@ if term_ok; then
 elif term_aplicavel; then
   TERM_ACAO=1
 else
-  LOG "[ERRO] termico: md5 do ZYCustom.ini em uso ('$(ini_md5)') nao e o de fabrica ($INI_MD5_FABRICA) nem o de versao anterior nossa - NAO vou sobrescrever (firmware diferente de V1.0.0.9?)."
+  LOG "[ERRO] termico: md5 do ZYCustom.ini em uso ('$(ini_md5)') nao e o de fabrica ($INI_MD5_FABRICA) nem o de uma versao anterior nossa - NAO vou sobrescrever (firmware diferente de V1.0.0.9?)."
   FAIL=$((FAIL+1))
   AVISO=1
 fi
