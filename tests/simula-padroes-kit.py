@@ -18,7 +18,7 @@ e confere sobre a escada (calibracao, escada-1, escada-2):
   5. as bandas de texto e as telas só de texto (0 e 255 puros) não mudam com a
      rotação: a instrução fica legível nos dois formatos.
 A inversão é a do nl_camcheck: diferença entre faixas vizinhas maior que 3 % da
-amplitude; vale o MENOR entre quedas e subidas (a câmera entrega o quadro girado).
+amplitude; vale o MENOR entre quedas e subidas (a câmera entrega o quadro espelhado de cima para baixo).
 Sai com código != 0 se qualquer afirmação falhar.
 """
 import os

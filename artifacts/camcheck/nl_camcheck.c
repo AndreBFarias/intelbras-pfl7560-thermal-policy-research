@@ -16,7 +16,7 @@
  * escada de cinzas projetada, para o modo automatico do kit de cor.
  *
  *   nl_camcheck faixas <dev> <N> <saida.txt> [descarte]
- *       captura UM quadro YUYV (640x480; se nao houver, o menor tamanho
+ *       captura UM quadro YUYV (1280x720; senao 640x480; senao o menor
  *       YUYV listado), faz o perfil de linhas, e exige EXATAMENTE N faixas
  *       claras. Grava uma linha "ini fim" por faixa (linhas do quadro, fim
  *       exclusivo). Sai com 0 se achou N, 3 se nao achou (diz quantas achou).
@@ -153,8 +153,11 @@ static int grab(const char *dev, const char *fmt, int w, int h, const char *out,
 /* ---- bloco 7: analise de faixas (so le o quadro; nada de S_CTRL) ------------ */
 
 #define MAXFAIXAS 64
-#define COL_INI_PCT 35   /* perfil de linhas nas colunas 35 a 65% da largura */
-#define COL_FIM_PCT 65
+/* perfil de linhas nas colunas 47 a 53% da largura. Faixa larga (35 a 65%) falhou
+ * no aparelho (bloco 8): a imagem projetada sai inclinada para a camera e, numa
+ * janela larga, cada faixa escorre sobre a vizinha e os vaos nao escurecem. */
+#define COL_INI_PCT 47
+#define COL_FIM_PCT 53
 #define MARGEM 0.03      /* queda/subida que conta como inversao: 3% da amplitude */
 #define LADO_MIN 16      /* quadro menor que isso nao tem colunas para o perfil */
 #define LADO_MAX 4096    /* e maior que isso nao e da camera interna (e estoura size_t de 32 bits) */
@@ -170,23 +173,26 @@ static int dimensoes_ok(int larg, int alt, int stride) {
   return 1;
 }
 
-/* Captura UM quadro YUYV do V4L2 (descarta 'skip'). Tamanho: 640x480 se o
- * driver o oferece, senao o menor YUYV listado. Devolve 0 e preenche q. */
+/* Captura UM quadro YUYV do V4L2 (descarta 'skip'). Tamanho: 1280x720 se o
+ * driver o oferece (vaos entre faixas com o dobro de linhas), senao 640x480,
+ * senao o menor YUYV listado. Devolve 0 e preenche q. */
 static int captura_yuyv(const char *dev, int skip, struct quadro *q) {
   int fd = open(dev, O_RDWR);
   if (fd < 0) { fprintf(stderr, "open %s: %s\n", dev, strerror(errno)); return 1; }
 
-  unsigned w = 0, h = 0;
+  unsigned w = 0, h = 0, tem_hd = 0, tem_vga = 0;
   struct v4l2_frmsizeenum fs;
   memset(&fs, 0, sizeof fs);
   fs.pixel_format = V4L2_PIX_FMT_YUYV;
   for (fs.index = 0; xioctl(fd, VIDIOC_ENUM_FRAMESIZES, &fs) == 0; fs.index++) {
     if (fs.type != V4L2_FRMSIZE_TYPE_DISCRETE) continue;
     unsigned fw = fs.discrete.width, fh = fs.discrete.height;
-    if (fw == 640 && fh == 480) { w = fw; h = fh; break; }
+    if (fw == 1280 && fh == 720) tem_hd = 1;
+    if (fw == 640 && fh == 480) tem_vga = 1;
     if (w == 0 || fw * fh < w * h) { w = fw; h = fh; }
   }
-  if (w == 0) { w = 640; h = 480; }
+  if (tem_hd) { w = 1280; h = 720; }
+  else if (tem_vga || w == 0) { w = 640; h = 480; }
 
   struct v4l2_format f;
   memset(&f, 0, sizeof f);

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test-camcheck.sh - bloco 7 (C1): o nl_camcheck do HOST (mesmo .c do binario ARM)
-# sobre as 4 quadros reais de tests/fixtures/camera/ (YUYV 640x480, projetor de verdade,
+# sobre os quadros reais de tests/fixtures/camera/ (YUYV 640x480 e 1280x720, projetor de verdade,
 # camera interna, 2026-10-30). Nao fala com o projetor nem com a camera.
 #   bash tests/test-camcheck.sh
 set -u
@@ -15,9 +15,9 @@ arq(){ echo "arquivo:$FIX/$1.yuyv:640:480"; }
 cc -O2 -Wall -Wextra -o "$NL" "$ROOT/artifacts/camcheck/nl_camcheck.c" || { echo "FALHA: nao compilou no host"; exit 1; }
 echo "nl_camcheck compilado no host (cc)"
 
-# valores do prototipo (spec do bloco 7, item 6), tolerancia de 2
-JEIDA="235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63"
-VESA="235 235 235 231 192 148 105 86 220 212 156 90 185 116 195 128"
+# valores medidos com a janela de colunas 47 a 53% (bloco 8), tolerancia de 2
+JEIDA="235 235 235 235 235 231 218 208 196 180 164 140 113 91 72 64"
+VESA="235 235 235 232 191 146 104 86 219 211 156 89 184 115 194 128"
 confere_valores(){ # "esperados" "obtidos"; 0 se cada par difere <= 2
   python3 -I -c '
 import sys
@@ -42,6 +42,23 @@ afirma '[ "$(inv f1)" = "inv_cresc=10 inv_decresc=0" ]' "escada-f1 deveria ser m
 # VESA (f0, formato errado): fora de ordem
 afirma 'confere_valores "$VESA" "$(nv f0)"' "escada-f0: niveis fora do prototipo: $(nv f0)"
 afirma '[ "$(inv f0)" = "inv_cresc=9 inv_decresc=3" ]' "escada-f0 deveria ser fora de ordem: $(inv f0)"
+
+# bloco 8: imagem inclinada para a camera (falhava com a janela de 35 a 65%) e quadros
+# 1280x720, o tamanho que a captura passou a preferir. Formato certo = monotona;
+# formato errado (VESA) = pelo menos 3 inversoes.
+caso_bloco8(){ # nome L A inversoes-esperadas
+  _c="arquivo:$FIX/calibracao-$1.yuyv:$2:$3"; _e="arquivo:$FIX/escada-$1.yuyv:$2:$3"
+  "$NL" faixas "$_c" 16 "$T/fx-$1.txt" >"$T/ofx-$1" 2>&1; _rc=$?
+  afirma '[ "$_rc" = 0 ]' "calibracao-$1 ($2x$3): esperava 16 faixas: $(cat "$T/ofx-$1")"
+  "$NL" niveis "$_e" "$T/fx-$1.txt" >"$T/nv-$1" 2>&1
+  _inv=$(tail -1 "$T/nv-$1"); _esp="$4"
+  afirma '[ "$_inv" = "$_esp" ]' "escada-$1 ($2x$3): esperava '$_esp', veio '$_inv'"
+}
+caso_bloco8 inclinada-f1 640 480 "inv_cresc=8 inv_decresc=0"
+caso_bloco8 hd-f1 1280 720 "inv_cresc=8 inv_decresc=0"
+caso_bloco8 hd-f0 1280 720 "inv_cresc=9 inv_decresc=3"
+# a janela de colunas e estreita (a larga de 35 a 65% achava 9 faixas no quadro inclinado)
+afirma 'grep -q "^#define COL_INI_PCT 47$" "$ROOT/artifacts/camcheck/nl_camcheck.c" && grep -q "^#define COL_FIM_PCT 53$" "$ROOT/artifacts/camcheck/nl_camcheck.c"' "janela de colunas diferente de 47 a 53%"
 
 # faixas: N errado nao acha (exit 3, nao grava) -- a calibracao tem 16; escada tem 13 trechos acima do limiar
 "$NL" faixas "$(arq calibracao-f1)" 15 "$T/x15.txt" >"$T/o15" 2>&1; rc=$?

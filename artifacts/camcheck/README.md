@@ -38,28 +38,37 @@ exatamente `L*A*2` bytes; L e A entre 16 e 4096.
 
 ## Como mede (bloco 7)
 
-- Perfil de linhas: media da luma (bytes pares do YUYV) nas colunas de 35 a 65 %
-  da largura. Limiar no meio entre o minimo e o maximo; trechos acima dele sao
+- Captura em YUYV 1280x720 (se o driver nao oferecer, 640x480; senao o menor).
+- Perfil de linhas: media da luma (bytes pares do YUYV) nas colunas de 47 a 53 %
+  da largura. Era 35 a 65 % ate o bloco 8: com a imagem projetada inclinada para a
+  camera (correcao de quatro pontos), a janela larga juntava as faixas e achava 9
+  ou 11 em vez de 16. Limiar no meio entre o minimo e o maximo; trechos acima dele sao
   as faixas.
 - Nivel de cada faixa: media das linhas do miolo (sem 1/4 de cada borda).
 - Inversao: diferenca entre faixas vizinhas maior que 3 % da amplitude
   (maximo menos minimo dos niveis). `inv_cresc` conta as quedas (fere a ordem
   crescente); `inv_decresc` conta as subidas. Escada em ordem = uma das duas e 0
-  (a camera entrega o quadro girado 180 graus, por isso o sentido nao importa).
-- Quadro da camera interna: so luma util (sem cor), girado 180 graus, topo da
+  (a camera entrega o quadro espelhado de cima para baixo, por isso o sentido nao
+  importa).
+- Quadro da camera interna: so luma util (sem cor), espelhado de cima para baixo (nao girado: o texto
+  sai legivel da esquerda para a direita), topo da
   escada satura em 235.
 
 ## Provas
 
-- `bash tests/test-camcheck.sh`: o binario do host sobre os 4 quadros reais de
-  `tests/fixtures/camera/` (2026-10-30, painel da 3a troca). Calibracao: 16
+- `bash tests/test-camcheck.sh`: o binario do host sobre os quadros reais de
+  `tests/fixtures/camera/` (2026-10-30, painel da 3a troca): 640x480 (`*-f0`, `*-f1`),
+  640x480 com a imagem inclinada (`*-inclinada-f1`) e 1280x720 (`*-hd-f0`, `*-hd-f1`). Calibracao: 16
   faixas nos dois formatos. Escada JEIDA (certo): monotona. Escada VESA
   (errado): fora de ordem.
 
-## Pendente (so no aparelho)
+## Provado no aparelho (2026-10-30, bloco 8)
 
-- Rodar o `cor.sh` real via adb a partir de JEIDA (nada escrito) e de VESA
-  (termina em JEIDA sozinho), conferindo com `cmp -l` e com a camera. Tarefa do
-  coordenador: nenhum agente fala com o projetor.
+- VESA gravado a mao, reboot, kit real via adb: 16 faixas, escada fora de ordem
+  (3 inversoes), troca para JEIDA, escada em ordem, particao `4899eefc` (so o byte
+  0x5c mudou). Reboot de novo: JEIDA persistiu e o kit nao escreveu nada.
+
+## Pendente
+
 - A camera ocupada pelo `AutoFocusService` (o kit espera o autofoco antes; se o
   `nl_camcheck` nao abrir o dispositivo, o kit cai no fluxo manual).
