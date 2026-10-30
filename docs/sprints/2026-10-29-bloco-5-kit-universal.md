@@ -32,6 +32,21 @@ journal, gancho de recuperação, plano B por `dd`. Harness com stubs de `getpro
 journal no boot = restaura; md5 de `.ini` desconhecido = recusa; `/atv/ini` = avisa; 2ª execução = nada;
 arquivo do kit adulterado = aborta antes de escrever. `grep -P '[^\x00-\x7F]'` vazio.
 
+## E3b - Endurecimento de segurança (revisão automática de 2026-10-29)
+
+A revisão de segurança dos commits do E3 apontou, em `pendrive-autorun/cor.sh`:
+1. **ALTO:** o kit e o gancho de boot executam como root `cor.sh` a partir de `/data/local/tmp/pfl7560-kit`,
+   pasta gravável pelo usuário `shell` (escalada de privilégio shell→root).
+2. **ALTO:** `lvdsctl` é executado como root sem conferência de md5 no momento do uso.
+3. **MÉDIO:** `dd` de backup/restauração numa pasta gravável por outros permite desvio por link simbólico.
+
+Cura: pasta de trabalho só do root (ex.: `/data/vendor/pfl7560-kit`, `0700 root:root`), criada e
+verificada a cada uso (diretório real, não link; dono root); recusar qualquer arquivo nela que seja link
+ou de outro dono; conferir o md5 embutido de `cor.sh` e `lvdsctl` **imediatamente antes de cada execução**
+(fluxo normal, `--restaurar` e gancho); guardar o md5 do backup no journal e conferir antes de restaurar.
+Prova: casos novos no harness (pasta com link, arquivo trocado depois da cópia, backup adulterado), todos
+abortando sem escrever na `panelparam`.
+
 ## E4 - Bancada no aparelho (painel atual, VESA)
 
 md5 da `panelparam` antes e depois de cada braço: (1) sem tecla: idêntico; (2) tecla + timeout: vai a
