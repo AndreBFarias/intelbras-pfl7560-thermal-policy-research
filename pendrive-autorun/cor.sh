@@ -398,12 +398,15 @@ FIM
 }
 instalar_gancho(){
   if [ -e "$HOOK" ] || [ -L "$HOOK" ]; then
-    nlsu_ok && grep -q "pfl7560-kit-gancho" "$HOOK" 2>/dev/null && [ ! -L "$HOOK" ] && return 0
-    LOG "[AVISO] ja existe $HOOK e nao e nosso (ou a pasta nao e so do root): gancho de recuperacao NAO instalado (a restauracao depende do pendrive no proximo boot)."
-    return 0
-  fi
-  # mkdir (sem -p) falha se alguem criou a pasta no meio tempo; nlsu_ok decide
-  if [ ! -e "$NLSU" ] && [ ! -L "$NLSU" ]; then
+    if ! { nlsu_ok && [ ! -L "$HOOK" ] && grep -q "pfl7560-kit-gancho" "$HOOK" 2>/dev/null; }; then
+      LOG "[AVISO] ja existe $HOOK e nao e nosso (ou a pasta nao e so do root): gancho de recuperacao NAO instalado (a restauracao depende do pendrive no proximo boot)."
+      return 0
+    fi
+    # e nosso, mas pode ser de outra versao do kit (md5 de outro cor.sh, ou a de
+    # antes do E3b, que executava sem conferir a partir de /data/local/tmp):
+    # nunca fica como esta, e sempre reescrito com o md5 do cor.sh desta execucao.
+  elif [ ! -e "$NLSU" ] && [ ! -L "$NLSU" ]; then
+    # mkdir (sem -p) falha se alguem criou a pasta no meio tempo; nlsu_ok decide
     mkdir -p "${NLSU%/*}" 2>/dev/null
     ( umask 022; mkdir "$NLSU" 2>/dev/null ) && chmod 755 "$NLSU" 2>/dev/null
   fi

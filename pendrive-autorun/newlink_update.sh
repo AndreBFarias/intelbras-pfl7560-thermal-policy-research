@@ -76,7 +76,7 @@ INI_MD5_ANTERIORES="bbf82dd17d4523b7df8a86bec0e850ce 1ad641ed2dd99e61d8a987a675e
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-0ec1c8c335108d8072d4bc0ada0512b1  cor.sh
+eb5d4052e857f323caa09d746a4e7cd7  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 1afd05f32600385e0587acf062262988  kit/erro.png

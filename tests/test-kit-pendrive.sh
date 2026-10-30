@@ -636,6 +636,17 @@ c_gancho_adulterado(){
   chmod 700 "$(W)"
   limpa
 
+  novo_cenario "gancho NOSSO de outra versao (sem md5, de antes do E3b) = reescrito com o md5 do cor.sh"; aparelho_ok
+  g="$T/root/data/local/nlsu/update_after_boot.sh"
+  mkdir -p "$T/root/data/local/nlsu"; chmod 755 "$T/root/data/local/nlsu"
+  printf '#!/vendor/bin/sh\n# pfl7560-kit-gancho: versao velha\nsh /data/local/tmp/pfl7560-kit/cor.sh --restaurar\n' > "$g"
+  gera_gancho_interrompido
+  afirma 'grep -q "^COR_MD5=\"$(md5 "$KIT/cor.sh")\"$" "$g"' "o gancho velho ficou (sem o md5 do cor.sh)"
+  afirma '! grep -q "local/tmp" "$g"' "o gancho ainda aponta para /data/local/tmp"
+  amb dash "$g" > "$T/hook.log" 2>&1
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "o gancho reescrito nao restaurou"
+  limpa
+
   novo_cenario "pasta do gancho aberta a outros ou de outro dono = o gancho nao e instalado"; aparelho_ok
   mkdir -p "$T/root/data/local/nlsu"; chmod 777 "$T/root/data/local/nlsu"
   roda key nokey
