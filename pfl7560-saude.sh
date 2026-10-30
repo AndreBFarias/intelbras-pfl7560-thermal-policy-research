@@ -241,8 +241,10 @@ vivacidade(){
   }
   # INT/TERM precisam de `exit` explicito: sem ele o handler retorna e o script
   # segue (um Ctrl-C no --vivacidade ainda injetava os 71000). O `exit 130` dispara
-  # o trap EXIT, que e quem limpa o override.
-  trap limpa_override EXIT
+  # o trap EXIT, que e quem limpa o override. Dentro da limpeza INT/TERM ficam
+  # ignorados: um 2o Ctrl-C ali rodaria o `exit 130` DENTRO do trap EXIT e
+  # abortaria a limpeza no meio, deixando os 71000 injetados.
+  trap 'trap "" INT TERM; limpa_override' EXIT
   trap 'exit 130' INT TERM
 
   local tmp; tmp=$(mktemp)

@@ -107,8 +107,9 @@ restaura(){
   ok "brilho devolvido ao controle da politica termica"
 }
 # INT/TERM com `exit` explicito: sem ele o handler retorna e o script continua. O
-# `exit 130` dispara o trap EXIT, que e quem restaura o brilho.
-trap restaura EXIT
+# `exit 130` dispara o trap EXIT, que e quem restaura o brilho. Na restauracao
+# INT/TERM ficam ignorados: um 2o Ctrl-C ali abortaria o restaura no meio.
+trap 'trap "" INT TERM; restaura' EXIT
 trap 'exit 130' INT TERM
 
 # ---------------------------------------------------------------- --niveis
