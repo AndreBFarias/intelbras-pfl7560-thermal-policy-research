@@ -52,6 +52,9 @@ abortando sem escrever na `panelparam`.
 
 ## E2b - Padrão com vários pares (achado de 2026-10-30)
 
+> **Substituída pelo [bloco 7](2026-10-30-bloco-7-cor-automatica.md) (C2).** Medido depois: nem 7 pares
+> dividem no formato errado. Em vez de pares, o kit usa uma escada de 16 cinzas (ordem de brilho).
+
 - **Medido:** em VESA errado, a faixa 63|64 saiu uniforme (ciano) e só a 127|128 dividiu (doc 41 §8).
 - **Causa:** gamma/DCI/balanço de branco mudam o valor antes do LVDS; um par só não garante cair numa
   fronteira de bit da saída.
@@ -61,6 +64,9 @@ abortando sem escrever na `panelparam`.
   no certo nenhuma. Simulação em `tests/` com a curva de saída medida.
 
 ## E3d - Troca de tela no kit (achado de 2026-10-30)
+
+> **Feita em código no [bloco 7](2026-10-30-bloco-7-cor-automatica.md) (C3);** a prova no aparelho é do
+> coordenador.
 
 - **Medido:** um 2º `am start ... VIEW` com a galeria aberta não troca a imagem
   (`com.hisilicon.higallery`, "delivered to currently running top-most instance"); `am start -S` falha
@@ -79,6 +85,10 @@ JEIDA, volta a VESA, idêntico; (3) tecla e tirar da tomada na 2ª tela: o ganch
 
 ## E5 - Câmera (portão do modo automático)
 
+> **Substituída pelo [bloco 7](2026-10-30-bloco-7-cor-automatica.md) (C1 a C4).** O critério deixou de ser
+> a razão das metades: o `nl_camcheck` mede a ordem de brilho da escada (`faixas` e `niveis`) e o modo
+> automático liga por padrão. Falta só a prova no aparelho (coordenador).
+
 Instalar o NDK (o mesmo do `lvdsctl`, r27, `armv7a-linux-androideabi24-clang`). Compilar `nl_camcheck`
 (só `QUERYCAP`/`ENUM_FMT`/`STREAMON`/`DQBUF`): luma média das metades em N quadros. Portão: em 3
 distâncias, sala clara e escura, m(certo) < 0,1, m(errado) > 0,4 e razão > 4. Só então a bandeira do
@@ -95,13 +105,13 @@ termina em até 5 passos sem perguntar nada; o md5 da `panelparam` só muda onde
 |---|---|
 | E1 (roteiro no aparelho) | **PARCIAL (2026-10-30)** — (a), (b), (e) e (f) feitos ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §8); (g) também (`ZYCustom.ini` `252ab7a7`, `/atv/ini` sem `ZYCustom`); faltam (c) e (d) |
 | E2 (padrões e matemática) | **FEITA** (`d49f2f7`) |
-| E2b (vários pares) | **ABERTA** |
+| E2b (vários pares) | **SUBSTITUÍDA** pelo bloco 7 (C2): escada de 16 cinzas, **feita em código** (`make check-kit`) |
 | E3 (script do kit) | **FEITA** (`5c68064` e correções seguintes), provada só em simulação (`make check-kit`) |
 | E3b (endurecimento) | **FEITA** (`a9e7832`, `c5b63da`, `a771cdc`) |
 | E3c (instaladores copiam o kit v2 e conferem o md5) | **FEITA** (`3c7682b`): `install.sh --pendrive` provado no harness; a opção 5 do `install.bat` só **conferida por texto** (não há cmd.exe aqui) |
-| E3d (troca de tela com `force-stop`) | **ABERTA** — sem ela o kit para na 1ª tela |
+| E3d (troca de tela com `force-stop`) | **FEITA em código** (bloco 7, C3), harness exige o `force-stop` antes de cada `am start`; **pendente no aparelho** (conferir a sequência pela câmera) |
 | E4 (bancada no aparelho) | **ABERTA** — requer pendrive FAT32 |
-| E5 (câmera) | **ABERTA** — captura provada (doc 41 §8); o portão precisa ser recalibrado pela razão (VESA 0,281 x JEIDA 0,034 na faixa 127\|128) |
+| E5 (câmera) | **SUBSTITUÍDA** pelo bloco 7 (C1 a C4): `nl_camcheck faixas/niveis` provado sobre quadros reais no PC; modo automático ligado por padrão no `cor.sh`, provado com stubs; **pendente no aparelho** (coordenador: `cor.sh` real a partir de JEIDA e de VESA, `cmp -l` e câmera) |
 | E6 (prova de leigo) | **ABERTA** |
 
 O bloco 6 estendeu o kit aos dois modelos (V1.0.0.9 e V1.0.0.1 sem USB-C), também só em simulação.

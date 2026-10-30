@@ -53,7 +53,7 @@
 Tema distinto do térmico: quando se **troca o micro-painel LCD** do motor óptico, as primárias saem
 certas e o preto/cinzas saem tingidos se o **formato LVDS (VESA ou JEIDA)** não casar com o painel. Na 1ª
 troca o `RX058B-0600` pediu JEIDA; na 2ª (2026-10-29) o `RX058B-4300` instalado pediu VESA; na 3ª (2026-10-30)
-o painel pediu JEIDA, e o aparelho está hoje em JEIDA (doc 41 §8). O formato não se deduz do nome: decide o teste de cinza ("duas metades", doc 41).
+o painel pediu JEIDA, e o aparelho está hoje em JEIDA (doc 41 §8). O formato não se deduz do nome: decide o teste de cinza (escada de 16 cinzas, doc 41 §4).
 Resolvido por software, sem trocar hardware.
 
 | Doc | Conteúdo |
@@ -78,6 +78,7 @@ Os blocos de correção abertos a partir da sessão do doc 40, cada um com a se�
 | [`sprints/2026-10-29-bloco-4-prova-da-build.md`](sprints/2026-10-29-bloco-4-prova-da-build.md) | Prova de que a build é funcional (partes no aparelho abertas) |
 | [`sprints/2026-10-29-bloco-5-kit-universal.md`](sprints/2026-10-29-bloco-5-kit-universal.md) | Kit universal de pendrive: térmica + cor "duas metades" (software feito; bancada aberta) |
 | [`sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md`](sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md) | Kit, builder e fix para os dois modelos (feito, só em software) |
+| [`sprints/2026-10-30-bloco-7-cor-automatica.md`](sprints/2026-10-30-bloco-7-cor-automatica.md) | Cor automática pela câmera interna (`nl_camcheck faixas/niveis`), escada de 16 cinzas no lugar das duas metades e `force-stop` da galeria entre telas (em código e provado com stubs; falta a prova no aparelho) |
 
 ## Arquivo interno (histórico de auditorias)
 

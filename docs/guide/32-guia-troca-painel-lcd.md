@@ -67,8 +67,8 @@ Não use `swap` para "consertar" cinza tingido: com primárias certas, o problem
 ### Sem PC (recomendado para leigo): kit de pendrive
 
 O kit do Método 1 do [`../../INSTALL.md`](../../INSTALL.md) (ver `pendrive-autorun/LEIA-ME.txt`) aplica a
-correção térmica e faz o teste de cor das **"duas metades"**: uma tela com duas metades de cinza quase
-iguais (63 e 64), que só ficam **visivelmente diferentes** quando o formato está errado
+correção térmica e faz o teste de cor da **escada de 16 cinzas**: faixas que sobem do escuro ao claro em ordem e que só
+**embaralham** quando o formato está errado (a câmera interna confere sozinha)
 ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 
 1. Metades **iguais**: não aperte nada. Em 30 s ele segue e a cor não é mexida.

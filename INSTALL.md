@@ -34,9 +34,10 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    - `pendrive-autorun/newlink_update.sh`
    - `pendrive-autorun/cor.sh`
    - `pendrive-autorun/lvdsctl`
+   - `pendrive-autorun/nl_camcheck` (lê a câmera interna, para o teste de cor automático)
    - `pendrive-autorun/ZYCustom.ini`
    - `pendrive-autorun/LEIA-ME.txt`
-   - `pendrive-autorun/kit/*.png` (seis imagens, na subpasta `kit/` do pendrive)
+   - `pendrive-autorun/kit/*.png` (oito imagens, na subpasta `kit/` do pendrive)
 
    O jeito certo é pelo instalador, que copia tudo e **confere o md5 de cada arquivo depois da cópia**
    contra a lista embutida no `newlink_update.sh`: no Linux/macOS `./install.sh --pendrive /caminho/do/pendrive`,
@@ -44,7 +45,7 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    O aparelho faz a mesma conferência e **aborta sem escrever nada** se faltar ou divergir qualquer arquivo.
 3. Com o projetor **desligado**, plugue o pendrive numa porta USB dele.
 4. **Ligue.** Se aparecer "AJUSTANDO", espere: a parte térmica é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se nenhuma tela do kit aparecer em 2 minutos, desligue e ligue de novo (o pendrive montou tarde).
-5. **Teste de cor ("duas metades").** Aparece uma tela com duas metades cinzas. Iguais: não aperte nada, em 30 s ele segue e a cor não é mexida (é o caso do painel de fábrica). Uma metade bem mais clara: aperte qualquer tecla; ele mostra no outro formato, e só **mantém** se você apertar de novo diante de metades iguais. Sem a segunda tecla, volta sozinho ao formato de antes.
+5. **Teste de cor.** O projetor projeta uma escada de 16 cinzas e olha com a **câmera interna**: escada em ordem = cor certa, nada é gravado (é o caso do painel de fábrica); fora de ordem = ele troca o formato sozinho, confere de novo e mostra "COR CORRIGIDA AUTOMATICAMENTE" (qualquer tecla em 30 s desfaz). Se a câmera não ajudar, ele pergunta olhando a tela: escada fora de ordem, aperte qualquer tecla; ele mostra no outro formato, e só **mantém** se você apertar de novo diante de uma escada em ordem. Sem a segunda tecla, volta sozinho ao formato de antes.
 6. Quando aparecer "PRONTO", tire o pendrive. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive ficam `newlink_update.log` (procure `CORRECAO APLICADA COM SUCESSO`) e `newlink_cor.log`.
 
 É **idempotente** (rodar de novo não muda nada nem reinicia) e só age se o modelo for `PFL7560`. A parte
@@ -211,8 +212,9 @@ casa com o painel, corrigível **por software**. **O formato não se deduz do no
 do de fábrica) pediu VESA ([doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
 §1). Quem decide é o teste de cinza.
 
-- **Sem PC:** o kit de pendrive do Método 1 já faz o teste das "duas metades". Metades iguais = cor
-  certa, nada é gravado. Só troca o formato com **duas** teclas do controle, com backup e journal antes.
+- **Sem PC:** o kit de pendrive do Método 1 já faz o teste da escada de cinzas (pela câmera interna, ou pelo
+  controle se a câmera não ajudar). Escada em ordem = cor certa, nada é gravado. Só troca o formato com backup e
+  journal antes, e desfaz com uma tecla (automático) ou só mantém com **duas** teclas (manual).
 - **Linux / macOS:** `PFL_IP=<ip> ./pfl7560-lcd-color.sh wizard` (backup obrigatório antes de gravar,
   testa JEIDA e VESA na tela e reverte sozinho se a tela apagar), ou `./pfl7560-menu.sh` → opção **4**.
   Direto, se você já viu qual formato deixa o cinza neutro: `... jeida` / `... vesa` (também fazem o
@@ -221,7 +223,7 @@ do de fábrica) pediu VESA ([doc 40](docs/research/40-sessao-2026-10-29-segunda-
   `backups-projetor\`). O wizard completo e o backup/restore usam WSL
   (`wsl ./pfl7560-lcd-color.sh wizard`).
 
-Num aparelho com o painel de fábrica o teste mostra as metades iguais e nada muda. Depois de **regravar o
+Num aparelho com o painel de fábrica o teste mostra a escada em ordem e nada muda. Depois de **regravar o
 firmware de fábrica**, refaça o teste: a `panelparam` parece estar dentro do `.bin` e o reflash pode
 devolver o formato ao de fábrica (VESA) ([doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md) §5).
 

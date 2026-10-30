@@ -11,7 +11,7 @@ Artefatos da solução. Diagnóstico completo em
 pediu **JEIDA**, e o aparelho está hoje em JEIDA ([doc 41](../../docs/research/41-auto-pareamento-camera-e-kit-universal.md) §8).
 Sintoma de formato errado: primárias certas, preto e cinzas tingidos (a cor muda com a imagem).
 **O formato não se deduz do nome do painel:** decide o teste de cinza. Sem PC, o kit de pendrive
-(`pendrive-autorun/`, que leva uma cópia deste `lvdsctl`) faz o teste das "duas metades"
+(`pendrive-autorun/`, que leva uma cópia deste `lvdsctl`) faz o teste da escada de 16 cinzas (pela câmera interna ou pelo controle)
 ([doc 41](../../docs/research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 
 ## Modo fácil: `pfl7560-lcd-color.sh` (na raiz do repo)

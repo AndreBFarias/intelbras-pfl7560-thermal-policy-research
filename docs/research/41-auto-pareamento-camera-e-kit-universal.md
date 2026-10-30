@@ -46,7 +46,23 @@ Um record de 63.876 bytes em `0x144180c` contém `panelheader/paneldatabody` e o
 levar o byte `0x5c` de volta ao de fábrica (VESA)**. Para o painel da 2ª troca (VESA) era inócuo; para quem
 tem painel JEIDA, um reflash quebraria a cor, e desde a 3ª troca (2026-10-30, §8) **é o caso deste aparelho**. A confirmar (bloco 4 e bloco 5, E1).
 
-## 4. O critério que não se engana: "duas metades"
+## 4. O critério: a escada de cinzas (substituiu as "duas metades" no bloco 7)
+
+> **Bloco 7 (2026-10-30, implementado em código, falta a prova no aparelho).** O critério das duas metades
+> (texto original logo abaixo, mantido como histórico) **não é confiável**: no formato errado, a tela
+> `metades-1` dividiu só a faixa 127|128, e num padrão de 7 pares (31|32 ... 223|224) **nenhuma** faixa
+> dividiu. O que aparece sempre é que a **ordem de brilho** embaralha. O kit passou a projetar uma
+> **escada de 16 faixas cinza**, níveis `10 + 15k` (k = 0..15), cada uma com 34 px de altura e passo de
+> 50 px a partir de y = 140, separadas por preto. Em formato certo ela sobe em ordem; em formato errado a
+> rotação de 2 bits a embaralha (simulação com curva monótona aleatória, nos dois sentidos: **no mínimo 3
+> inversões** no errado, 0 no certo). A tela `calibracao` traz as mesmas faixas em branco (255) sobre
+> preto (0), valores que VESA e JEIDA não alteram, e é por elas que a câmera acha as faixas sem depender do
+> formato. Quadros reais (câmera interna, 640x480, painel da 3ª troca): JEIDA = `235 235 235 235 235 232
+> 222 210 197 181 164 141 114 91 72 63` (monótona); VESA = `235 235 235 231 192 148 105 86 220 212 156 90
+> 185 116 195 128` (fora de ordem). Fixtures em `tests/fixtures/camera/`; análise no `nl_camcheck`
+> (`faixas` e `niveis`, [README](../../artifacts/camcheck/README.md)).
+
+### Critério original (histórico): "duas metades"
 
 VESA↔JEIDA é uma rotação de 2 bits, igual em R, G e B (tabelas do kernel Linux, ver
 [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §5). Um padrão com duas metades de cinza
@@ -75,25 +91,37 @@ Kit único de pendrive, sem serial, sem arquivo para editar, mesmo pendrive para
    reconhece o `.ini` de fábrica dos **dois** modelos (V1.0.0.9 `29d8ba36…` e V1.0.0.1 sem USB-C
    `ed3f314c…`, [doc 42](42-firmware-2026-10-modelo-sem-usbc.md)) e monta o corrigido a partir do `.ini` do
    aparelho, trocando só as seções térmicas; o alvo é `252ab7a7…` no modelo antigo e `bdf5c464…` no novo.
-2. **Cor:** projeta "duas metades". **Hoje:** metades iguais → nada a fazer (30 s e segue). Metades
-   diferentes → a pessoa aperta **qualquer tecla**, o kit troca o formato ao vivo e mostra de novo; só
-   mantém com uma **segunda** tecla; sem ela, reverte e confere relendo o byte. **Depois da prova da
-   câmera (E5):** a câmera decide sozinha, e a pessoa só vê "cor ajustada"; margem pequena devolve a
-   decisão à pessoa.
+2. **Cor (bloco 7, em código; falta a prova no aparelho):** **modo automático**, ligado por padrão. O
+   `cor.sh` projeta a `calibracao`, o `nl_camcheck faixas` acha as 16 faixas, projeta a `escada-1` e o
+   `nl_camcheck niveis` mede a ordem de brilho. Em ordem (0 inversões) → formato certo, **nada escrito**
+   (é o caminho idempotente). Fora de ordem (>= 2 inversões em ambos os sentidos) → backup, journal e
+   gancho, troca ao vivo, confere o byte, mede de novo; em ordem → mostra "COR CORRIGIDA
+   AUTOMATICAMENTE" e **qualquer tecla em 30 s desfaz**; sem tecla confere a partição inteira (só o byte
+   `0x5c` pode diferir) e mantém. Se a troca não deixou em ordem → reverte e cai no fluxo manual. Dúvida
+   (1 inversão, amplitude da escada < 40 de luma, 15 faixas na calibração, câmera ocupada ou sem
+   `/dev/video0`, `nl_camcheck` adulterado) → fluxo **manual**, sem escrever. **Fluxo manual:** a mesma
+   `escada-1`; em ordem, nada a fazer (30 s e segue); fora de ordem, a pessoa aperta **qualquer tecla**, o
+   kit troca o formato ao vivo e mostra a `escada-2`; só mantém com uma **segunda** tecla; sem ela,
+   reverte e confere relendo o byte. Cada medição fica no log com os 16 valores e as inversões. Antes de
+   cada tela o `cor.sh` faz `am force-stop` do pacote que resolve o VIEW de PNG (a galeria não trocava de
+   imagem, §8). O `nl_camcheck` só lê a câmera (sem `S_CTRL`) e tem o md5 conferido antes de cada
+   execução, como o `lvdsctl`.
 3. **Segurança:** backup conferido com `cmp` e journal em `/data` antes de qualquer troca; no boot
    seguinte, journal pendente = restaura o formato original; md5 de cada arquivo do kit conferido antes
    de qualquer escrita; o kit nunca chama `hidebug`/`gtt` (doc 37).
 
 **Por que é idempotente:** a decisão depende só do que se vê na tela, e só grava quando o formato
-escolhido difere do byte atual. Segunda execução: metades iguais, nada escrito, nada reiniciado.
+escolhido difere do byte atual. Segunda execução: escada em ordem, nada escrito, nada reiniciado.
 
-**Por que é universal:** vale para qualquer painel LVDS 8 bit em que VESA/JEIDA seja a diferença. O
-painel de fábrica mostra metades iguais; errar exige duas teclas, a segunda diante de imagem errada.
+**Por que é universal:** vale para qualquer painel LVDS 8 bit em que VESA/JEIDA seja a diferença. No
+painel de fábrica a escada sai em ordem; no modo manual errar exige duas teclas, a segunda diante de
+imagem errada, e no automático uma tecla em 30 s desfaz.
 
 ## 6. O que continua impossível
 
 - Saber o formato **sem olhar a imagem** (sem EDID, sem pino de ID).
-- **Automação sem tecla hoje:** só depois da E5 (captura provada no aparelho).
+- **Automação sem tecla:** implementada no bloco 7 (§5), mas ainda **sem prova no aparelho**: o
+  coordenador roda o `cor.sh` real via adb a partir de JEIDA e de VESA e confere com `cmp -l` e com a câmera.
 - Garantir que o autorun rode no 1º boot (o `nl_usb_update.sh` de fábrica só olha o pendrive em
   `sys.boot_completed=1`; se a montagem atrasar, perde a vez; a instrução é religar).
 - Garantir, sem a bancada, que as telas aparecem: o kit as mostra por `am start ... VIEW`, que deu tela
