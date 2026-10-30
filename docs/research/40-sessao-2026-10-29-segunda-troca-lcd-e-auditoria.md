@@ -65,8 +65,8 @@ Artefato: `evidencias/2026-10-29/props-221947.tsv`. Branco `#FFFFFF`, brilho 100
 > valor é a temperatura do dissipador do LED. (2) Os +8 °C depois da pasta nova são compatíveis com a
 > pasta **funcionando** (mais calor sai do LED para o bloco). (3) A temperatura do polarizador e do LCD
 > **não é medida por nenhum sensor** do aparelho. (4) A placa de força do LED traz a marcação
-> **`NeoPix 725 NPX725 CN LED`** (`media/2026-10-29-placa-led-neopix-npx725.jpg`), pista nova para a
-> ficha do LED.
+> **`NeoPix 725 NPX725 CN LED`** com logotipo **PHILIPS**, código `ZC 2306`, e MOSFET de potência
+> **`JMT K80N06A`** (`media/2026-10-29-placa-led-neopix-npx725.jpg`); pistas novas para a ficha do LED.
 >
 > **OPT-S6 FECHADO (`OBSERVADO`, dono):** são **3 ventiladores**, os 2 sopradores embaixo (os que a
 > política térmica controla, `gfc` = 2) e 1 no exaustor do dissipador do LED (sem controle por software).
