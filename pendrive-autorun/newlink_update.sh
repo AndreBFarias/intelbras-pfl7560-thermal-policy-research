@@ -15,10 +15,10 @@
 #  achar um "newlink_update.sh" na raiz, EXECUTA ele como ROOT (via exec do
 #  init). Por isso aqui roda so o que e CURTO: conferir o kit e a fase termica.
 #  A fase de COR (pergunta a pessoa, ate ~90 s) e lancada DESTACADA, a partir de
-#  uma copia em /data/local/tmp, pelo cor.sh.
+#  uma copia em /data/vendor/pfl7560-kit (pasta so do root, 0700), pelo cor.sh.
 #
 #  Coloque na RAIZ do pendrive (FAT32) tudo o que esta na pasta pendrive-autorun:
-#      newlink_update.sh  cor.sh  lvdsctl  ZYCustom.ini  kit/*.png
+#      newlink_update.sh  cor.sh  lvdsctl  ZYCustom.ini  LEIA-ME.txt  kit/*.png
 #  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
 #  IDEMPOTENTE:
@@ -33,21 +33,31 @@
 #  abaixo ANTES de qualquer escrita. Divergiu ou faltou = aborta. Este script
 #  NUNCA chama hidebug nem gtt (doc 37). Limite honesto: um newlink_update.sh
 #  adulterado roda como root e nao ha defesa contra ele.
+#  E3b: o cor.sh e o lvdsctl rodam como root, entao ficam so numa pasta do root
+#  (nunca em /data/local/tmp, que o usuario shell grava), verificada a cada uso
+#  (diretorio real, nao link, dono root); e o md5 do cor.sh e conferido
+#  IMEDIATAMENTE antes de cada execucao (restaurar, tela e teste de cor).
 # ============================================================================
 
 # ---- ganchos de teste -------------------------------------------------------
-# Em producao PFL_ROOT nao existe e R fica vazio. O harness (tests/) o define
-# para apontar o script para uma arvore de mentira.
+# So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
+# do ambiente, para que nenhuma seja porta de entrada em producao; R fica vazio.
+if [ "${PFL_TESTE:-}" != "1" ]; then
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE
+fi
 R="${PFL_ROOT:-}"
 MP="$R/mnt/media_rw/$1"
 INI="$R/vendor/etc/ZYCustom.ini"
 BP="$R/vendor/build.prop"
 RC="$R/vendor/etc/init/hw/init.bigfish.rc"
 ATV_INI_DIR="$R/atv/ini"
-WORK="$R/data/local/tmp/pfl7560-kit"
+WORK="$R/data/vendor/pfl7560-kit"
 JOURNAL="$WORK/journal"
 ESPERA_REBOOT=8
-# gancho de teste: o harness (tests/) zera a espera; em producao nao existe
+# dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
+DONO_UID=0
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
+# gancho de teste (so com PFL_TESTE=1): o harness (tests/) zera a espera
 [ -n "${PFL_RAPIDO:-}" ] && ESPERA_REBOOT=0
 
 # md5 do ZYCustom.ini: o corrigido (alvo), o de fabrica V1.0.0.9 e o de CADA
@@ -66,7 +76,7 @@ INI_MD5_ANTERIORES="bbf82dd17d4523b7df8a86bec0e850ce 1ad641ed2dd99e61d8a987a675e
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-a478d9bd9c67fcf5bbcdde55dde5f52f  cor.sh
+0ec1c8c335108d8072d4bc0ada0512b1  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 1afd05f32600385e0587acf062262988  kit/erro.png
@@ -116,19 +126,77 @@ kit_conferir(){
   return "$_rc"
 }
 
+# ---- pasta de trabalho so do root (E3b) --------------------------------------
+# O cor.sh e o lvdsctl rodam como root a partir de $WORK. Se alguem que nao e root
+# pudesse escrever la (ou trocar a pasta por um link), executaria codigo como root.
+#  - dir_seguro: diretorio real (nao link), dono root, sem acesso de grupo/outros
+#    (o ls pode por '.' ou '+' no fim do modo, por SELinux/ACL);
+#  - arq_seguro: arquivo regular (nao link) e de dono root.
+dir_seguro(){
+  [ -d "$1" ] && [ ! -L "$1" ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ldn "$1" 2>/dev/null)
+  case "$1" in
+    d???------|d???------[.+]) [ "$3" = "$DONO_UID" ] ;;
+    *) return 1 ;;
+  esac
+}
+arq_seguro(){
+  [ -f "$1" ] && [ ! -L "$1" ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ln "$1" 2>/dev/null)
+  [ "$3" = "$DONO_UID" ]
+}
+trabalho_ok(){
+  dir_seguro "$WORK" && return 0
+  LOG "[ERRO] $WORK nao e uma pasta so do root (link, dono errado ou aberta a outros) - NAO vou usar nem escrever nela."
+  return 1
+}
+# cria a pasta (0700, do root) se nao existir e confere; uma que ja exista e
+# errada NUNCA e consertada nem apagada aqui: recusa.
+preparar_trabalho(){
+  if [ ! -e "$WORK" ] && [ ! -L "$WORK" ]; then
+    mkdir -p "${WORK%/*}" 2>/dev/null
+    ( umask 077; mkdir "$WORK" 2>/dev/null ) && chmod 700 "$WORK" 2>/dev/null
+  fi
+  trabalho_ok
+}
+# confere os arquivos do kit de $WORK: regulares (nao link), do root e com o md5 da lista
+trabalho_conferir(){
+  _trc=0   # nome proprio: o kit_conferir tambem usa _rc e _n
+  for _tn in "$@"; do
+    if ! arq_seguro "$WORK/$_tn"; then
+      LOG "[ERRO] kit: '$_tn' em $WORK nao e arquivo regular do root (link ou outro dono)."
+      _trc=1
+    fi
+  done
+  kit_conferir "$WORK" "$@" || _trc=1
+  return "$_trc"
+}
+# IMEDIATAMENTE antes de cada execucao do cor.sh (restaurar, tela, teste): pasta
+# so do root, cor.sh regular do root e md5 da lista embutida. O lvdsctl quem
+# confere, na hora de executa-lo, e o proprio cor.sh.
+cor_pronto(){
+  trabalho_ok || return 1
+  trabalho_conferir cor.sh
+}
+
 # ---- recuperacao: journal de um teste de cor interrompido --------------------
-# Roda ANTES de qualquer outra coisa. Usa a copia do cor.sh que ficou em /data
+# Roda ANTES de qualquer outra coisa. Usa a copia do cor.sh que ficou em $WORK
 # (a que o proprio journal usa), reconferida contra a lista embutida.
+if [ -e "$WORK" ] || [ -L "$WORK" ]; then
+  trabalho_ok || { LOG "[ERRO] pasta de trabalho recusada - ABORTADO. Nada foi alterado."; exit 1; }
+fi
 if [ -f "$JOURNAL" ]; then
   LOG "journal de cor pendente: um teste anterior foi interrompido; restaurando o formato original antes de tudo"
-  if [ -f "$WORK/cor.sh" ] && [ "$(md5sum "$WORK/cor.sh" 2>/dev/null | cut -d' ' -f1)" = "$(kit_md5_esperado cor.sh)" ]; then
+  if cor_pronto; then
     sh "$WORK/cor.sh" --restaurar
     if [ "$?" = "3" ]; then
       LOG "restauracao pediu reboot; encerrando por aqui."
       exit 0
     fi
   else
-    LOG "[AVISO] cor.sh de recuperacao ausente ou com md5 diferente em $WORK; o gancho de boot ou o proximo teste tenta."
+    LOG "[AVISO] cor.sh de recuperacao ausente, link ou com md5 diferente em $WORK; o gancho de boot ou o proximo teste tenta."
   fi
 fi
 
@@ -145,19 +213,26 @@ if ! kit_conferir "$MP" $(kit_nomes); then
 fi
 LOG "kit conferido: $(kit_nomes | wc -l | tr -dc '0-9') arquivos com md5 certo"
 
-# copia o kit para /data/local/tmp (o cor.sh roda de la, destacado) e reconfere
-# a copia. Nao apaga o journal: so o diretorio kit/ e recriado.
+# copia o kit para a pasta so do root (o cor.sh roda de la, destacado) e reconfere
+# a copia. Nao apaga o journal nem o backup: so kit/, cor.sh e lvdsctl sao
+# recriados (um link no lugar deles some, nunca e seguido).
+if ! preparar_trabalho; then
+  LOG "[ERRO] pasta de trabalho recusada - abortando (nada foi alterado)."
+  exit 1
+fi
 rm -rf "$WORK/kit"
+rm -f "$WORK/cor.sh" "$WORK/lvdsctl"
 if ! { mkdir -p "$WORK/kit" && cp "$MP/cor.sh" "$MP/lvdsctl" "$WORK/" && cp "$MP"/kit/*.png "$WORK/kit/" \
        && chmod 755 "$WORK/cor.sh" "$WORK/lvdsctl"; }; then
   LOG "[ERRO] nao consegui copiar o kit para $WORK - abortando (nada de /vendor foi alterado)."
   exit 1
 fi
 # shellcheck disable=SC2046
-if ! kit_conferir "$WORK" $(kit_nomes | grep -v '^ZYCustom.ini$'); then
+if ! trabalho_conferir $(kit_nomes | grep -v '^ZYCustom.ini$'); then
   LOG "[ERRO] a copia do kit em $WORK nao confere - abortando (nada de /vendor foi alterado)."
   exit 1
 fi
+COR_MD5=$(kit_md5_esperado cor.sh)
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
 # termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior
@@ -285,8 +360,13 @@ fi
 
 if [ "$CHG" = "1" ] && [ "$FAIL" = "0" ]; then
   LOG "==== CORRECAO APLICADA COM SUCESSO! reiniciando em 8s para ativar ===="
-  # a fase de cor roda no boot seguinte, com o pendrive ainda plugado
-  sh "$WORK/cor.sh" --tela reiniciando
+  # a fase de cor roda no boot seguinte, com o pendrive ainda plugado. A tela e so
+  # cosmetica: se o cor.sh nao conferir na hora, nao executa e o reboot segue.
+  if cor_pronto; then
+    sh "$WORK/cor.sh" --tela reiniciando
+  else
+    LOG "[ERRO] cor.sh nao conferiu na hora de executar - tela de reinicio dispensada (a correcao ja foi aplicada)."
+  fi
   sleep "$ESPERA_REBOOT"
   reboot
   exit 0
@@ -307,10 +387,16 @@ fi
 # processos do servico temporario (oneshot) e o cor.sh destacado sobrevive. Se
 # matar, a fase de cor morre no inicio: sem journal ainda, nada foi escrito.
 if [ "$AVISO" = "1" ]; then AVISO_ARG="termica-falhou"; else AVISO_ARG=""; fi
+# O cor.sh recebe o md5 que a lista embutida manda (COR_MD5): e o que o gancho de
+# boot dele vai embutir. A conferencia abaixo e a ULTIMA antes de executar.
+if ! cor_pronto; then
+  LOG "[ERRO] cor.sh nao conferiu na hora de executar - a fase de cor NAO foi lancada (nada foi escrito na panelparam)."
+  exit 1
+fi
 LOG "lancando a fase de cor (cor.sh) destacada; log em $WORK/cor.log e, no fim, newlink_cor.log no pendrive"
 if command -v setsid >/dev/null 2>&1; then
-  setsid sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" >>"$WORK/cor.log" 2>&1 </dev/null &
+  setsid sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" >>"$WORK/cor.log" 2>&1 </dev/null &
 else
-  nohup sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" >>"$WORK/cor.log" 2>&1 </dev/null &
+  nohup sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" >>"$WORK/cor.log" 2>&1 </dev/null &
 fi
 exit 0

@@ -8,13 +8,19 @@
 #  PFL7560 - kit universal, FASE DE COR (bloco 5, doc 41)
 #
 #  Quem chama: o newlink_update.sh, DEPOIS de conferir o md5 de cada arquivo do
-#  kit e de copia-los para /data/local/tmp/pfl7560-kit. Este script roda
-#  DESTACADO do exec do init (a pergunta dura ate ~90 s) e nunca e executado
-#  direto do pendrive.
+#  kit e de copia-los para /data/vendor/pfl7560-kit (pasta SO DO ROOT, 0700).
+#  Este script roda DESTACADO do exec do init (a pergunta dura ate ~90 s) e
+#  nunca e executado direto do pendrive.
 #
-#    cor.sh <mountpoint> [termica-falhou]   teste de cor (pergunta a pessoa)
+#    cor.sh <mountpoint> <termica-falhou|""> <md5 de cor.sh>   teste de cor
 #    cor.sh --restaurar                     devolve o formato original (journal)
 #    cor.sh --tela <nome>                   mostra kit/<nome>.png e sai
+#
+#  SEGURANCA (E3b): tudo aqui roda como root. A pasta de trabalho e verificada a
+#  cada uso (diretorio real, nao link, dono root, sem acesso de grupo/outros);
+#  arquivo dela que seja link ou de outro dono e recusado; o lvdsctl so executa
+#  com o md5 embutido conferido NA HORA; o backup so restaura com o md5 gravado
+#  no journal.
 #
 #  O QUE FAZ (idempotente, sem serial, sem arquivo para editar):
 #   1. Projeta as DUAS METADES de cinza (63|64 e 127|128). Formato certo = metades
@@ -33,16 +39,28 @@
 # ============================================================================
 
 # ---- ganchos de teste -------------------------------------------------------
-# Em producao NENHUMA destas variaveis existe. O harness (tests/) as define para
-# apontar este script para uma arvore de mentira e para um lvdsctl de mentira.
+# So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
+# do ambiente, para que nenhuma delas seja porta de entrada em producao. O gancho
+# de boot gerado por este script apaga todas antes de qualquer coisa.
+if [ "${PFL_TESTE:-}" != "1" ]; then
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE
+fi
 R="${PFL_ROOT:-}"
 PP="$R/dev/block/by-name/panelparam"
 PROC_PANEL="$R/proc/msp/panel"
-WORK="$R/data/local/tmp/pfl7560-kit"
+WORK="$R/data/vendor/pfl7560-kit"
 NLSU="$R/data/local/nlsu"
 HOOK="$NLSU/update_after_boot.sh"
 LOCK="$R/dev/pfl7560-kit.lock"
 LVDSCTL="${PFL_LVDSCTL:-$WORK/lvdsctl}"
+# md5 do lvdsctl do kit (o mesmo da lista do newlink_update.sh); conferido na hora
+# de cada execucao. DONO_UID: o dono exigido nas pastas e arquivos (root = 0).
+LVDSCTL_MD5="178d812872cb9306c0ae6faeed07184a"
+DONO_UID=0
+if [ "${PFL_TESTE:-}" = "1" ]; then
+  [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
+  [ -n "${PFL_LVDSCTL_MD5:-}" ] && LVDSCTL_MD5="$PFL_LVDSCTL_MD5"
+fi
 LIBHITV="$R/vendor/lib/libhitvservice.so"
 LIBS="/vendor/lib:/system/lib"
 JOURNAL="$WORK/journal"
@@ -62,7 +80,7 @@ TEMPO_ASSENTAR=2      # tela nova + folga para a 1a tecla nao valer de 2a
 AUTOFOCO_MAX=60
 AUTOFOCO_FOLGA=30
 ESPERA_REBOOT=5
-# gancho de teste: o harness (tests/) zera as esperas; em producao nao existe
+# gancho de teste (so com PFL_TESTE=1): o harness (tests/) zera as esperas
 [ -n "${PFL_RAPIDO:-}" ] && { TEMPO_ASSENTAR=0; AUTOFOCO_MAX=0; AUTOFOCO_FOLGA=0; ESPERA_REBOOT=0; }
 
 # ---- MODO AUTOMATICO (E5, camera) -- DESLIGADO ---------------------------------
@@ -76,6 +94,35 @@ MODO_AUTO=0
 decidir_por_camera(){ return 2; }
 
 LOG(){ echo "[PFL7560-cor] $*"; }
+
+# ---- seguranca da pasta de trabalho e dos arquivos dela (E3b) -----------------
+# Este script roda como root a partir de $WORK. Se alguem que nao e root pudesse
+# escrever la (ou trocar a pasta por um link), executaria codigo como root. Entao:
+#  - dir_seguro: diretorio real (nao link), dono root, sem acesso de grupo/outros
+#    (o ls pode por '.' ou '+' no fim do modo, por SELinux/ACL);
+#  - arq_seguro: arquivo regular (nao link) e de dono root.
+dir_seguro(){
+  [ -d "$1" ] && [ ! -L "$1" ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ldn "$1" 2>/dev/null)
+  case "$1" in
+    d???------|d???------[.+]) [ "$3" = "$DONO_UID" ] ;;
+    *) return 1 ;;
+  esac
+}
+arq_seguro(){
+  [ -f "$1" ] && [ ! -L "$1" ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ln "$1" 2>/dev/null)
+  [ "$3" = "$DONO_UID" ]
+}
+# md5 de um arquivo (so o hash)
+md5_de(){ md5sum "$1" 2>/dev/null | cut -d' ' -f1; }
+trabalho_ok(){
+  dir_seguro "$WORK" && return 0
+  LOG "[ERRO] $WORK nao e uma pasta so do root (link, dono errado ou aberta a outros) - NAO vou usar nem escrever."
+  return 1
+}
 
 # ---- travas ------------------------------------------------------------------
 # lock em /dev (tmpfs): some no reboot, entao nunca fica preso. Impede que o
@@ -116,6 +163,10 @@ gravar_fmt(){
 # der para gravar la, cai em $WORK/tela (o caminho candidato da E1-e).
 preparar_tela(){
   TELA_DIR="$R/sdcard/pfl7560-kit"
+  # so copia PNG que seja arquivo regular do root (nada de link dentro de $WORK/kit)
+  for _p in "$WORK"/kit/*.png; do
+    arq_seguro "$_p" || { LOG "[AVISO] $_p e link ou de outro dono - telas NAO preparadas."; TELA_DIR=""; return 1; }
+  done
   rm -rf "$TELA_DIR" 2>/dev/null
   if ! mkdir -p "$TELA_DIR" 2>/dev/null || ! cp "$WORK"/kit/*.png "$TELA_DIR"/ 2>/dev/null; then
     TELA_DIR="$WORK/tela"
@@ -158,26 +209,40 @@ esperar_tecla(){
 }
 
 # ---- lvdsctl (troca AO VIVO) -------------------------------------------------
-vivo_disponivel(){ [ -x "$LVDSCTL" ] && [ -f "$LIBHITV" ]; }
+# O lvdsctl roda como root: so executa se for arquivo regular do root (nao link) e
+# com o md5 embutido, conferido AGORA (a cada execucao), nunca "de antes".
+lvdsctl_confere(){
+  if arq_seguro "$LVDSCTL" && [ "$(md5_de "$LVDSCTL")" = "$LVDSCTL_MD5" ]; then return 0; fi
+  LOG "[ERRO] lvdsctl ($LVDSCTL) ausente, link, de outro dono ou com md5 diferente do esperado - NAO vou executar."
+  return 1
+}
+vivo_disponivel(){ [ -x "$LVDSCTL" ] && [ -f "$LIBHITV" ] && lvdsctl_confere; }
 # O codigo de saida do lvdsctl nao e confiavel; quem confirma e a releitura do
 # byte (SetLvdsFormat persiste na hora, doc 40 s1).
 aplicar_vivo(){
+  lvdsctl_confere || return 1
   LOG "lvdsctl fmt $1"
   LD_LIBRARY_PATH="$LIBS" timeout 30 "$LVDSCTL" fmt "$1" >/dev/null 2>&1
 }
 
 # ---- journal -----------------------------------------------------------------
-jornal_gravar(){ # idx off fmt_original
+jornal_gravar(){ # idx off fmt_original md5_do_backup
   {
     echo "J_IDX=$1"
     echo "J_OFF=$2"
     echo "J_FMT=$3"
+    echo "J_MD5=$4"
   } > "$JOURNAL.new" && sync && mv "$JOURNAL.new" "$JOURNAL" && sync
 }
 jornal_campo(){ sed -n "s/^$1=\\([0-9]*\\)\$/\\1/p" "$JOURNAL" 2>/dev/null | head -1; }
-# carrega e valida o journal em J_IDX/J_OFF/J_FMT; falha fechada
+# md5 do backup guardado no journal (32 hex minusculos, ou vazio)
+jornal_md5(){ sed -n 's/^J_MD5=\([0-9a-f]*\)$/\1/p' "$JOURNAL" 2>/dev/null | head -1; }
+# carrega e valida o journal em J_IDX/J_OFF/J_FMT/J_MD5; falha fechada
 jornal_ler(){
+  arq_seguro "$JOURNAL" || return 1
   J_IDX=$(jornal_campo J_IDX); J_OFF=$(jornal_campo J_OFF); J_FMT=$(jornal_campo J_FMT)
+  J_MD5=$(jornal_md5)
+  [ "${#J_MD5}" = "32" ] || return 1
   case "$J_IDX$J_OFF$J_FMT" in ''|*[!0-9]*) return 1 ;; esac
   [ -n "$J_IDX" ] && [ -n "$J_OFF" ] && [ -n "$J_FMT" ] || return 1
   [ "$J_IDX" -le "$PERFIL_MAX" ] || return 1
@@ -209,11 +274,16 @@ restaurar_trecho(){
 # o backup. Se houver qualquer outra diferenca, restaura os 768 bytes do perfil
 # e, se ainda sobrar diferenca fora dele, a particao inteira; confere de novo.
 # journal legivel e backup do tamanho da particao: sem isso nada se escreve
+# O backup so vale se for arquivo regular do root (nao link), do tamanho da
+# particao e com o md5 que o journal gravou quando ele foi feito (E3b): um backup
+# trocado ou adulterado nunca e usado para restaurar.
 jornal_e_backup_ok(){
-  jornal_ler || { LOG "[ERRO] journal ilegivel ou incoerente - NAO vou escrever."; return 1; }
-  [ -f "$BKP" ] || { LOG "[ERRO] backup $BKP ausente - NAO vou escrever."; return 1; }
+  trabalho_ok || return 1
+  jornal_ler || { LOG "[ERRO] journal ilegivel, incoerente, link ou de outro dono - NAO vou escrever."; return 1; }
+  arq_seguro "$BKP" || { LOG "[ERRO] backup $BKP ausente, link ou de outro dono - NAO vou escrever."; return 1; }
   _tam=$(wc -c < "$BKP" | tr -dc '0-9')
   [ "$_tam" = "$PP_TAM" ] || { LOG "[ERRO] backup com $_tam bytes (esperado $PP_TAM) - NAO vou escrever."; return 1; }
+  [ "$(md5_de "$BKP")" = "$J_MD5" ] || { LOG "[ERRO] md5 do backup diferente do gravado no journal (backup adulterado) - NAO vou escrever."; return 1; }
 }
 restaurar_formato(){
   jornal_e_backup_ok || return 1
@@ -270,26 +340,78 @@ reverter(){
 # sys.boot_completed (init.bigfish.rc:371-373). So criamos o gancho se NAO existir
 # um; se existir um que nao e nosso, nao tocamos e avisamos. O gancho se apaga
 # quando o journal some.
+#
+# O gancho roda como root e vive numa pasta que o usuario shell pode ter criado
+# antes de nos (/data/local e do shell), entao: so instalamos se $NLSU nao existir
+# ou for diretorio real do root sem escrita de grupo/outros. O gancho gerado:
+#  1. apaga do ambiente TODOS os ganchos de teste (PFL_*); em producao ele nao leva
+#     nenhuma atribuicao deles (so o harness, com PFL_TESTE=1, as embute);
+#  2. so executa o cor.sh se a pasta de trabalho for so do root, o cor.sh for
+#     arquivo regular do root (nao link) e o md5 for o EMBUTIDO neste gancho (o do
+#     cor.sh que o gerou), conferido na hora da execucao.
+nlsu_ok(){
+  [ -d "$NLSU" ] && [ ! -L "$NLSU" ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ldn "$NLSU" 2>/dev/null)
+  case "$1" in
+    d????-??-*) [ "$3" = "$DONO_UID" ] ;;
+    *) return 1 ;;
+  esac
+}
+gerar_gancho(){
+  echo '#!/vendor/bin/sh'
+  echo '# pfl7560-kit-gancho: criado pelo kit de pendrive. Restaura o formato LVDS se um'
+  echo '# teste de cor foi interrompido e se apaga quando o journal some.'
+  echo 'unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE'
+  if [ "${PFL_TESTE:-}" = "1" ]; then
+    echo "PFL_TESTE=1; PFL_ROOT='$R'; PFL_RAPIDO='${PFL_RAPIDO:-}'; PFL_DONO='$DONO_UID'; PFL_LVDSCTL='${PFL_LVDSCTL:-}'; PFL_LVDSCTL_MD5='$LVDSCTL_MD5'"
+    echo 'export PFL_TESTE PFL_ROOT PFL_RAPIDO PFL_DONO PFL_LVDSCTL PFL_LVDSCTL_MD5'
+  fi
+  echo "W=\"$WORK\""
+  echo "JOURNAL=\"$JOURNAL\""
+  echo "DONO=\"$DONO_UID\""
+  echo "COR_MD5=\"$COR_MD5\""
+  cat <<'FIM'
+seguro_dir(){
+  [ -d "$1" ] && [ ! -L "$1" ] || return 1
+  set -- $(ls -ldn "$1" 2>/dev/null)
+  case "$1" in
+    d???------|d???------[.+]) [ "$3" = "$DONO" ] ;;
+    *) return 1 ;;
+  esac
+}
+seguro_arq(){
+  [ -f "$1" ] && [ ! -L "$1" ] || return 1
+  set -- $(ls -ln "$1" 2>/dev/null)
+  [ "$3" = "$DONO" ]
+}
+if [ -f "$JOURNAL" ]; then
+  if seguro_dir "$W" && seguro_arq "$W/cor.sh" \
+     && [ "$(md5sum "$W/cor.sh" 2>/dev/null | cut -d' ' -f1)" = "$COR_MD5" ]; then
+    sh "$W/cor.sh" --restaurar
+  else
+    echo "[PFL7560-gancho] cor.sh ou a pasta de trabalho nao conferem - NAO vou executar."
+  fi
+fi
+[ -f "$JOURNAL" ] || rm -f "$0"
+FIM
+}
 instalar_gancho(){
-  if [ -e "$HOOK" ]; then
-    grep -q "pfl7560-kit-gancho" "$HOOK" 2>/dev/null && return 0
-    LOG "[AVISO] ja existe $HOOK e nao e nosso: gancho de recuperacao NAO instalado (a restauracao depende do pendrive no proximo boot)."
+  if [ -e "$HOOK" ] || [ -L "$HOOK" ]; then
+    nlsu_ok && grep -q "pfl7560-kit-gancho" "$HOOK" 2>/dev/null && [ ! -L "$HOOK" ] && return 0
+    LOG "[AVISO] ja existe $HOOK e nao e nosso (ou a pasta nao e so do root): gancho de recuperacao NAO instalado (a restauracao depende do pendrive no proximo boot)."
     return 0
   fi
-  if mkdir -p "$NLSU" 2>/dev/null && cat > "$HOOK.new" <<FIM
-#!/vendor/bin/sh
-# pfl7560-kit-gancho: criado pelo kit de pendrive. Restaura o formato LVDS se um
-# teste de cor foi interrompido e se apaga quando o journal some.
-if [ -f "$JOURNAL" ] && [ -f "$WORK/cor.sh" ]; then
-  sh "$WORK/cor.sh" --restaurar
-fi
-[ -f "$JOURNAL" ] || rm -f "\$0"
-FIM
-  then
+  # mkdir (sem -p) falha se alguem criou a pasta no meio tempo; nlsu_ok decide
+  if [ ! -e "$NLSU" ] && [ ! -L "$NLSU" ]; then
+    mkdir -p "${NLSU%/*}" 2>/dev/null
+    ( umask 022; mkdir "$NLSU" 2>/dev/null ) && chmod 755 "$NLSU" 2>/dev/null
+  fi
+  if nlsu_ok && gerar_gancho > "$HOOK.new"; then
     chmod 755 "$HOOK.new" && mv "$HOOK.new" "$HOOK" && sync && LOG "gancho de recuperacao instalado em $HOOK" && return 0
   fi
   rm -f "$HOOK.new" 2>/dev/null
-  LOG "[AVISO] nao consegui instalar o gancho de recuperacao em $HOOK."
+  LOG "[AVISO] nao consegui instalar o gancho de recuperacao em $HOOK (se a pasta existe, ela nao e so do root)."
   return 0
 }
 remover_gancho(){
@@ -305,7 +427,7 @@ remover_gancho(){
 # em /data (o journal depende dela); a copia do pendrive e best effort.
 preparar_backup(){
   rm -f "$BKP" "$BKP.md5"
-  if ! { dd if="$PP" of="$BKP" bs=4096 2>/dev/null && sync && cmp -s "$BKP" "$PP"; }; then
+  if ! { dd if="$PP" of="$BKP" bs=4096 2>/dev/null && sync && arq_seguro "$BKP" && cmp -s "$BKP" "$PP"; }; then
     LOG "[ERRO] backup do panelparam invalido ou impossivel - NAO vou escrever."
     rm -f "$BKP"
     return 1
@@ -316,7 +438,13 @@ preparar_backup(){
     rm -f "$BKP"
     return 1
   fi
-  md5sum "$BKP" > "$BKP.md5" 2>/dev/null
+  BKP_MD5=$(md5_de "$BKP")
+  if [ "${#BKP_MD5}" != "32" ]; then
+    LOG "[ERRO] nao consegui o md5 do backup - NAO vou escrever."
+    rm -f "$BKP"
+    return 1
+  fi
+  echo "$BKP_MD5  panelparam-original.img" > "$BKP.md5"
   LOG "[OK] backup do panelparam salvo e conferido com cmp em $BKP"
   _s=$(cor_serial); [ -n "$_s" ] || _s="sem-serial"
   _b="$MP/panelparam-backup-$_s.img"
@@ -354,6 +482,8 @@ finalizar(){ # tela
 modo_restaurar(){
   pegar_lock || { LOG "outra instancia em andamento - nada a fazer aqui."; exit 0; }
   trap soltar_lock EXIT
+  if [ ! -e "$WORK" ] && [ ! -L "$WORK" ]; then LOG "sem journal - nada a restaurar."; exit 0; fi
+  trabalho_ok || exit 1
   [ -f "$JOURNAL" ] || { LOG "sem journal - nada a restaurar."; exit 0; }
   LOG "journal pendente: um teste de cor foi interrompido; devolvendo o formato original"
   if ! reverter; then
@@ -377,8 +507,16 @@ modo_restaurar(){
 modo_teste(){
   MP="$1"
   AVISO="$2"
+  COR_MD5="$3"
+  # o md5 de si mesmo vem de quem conferiu o kit (newlink_update.sh) e e o que o
+  # gancho de boot vai embutir; sem ele ou se nao bater, nada acontece.
+  if [ "${#COR_MD5}" != "32" ] || [ "$(md5_de "$0")" != "$COR_MD5" ]; then
+    LOG "[ERRO] md5 de cor.sh ausente ou diferente do conferido pelo newlink_update.sh - NAO vou escrever."
+    exit 1
+  fi
   pegar_lock || { LOG "outra instancia em andamento - saindo."; exit 0; }
   trap soltar_lock EXIT
+  trabalho_ok || exit 1
   LOG "==== fase de cor iniciada (mountpoint=$MP) ===="
 
   if [ -f "$JOURNAL" ]; then
@@ -433,7 +571,7 @@ modo_teste(){
     finalizar erro
   }
   preparar_backup || finalizar erro
-  jornal_gravar "$CIDX" "$OFF" "$CVAL" || { LOG "[ERRO] nao consegui gravar o journal - NAO vou escrever."; finalizar erro; }
+  jornal_gravar "$CIDX" "$OFF" "$CVAL" "$BKP_MD5" || { LOG "[ERRO] nao consegui gravar o journal - NAO vou escrever."; finalizar erro; }
   instalar_gancho
 
   LOG "trocando lvds_fmt $CVAL -> $NOVO ao vivo (journal guarda o original)"
@@ -470,6 +608,6 @@ modo_teste(){
 
 case "$1" in
   --restaurar) modo_restaurar ;;
-  --tela) preparar_tela; mostrar "$2"; exit 0 ;;
-  *) modo_teste "$1" "$2" ;;
+  --tela) trabalho_ok || exit 1; preparar_tela; mostrar "$2"; exit 0 ;;
+  *) modo_teste "$1" "$2" "$3" ;;
 esac
