@@ -9,12 +9,15 @@
 # entra na checagem de sintaxe (sh -n): ele embute mount/sleep/reboot como
 # applets, que passam por cima dos stubs do PATH, entao NAO serve para cenarios.
 #
+# Precisa de: dash, busybox, shellcheck (opcional), pkill, python3 com PIL e numpy.
+#
 #   bash tests/test-kit-pendrive.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
 OFF=$(( 168 + 69 * 768 + 92 ))     # byte lvdsctl_fmt do perfil 69 (53252, 0-based; 53253 no cmp -l)
 PNOME="RX058B_4300_5010E_1080P_M"
+REAL_CMP="$(command -v cmp)"
 
 FALHAS=0
 TESTES=0
@@ -78,7 +81,7 @@ exit 0'
   stub setsid '"$@"; touch "$T/setsid.done"'
   # cmp que pode falhar so para o backup (caso de backup invalido)
   stub cmp 'if [ -f "$T/cmp-falha" ]; then for a in "$@"; do case "$a" in *panelparam-original.img) exit 1 ;; esac; done; fi
-exec /usr/bin/cmp "$@"'
+exec '"$REAL_CMP"' "$@"'
   # lvdsctl de mentira: persiste o byte como a SetLvdsFormat real (doc 40 s1)
   stub lvdsctl 'echo "lvdsctl $*" >> "$T/calls.log"
 [ -f "$T/lvds-falha" ] && exit 0
