@@ -120,7 +120,18 @@ if [ "$MODEL" != "PFL7560" ]; then
 fi
 
 # estados-alvo (idempotencia): considera aplicado so quando os TRES estao ok
-term_ok(){ grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI" 2>/dev/null; }
+# termico: com md5sum, o ini em uso tem de ser IDENTICO ao corrigido (um .ini
+# antigo, anterior a escada, tem o mux mas nao a escada e antes passava como
+# aplicado). Sem md5sum, exige o mux E a escada de brilho (POLICY_0_THRESHOLD).
+term_ok(){
+  _m=$(md5sum "$INI" 2>/dev/null | awk '{print $1}')
+  if [ -n "$_m" ]; then
+    [ "$_m" = "$INI_MD5_OK" ]
+    return
+  fi
+  grep -q "HW_VIRTUAL_CHANNEL = 1" "$INI" 2>/dev/null \
+    && grep -q "POLICY_0_THRESHOLD *= 66000, 67500, 69000, 70000, 71500, 73000" "$INI" 2>/dev/null
+}
 wifi_ok(){ [ -f "$BP" ] && grep -q "wifi_disconnect_on_boot=0" "$BP" 2>/dev/null; }
 xiri_ok(){ grep -A1 "service xiriservice" "$RC" 2>/dev/null | grep -q "disabled"; }
 
@@ -163,7 +174,7 @@ FAIL_COR=0
 
 # ---- FIX 1: termico (copia a config agressiva) ----
 if term_ok; then
-  LOG "termico ja estava ok (HW_VIRTUAL_CHANNEL = 1)"
+  LOG "termico ja estava ok (ZYCustom.ini com mux e escada de brilho)"
 else
   # valida o md5 do ini do pendrive ANTES de copiar (se md5sum existir).
   # Se md5sum faltar no PATH do boot, SRC_MD5 fica vazio e caimos no guard real: o grep pos-copia abaixo.
