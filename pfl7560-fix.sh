@@ -46,7 +46,7 @@ RC="/vendor/etc/init/hw/init.bigfish.rc"; INI="/vendor/etc/ZYCustom.ini"; BP="/v
 INI_STOCK_MD5="29d8ba36149413e899563029df078f6d"   # md5 do ZYCustom.ini de fabrica (stock)
 INI_FIX_MD5="252ab7a72a007a8b79b3fc86bd5c0d19"      # md5 do ZYCustom.ini ja corrigido (a build) - doc do md5 esperado
 BP_STOCK_MD5="fd8406c494c201e468a0401fa082027c"     # md5 do build.prop de fabrica (stock)
-RC_STOCK_MD5="0fe1b8fb087eb9f5d7fb89517f618124"     # md5 do init.bigfish.rc de fabrica (stock)
+RC_STOCK_MD5="8f7e02b2f382ceed65cf058e56c0c302"     # md5 do init.bigfish.rc de fabrica (stock)
 INI_STOCK_MD5_NOTYPEC="ed3f314ca89698cb057a74ef64dca38e"  # idem, modelo sem USB-C (V1.0.0.1)
 INI_FIX_MD5_NOTYPEC="bdf5c4640596d1b2f2fb7f62fbadd6e3"    # ini corrigido do modelo sem USB-C
 BP_STOCK_MD5_NOTYPEC="f5b24c1db546dcfb4340f485bf841c8e"    # build.prop de fabrica do modelo sem USB-C
