@@ -152,7 +152,7 @@ verifica(){
   # GRAVADO no panelparam (senao o boot volta a outro formato); PFL_LVDS_ESPERADO
   # (vesa|jeida) e opcional e exige tambem que o formato em uso seja esse.
   local fmt; fmt=$(sh_ 'cat /proc/msp/panel' | grep -a lvds_fmt | head -1 | awk -F'[: ]+' '{print tolower($2)}')
-  local esp; esp=$(printf '%s' "${PFL_LVDS_ESPERADO:-}" | tr 'A-Z' 'a-z')
+  local esp; esp=$(printf '%s' "${PFL_LVDS_ESPERADO:-}" | tr '[:upper:]' '[:lower:]')
   if [ -z "$fmt" ]; then
     warn "lvds_fmt ilegivel em /proc/msp/panel" "formato em uso nao verificado"
   elif [ -n "$esp" ]; then
@@ -172,7 +172,7 @@ verifica(){
       warn "formato em uso ($fmt) difere do byte 0x5c ($nome)" "no proximo boot volta a $nome"
     fi
   else
-    warn "panelparam exige root" "não verificado"
+    warn "panelparam exige root" "não verificado (em uso: ${fmt:-?})"
   fi
 
   printf "\n${C}resultado:${Z} ${V}%d OK${Z}  ${A}%d aviso(s)${Z}  ${X}%d falha(s)${Z}\n" "$OK" "$AVISO" "$FALHA"
