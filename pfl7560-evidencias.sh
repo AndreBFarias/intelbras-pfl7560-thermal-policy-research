@@ -96,7 +96,7 @@ discover(){
 
 # ---- conecta + root + valida o modelo; echo "ip:port" ----
 connect(){
-  local ip dev u m; ip="$(discover)" || return 1; dev="$ip:$PORT"
+  local ip dev u m; ip="$(discover)" || return 1; case "$ip" in *:*) dev="$ip" ;; *) dev="$ip:$PORT" ;; esac   # PFL_IP pode ja trazer a porta
   "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1 || true
   u="$("$ADB" -s "$dev" shell id 2>/dev/null | grep -oE 'uid=[0-9]+')"
   [ "$u" != "uid=0" ] && { "$ADB" -s "$dev" root >/dev/null 2>&1; sleep 2; "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1 || true; }

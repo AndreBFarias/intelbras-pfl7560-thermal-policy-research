@@ -124,7 +124,7 @@ conecta(){
     DEV="$DEV_LEGADO"
   else
     [ -n "$IP" ] || { err "defina PFL_IP=<ip do projetor>"; exit 2; }
-    DEV="$IP:$PORTA"
+    case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
   fi
   timeout 15 "$ADB" connect "$DEV" >/dev/null 2>&1
   # trava de modelo: sem ela o monitor coletava horas de dado de qualquer

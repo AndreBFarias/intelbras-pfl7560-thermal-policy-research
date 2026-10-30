@@ -50,7 +50,7 @@ sh_(){ timeout 20 "$ADB" -s "$DEV" shell "$@" </dev/null 2>/dev/null | tr -d '\r
 
 conecta(){
   [ -n "$IP" ] || { echo "defina PFL_IP=<ip do projetor>"; exit 2; }
-  DEV="$IP:$PORTA"
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
   timeout 15 "$ADB" connect "$DEV" >/dev/null 2>&1
   local m; m=$(sh_ getprop ro.product.model)
   [ "$m" = "PFL7560" ] || { echo "não e um PFL7560 em $DEV (getprop devolveu '${m:-vazio}')"; exit 2; }
@@ -239,7 +239,11 @@ vivacidade(){
     printf "    adb connect %s && adb -s %s shell setprop %s ''\n" "$DEV" "$DEV" "$PROP_OVERRIDE"
     return 1
   }
-  trap limpa_override EXIT INT TERM
+  # INT/TERM precisam de `exit` explicito: sem ele o handler retorna e o script
+  # segue (um Ctrl-C no --vivacidade ainda injetava os 71000). O `exit 130` dispara
+  # o trap EXIT, que e quem limpa o override.
+  trap limpa_override EXIT
+  trap 'exit 130' INT TERM
 
   local tmp; tmp=$(mktemp)
   timeout 120 "$ADB" -s "$DEV" shell 'logcat -v time -s ZYThermalManager' </dev/null >"$tmp" 2>&1 &

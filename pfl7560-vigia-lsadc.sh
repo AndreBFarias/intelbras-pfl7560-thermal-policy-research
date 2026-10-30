@@ -186,7 +186,7 @@ vigia(){
   }
   trap fim_cobertura EXIT
   trap 'fim_cobertura; exit 130' INT TERM
-  DEV="$IP:$PORTA"
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
   printf "${C}vigia LSADC iniciado${Z}  destino: %s\n" "$DIR"
   printf "passivo: so logcat e /proc/uptime. Nenhum acesso ao hidebug.\n\n"
   local ANT_BID=""

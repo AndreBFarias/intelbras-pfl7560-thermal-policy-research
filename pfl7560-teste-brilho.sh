@@ -75,7 +75,7 @@ hid(){
 
 conecta(){
   [ -n "$IP" ] || { err "defina PFL_IP=<ip do projetor>"; exit 2; }
-  DEV="$IP:$PORTA"
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
   timeout 15 "$ADB" connect "$DEV" >/dev/null 2>&1
   local m; m=$(sh_ getprop ro.product.model)
   [ "$m" = "PFL7560" ] || { err "não e um PFL7560 em $DEV (getprop devolveu '${m:-vazio}')"; exit 2; }
@@ -106,7 +106,10 @@ restaura(){
   # o loop termico reassume o controle sozinho; o sbri acima so encurta a rampa
   ok "brilho devolvido ao controle da politica termica"
 }
-trap restaura EXIT INT TERM
+# INT/TERM com `exit` explicito: sem ele o handler retorna e o script continua. O
+# `exit 130` dispara o trap EXIT, que e quem restaura o brilho.
+trap restaura EXIT
+trap 'exit 130' INT TERM
 
 # ---------------------------------------------------------------- --niveis
 cmd_niveis(){
