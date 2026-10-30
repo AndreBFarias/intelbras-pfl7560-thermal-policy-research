@@ -298,6 +298,21 @@ c_journal_no_boot(){
   afirma '[ "$(telas)" = "" ]' "nao devia mostrar tela antes do reboot: '$(telas)'"
   limpa
 
+  novo_cenario "journal que nao se apaga + sem lvdsctl = restaura e NAO reinicia (sem laco)"; aparelho_ok
+  simula_teste_interrompido
+  rm -f "$T/root/vendor/lib/libhitvservice.so"
+  chmod 555 "$T/root/data/local/tmp/pfl7560-kit"
+  if [ "$(id -u)" != 0 ]; then
+    roda nokey
+    afirma '[ "$(pp_md5)" = "$PP0" ]' "a particao nao foi restaurada"
+    afirma '[ "$(chamadas reboot)" = 0 ]' "reiniciou com o journal de pe (laco de reboot)"
+    afirma '[ -e "$T/root/data/local/tmp/pfl7560-kit/journal" ]' "o journal deveria ter ficado"
+  else
+    echo "  (rodando como root: caso do journal que nao se apaga pulado)"
+  fi
+  chmod 755 "$T/root/data/local/tmp/pfl7560-kit"
+  limpa
+
   novo_cenario "journal incoerente = nao escreve"; aparelho_ok
   simula_teste_interrompido
   sed -i 's/^J_OFF=.*/J_OFF=100/' "$T/root/data/local/tmp/pfl7560-kit/journal"
@@ -369,6 +384,20 @@ c_falhas_seguras(){
   afirma '[ "$(pp_md5)" = "$PP0" ]' "a particao nao voltou ao original (diferenca fora do perfil)"
   afirma 'log_tudo | grep -q "a releitura nao confirmou"' "manteve com o cabecalho alterado"
   afirma '[ ! -e "$T/root/data/local/tmp/pfl7560-kit/journal" ]' "journal sobrou"
+  limpa
+
+  novo_cenario "lvdsctl corrompe ao devolver o formato = o journal ainda vale e a reversao confere"; aparelho_ok
+  : > "$T/lvds-corrompe-ao-reverter"
+  roda key nokey
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "a escrita do lvdsctl na reversao ficou sem conferencia"
+  afirma '[ ! -e "$T/root/data/local/tmp/pfl7560-kit/journal" ]' "journal sobrou"
+  limpa
+
+  novo_cenario "journal + lvdsctl corrompe ao restaurar no boot = confere depois"; aparelho_ok
+  simula_teste_interrompido
+  : > "$T/lvds-corrompe-ao-reverter"
+  roda nokey
+  afirma '[ "$(pp_md5)" = "$PP0" ]' "a escrita do lvdsctl na restauracao do boot ficou sem conferencia"
   limpa
 
   novo_cenario "backup invalido (cmp falha) = nao escreve"; aparelho_ok

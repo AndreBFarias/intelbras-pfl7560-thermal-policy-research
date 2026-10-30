@@ -205,11 +205,15 @@ restaurar_trecho(){
 # Devolve o byte original a partir do journal e CONFERE a particao inteira contra
 # o backup. Se houver qualquer outra diferenca, restaura os 768 bytes do perfil
 # e, se ainda sobrar diferenca fora dele, a particao inteira; confere de novo.
-restaurar_formato(){
+# journal legivel e backup do tamanho da particao: sem isso nada se escreve
+jornal_e_backup_ok(){
   jornal_ler || { LOG "[ERRO] journal ilegivel ou incoerente - NAO vou escrever."; return 1; }
   [ -f "$BKP" ] || { LOG "[ERRO] backup $BKP ausente - NAO vou escrever."; return 1; }
   _tam=$(wc -c < "$BKP" | tr -dc '0-9')
   [ "$_tam" = "$PP_TAM" ] || { LOG "[ERRO] backup com $_tam bytes (esperado $PP_TAM) - NAO vou escrever."; return 1; }
+}
+restaurar_formato(){
+  jornal_e_backup_ok || return 1
   LOG "restaurando lvds_fmt=$J_FMT no perfil $J_IDX (offset $J_OFF)"
   gravar_fmt "$J_OFF" "$J_FMT" || { LOG "[ERRO] dd de restauracao falhou."; return 1; }
   sync
@@ -234,6 +238,27 @@ restaurar_formato(){
   fi
   LOG "[ERRO] depois de restaurar, a releitura NAO confere. Restaure o backup com ./pfl7560-lcd-color.sh restore."
   return 1
+}
+
+# Desfaz um teste de cor a partir do journal, NESTA ordem: (1) aplica o formato
+# original AO VIVO com o journal ainda valendo (o lvdsctl tambem grava na
+# particao); (2) grava o byte e CONFERE a particao inteira contra o backup;
+# (3) so entao apaga o journal e o gancho. Nenhuma escrita na particao fica
+# depois da conferencia. VIVO_OK=1 se o lvdsctl devolveu 0 (o formato ao vivo
+# provavelmente voltou). Devolve !=0 se nao conferiu ou se o journal nao pode ser
+# apagado: o journal fica e a proxima tentativa refaz tudo (e idempotente).
+reverter(){
+  VIVO_OK=0
+  jornal_e_backup_ok || return 1
+  if vivo_disponivel && aplicar_vivo "$J_FMT"; then VIVO_OK=1; fi
+  restaurar_formato || return 1
+  rm -f "$JOURNAL"
+  if [ -f "$JOURNAL" ]; then
+    LOG "[ERRO] formato restaurado e conferido, mas nao consegui apagar $JOURNAL."
+    return 1
+  fi
+  remover_gancho
+  return 0
 }
 
 # ---- gancho de recuperacao ---------------------------------------------------
@@ -328,25 +353,22 @@ modo_restaurar(){
   trap soltar_lock EXIT
   [ -f "$JOURNAL" ] || { LOG "sem journal - nada a restaurar."; exit 0; }
   LOG "journal pendente: um teste de cor foi interrompido; devolvendo o formato original"
-  if ! restaurar_formato; then
+  if ! reverter; then
+    # sem reboot aqui: com o journal de pe, reiniciar poderia virar laco
     LOG "[ERRO] nao consegui restaurar; o journal fica para a proxima tentativa."
     exit 1
   fi
-  _fmt="$J_FMT"
-  rm -f "$JOURNAL"
-  remover_gancho
-  if vivo_disponivel && aplicar_vivo "$_fmt"; then
-    LOG "formato original aplicado ao vivo"
-    rm -rf "$WORK"
-  else
-    # sem lvdsctl, o byte certo so vale no proximo boot: reinicia (plano B por dd)
-    LOG "[AVISO] sem lvdsctl utilizavel: reiniciando para o byte restaurado valer"
-    rm -rf "$WORK"
-    sleep "$ESPERA_REBOOT"
-    reboot
-    exit 3   # avisa o newlink_update.sh de que um reboot foi pedido
+  rm -rf "$WORK"
+  if [ "$VIVO_OK" = "1" ]; then
+    LOG "formato original aplicado ao vivo e a particao confere com o backup"
+    exit 0
   fi
-  exit 0
+  # sem lvdsctl, o byte certo so vale no proximo boot: reinicia (plano B por dd).
+  # O journal ja foi apagado e conferido, entao o boot seguinte nao reinicia de novo.
+  LOG "[AVISO] sem lvdsctl utilizavel: reiniciando para o byte restaurado valer"
+  sleep "$ESPERA_REBOOT"
+  reboot
+  exit 3   # avisa o newlink_update.sh de que um reboot foi pedido
 }
 
 modo_teste(){
@@ -358,9 +380,11 @@ modo_teste(){
 
   if [ -f "$JOURNAL" ]; then
     LOG "journal pendente de uma execucao anterior: restaurando antes de qualquer coisa"
-    restaurar_formato || { LOG "[ERRO] restauracao falhou - NAO vou iniciar outro teste."; finalizar erro; }
-    rm -f "$JOURNAL"
-    remover_gancho
+    reverter || { LOG "[ERRO] restauracao falhou - NAO vou iniciar outro teste."; finalizar erro; }
+    if [ "$VIVO_OK" != "1" ]; then
+      LOG "[AVISO] formato original restaurado na particao, mas sem lvdsctl ao vivo: vale no proximo boot. NAO vou iniciar outro teste."
+      finalizar erro
+    fi
   fi
 
   preparar_tela
@@ -413,9 +437,7 @@ modo_teste(){
   aplicar_vivo "$NOVO"
   if [ "$(cor_valor "$CIDX")" != "$NOVO" ]; then
     LOG "[ERRO] depois do lvdsctl o byte lido e '$(cor_valor "$CIDX")', nao $NOVO - revertendo."
-    if restaurar_formato; then
-      rm -f "$JOURNAL"; remover_gancho; aplicar_vivo "$CVAL"
-    fi
+    reverter || LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
     finalizar erro
   fi
 
@@ -434,11 +456,9 @@ modo_teste(){
   else
     LOG "sem segunda tecla em ${TEMPO_TECLA}s: revertendo para lvds_fmt=$CVAL"
   fi
-  if restaurar_formato; then
-    rm -f "$JOURNAL"
-    remover_gancho
-    aplicar_vivo "$CVAL"
+  if reverter; then
     LOG "[OK] revertido: lvds_fmt=$CVAL"
+    [ "$VIVO_OK" = "1" ] || LOG "[AVISO] o lvdsctl nao confirmou a volta ao vivo: o formato original vale a partir do proximo boot."
     finalizar pronto
   fi
   LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
