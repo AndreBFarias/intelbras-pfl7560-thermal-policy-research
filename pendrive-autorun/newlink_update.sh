@@ -95,6 +95,7 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 51ed332580e2b19b287d0968083f56d1  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
+ae1a8ad6ccaa079e6eca32337ff18a0e  nl_tela
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -103,6 +104,12 @@ b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
 85fc83ce25d4d44a1bb7b7baafc3c090  kit/escada-2.png
 7cd6dca3430ab476de9bb4c30b3dd4b5  kit/pronto.png
 ab1ca6ffb16e52c7fed90f6db418965b  kit/reiniciando.png
+6b63b3f38003b887aa8433d74a873844  fontes/IBMPlexMono-Regular.ttf
+be3d5e5c761ef60563c87b9475f5a99d  fontes/IBMPlexMono-SemiBold.ttf
+f7c622dca16e1da365a328894f74cbac  fontes/IBMPlexSansCondensed-Bold.ttf
+c90afb82696a6873464b6cc8f315f0eb  fontes/IBMPlexSansCondensed-Regular.ttf
+9f4dbd7c74436d0d895ccc3689c42490  fontes/IBMPlexSansCondensed-SemiBold.ttf
+160cec49299e5d622c5150977bfe188c  fontes/OFL.txt
 "
 # KIT_LISTA_FIM
 
@@ -236,7 +243,7 @@ fi
 LOG "kit conferido: $(kit_nomes | wc -l | tr -dc '0-9') arquivos com md5 certo"
 
 # copia o kit para a pasta so do root (o cor.sh roda de la, destacado). Nao apaga
-# o journal nem o backup: so kit/, cor.sh e lvdsctl sao trocados.
+# o journal nem o backup: so kit/, fontes/ e os arquivos da lista sao trocados.
 # A copia vai primeiro para uma pasta de PREPARO dentro de $WORK, e conferida LA
 # e so entao cada arquivo vai para o lugar com mv (rename, atomico; um link no
 # lugar dele e substituido, nunca seguido). Assim $WORK/cor.sh e $WORK/lvdsctl
@@ -252,12 +259,13 @@ KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
 copiar_preparo(){
   rm -rf "$PREP"
-  ( umask 077; mkdir "$PREP" && mkdir "$PREP/kit" ) || return 1
+  ( umask 077; mkdir "$PREP" && mkdir "$PREP/kit" && mkdir "$PREP/fontes" ) || return 1
   for _cn in $KIT_COPIA; do cp "$MP/$_cn" "$PREP/$_cn" || return 1; done
-  chmod 755 "$PREP/cor.sh" "$PREP/lvdsctl" "$PREP/nl_camcheck"
+  chmod 755 "$PREP/cor.sh" "$PREP/lvdsctl" "$PREP/nl_camcheck" "$PREP/nl_tela"
 }
 por_no_lugar(){
   rm -rf "$WORK/kit" && mkdir "$WORK/kit" || return 1
+  rm -rf "$WORK/fontes" && mkdir "$WORK/fontes" || return 1
   for _cn in $KIT_COPIA; do mv -f "$PREP/$_cn" "$WORK/$_cn" || return 1; done
 }
 if ! copiar_preparo; then

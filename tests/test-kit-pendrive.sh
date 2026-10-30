@@ -1105,11 +1105,11 @@ c_instalador(){
   local d x f n
   d="$(mktemp -d)"
   afirma 'bash "$ROOT/install.sh" --pendrive "$d" >"$d.log" 2>&1' "install.sh --pendrive falhou: $(tail -3 "$d.log" 2>/dev/null | tr '\n' ' ')"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png fontes/IBMPlexMono-Regular.ttf fontes/IBMPlexMono-SemiBold.ttf fontes/IBMPlexSansCondensed-Bold.ttf fontes/IBMPlexSansCondensed-Regular.ttf fontes/IBMPlexSansCondensed-SemiBold.ttf fontes/OFL.txt; do
     afirma 'cmp -s "$KIT/$f" "$d/$f"' "pendrive sem $f ou com copia diferente"
   done
   n="$(cd "$d" && find . -type f | wc -l)"
-  afirma '[ "$n" = 14 ]' "esperava 14 arquivos no pendrive, achei $n"
+  afirma '[ "$n" = 21 ]' "esperava 21 arquivos no pendrive, achei $n"
   # o pendrive copiado confere, arquivo a arquivo, com a lista que o aparelho usa
   afirma '( cd "$d" && sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh" \
             | sed -n "s/^\(KIT_LISTA=\"\)\{0,1\}\([0-9a-f]\{32\}  .*\)\$/\2/p" | md5sum -c --quiet - )' "o pendrive nao confere com a lista embutida"
@@ -1131,16 +1131,16 @@ c_instalador(){
   CASO="install.bat"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt 'kit\*.png'; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt 'kit\*.png' 'fontes\*'; do
     afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -qF "$f"' "install.bat nao copia/lista $f"
   done
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "newlink_update.sh.*\\x22"' "install.bat nao le a lista embutida no newlink_update.sh"
-  # o regex da lista do install.bat acha as mesmas 12 entradas da lista embutida
+  # o regex da lista do install.bat acha as mesmas 19 entradas da lista embutida
   afirma '[ "$(python3 -I -c "
 import re,sys
 t=open(sys.argv[1]).read()
-print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\", t)))" "$KIT/newlink_update.sh")" = 12 ]' "regex da lista do install.bat nao acha as 12 entradas"
+print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\", t)))" "$KIT/newlink_update.sh")" = 19 ]' "regex da lista do install.bat nao acha as 19 entradas"
   for f in newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt; do
     afirma 'grep -q "$f" "$ROOT/INSTALL.md"' "INSTALL.md nao lista $f"
   done

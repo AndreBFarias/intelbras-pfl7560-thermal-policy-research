@@ -341,7 +341,7 @@ goto :menu
 echo.
 echo  Metodo SEM PC: copia o kit v2 COMPLETO para a RAIZ de um pendrive FAT32
 echo  e confere o md5 de cada arquivo contra a lista do newlink_update.sh.
-echo    Arquivos: newlink_update.sh, cor.sh, lvdsctl, nl_camcheck, ZYCustom.ini, LEIA-ME.txt e kit\*.png
+echo    Arquivos: newlink_update.sh, cor.sh, lvdsctl, nl_camcheck, nl_tela, ZYCustom.ini, LEIA-ME.txt, kit\*.png e fontes\*
 echo    Origem:   %HERE%\pendrive-autorun
 echo    O pendrive tem de estar em FAT32 ^(MBR^). NAO use o pendrive de resgate do firmware.
 echo.
@@ -365,8 +365,10 @@ set "DST=%DRV%:"
 set "SRC=%HERE%\pendrive-autorun"
 set "KITFAIL=0"
 if not exist "%DST%\kit\" mkdir "%DST%\kit"
-for %%F in (newlink_update.sh cor.sh lvdsctl nl_camcheck ZYCustom.ini LEIA-ME.txt) do copy /y "%SRC%\%%F" "%DST%\%%F" >nul || set "KITFAIL=1"
+if not exist "%DST%\fontes\" mkdir "%DST%\fontes"
+for %%F in (newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt) do copy /y "%SRC%\%%F" "%DST%\%%F" >nul || set "KITFAIL=1"
 copy /y "%SRC%\kit\*.png" "%DST%\kit\" >nul || set "KITFAIL=1"
+copy /y "%SRC%\fontes\*" "%DST%\fontes\" >nul || set "KITFAIL=1"
 if "%KITFAIL%"=="1" (
   echo  [ERRO] a copia falhou ^(pendrive cheio, protegido ou removido?^). NAO use este pendrive.
   pause

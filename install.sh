@@ -111,7 +111,7 @@ chmod_scripts(){
 
 # ---- kit v2 no pendrive ------------------------------------------------------
 # Copia o kit COMPLETO para a RAIZ do pendrive (newlink_update.sh, cor.sh, lvdsctl,
-# nl_camcheck, ZYCustom.ini, LEIA-ME.txt e kit/*.png) e confere, depois da copia, o md5 de cada
+# nl_camcheck, nl_tela, ZYCustom.ini, LEIA-ME.txt, kit/*.png e fontes/*) e confere, depois da copia, o md5 de cada
 # arquivo contra a lista embutida no proprio newlink_update.sh (a mesma que o
 # aparelho confere antes de escrever). O newlink_update.sh nao esta na lista (nao
 # pode conter o proprio md5) e o LEIA-ME.txt tambem nao: os dois sao comparados byte
@@ -132,7 +132,7 @@ copiar_pendrive(){
            | sed -n 's/^\(KIT_LISTA="\)\{0,1\}\([0-9a-f]\{32\}\)  \(.*\)$/\2  \3/p')"
   [ -n "$lista" ] || { err "nao achei a lista de md5 em pendrive-autorun/newlink_update.sh"; return 1; }
   say "copiando o kit v2 completo para a raiz de $dest"
-  mkdir -p "$dest/kit" || { err "nao consegui criar $dest/kit"; return 1; }
+  mkdir -p "$dest/kit" "$dest/fontes" || { err "nao consegui criar $dest/kit e $dest/fontes"; return 1; }
   cp "$src/newlink_update.sh" "$src/LEIA-ME.txt" "$dest/" || { err "falha ao copiar para $dest"; return 1; }
   while read -r h n; do
     [ -n "$n" ] || continue
