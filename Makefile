@@ -1,4 +1,4 @@
-.PHONY: check check-kit check-bin
+.PHONY: check check-kit check-bin check-fix
 
 check:
 	bash tests/check-stock-md5.sh
@@ -14,3 +14,7 @@ check-kit:
 # tambem com os stocks de verdade (so leitura; 1,3 GB cada, leva alguns minutos).
 check-bin:
 	python3 tests/test-builder-bin.py
+
+# pfl7560-fix.sh apply/revert por modelo (bloco 6, T6.3): adb de mentira, nada fala com o aparelho
+check-fix:
+	bash tests/test-fix-modelo.sh

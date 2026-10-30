@@ -162,6 +162,13 @@ volta a subir, se algum ventilador sair do máximo, e se a proteção cegar.
 ## Reverter
 
 `PFL_IP=... ./pfl7560-fix.sh revert` (restaura o backup do stock) ou regrave o firmware de fábrica pela “Atualização local do sistema”.
+
+**Dois modelos.** O `pfl7560-fix.sh` detecta o modelo do aparelho (`CONFIG_MODEL` do `ZYCustom.ini` e
+`ro.newlink.projectname`): o com USB-C (V1.0.0.9) e o sem USB-C (V1.0.0.1, “NOTYPEC”, doc 42). O backup do
+modelo sem USB-C fica em `backups-projetor/notypec/` e o revert só restaura backup **do mesmo modelo**
+(o `build.prop` de um dá ao outro uma entrada USB-C fantasma e o canal de OTA errado). Modelo desconhecido
+ou sinais contraditórios: recusa, sem tocar em nada. O `install.bat` só aplica/reverte no modelo com USB-C
+e recusa o outro (use o pendrive ou o `pfl7560-fix.sh`).
 Resgate com boot travado: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-recuperacao-brick.md) — use **somente** o `.bin` de fábrica como `usb_update.bin`.
 
 ## O que **não** fazer

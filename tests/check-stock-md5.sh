@@ -25,6 +25,9 @@ INI_STOCK_MD5="$(const INI_STOCK_MD5)"
 INI_FIX_MD5="$(const INI_FIX_MD5)"
 BP_STOCK_MD5="$(const BP_STOCK_MD5)"
 RC_STOCK_MD5="$(const RC_STOCK_MD5)"
+INI_STOCK_MD5_NOTYPEC="$(const INI_STOCK_MD5_NOTYPEC)"
+INI_FIX_MD5_NOTYPEC="$(const INI_FIX_MD5_NOTYPEC)"
+BP_STOCK_MD5_NOTYPEC="$(const BP_STOCK_MD5_NOTYPEC)"
 
 rc=0
 check(){ # $1 rotulo  $2 obtido  $3 esperado
@@ -40,6 +43,10 @@ check "ZYCustom.ini.ORIGINAL == INI_STOCK_MD5" "$(md5f "$ART/ZYCustom.ini.ORIGIN
 check "build.prop.STOCK == BP_STOCK_MD5"        "$(md5f "$ART/build.prop.STOCK")"       "$BP_STOCK_MD5"
 check "init.bigfish.rc.STOCK == RC_STOCK_MD5"   "$(md5f "$ART/init.bigfish.rc.STOCK")"  "$RC_STOCK_MD5"
 check "ZYCustom_390.ini == INI_FIX_MD5"         "$(md5f "$ART/ZYCustom_390.ini")"       "$INI_FIX_MD5"
+# modelo sem USB-C (NOTYPEC, V1.0.0.1; firmware de 2026-10-20, doc 42)
+check "ZYCustom.ini.NOTYPEC.STOCK == INI_STOCK_MD5_NOTYPEC" "$(md5f "$ART/ZYCustom.ini.NOTYPEC.STOCK")" "$INI_STOCK_MD5_NOTYPEC"
+check "build.prop.NOTYPEC.STOCK == BP_STOCK_MD5_NOTYPEC"    "$(md5f "$ART/build.prop.NOTYPEC.STOCK")"    "$BP_STOCK_MD5_NOTYPEC"
+check "ZYCustom_390.NOTYPEC.ini == INI_FIX_MD5_NOTYPEC"     "$(md5f "$ART/ZYCustom_390.NOTYPEC.ini")"    "$INI_FIX_MD5_NOTYPEC"
 check "pendrive-autorun/ZYCustom.ini == INI_FIX_MD5" "$(md5f "$ROOT/pendrive-autorun/ZYCustom.ini")" "$INI_FIX_MD5"
 
 # base64 embutido no fix.sh, decodificado, deve bater INI_FIX_MD5 (as 3 copias)
