@@ -50,7 +50,28 @@ ou de outro dono; conferir o md5 embutido de `cor.sh` e `lvdsctl` **imediatament
 Prova: casos novos no harness (pasta com link, arquivo trocado depois da cópia, backup adulterado), todos
 abortando sem escrever na `panelparam`.
 
-## E4 - Bancada no aparelho (painel atual, VESA)
+## E2b - Padrão com vários pares (achado de 2026-10-30)
+
+- **Medido:** em VESA errado, a faixa 63|64 saiu uniforme (ciano) e só a 127|128 dividiu (doc 41 §8).
+- **Causa:** gamma/DCI/balanço de branco mudam o valor antes do LVDS; um par só não garante cair numa
+  fronteira de bit da saída.
+- **Cura:** `metades-1`/`metades-2` com 4 a 6 pares em níveis diferentes (ex.: 31|32, 63|64, 95|96,
+  127|128, 159|160, 191|192); a pergunta continua "alguma faixa tem metades diferentes?".
+- **Prova:** no aparelho, em cada formato, pela câmera e pela foto: no errado pelo menos 2 faixas dividem;
+  no certo nenhuma. Simulação em `tests/` com a curva de saída medida.
+
+## E3d - Troca de tela no kit (achado de 2026-10-30)
+
+- **Medido:** um 2º `am start ... VIEW` com a galeria aberta não troca a imagem
+  (`com.hisilicon.higallery`, "delivered to currently running top-most instance"); `am start -S` falha
+  ("does not match any activities"); `am force-stop com.hisilicon.higallery` antes resolve.
+- **Cura:** `mostrar()` do `cor.sh` faz `force-stop` do pacote que resolve o VIEW antes de cada tela;
+  atualizar o md5 embutido no `newlink_update.sh` e o harness (stub de `am` passa a exigir o
+  `force-stop`).
+- **Prova:** `make check-kit` verde e, no aparelho, a sequência `aguarde` → `metades-1` → `metades-2`
+  conferida pela câmera.
+
+## E4 - Bancada no aparelho (painel atual: JEIDA desde 2026-10-30; os braços que iam a JEIDA e voltavam passam a ir a VESA e voltar)
 
 md5 da `panelparam` antes e depois de cada braço: (1) sem tecla: idêntico; (2) tecla + timeout: vai a
 JEIDA, volta a VESA, idêntico; (3) tecla e tirar da tomada na 2ª tela: o gancho restaura no boot;
@@ -72,13 +93,15 @@ termina em até 5 passos sem perguntar nada; o md5 da `panelparam` só muda onde
 
 | Etapa | Estado |
 |---|---|
-| E1 (roteiro no aparelho) | **ABERTA** — depende do aparelho na rede. O `nl_camcheck` (`artifacts/camcheck/`, NDK r27c, `e78e2e7`) está pronto para o item (f), ainda não rodado no aparelho |
+| E1 (roteiro no aparelho) | **PARCIAL (2026-10-30)** — (a), (b), (e) e (f) feitos ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §8); (g) também (`ZYCustom.ini` `252ab7a7`, `/atv/ini` sem `ZYCustom`); faltam (c) e (d) |
 | E2 (padrões e matemática) | **FEITA** (`d49f2f7`) |
+| E2b (vários pares) | **ABERTA** |
 | E3 (script do kit) | **FEITA** (`5c68064` e correções seguintes), provada só em simulação (`make check-kit`) |
 | E3b (endurecimento) | **FEITA** (`a9e7832`, `c5b63da`, `a771cdc`) |
 | E3c (instaladores copiam o kit v2 e conferem o md5) | **FEITA** (`3c7682b`): `install.sh --pendrive` provado no harness; a opção 5 do `install.bat` só **conferida por texto** (não há cmd.exe aqui) |
+| E3d (troca de tela com `force-stop`) | **ABERTA** — sem ela o kit para na 1ª tela |
 | E4 (bancada no aparelho) | **ABERTA** — requer pendrive FAT32 |
-| E5 (câmera) | **ABERTA** — portão do modo automático, desligado por padrão |
+| E5 (câmera) | **ABERTA** — captura provada (doc 41 §8); o portão precisa ser recalibrado pela razão (VESA 0,281 x JEIDA 0,034 na faixa 127\|128) |
 | E6 (prova de leigo) | **ABERTA** |
 
 O bloco 6 estendeu o kit aos dois modelos (V1.0.0.9 e V1.0.0.1 sem USB-C), também só em simulação.

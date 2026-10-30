@@ -19,7 +19,8 @@ abaixo; [doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §5). Os da família do
 |---|---|---|---|---|---|
 | `RX058B-4300` (fábrica) | 69 `RX058B_4300_5010E_1080P_M` | **VESA** | `0x00` | — (é o de fábrica) | 1920×1080, driver "SC5010E", 2-link 8-bit, clk 134.4 MHz. Flat `FPX-RX058B-4300-V0`, fab. 2024-11-01 |
 | `RX058B-0600` (= `058-0600-V2` = PengJi PJ058S1) | 69 + JEIDA | **JEIDA** | `0x01` | **Alto** (drop-in mecânico; só muda 1 byte) | Peça do Thundeal TD96, **1ª troca (2026-07-10). Testado OK.** 1920×1080 físico real |
-| `FPX-RX058B-4300-V0` `20241101 HT` (**2ª troca**, 2026-10-29) | 69 | **VESA** | `0x00` | **Alto** (o mesmo modelo e data do de fábrica) | Instalado hoje. O aparelho estava em JEIDA por causa do `-0600`; voltou a VESA com `lvdsctl fmt 0` ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
+| `FPX-RX058B-4300-V0` `20241101 HT` (**2ª troca**, 2026-10-29) | 69 | **VESA** | `0x00` | **Alto** (o mesmo modelo e data do de fábrica) | Instalado de 2026-10-29 a 2026-10-30. O aparelho estava em JEIDA por causa do `-0600`; voltou a VESA com `lvdsctl fmt 0` ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1) |
+| Painel da **3ª troca** (2026-10-30), etiqueta do flat a confirmar | 69 | **JEIDA** | `0x01` | **Alto** | **Instalado hoje.** Em VESA: cinza 63 ciano, 127\|128 verde\|marrom; `lvdsctl fmt 1` corrigiu, provado pela câmera interna e por foto ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §8) |
 | `RX058B-4500` | 72 `RX058B_4500_ST5892B_1080P_M` | ? | ? | Baixo | Timing próprio (deu **sem imagem** no teste; requer perfil casado, não só formato) |
 | `RX058B-1800` | 10/30/49 (`ST5892B`) | ? | ? | Não testado | Variantes ST5892B |
 

@@ -5,11 +5,12 @@ Pesquisa de 2026-10-29 (offline: firmware oficial V1.0.0.9 extraído, binários,
 térmica. Retoma a LCD-S3 do [doc 29](29-roadmap-troca-lcd.md) ("a forma inteligente").
 
 **Convenção:** `CONFIRMADO` = lido no firmware ou no aparelho (caminho citado). `INFERIDO` = dedução sem
-execução. Nada aqui foi executado no aparelho ainda.
+execução. Até 2026-10-29 nada aqui tinha sido executado no aparelho; a primeira rodada no aparelho está
+no §8 (2026-10-30).
 
 ---
 
-## 1. A câmera interna é USB UVC e dá para ler direto (`CONFIRMADO` no firmware, captura `PENDENTE`)
+## 1. A câmera interna é USB UVC e dá para ler direto (`CONFIRMADO` no firmware e, desde 2026-10-30, no aparelho: §8)
 
 | Fato | Fonte |
 |---|---|
@@ -42,8 +43,8 @@ pelo dispositivo; projeção fora do campo da câmera (parede longe ou escura).
 Um record de 63.876 bytes em `0x144180c` contém `panelheader/paneldatabody` e o nome
 `RX058B_4300_5010E_1080P_M` no offset 53160 do payload, igual à `panelparam` do aparelho. Os docs 29
 (LCD-S4) e 31 dizem que ela provavelmente **não** está. Consequência prática: **reflashar o `.bin` pode
-levar o byte `0x5c` de volta ao de fábrica (VESA)**. Para o painel de hoje (VESA) é inócuo; para quem
-tem painel JEIDA, um reflash quebraria a cor. A confirmar (bloco 4 e bloco 5, E1).
+levar o byte `0x5c` de volta ao de fábrica (VESA)**. Para o painel da 2ª troca (VESA) era inócuo; para quem
+tem painel JEIDA, um reflash quebraria a cor, e desde a 3ª troca (2026-10-30, §8) **é o caso deste aparelho**. A confirmar (bloco 4 e bloco 5, E1).
 
 ## 4. O critério que não se engana: "duas metades"
 
@@ -57,6 +58,12 @@ VESA↔JEIDA é uma rotação de 2 bits, igual em R, G e B (tabelas do kernel Li
 A comparação é **dentro do mesmo quadro** e **entre os dois formatos**. Balanço de branco, exposição
 automática, foco e sensor monocromático afetam o quadro inteiro, não a diferença entre as metades. Serve
 ao olho e à câmera. Textos só em branco e preto puros, que não mudam entre os formatos.
+
+> **CORREÇÃO (2026-10-30)** No aparelho, com o formato errado, a faixa **63 | 64 saiu uniforme** (ciano
+> dos dois lados) e só a **127 | 128** se dividiu (verde | marrom). A conta acima vale para o valor que
+> chega ao LVDS, mas o pipeline de imagem (gamma, DCI, balanço de branco) muda o valor antes: a fronteira
+> 63/64 da imagem não cai necessariamente na fronteira de bit da saída. O critério continua funcionando
+> (uma das faixas divide), mas **não é garantido com só duas faixas**. Detalhe e tarefa no §8.
 
 ## 5. O kit universal (desenho)
 
@@ -91,7 +98,8 @@ painel de fábrica mostra metades iguais; errar exige duas teclas, a segunda dia
   `sys.boot_completed=1`; se a montagem atrasar, perde a vez; a instrução é religar).
 - Garantir, sem a bancada, que as telas aparecem: o kit as mostra por `am start ... VIEW`, que deu tela
   preta em 2026-09-03 (OPT-S13, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3). A
-  etapa E1(e) do bloco 5 decide.
+  etapa E1(e) do bloco 5 decide. **Atualização (2026-10-30):** a primeira tela abre (PNG em `/sdcard`), mas
+  a segunda não substitui a primeira sem `am force-stop` da galeria (§8).
 - Painéis que precisem de `swap`/`bit`/`map`: ficam no wizard com PC, de propósito.
 - Térmica em firmware diferente de V1.0.0.9 e V1.0.0.1 (md5 de fábrica desconhecido: o kit recusa). O
   V1.0.0.1, do modelo sem USB-C, passou a ser reconhecido no bloco 6.
@@ -100,3 +108,40 @@ painel de fábrica mostra metades iguais; errar exige duas teclas, a segunda dia
 
 Etapas E1 a E6 na tarefa do
 [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md).
+
+## 8. Primeira rodada no aparelho (2026-10-30, terceira troca de LCD)
+
+O dono trocou o LCD de novo. O aparelho bootou em VESA (byte `0x5c` = 0, o da 2ª troca) e as cores
+"voltaram ao defeito anterior". Térmica intacta (`ZYCustom.ini` `252ab7a7`).
+
+| Item (bloco 5, E1) | Resultado | Estado |
+|---|---|---|
+| (a) `/proc/msp/panel` | `lvds_fmt vesa`, `cut_idx 69`, `RX058B_4300_5010E_1080P_M` | `CONFIRMADO` |
+| (b) a API grava só o byte `0x5c` | `cmp -l` antes/depois de `lvdsctl fmt 1`: **uma** linha, `53253 0 1`. A imagem em JEIDA tem md5 `4899eefc…`, **idêntico** ao backup JEIDA de 2026-10-29 | `CONFIRMADO` |
+| (e) `am start ... VIEW` de `/sdcard` | a **1ª** tela abre; a **2ª** não substitui a 1ª ("intent has been delivered to currently running top-most instance": a galeria `com.hisilicon.higallery` continua na imagem antiga). Com `am force-stop com.hisilicon.higallery` antes, troca | `CONFIRMADO`, defeito do kit |
+| (f) câmera | `/dev/video0` `0660 system:camera`, driver `uvcvideo`, "Integrated Camera", MJPG e YUYV em 1280x720/640x480/640x360. `nl_camcheck grab` funcionou como root. O quadro sai **girado 180°** e **sem cor** (só luma) | `CONFIRMADO` |
+
+**Decisão do formato, pela câmera e pelo olho.** Luma média das metades no quadro da câmera,
+|L−R|/(L+R):
+
+| Formato | Faixa 63 \| 64 | Faixa 127 \| 128 | Olho (foto do dono) |
+|---|---|---|---|
+| VESA | 0,055 | **0,281** | 63\|64 ciano uniforme; 127\|128 verde \| marrom |
+| JEIDA | 0,013 | 0,034 | as duas faixas cinza neutro e iguais; barras de cor certas |
+
+Painel desta troca = **JEIDA**, gravado por `lvdsctl fmt 1` (persiste). `saude.sh`: 11 OK, 0 aviso,
+0 falha. Backup antes da mudança: `private/panelparam-2026-10-30-antes-jeida-placa3.img` (md5
+`92c63448579190a19aab5138856baf23`, ainda VESA). Quadros da câmera em `evidencias/2026-10-30/camera/`
+(ignorado pelo Git).
+
+**O que isto ensina:**
+1. A câmera **separa** os formatos (razão 8 na faixa 127\|128), mas não com a margem que o portão da E5
+   pedia (errado > 0,4): a câmera tem exposição automática e o quadro inclui a parede. Recalibrar o portão
+   pela razão, não pelo valor absoluto.
+2. A faixa 63\|64 **não dividiu** no formato errado (§4, correção): o pipeline de imagem muda o valor
+   antes do LVDS. O padrão precisa de **vários pares** em níveis diferentes, para que algum caia numa
+   fronteira de bit na saída.
+3. O `cor.sh` encadeia telas (`aguarde` → `metades-1` → `metades-2`) só com `am start`: no aparelho, a
+   1ª tela ficaria parada. Corrigir com `force-stop` da galeria antes de cada tela.
+
+Tarefas no [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) (E2b e E3d).

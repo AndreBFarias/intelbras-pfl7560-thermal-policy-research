@@ -19,8 +19,9 @@ cor muda com a imagem). Isso tem conserto **por software** (não precisa trocar 
 
 > **O formato não se deduz do nome do painel.** Neste aparelho, o `RX058B-0600` da 1ª troca (2026-07-10)
 > pediu **JEIDA**; o `FPX-RX058B-4300-V0` `20241101 HT` da 2ª troca (2026-10-29), o mesmo modelo e data
-> do painel de fábrica, pediu **VESA**, e o aparelho está hoje em VESA
-> ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). Quem decide é o teste
+> do painel de fábrica, pediu **VESA**
+> ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1); o da 3ª troca (2026-10-30)
+> pediu **JEIDA**, e o aparelho está hoje em JEIDA ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §8). Quem decide é o teste
 > de cinza da seção 3.
 
 ---

@@ -152,8 +152,10 @@ pode sair com **primárias certas e preto/cinzas tingidos** (a cor do tingimento
 **formato LVDS** (VESA ou JEIDA) que o SoC emite não casar com o painel. Na 1ª troca (2026-07-10), o
 `RX058B-0600` (peça vendida p/ Thundeal TD96) pediu **JEIDA**; na 2ª troca (2026-10-29), o painel
 instalado é o `FPX-RX058B-4300-V0` `20241101 HT`, o mesmo modelo e data do painel de fábrica, e pediu
-**VESA** — o aparelho está hoje em VESA (byte `0x5c` = 0,
-[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). **O formato não se
+**VESA** (byte `0x5c` = 0,
+[doc 40](docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). Na 3ª troca (2026-10-30) o painel
+pediu **JEIDA**, e o aparelho está hoje em JEIDA (byte `0x5c` = 1,
+[doc 41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) §8). **O formato não se
 deduz do nome do painel:** descobre-se olhando um padrão de cinza (o teste das "duas metades",
 [doc 41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 

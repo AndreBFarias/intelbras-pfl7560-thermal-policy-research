@@ -6,8 +6,9 @@ Artefatos da solução. Diagnóstico completo em
 ## Contexto
 1ª troca (2026-07-10): painel de fábrica `RX058B-4300` (driver SC5010E, LVDS VESA) trocado por
 `RX058B-0600`, que pediu **JEIDA**. 2ª troca (2026-10-29): o painel instalado é de novo um
-`FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA**; o aparelho está hoje em VESA
-([doc 40](../../docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1).
+`FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA**
+([doc 40](../../docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). 3ª troca (2026-10-30): o painel
+pediu **JEIDA**, e o aparelho está hoje em JEIDA ([doc 41](../../docs/research/41-auto-pareamento-camera-e-kit-universal.md) §8).
 Sintoma de formato errado: primárias certas, preto e cinzas tingidos (a cor muda com a imagem).
 **O formato não se deduz do nome do painel:** decide o teste de cinza. Sem PC, o kit de pendrive
 (`pendrive-autorun/`, que leva uma cópia deste `lvdsctl`) faz o teste das "duas metades"

@@ -34,8 +34,10 @@ avançamos. Sessão conduzida via adb ao vivo no aparelho (`94.140.14.52:5555`, 
 > - **Diagnóstico que não se engana:** primárias certas + preto/cinza tingido = formato, não troca de
 >   canal. Barras puras antes de qualquer `swap` ([guia 32](../guide/32-guia-troca-painel-lcd.md) §3).
 > - **2ª troca (2026-10-29):** o painel instalado é de novo um `FPX-RX058B-4300-V0` `20241101 HT` (mesmo
->   modelo e data do original desta tabela) e pediu **VESA**; o aparelho está hoje em VESA (`0x5c` = 0).
+>   modelo e data do original desta tabela) e pediu **VESA** (`0x5c` = 0).
 >   O "estado permanente" da §13 (JEIDA) ficou para trás.
+> - **3ª troca (2026-10-30):** o painel pediu **JEIDA** de novo; o aparelho está hoje em JEIDA (`0x5c` = 1,
+>   [doc 41](41-auto-pareamento-camera-e-kit-universal.md) §8).
 
 ---
 

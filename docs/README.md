@@ -52,8 +52,8 @@
 
 Tema distinto do térmico: quando se **troca o micro-painel LCD** do motor óptico, as primárias saem
 certas e o preto/cinzas saem tingidos se o **formato LVDS (VESA ou JEIDA)** não casar com o painel. Na 1ª
-troca o `RX058B-0600` pediu JEIDA; na 2ª (2026-10-29) o `RX058B-4300` instalado pediu VESA, e o aparelho
-está hoje em VESA. O formato não se deduz do nome: decide o teste de cinza ("duas metades", doc 41).
+troca o `RX058B-0600` pediu JEIDA; na 2ª (2026-10-29) o `RX058B-4300` instalado pediu VESA; na 3ª (2026-10-30)
+o painel pediu JEIDA, e o aparelho está hoje em JEIDA (doc 41 §8). O formato não se deduz do nome: decide o teste de cinza ("duas metades", doc 41).
 Resolvido por software, sem trocar hardware.
 
 | Doc | Conteúdo |

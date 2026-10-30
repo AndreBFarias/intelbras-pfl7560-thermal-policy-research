@@ -21,8 +21,8 @@ Base técnica já resolvida e documentada em
 > | LCD-S7 | **ENTREGUE** (doc 33 §3) |
 >
 > **Fato novo de 2026-10-29** ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1): na 2ª
-> troca o painel instalado é um `FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA**; o aparelho está hoje
-> em VESA (`0x5c` = 0). O JEIDA citado abaixo vale para o `-0600` da 1ª troca. O formato não se deduz do
+> troca o painel instalado é um `FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA** (`0x5c` = 0). Na 3ª
+> troca (2026-10-30) o painel pediu **JEIDA**; o aparelho está hoje em JEIDA ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §8). O JEIDA citado abaixo vale para o `-0600` da 1ª troca. O formato não se deduz do
 > nome: decide o teste de cinza.
 
 ---

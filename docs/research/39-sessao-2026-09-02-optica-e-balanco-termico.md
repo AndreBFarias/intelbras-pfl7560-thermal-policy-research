@@ -710,8 +710,9 @@ PFL_IP=<ip> ./pfl7560-saude.sh
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade
 
 # 4) a cor sobreviveu ao manuseio do caminho optico. Em 2026-09-03 (painel -0600) era jeida;
-#    desde a 2a troca de LCD (2026-10-29, painel -4300) o esperado e vesa (doc 40 s1)
-PFL_IP=<ip> ./pfl7560-lcd-color.sh status     # esperado hoje: lvds_fmt: vesa
+#    na 2a troca de LCD (2026-10-29, painel -4300) era vesa (doc 40 s1); desde a 3a troca
+#    (2026-10-30) e jeida (doc 41 s8)
+PFL_IP=<ip> ./pfl7560-lcd-color.sh status     # esperado hoje: lvds_fmt: jeida
 
 # 5) integridade dos artefatos byte-exatos (offline)
 make check                                     # 9 OK desde 2026-10-30 (6 em 2026-09-03)

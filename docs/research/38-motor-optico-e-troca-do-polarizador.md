@@ -327,8 +327,9 @@ PFL_IP=<ip> ./pfl7560-saude.sh
 PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade
 
 # a cor continua correta apos mexer no caminho optico. Desde a 2a troca de LCD
-# (2026-10-29, painel -4300) o esperado e vesa; com o -0600 da 1a troca era jeida (doc 40 s1):
-PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado hoje: lvds_fmt: vesa
+# (2026-10-29, painel -4300) era vesa; com o -0600 da 1a troca era jeida (doc 40 s1); desde a
+# 3a troca (2026-10-30) e jeida (doc 41 s8):
+PFL_IP=<ip> ./pfl7560-lcd-color.sh status    # esperado hoje: lvds_fmt: jeida
 ```
 
 **Critério de aceite da troca:** a temperatura da óptica em regime tem de **cair** contra a linha de base

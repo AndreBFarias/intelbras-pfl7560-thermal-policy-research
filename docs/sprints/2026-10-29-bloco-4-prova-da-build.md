@@ -36,6 +36,9 @@ sobre a árvore de integração com os blocos 1, 2 e 3 (e o bloco da T1.1, se ex
    [guia 16](../guide/16-recuperacao-brick.md)). Critério: boota, `saude.sh` verde, cor e Wi-Fi intactos.
    Sem esta parte, o `.bin` continua "offline aprovado, hardware não graduado", e os docs precisam dizer
    isso com essas palavras.
+   **Atenção (2026-10-30):** desde a 3ª troca de LCD o aparelho está em **JEIDA**; o reflash provavelmente
+   devolve o byte `0x5c` a VESA ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §3 e
+   §8). Depois do boot, refazer o teste de cor e, se preciso, `lvdsctl fmt 1`.
 
 ## Estado (2026-10-30)
 
