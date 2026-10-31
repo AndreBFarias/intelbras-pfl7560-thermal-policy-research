@@ -1,0 +1,11 @@
+fundo=#282A36
+linha=#44475A
+texto=#F8F8F2
+comentario=#6272A4
+ciano=#8BE9FD
+verde=#50FA7B
+laranja=#FFB86C
+rosa=#FF79C6
+roxo=#BD93F9
+vermelho=#FF5555
+amarelo=#F1FA8C
