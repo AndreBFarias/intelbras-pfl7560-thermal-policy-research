@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Botao em foco da janela de senha do USB (SelectActivity, quando vendor.nl.usb_password_dialog.vis=1).
+     De fabrica, fio de 3 dp verde #FF55CF88 -> rosa. Mesmo desenho. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:gravity="center">
+        <shape android:shape="rectangle">
+            <stroke android:width="3dp" android:color="#FFFF79C6" />
+            <corners android:radius="24dp" />
+        </shape>
+    </item>
+</layer-list>
