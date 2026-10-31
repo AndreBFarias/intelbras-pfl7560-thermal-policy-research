@@ -235,6 +235,8 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 - **O descanso de tela volta ao do fabricante** no mesmo `--desinstalar` (§14): se `screensaver_components` ou
   `screensaver_default_component` ainda apontam para o `com.pfl7560.verificar`, voltam para
   `com.newlink.screensaver/com.newlink.screensaver.ScreenService`. Se o dono escolheu outro, não se mexe.
+- **O bloco 14 também volta** no mesmo `--desinstalar` (§15): sobreposições de tema desligadas e removidas, a
+  prop do gerenciador de arquivos tirada, Office/iOSCast/Espelhamento religados e a marca de fábrica restaurada.
 - **O app não sai com a suíte:** a pasta é dele. Tirar: `adb uninstall com.pfl7560.verificar`. Sem a suíte, o
   ícone não faz nada.
 
@@ -465,3 +467,100 @@ ligados neste firmware; o bloco não mexe neles); (d) o desenho no projetor: tam
 na parede, o deslize sem engasgo; (e) o descanso do fabricante (`ScreenService`) ter parado de aparecer;
 (f) o `suite-boot.sh` só roda no boot: com o app novo recém-instalado em `/vendor/app` pelo kit, o descanso liga
 no primeiro boot em que o serviço já existir (a conferência é feita a cada boot).
+
+## 15. Bloco 14: o que o kit leva do que foi feito à mão (2026-10-31)
+
+Tudo isto foi feito no projetor do dono por adb em 2026-10-31 e provado lá. Agora o kit do pendrive (e o
+`suite-boot.sh`) faz sozinho, para um aparelho novo ou este depois de regravar o firmware. Spec:
+`docs/sprints/2026-10-31-bloco-14-kit-tema-vlc.md`. Tudo é **idempotente** (a 2ª vez nada é regravado) e
+**uma falha só avisa no log**: o resto do kit segue.
+
+| O quê | Quem faz | Como |
+|---|---|---|
+| Sobreposições Drácula (`artifacts/overlay/apk/*.apk`, blocos 13A e 16A) | `newlink_update.sh` grava; `suite-boot.sh` liga | `KIT_OVERLAYS`: `/vendor/overlay/<Nome>/<Nome>.apk` (pasta 0755, arquivo 0644, root, rótulo `vendor_overlay_file`) na mesma janela rw do `/vendor` dos apps; só regrava se faltar ou diferir (conteúdo). A do `android` vai **sempre por último**. Vale no **próximo boot**: o PackageManager só varre `/vendor/overlay` no boot. O `cmd overlay enable` precisa do `system_server`, então o `suite-boot.sh` liga, uma vez por boot e com qualquer gatilho, as que o sistema lista como desligadas (`[ ] com.pfl7560.tema.<x>`), a do `android` por último, esperando (até 6 consultas, 10 s) o PackageManager listar todas as pastas; as já ligadas (`[x]`) não são tocadas |
+| Gerenciador de arquivos abrindo direto na lista | `newlink_update.sh` | linha `vendor.nl.filemanage_file=1` no `/vendor/build.prop`, como a da home (`gravar_fm_prop`); vale no próximo boot |
+| Office, iOSCast e Espelhamento desligados | `suite-boot.sh` | `pm disable-user --user 0` em `com.mobisystems.editor.office_registered`, `com.newlink.cast` e `com.hisilicon.miracast`, só nos instalados e ligados; depois espera aparecer `enabled="3"` no `package-restrictions.xml` (o sistema grava com uns 10 s de atraso; até 8 leituras de 2 s) e registra no `boot.log` se gravou. **Não reinicie logo depois**: um reboot antes da gravação perde o estado |
+| Marca MeowCast em `/atv/bootvideo/logo.jpg` e `bootanimation.zip` (`artifacts/tema/marca/`) | `newlink_update.sh` | `cat` por cima (preserva dono e rótulo SELinux), depois de guardar **uma vez** o arquivo de fábrica em `/data/vendor/pfl7560-suite/marca-original/` (pasta 0700; só se o arquivo ainda difere do nosso); confere o md5 e, se não bater, devolve o original. Não precisa da janela rw do `/vendor`. Arquivo de fábrica ausente ou link: avisa e não escreve |
+| Marca na partição `logo` (a imagem do carregador) | **fora do pendrive**: `pfl7560-marca.sh` (PC) | ver abaixo |
+| VLC 3.7.1 em `/vendor/app/VLC` | **fora do git e do pendrive**: `pfl7560-vlc.sh` (PC) | ver abaixo |
+
+**Os APKs e a marca no kit são cópias geradas por script.** `bash tests/atualizar-md5-kit.sh` copia cada
+`artifacts/overlay/apk/*.apk` para `pendrive-autorun/overlay/` (sem lista fixa: um APK novo lá entra sozinho),
+copia `logo.jpg` e `bootanimation.zip` de `artifacts/tema/marca/` para `pendrive-autorun/marca/`, escreve o bloco
+`KIT_OVERLAYS` do `newlink_update.sh` (a do `android` por último) e põe tudo na `KIT_LISTA` com o md5. Com
+`--check` só confere (entra no `make check-kit`). Depois de acrescentar um APK de sobreposição, rodar o script
+de novo basta.
+
+**Desinstalar** (`DESINSTALAR-SUITE.txt`, §8) agora também: desliga as sobreposições (`cmd overlay disable`, a do
+`android` primeiro) e apaga `/vendor/overlay/PFL7560Tema*`; tira a linha `vendor.nl.filemanage_file=1`; religa os
+três apps (`pm enable --user 0`, só os que estão desligados); restaura `logo.jpg` e `bootanimation.zip` do
+backup (`cmp` confere) e, só então, apaga a pasta da suíte. **Se algum não voltar, a pasta da suíte fica**, com o
+backup, e o log diz `ERRO`.
+
+**Saída de emergência das sobreposições** (doc 48 §7): `cmd overlay disable <pacote>`; se a interface não sobe, o
+pendrive do kit com o firmware de resgate (arranjo B do `LEIA-ME.txt`) regrava tudo e apaga o `/data`. A do
+`android` entra em todo processo: instale o kit com o pendrive de resgate à mão.
+
+### `pfl7560-marca.sh` (PC): marca na partição `logo`
+
+Fora do pendrive porque a imagem depende dos 4 cantos do keystone **de cada aparelho** (o carregador mostra a
+imagem já distorcida) e a partição é a do carregador. `PFL_IP=<ip> ./pfl7560-marca.sh [--sim]`:
+
+1. conecta por adb (só Wi-Fi), vira root, confere `ro.product.model=PFL7560`;
+2. lê `persist.sys.keystone.{lt,rt,lb,rb}` e gera a imagem com `artifacts/tema/gerar-marca.py` numa pasta
+   temporária (`PFL_MARCA_SAIDA`), sem tocar nos arquivos versionados;
+3. **backup da partição inteira** (`/dev/block/by-name/logo`, 40 MiB exatos) em
+   `backups-projetor/logo/logo-<data>.img`, conferido por md5 contra a leitura direta do aparelho;
+4. confere o cabeçalho `LOGO_TABLE` do backup (`###\0`, `LOGO_TABLE`, `LOGO_KEY_LEN`), monta a imagem esperada
+   (o JPEG novo no byte 8192 e o `LOGO_KEY_LEN`, 4 bytes little-endian no 0x78, com o tamanho dele) e confere
+   de novo; pergunta "digite GRAVAR" (ou `--sim`);
+5. grava **só essas duas regiões** com `dd` (sem `conv`, que o toybox recusa): o JPEG com `bs=4096 seek=2` e o
+   `LOGO_KEY_LEN` com `bs=1 seek=120`, depois de conferir o md5 dos dois arquivos no aparelho e de a partição
+   ainda ser igual ao backup;
+6. **relê a partição inteira** e confere o md5 contra a imagem esperada.
+
+`--restaurar <backup.img>` devolve a partição inteira (confere cabeçalho e tamanho do arquivo, grava com `dd` e
+relê). Vale na próxima ligação do projetor.
+
+### `pfl7560-vlc.sh` (PC): VLC como app do sistema
+
+`PFL_IP=<ip> ./pfl7560-vlc.sh [--sem-reiniciar]`. Baixa de `get.videolan.org/vlc-android/3.7.1/` o
+`VLC-Android-3.7.1-armeabi-v7a.apk` (47 073 346 bytes) para `backups-projetor/vlc/` (fora do git) e só segue se:
+o sha256 do arquivo = o publicado em `.apk.sha256` = o fixado no script
+(`a6a7f940e4bd190c9a70f3f0dc97c1c402c10200af20edac7a1d452b24abd8a0`); a assinatura passa no `apksigner` e o
+certificado tem o SHA-256 `c8768d2cea0c4b622e419b4b4715981946821e4ebc035fb41776cad395a7f68e` (VideoLAN
+Mobile); o APK traz `lib/armeabi-v7a/*.so`. Depois confere o modelo, que o aparelho lista `armeabi-v7a` e o
+espaço livre do `/vendor`; abre o `/vendor` rw (com prova de escrita); grava `/vendor/app/VLC/VLC.apk` e as
+`.so` em `/vendor/app/VLC/lib/arm/` (cada arquivo como `.new`, conferido por md5 no aparelho e só então movido;
+0755/0644, root, `vendor_app_file`); fecha o `/vendor` e reinicia. `--remover` apaga `/vendor/app/VLC` e
+reinicia. Os dois valores fixados foram lidos do `.sha256` publicado e do APK baixado em 2026-10-31.
+
+### Provas no PC
+
+- `tests/test-kit-pendrive.sh`, caso `c_bloco14`: sobreposições ausentes viram todas as pastas (modos, `chcon`,
+  a do `android` por último, sem `cmd overlay` no kit); 2ª vez sem remount; APK velho atualizado; um APK que
+  não grava não impede os outros nem o kit; pasta que é link; remount falho (a marca entra mesmo assim); APK ou
+  marca adulterados no pendrive abortam; `DESINSTALAR-SUITE.txt` não grava nada do bloco; prop do gerenciador
+  (ausente, com outro valor, `build.prop` que não grava); marca (backup uma vez, 2ª vez, firmware que troca o
+  logo, arquivo ausente ou link, arquivo somente leitura, desinstalar que não restaura deixa o backup).
+- `tests/test-suite.sh`, casos `c_overlays_boot`, `c_apps_boot` e `c_desinstalar14`: ligação das sobreposições
+  (ordem, já ligadas, PackageManager atrasado, nunca listadas, `enable` que falha, gatilho `nunca`); os três
+  apps (já desligado, não instalado, gravação atrasada do xml, xml que nunca grava, `pm` que falha ou não
+  responde); desinstalar do bloco inteiro.
+- `tests/test-pc-marca-vlc.sh` (no `make check-kit`): os dois scripts de PC com um adb de mentira.
+
+### PROVISÓRIO (só o aparelho confirma)
+
+1. O PackageManager do Android 9 do projetor aceitar APK de sobreposição em `/vendor/overlay` gravado pelo kit,
+   o `cmd overlay list` mostrá-las como `[ ]` no boot seguinte e o `cmd overlay enable` pegar como root no
+   `boot_completed` (o formato `[ ] pacote` / `[x] pacote` / `--- pacote` é o do código do Android 9).
+2. O `pm disable-user --user 0` pelo `suite-boot.sh` no `boot_completed` e a gravação do `enabled="3"` no xml
+   dentro dos ~16 s de espera; o `pm list packages -d` mostrar os três como desligados.
+3. `/atv/bootvideo` aceitar o `cat` sem remount (como na mão) e o `bootanimation.zip` de fábrica existir também
+   no modelo sem USB-C.
+4. Modelo sem USB-C (V1.0.0.1): as sobreposições foram conferidas só contra os APKs do V1.0.0.9; o `android`
+   é a que importa (framework-res). Não testado.
+5. `pfl7560-marca.sh`: `blockdev --getsize64`, `dd ... bs=4096 seek=2` e `bs=1 seek=120` e `md5sum` sobre o
+   bloco `logo` no toybox do aparelho; `adb exec-out dd` entregar os 40 MiB sem alteração.
+6. `pfl7560-vlc.sh`: o `df -k /vendor` com a coluna "Available" por último; o PackageManager registrar o
+   `org.videolan.vlc` com as `.so` de `lib/arm`; o espaço do `/vendor` para ~90 MB.

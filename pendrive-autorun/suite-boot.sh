@@ -20,6 +20,10 @@
 #   2c. Liga o descanso de tela MeowCast (bloco 16B), com qualquer gatilho: confere
 #      screensaver_components e screensaver_default_component e aponta os dois para
 #      com.pfl7560.verificar/.Descanso se forem outro, mas so com o servico instalado.
+#   2d. Liga as sobreposicoes de tema Dracula instaladas em /vendor/overlay e ainda desligadas
+#      (cmd overlay enable, com a do android SEMPRE por ultimo) e desliga o Office, o iOSCast e
+#      o Espelhamento do fabricante (pm disable-user), conferindo no package-restrictions.xml
+#      (bloco 14), com qualquer gatilho.
 #   3. Liga o vigia do pedido do app (inotifyd; sem ele, um laco de 30 s).
 #   4. Lanca suite.sh tomada destacado, com o md5 dele conferido NA HORA contra o
 #      embutido aqui.
@@ -59,8 +63,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="d8d9ae43e2be088a8eb23dd5b50f917f"
-PEDIDO_MD5="78f10901d50b579849d15d98aba65e50"
+SUITE_MD5="1a8c21f3946040c19cd71fb1d69f1dad"
+PEDIDO_MD5="0e6f34f20d0f2848581aa0ee7d28fbd5"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -223,6 +227,93 @@ ligar_descanso(){
   done
 }
 
+# ---- sobreposicoes de tema (bloco 14) --------------------------------------------
+# O kit (newlink_update.sh) grava os APKs em /vendor/overlay/<Nome>/; o PackageManager so os varre
+# no boot e o "cmd overlay enable" precisa do system_server, por isso a ligacao mora aqui, uma
+# vez por boot. So liga as que o sistema lista como desligadas ("[ ] com.pfl7560.tema.<x>"); as
+# que ja estao ligadas ("[x]") nao sao tocadas e o estado delas persiste em overlays.xml.
+# A do android (framework: entra em todo processo) vai por ULTIMO. Como no descanso, o
+# PackageManager pode ainda processar os APKs quando o boot termina: ate DESCANSO_TENTATIVAS
+# consultas, esperando todas as pastas aparecerem na lista. Roda em segundo plano.
+OVERLAY_ANDROID="com.pfl7560.tema.android"
+overlays_lista(){ timeout 15 cmd overlay list 2>/dev/null | tr -d '\r'; }
+ligar_overlays(){
+  _on=0
+  for _od in "$R/vendor/overlay"/PFL7560Tema*; do [ -d "$_od" ] && _on=$(( _on + 1 )); done
+  if [ "$_on" = 0 ]; then LOG "overlay: nenhuma sobreposicao nossa em /vendor/overlay - nada a ligar"; return 0; fi
+  _ot=1
+  while :; do
+    _ol=$(overlays_lista)
+    _oc=$(printf '%s\n' "$_ol" | grep -cE '^(\[.\]|---) com\.pfl7560\.tema\.')
+    [ "$_oc" -ge "$_on" ] && break
+    if [ "$_ot" -ge "$DESCANSO_TENTATIVAS" ]; then
+      LOG "[AVISO] overlay: o sistema lista $_oc de $_on sobreposicoes depois de $_ot consultas - ligo as que ele ja lista."
+      break
+    fi
+    _ot=$(( _ot + 1 ))
+    sleep "$DESCANSO_ESPERA"
+  done
+  _off=$(printf '%s\n' "$_ol" | sed -n 's/^\[ \] \(com\.pfl7560\.tema\.[A-Za-z0-9_]*\).*$/\1/p')
+  _ordem="$(printf '%s\n' "$_off" | grep -vxF "$OVERLAY_ANDROID") $(printf '%s\n' "$_off" | grep -xF "$OVERLAY_ANDROID")"
+  _ofeitas=0
+  for _op in $_ordem; do
+    if timeout 15 cmd overlay enable "$_op" >/dev/null 2>&1; then
+      LOG "overlay: $_op ligada"; _ofeitas=$(( _ofeitas + 1 ))
+    else
+      LOG "[AVISO] overlay: nao consegui ligar $_op (o resto segue)."
+    fi
+  done
+  [ -n "$_ordem" ] || LOG "overlay: nenhuma desligada para ligar (ou o sistema nao as lista como desligadas)"
+  _ol=$(overlays_lista)
+  _ostate=$(printf '%s\n' "$_ol" | sed -En 's/^(\[.\]|---) (com\.pfl7560\.tema\.[A-Za-z0-9_]*).*$/\2=\1/p' | tr '\n' ' ')
+  LOG "overlay: $_ofeitas ligada(s) neste boot; estado: ${_ostate:-(lista vazia)}"
+}
+
+# ---- apps do fabricante desligados (bloco 14) --------------------------------------
+# Office (editor), iOSCast e Espelhamento: pm disable-user --user 0, uma vez por boot, so nos que
+# estao ligados. O PackageManager grava o estado com atraso (uns 10 s), entao depois de desligar
+# espera aparecer enabled="3" no package-restrictions.xml (ate 8 leituras de 2 s) e registra se
+# gravou; um reboot antes disso perderia o estado. O suite.sh --desinstalar religa (pm enable).
+APPS_DESLIGAR="com.mobisystems.editor.office_registered com.newlink.cast com.hisilicon.miracast"
+PKG_RESTR="$R/data/system/users/0/package-restrictions.xml"
+RESTR_TENTATIVAS=8
+RESTR_ESPERA=2
+[ -n "${PFL_RAPIDO:-}" ] && RESTR_ESPERA=0
+restr_gravado(){ grep -a "name=\"$1\"" "$PKG_RESTR" 2>/dev/null | grep -aq 'enabled="3"'; }
+desligar_apps(){
+  _pt=1
+  until timeout 15 pm list packages 2>/dev/null | grep -qx 'package:android'; do
+    if [ "$_pt" -ge "$DESCANSO_TENTATIVAS" ]; then LOG "[AVISO] apps: o pm nao respondeu em $_pt consultas - nada desligado."; return 0; fi
+    _pt=$(( _pt + 1 ))
+    sleep "$DESCANSO_ESPERA"
+  done
+  _todos=$(timeout 15 pm list packages 2>/dev/null)
+  _dis=$(timeout 15 pm list packages -d 2>/dev/null)
+  _novos=""
+  for _ap in $APPS_DESLIGAR; do
+    if ! printf '%s\n' "$_todos" | grep -qx "package:$_ap"; then
+      LOG "apps: $_ap nao esta instalado - nada a desligar"
+    elif printf '%s\n' "$_dis" | grep -qx "package:$_ap"; then
+      LOG "apps: $_ap ja estava desligado"
+    elif timeout 15 pm disable-user --user 0 "$_ap" >/dev/null 2>&1; then
+      LOG "apps: $_ap desligado (pm disable-user)"; _novos="$_novos $_ap"
+    else
+      LOG "[AVISO] apps: nao consegui desligar $_ap."
+    fi
+  done
+  [ -n "$_novos" ] || return 0
+  _rt=1
+  while :; do
+    _falta=""
+    for _ap in $_novos; do restr_gravado "$_ap" || _falta="$_falta $_ap"; done
+    [ -z "$_falta" ] && { LOG "apps: estado gravado no package-restrictions.xml (enabled=3):$_novos"; return 0; }
+    [ "$_rt" -ge "$RESTR_TENTATIVAS" ] && break
+    _rt=$(( _rt + 1 ))
+    sleep "$RESTR_ESPERA"
+  done
+  LOG "[AVISO] apps: o package-restrictions.xml ainda nao mostra enabled=3 para:$_falta (o sistema grava com atraso; nao reinicie ja)."
+}
+
 # ---- vigia do pedido do app --------------------------------------------------
 vigia_vivo(){
   _p=$(head -n 1 "$VIGIA_PID" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
@@ -311,6 +402,8 @@ LOG "sys.boot.reason='$S_BR' ano_boot='$S_ANO' gatilho=$GATILHO decisao=$DECISAO
 
 reaplicar_luz
 ligar_descanso &
+ligar_overlays &
+desligar_apps &
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then

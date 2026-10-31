@@ -66,3 +66,6 @@ artifacts/overlay/assinatura.keystore  -text byte-exact
 artifacts/overlay/*/res/**/*.png    -text byte-exact
 artifacts/overlay/previa/*.png      -text byte-exact
 artifacts/tema/marca/*             -text byte-exact
+# Bloco 14: copias de artifacts/overlay/apk/ e artifacts/tema/marca/ no kit (geradas por tests/atualizar-md5-kit.sh; md5 na KIT_LISTA)
+pendrive-autorun/overlay/*.apk      -text byte-exact
+pendrive-autorun/marca/*            -text byte-exact

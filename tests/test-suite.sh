@@ -44,7 +44,8 @@ novo_cenario(){
   local b="$T/bin"
   mkdir -p "$R/vendor/etc/init/hw" "$R/vendor/lib" "$R/vendor/bin" "$R/atv" "$R/proc/msp" "$R/dev/block/by-name" \
            "$R/data/local/tmp" "$R/data/vendor" "$R/data/media/0" "$R/sdcard" "$R/mnt/media_rw" \
-           "$R/sys/class/net/wlan0" "$R/sys/class/rtc/rtc0" "$b"
+           "$R/sys/class/net/wlan0" "$R/sys/class/rtc/rtc0" "$R/atv/bootvideo" "$b"
+  echo "logo de fabrica" > "$R/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$R/atv/bootvideo/bootanimation.zip"
   : > "$R/vendor/lib/libhitvservice.so"
   : > "$R/dev/video0"
   echo up > "$R/sys/class/net/wlan0/operstate"
@@ -100,7 +101,18 @@ f=$(echo "$*" | sed "s#.*-d file://\([^ ]*\).*#\1#")
 [ -f "$PFL_ROOT$f" ] || echo "AM_ARQUIVO_AUSENTE $f" >> "$T/calls.log"
 exit 0'
   # query-services: o descanso do app (bloco 16B), ausente com $T/sem-descanso
+  # bloco 14: "cmd overlay list|enable|disable" sobre $T/overlay.db (linhas "[ ] pacote" / "[x] pacote");
+  # overlay-demora = N consultas do list que ainda saem vazias (o PackageManager processando);
+  # overlay-enable-falha = pacotes (um por linha) cujo enable falha
   stub cmd 'echo "cmd $*" >> "$T/calls.log"
+case "$1 $2" in
+  "overlay list") n=$(cat "$T/overlay-demora" 2>/dev/null || echo 0)
+    if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/overlay-demora"; exit 0; fi
+    cat "$T/overlay.db" 2>/dev/null; exit 0 ;;
+  "overlay enable") grep -qx "$3" "$T/overlay-enable-falha" 2>/dev/null && exit 1
+    sed -i "s/^\[ \] $3\$/[x] $3/" "$T/overlay.db"; exit 0 ;;
+  "overlay disable") sed -i "s/^\[x\] $3\$/[ ] $3/" "$T/overlay.db"; exit 0 ;;
+esac
 case "$*" in *query-services*) [ -f "$T/sem-descanso" ] || echo "com.pfl7560.verificar/.Descanso"; exit 0 ;; esac
 echo "priority=0 isDefault=false"; echo "com.hisilicon.higallery/.NetworkHiGallery"'
   stub logcat 'echo "logcat $*" >> "$T/calls.log"; [ -f "$T/logcat-saida" ] && cat "$T/logcat-saida"; exit 0'
@@ -153,6 +165,11 @@ exit 0'
   # sleep: registra; com $T/mata-no-sleep = N, o "sleep N" manda TERM para quem chamou
   stub sleep 'echo "sleep $*" >> "$T/calls.log"
 if [ -f "$T/mata-no-sleep" ] && [ "$1" = "$(cat "$T/mata-no-sleep")" ]; then rm -f "$T/mata-no-sleep"; kill -TERM "$PPID"; fi
+# o PackageManager grava o package-restrictions.xml com atraso: restr-atraso = quantos sleeps ate gravar
+if [ -f "$T/restr-pendente" ]; then
+  n=$(cat "$T/restr-atraso" 2>/dev/null || echo 0)
+  if [ "$n" -le 1 ]; then cat "$T/restr-pendente" >> "$PFL_ROOT/data/system/users/0/package-restrictions.xml"; rm -f "$T/restr-pendente"; else echo $((n-1)) > "$T/restr-atraso"; fi
+fi
 exit 0'
   stub input 'echo "input $*" >> "$T/calls.log"'
   # alerta de sistema do firmware: "$T/alerta" = quantas consultas ainda o mostram focado
@@ -160,6 +177,27 @@ exit 0'
 n=$(cat "$T/alerta" 2>/dev/null || echo 0)
 p=$(cat "$T/alerta-pacote" 2>/dev/null || echo com.newlink.nlprovision)
 if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 $p}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
+  # bloco 14: pm sobre arquivos de estado. pm-instalados = pacotes (um por linha, alem do "android");
+  # pm-desligados = os desligados; pm-fora = o pm ainda nao responde; pm-disable-falha; restr-nunca =
+  # o xml nunca e gravado; restr-atraso = N (o stub sleep grava o xml depois de N sleeps)
+  stub pm 'echo "pm $*" >> "$T/calls.log"
+case "$1 $2" in
+  "list packages")
+    if [ "$3" = "-d" ]; then sed "s/^/package:/" "$T/pm-desligados" 2>/dev/null; exit 0; fi
+    [ -f "$T/pm-fora" ] && exit 0
+    echo package:android; sed "s/^/package:/" "$T/pm-instalados" 2>/dev/null; exit 0 ;;
+  "disable-user --user")
+    [ -f "$T/pm-disable-falha" ] && exit 1
+    echo "$4" >> "$T/pm-desligados"
+    mkdir -p "$PFL_ROOT/data/system/users/0"
+    l="  <pkg name=\"$4\" enabled=\"3\" enabledCaller=\"shell:0\" />"
+    if [ -f "$T/restr-nunca" ]; then :
+    elif [ -f "$T/restr-atraso" ]; then echo "$l" >> "$T/restr-pendente"
+    else echo "$l" >> "$PFL_ROOT/data/system/users/0/package-restrictions.xml"; fi
+    exit 0 ;;
+  "enable --user") sed -i "/^$4\$/d" "$T/pm-desligados"; exit 0 ;;
+esac
+exit 0'
   stub wm 'echo "Physical size: 1920x1080"'
   stub dmesg '[ -f "$T/dmesg" ] && cat "$T/dmesg"; exit 0'
   stub inotifyd 'echo "inotifyd $*" >> "$T/calls.log"; exit 0'
@@ -514,6 +552,123 @@ c_descanso(){
   limpa
 }
 
+# bloco 14: o suite-boot.sh liga as sobreposicoes de tema (a do android por ultimo) e desliga os apps do fabricante
+OVL_PKGS="zysetting nlprovision tvsettings android"
+overlays_cenario(){ # pastas em /vendor/overlay e o estado do sistema (todas desligadas)
+  local x
+  mkdir -p "$R/vendor/overlay"
+  : > "$T/overlay.db"
+  echo "com.zhiying.settings" >> "$T/overlay.db"
+  for x in $OVL_PKGS; do
+    mkdir -p "$R/vendor/overlay/PFL7560Tema$x"
+    echo "[ ] com.pfl7560.tema.$x" >> "$T/overlay.db"
+  done
+}
+ovdb(){ sed -n "s/^\\(\\[.\\]\\) com\\.pfl7560\\.tema\\.$1\$/\\1/p" "$T/overlay.db"; }
+enables(){ grep '^cmd overlay enable' "$T/calls.log" | sed 's/.*tema\.//' | tr '\n' ' '; }
+c_overlays_boot(){
+  novo_cenario "overlay: desligadas = o boot liga todas, a do android por ultimo; 2o boot nao liga nada"
+  instala_suite; overlays_cenario
+  roda_boot
+  afirma '[ "$RC" = 0 ] && [ "$(ovdb zysetting)" = "[x]" ] && [ "$(ovdb nlprovision)" = "[x]" ] && [ "$(ovdb tvsettings)" = "[x]" ] && [ "$(ovdb android)" = "[x]" ]' "estado: $(tr '\n' '|' < "$T/overlay.db")"
+  afirma '[ "$(enables | awk "{print \$NF}")" = android ] && [ "$(enables | wc -w | tr -d " ")" = 4 ]' "ordem das ligacoes: $(enables)"
+  afirma 'grep -q "overlay: 4 ligada(s) neste boot" "$S/boot.log"' "log sem o resumo: $(grep overlay "$S/boot.log" | tr '\n' '|')"
+  : > "$T/calls.log"
+  roda_boot
+  afirma '[ -z "$(enables)" ] && grep -q "overlay: 0 ligada(s) neste boot" "$S/boot.log"' "2o boot ligou de novo: $(enables)"
+  limpa
+
+  novo_cenario "overlay: a que ja esta ligada ([x]) nao e tocada, so as desligadas"
+  instala_suite; overlays_cenario
+  sed -i 's/^\[ \] com.pfl7560.tema.zysetting$/[x] com.pfl7560.tema.zysetting/' "$T/overlay.db"
+  roda_boot
+  afirma '[ "$(enables | tr " " "\n" | grep -c zysetting)" = 0 ] && [ "$(enables | wc -w | tr -d " ")" = 3 ] && [ "$(ovdb zysetting)" = "[x]" ]' "ligacoes: $(enables)"
+  limpa
+
+  novo_cenario "overlay: o PackageManager ainda processando (lista vazia nas 3 primeiras consultas) = espera e liga"
+  instala_suite; overlays_cenario; echo 3 > "$T/overlay-demora"
+  roda_boot
+  afirma '[ "$(ovdb android)" = "[x]" ] && [ "$(enables | wc -w | tr -d " ")" = 4 ] && [ "$(chamadas "sleep 0")" -ge 3 ]' "nao esperou: $(enables); sleeps=$(chamadas "sleep 0")"
+  limpa
+
+  novo_cenario "overlay: o sistema nunca as lista = 6 consultas, aviso e nada ligado; o boot segue (vigia ligado)"
+  instala_suite; overlays_cenario; echo 99 > "$T/overlay-demora"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && [ -z "$(enables)" ] && grep -q "overlay: o sistema lista 0 de 4 sobreposicoes depois de 6 consultas" "$S/boot.log" && tem_chamada "inotifyd $S/suite-pedido.sh $PED:wwy"' "rc=$RC; $(grep overlay "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "overlay: o enable de uma falha = aviso e as outras (inclusive a do android) seguem"
+  instala_suite; overlays_cenario; echo com.pfl7560.tema.nlprovision > "$T/overlay-enable-falha"
+  roda_boot
+  afirma '[ "$(ovdb nlprovision)" = "[ ]" ] && [ "$(ovdb zysetting)" = "[x]" ] && [ "$(ovdb android)" = "[x]" ] && grep -q "AVISO.*overlay: nao consegui ligar com.pfl7560.tema.nlprovision" "$S/boot.log" && [ "$RC" = 0 ]' "estado: $(tr '\n' '|' < "$T/overlay.db"); rc=$RC"
+  limpa
+
+  novo_cenario "overlay: sem pasta nossa em /vendor/overlay = nada a ligar, nem pergunta ao sistema"
+  instala_suite; : > "$T/overlay.db"
+  roda_boot
+  afirma '[ "$(chamadas "cmd overlay")" = 0 ] && grep -q "overlay: nenhuma sobreposicao nossa em /vendor/overlay" "$S/boot.log"' "consultou o sistema sem ter o que ligar: $(grep '^cmd overlay' "$T/calls.log" | head -2)"
+  limpa
+
+  novo_cenario "overlay: com o gatilho nunca o boot tambem liga"
+  instala_suite; overlays_cenario; echo nunca > "$S/gatilho"
+  roda_boot
+  afirma '[ "$(ovdb android)" = "[x]" ] && [ "$RC" = 0 ]' "gatilho nunca nao ligou: $(tr '\n' '|' < "$T/overlay.db")"
+  limpa
+}
+
+APPS14="com.mobisystems.editor.office_registered com.newlink.cast com.hisilicon.miracast"
+apps_cenario(){ local a; : > "$T/pm-instalados"; : > "$T/pm-desligados"; for a in $APPS14 org.videolan.vlc; do echo "$a" >> "$T/pm-instalados"; done; }
+restr_tem(){ grep -a "name=\"$1\"" "$R/data/system/users/0/package-restrictions.xml" 2>/dev/null | grep -aq 'enabled="3"'; }
+c_apps_boot(){
+  local a
+  novo_cenario "apps: ligados = o boot desliga so os tres e confere o enabled=3; 2o boot nao mexe"
+  instala_suite; apps_cenario
+  roda_boot
+  afirma '[ "$RC" = 0 ] && [ "$(sort "$T/pm-desligados" | tr "\n" " ")" = "$(echo $APPS14 | tr " " "\n" | sort | tr "\n" " ")" ]' "desligados: $(tr '\n' ' ' < "$T/pm-desligados")"
+  for a in $APPS14; do afirma 'restr_tem "$a"' "$a sem enabled=3 no package-restrictions.xml"; done
+  afirma 'grep -q "apps: estado gravado no package-restrictions.xml (enabled=3)" "$S/boot.log" && ! tem_chamada "pm disable-user --user 0 org.videolan.vlc"' "log ou desligou o que nao devia: $(grep apps "$S/boot.log" | tr '\n' '|')"
+  : > "$T/calls.log"
+  roda_boot
+  afirma '[ "$(chamadas "pm disable-user")" = 0 ] && [ "$(grep -c "apps: .* ja estava desligado" "$S/boot.log")" = 3 ]' "2o boot desligou de novo: $(grep '^pm disable' "$T/calls.log")"
+  limpa
+
+  novo_cenario "apps: um nao instalado = pulado, os outros desligados"
+  instala_suite; apps_cenario; sed -i '/com.newlink.cast/d' "$T/pm-instalados"
+  roda_boot
+  afirma 'grep -q "apps: com.newlink.cast nao esta instalado" "$S/boot.log" && [ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 2 ]' "desligados: $(tr '\n' ' ' < "$T/pm-desligados"); $(grep apps "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "apps: o xml so e gravado depois de 2 esperas = o boot espera e confirma"
+  instala_suite; apps_cenario; echo 2 > "$T/restr-atraso"
+  roda_boot
+  afirma 'restr_tem com.newlink.cast && grep -q "apps: estado gravado no package-restrictions.xml" "$S/boot.log"' "nao esperou o xml: $(grep apps "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "apps: o xml nunca grava = aviso de que ainda nao mostra enabled=3 (nao reiniciar ja)"
+  instala_suite; apps_cenario; : > "$T/restr-nunca"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && grep -q "AVISO.*apps: o package-restrictions.xml ainda nao mostra enabled=3 para:" "$S/boot.log"' "rc=$RC; $(grep apps "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "apps: o pm disable-user falha = aviso por app, o boot segue"
+  instala_suite; apps_cenario; : > "$T/pm-disable-falha"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && [ "$(grep -c "AVISO.*apps: nao consegui desligar" "$S/boot.log")" = 3 ] && [ -z "$(cat "$T/pm-desligados")" ]' "rc=$RC; $(grep apps "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "apps: o pm nao responde = 6 consultas, aviso, nada desligado"
+  instala_suite; apps_cenario; : > "$T/pm-fora"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && grep -q "AVISO.*apps: o pm nao respondeu em 6 consultas" "$S/boot.log" && [ "$(chamadas "pm disable-user")" = 0 ]' "rc=$RC; $(grep apps "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "apps: com o gatilho nunca o boot tambem desliga"
+  instala_suite; apps_cenario; echo nunca > "$S/gatilho"
+  roda_boot
+  afirma '[ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 3 ] && [ "$RC" = 0 ]' "gatilho nunca nao desligou: $(tr '\n' ' ' < "$T/pm-desligados")"
+  limpa
+}
+
 c_pedido(){
   novo_cenario "pedido: arquivo do pedido = apaga e lanca suite.sh pedido"
   instala_suite; echo "qualquer conteudo" > "$PED/pedir-verificacao"
@@ -841,6 +996,33 @@ c_desinstalar(){
   : > "$T/calls.log"
   roda_kit
   afirma '[ "$RC" = 0 ] && [ "$(chamadas mount)" = 0 ]' "2o desinstalar remontou ou falhou (rc=$RC)"
+  limpa
+}
+
+# desinstalar leva o bloco 14 de volta: desliga as sobreposicoes (a do android primeiro) e apaga as pastas,
+# tira a prop do gerenciador, religa os apps e restaura a marca
+c_desinstalar14(){
+  local d
+  novo_cenario "desinstalar: sobreposicoes desligadas (android primeiro) e removidas, prop do gerenciador tirada, apps religados, marca restaurada"
+  pendrive; apps_cenario
+  roda_kit
+  afirma 'grep -qx "vendor.nl.filemanage_file=1" "$R/vendor/build.prop" && cmp -s "$KIT/marca/logo.jpg" "$R/atv/bootvideo/logo.jpg"' "preparo: o kit nao pos a prop ou a marca"
+  afirma '[ -n "$(ls -d "$R"/vendor/overlay/PFL7560Tema* 2>/dev/null)" ]' "preparo: o kit nao instalou sobreposicoes"
+  : > "$T/overlay.db"
+  for d in "$R"/vendor/overlay/PFL7560Tema*; do echo "[x] com.pfl7560.tema.$(basename "$d" | sed 's/^PFL7560Tema//' | tr '[:upper:]' '[:lower:]')" >> "$T/overlay.db"; done
+  echo "$APPS14" | tr ' ' '\n' > "$T/pm-desligados"
+  : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
+  roda_kit
+  afirma '! grep -q "\[x\]" "$T/overlay.db" && [ "$(grep "^cmd overlay disable" "$T/calls.log" | head -1)" = "cmd overlay disable com.pfl7560.tema.android" ]' "disable: $(grep '^cmd overlay' "$T/calls.log" | sed 's/.*tema\.//' | tr '\n' ' ')"
+  afirma '[ -z "$(ls -d "$R"/vendor/overlay/PFL7560Tema* 2>/dev/null)" ] && grep -q "sobreposicoes de tema removidas" "$T/kit.out"' "sobrou pasta de sobreposicao: $(find "$R/vendor/overlay" -maxdepth 1 | tr '\n' ' ')"
+  afirma '! grep -q "^vendor.nl.filemanage_file=" "$R/vendor/build.prop" && grep -q "wifi_disconnect_on_boot=0" "$R/vendor/build.prop"' "a prop do gerenciador ficou ou o fix do wi-fi saiu"
+  afirma '[ ! -s "$T/pm-desligados" ] && [ "$(grep -c "^pm enable --user 0 " "$T/calls.log")" = 3 ]' "apps nao religados: $(tr '\n' ' ' < "$T/pm-desligados")"
+  afirma '[ "$(cat "$R/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && [ "$(cat "$R/atv/bootvideo/bootanimation.zip")" = "animacao de fabrica" ] && [ ! -e "$S" ]' "marca nao restaurada ou pasta da suite ficou"
+  afirma 'grep -q "marca: logo.jpg de fabrica restaurado" "$T/kit.out"' "log sem a restauracao da marca"
+  # desinstalar de novo: nada a remover, nao remonta, nao religa
+  : > "$T/calls.log"
+  roda_kit
+  afirma '[ "$RC" = 0 ] && [ "$(chamadas mount)" = 0 ] && [ "$(chamadas "pm enable")" = 0 ]' "2o desinstalar mexeu de novo (rc=$RC)"
   limpa
 }
 
@@ -1441,7 +1623,7 @@ c_estaticos(){
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
-for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar \
+for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot \
          c_etapas_cor c_etapas_geometria c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente}; do
   echo "  $c"
   "$c"

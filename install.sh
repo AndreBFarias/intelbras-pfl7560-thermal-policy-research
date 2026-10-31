@@ -139,6 +139,7 @@ chmod_scripts(){
 #   suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc   (suite de verificacao, bloco 9B)
 #   nl_tela  fontes/*                                              (telas geradas, bloco 9A)
 #   pfl7560.apk                                                    (app "PFL7560", bloco 9C)
+#   overlay/*.apk  marca/*                                         (tema Dracula e marca de boot, bloco 14)
 #   kit/*.png
 # O newlink_update.sh nao esta na lista (nao pode conter o proprio md5) e o LEIA-ME.txt
 # tambem nao: os dois sao comparados byte a byte com a origem. NAO grava nada no projetor.
@@ -162,6 +163,7 @@ copiar_pendrive(){
   cp "$src/newlink_update.sh" "$src/LEIA-ME.txt" "$dest/" || { err "falha ao copiar para $dest"; return 1; }
   while read -r h n; do
     [ -n "$n" ] || continue
+    case "$n" in */*) mkdir -p "$dest/${n%/*}" || { err "nao consegui criar $dest/${n%/*}"; falhas=$((falhas+1)); } ;; esac
     cp "$src/$n" "$dest/$n" || { err "falha ao copiar $n"; falhas=$((falhas+1)); }
   done <<LISTA
 $lista

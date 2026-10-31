@@ -28,8 +28,9 @@ COMO USAR (5 passos)
      a RAIZ do pendrive (nao deixe dentro de outra pasta):
         newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   nl_tela   ZYCustom.ini
         suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc   pfl7560.apk
-        pasta kit   pasta fontes
+        pasta kit   pasta fontes   pasta overlay   pasta marca
      (a pasta "kit" tem as telas .png e a pasta "fontes" as letras das telas geradas;
+     "overlay" tem o tema do sistema e "marca" o logo e a animacao de boot;
      pfl7560.apk e o app dos icones; este LEIA-ME e opcional). Pelo PC, o jeito mais
      seguro e ./install.sh --pendrive <pasta do pendrive> (copia e confere tudo).
   2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
@@ -105,6 +106,22 @@ A SUITE DE VERIFICACAO (o que ela faz, quando roda, como desligar)
   adb uninstall com.pfl7560.verificar
   LIMITE: a suite e o app foram provados so em SIMULACAO; o teste no aparelho esta
   marcado para o fim (docs/research/44-suite-de-boot.md, "Teste no aparelho").
+
+TEMA E MARCA (bloco 14; pastas "overlay" e "marca" do pendrive)
+  Na mesma passada, com a suite instalada, o kit tambem:
+  - grava as SOBREPOSICOES do tema Dracula em /vendor/overlay (uma por tela do
+    fabricante: configuracoes, Bluetooth, gerenciador de arquivos, galeria, menu de
+    energia...). A do "android", que mexe no sistema inteiro, vai por ULTIMO. Vale no
+    boot SEGUINTE: no boot o servico da suite liga cada uma. Tenha o pendrive de
+    resgate (firmware) a mao na primeira vez: se o sistema nao subir, ele regrava tudo.
+  - faz o gerenciador de arquivos abrir direto na lista (uma linha no build.prop);
+  - grava a marca MeowCast no logo e na animacao de boot (/atv/bootvideo), depois de
+    guardar uma vez os de fabrica;
+  - desliga o Office, o iOSCast e o Espelhamento do fabricante (no boot; espere uns
+    20 segundos antes de desligar o projetor, o sistema grava esse estado com atraso).
+  Com DESINSTALAR-SUITE.txt tudo isso volta ao de fabrica. A imagem do carregador
+  (particao "logo") e o VLC NAO vem no pendrive: no PC, PFL_IP=<ip> ./pfl7560-marca.sh
+  e PFL_IP=<ip> ./pfl7560-vlc.sh (docs/research/44-suite-de-boot.md, secao 15).
 
 COMO SABER QUE FUNCIONOU (3 sinais)
   - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos;

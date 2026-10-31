@@ -63,7 +63,9 @@ novo_cenario(){ # $1 = nome do caso
   T="$(mktemp -d)"
   local r="$T/root" b="$T/bin"
   mkdir -p "$r/vendor/etc/init/hw" "$r/vendor/lib" "$r/vendor/bin" "$r/atv" "$r/proc/msp" "$r/dev/block/by-name" \
-           "$r/data/local/tmp" "$r/data/media/0" "$r/sdcard" "$r/mnt/media_rw/USB1" "$b"
+           "$r/data/local/tmp" "$r/data/media/0" "$r/sdcard" "$r/mnt/media_rw/USB1" "$r/atv/bootvideo" "$b"
+  # a marca de fabrica (bloco 14): o logo e a animacao de boot originais do aparelho
+  echo "logo de fabrica" > "$r/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$r/atv/bootvideo/bootanimation.zip"
   : > "$r/vendor/lib/libhitvservice.so"
   : > "$r/dev/video0"
   # termico/wi-fi/xiri: aparelho de FABRICA
@@ -208,6 +210,22 @@ rc_suite_ok(){
   mkdir -p "$T/root/vendor/app/PFL7560Home"; chmod 755 "$T/root/vendor/app/PFL7560Home"
   cp "$KIT/pfl7560-home.apk" "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk"; chmod 644 "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk"
   grep -qx "vendor.newlink.launcher.package=com.pfl7560.home" "$T/root/vendor/build.prop" || echo "vendor.newlink.launcher.package=com.pfl7560.home" >> "$T/root/vendor/build.prop"
+  fm_e_overlays_ok
+}
+# bloco 14: as sobreposicoes de tema ja em /vendor/overlay, a prop do gerenciador de arquivos e a marca
+# ja gravada (o aparelho "com tudo" nao abre o /vendor nem escreve nada por eles)
+OVL_KIT="$(sed -n '/^# KIT_OVERLAYS_INICIO/,/^# KIT_OVERLAYS_FIM/p' "$KIT/newlink_update.sh" | sed -n 's/^\(KIT_OVERLAYS="\)\{0,1\}\(overlay\/[A-Za-z0-9]*\.apk:[A-Za-z0-9]*\)$/\2/p')"
+overlays_ok(){
+  local e
+  for e in $OVL_KIT; do
+    mkdir -p "$T/root/vendor/overlay/${e#*:}"; chmod 755 "$T/root/vendor/overlay/${e#*:}"
+    cp "$KIT/${e%%:*}" "$T/root/vendor/overlay/${e#*:}/${e#*:}.apk"; chmod 644 "$T/root/vendor/overlay/${e#*:}/${e#*:}.apk"
+  done
+}
+fm_e_overlays_ok(){
+  overlays_ok
+  grep -qx "vendor.nl.filemanage_file=1" "$T/root/vendor/build.prop" || echo "vendor.nl.filemanage_file=1" >> "$T/root/vendor/build.prop"
+  cp "$KIT/marca/logo.jpg" "$T/root/atv/bootvideo/logo.jpg"; cp "$KIT/marca/bootanimation.zip" "$T/root/atv/bootvideo/bootanimation.zip"
 }
 # aparelho com tudo aplicado (termico/wi-fi/xiri/servico da suite): so a cor fica em jogo
 aparelho_ok(){
@@ -233,6 +251,7 @@ aparelho_ok_novo(){
   cp "$ROOT/artifacts/build.prop.NOTYPEC.STOCK" "$r/vendor/build.prop"
   sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' "$r/vendor/build.prop"
   echo "vendor.newlink.launcher.package=com.pfl7560.home" >> "$r/vendor/build.prop"
+  echo "vendor.nl.filemanage_file=1" >> "$r/vendor/build.prop"
   sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$r/vendor/etc/init/hw/init.bigfish.rc"
 }
 # linhas do ini sem o CONFIG_MODEL (para comparar o resto byte a byte)
@@ -1190,7 +1209,7 @@ c_instalador(){
   CASO="install.bat"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk pfl7560-home.apk 'kit\*.png' 'fontes\*'; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk pfl7560-home.apk 'kit\*.png' 'fontes\*' 'overlay\*' 'marca\*'; do
     afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -qF "$f"' "install.bat nao copia/lista $f"
   done
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
@@ -1204,6 +1223,7 @@ print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\",
     afirma 'grep -q "$f" "$ROOT/INSTALL.md"' "INSTALL.md nao lista $f"
   done
   afirma 'grep -q "kit/\*.png" "$ROOT/INSTALL.md"' "INSTALL.md nao lista kit/*.png"
+  afirma 'grep -q "pendrive-autorun/overlay/" "$ROOT/INSTALL.md" && grep -q "pendrive-autorun/marca/" "$ROOT/INSTALL.md"' "INSTALL.md nao lista overlay/ e marca/"
 }
 
 # ---------------------------------------------------------------------------
@@ -1325,6 +1345,190 @@ c_app(){
   limpa
 }
 
+# bloco 14: sobreposicoes de tema (/vendor/overlay), prop do gerenciador de arquivos e marca MeowCast
+OVLV(){ echo "$T/root/vendor/overlay"; }
+S14(){ echo "$T/root/data/vendor/pfl7560-suite"; }
+N_OVL="$(echo "$OVL_KIT" | wc -w | tr -d ' ')"
+c_bloco14(){
+  local e n
+  novo_cenario "overlay: ausentes = todas vao para /vendor/overlay/<Nome>, a do android por ultimo, sem enable (e do boot); 2a vez nao regrava"; aparelho_ok
+  rm -rf "$(OVLV)"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && [ "$N_OVL" -ge 1 ]' "rc=$RC, lista de sobreposicoes vazia ($N_OVL)"
+  for e in $OVL_KIT; do
+    n="${e#*:}"
+    afirma 'cmp -s "$KIT/${e%%:*}" "$(OVLV)/$n/$n.apk" && ls -l "$(OVLV)/$n/$n.apk" | grep -q "^-rw-r--r--" && ls -ld "$(OVLV)/$n" | grep -q "^drwxr-xr-x"' "$n ausente, diferente ou com modo errado: $(ls -lR "$(OVLV)/$n" 2>&1 | tr '\n' '|')"
+    afirma 'tem_chamada "^chcon u:object_r:vendor_overlay_file:s0 $(OVLV)/$n\$" && tem_chamada "^chcon u:object_r:vendor_overlay_file:s0 .*vendor/overlay/.$n.apk.new\$"' "$n sem chcon vendor_overlay_file"
+  done
+  afirma '[ "$(log_tudo | grep -c "\[OK\] overlay: ")" = "$N_OVL" ]' "esperava $N_OVL instalacoes no log, achei $(log_tudo | grep -c "\[OK\] overlay: ")"
+  afirma 'log_tudo | grep "\[OK\] overlay: " | tail -1 | grep -q "PFL7560TemaAndroid.apk"' "a do android nao foi a ultima: $(log_tudo | grep "\[OK\] overlay: " | tail -1 | cut -c1-80)"
+  afirma 'log_tudo | grep "\[OK\] overlay: " | head -1 | grep -q "instalado como sobreposicao do sistema" && log_tudo | grep -q "PROXIMO boot"' "log sem a sobreposicao ou sem o aviso do proximo boot"
+  afirma '! tem_chamada "^cmd overlay" && ! tem_chamada "^pm "' "o kit ligou a sobreposicao (isso e do suite-boot.sh, depois do boot) ou usou o pm"
+  afirma 'tem_chamada "^mount -o rw,remount /vendor" && tem_chamada "^mount -o ro,remount /vendor"' "gravou sem o remount rw/ro"
+  afirma '[ -z "$(find "$T/root/vendor" -name ".*.new")" ] && [ -z "$(find "$(S14)" -name "*.apk")" ]' "sobrou .new ou o apk foi para a pasta da suite"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "as sobreposicoes mudaram o fluxo do kit: telas '$(telas)'"
+  : > "$T/calls.log"
+  roda nokey
+  afirma '! tem_chamada "^mount -o rw,remount /vendor" && [ "$(log_tudo | grep -c "overlay: .* ja estava em /vendor/overlay/")" = "$N_OVL" ]' "2a execucao abriu o /vendor ou regravou"
+  limpa
+
+  novo_cenario "overlay: APK de versao antiga = atualiza so ele"; aparelho_ok
+  e="$(echo "$OVL_KIT" | tr ' ' '\n' | head -1)"; n="${e#*:}"
+  echo velho > "$(OVLV)/$n/$n.apk"
+  roda nokey
+  afirma 'cmp -s "$KIT/${e%%:*}" "$(OVLV)/$n/$n.apk" && [ "$(log_tudo | grep -c "\[OK\] overlay: ")" = 1 ]' "nao atualizou so o $n: $(log_tudo | grep "overlay:" | cut -c1-90 | tr '\n' '|')"
+  limpa
+
+  novo_cenario "overlay: um APK nao grava = os outros entram e o kit segue (cor, suite e telas como sempre)"; aparelho_ok
+  e="$(echo "$OVL_KIT" | tr ' ' '\n' | head -1)"; n="${e#*:}"
+  rm -rf "$(OVLV)/$n"; mkdir -p "$(OVLV)/.$n.apk.new/x"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && [ ! -e "$(OVLV)/$n/$n.apk" ] && log_tudo | grep -q "AVISO.*overlay: nao consegui gravar o apk" && [ "$(log_tudo | grep -c "\[OK\] overlay: ")" = 0 ]' "rc=$RC; $(log_tudo | grep "overlay:" | cut -c1-90 | tr '\n' '|')"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "a falha mudou o fluxo: telas '$(telas)'"
+  chmod -R u+rwx "$(OVLV)" 2>/dev/null
+  limpa
+
+  novo_cenario "overlay: so uma pasta falha, as outras (e a do android) entram"; aparelho_ok
+  e="$(echo "$OVL_KIT" | tr ' ' '\n' | head -1)"; n="${e#*:}"
+  for x in $OVL_KIT; do [ "$x" != "$e" ] && rm -rf "$(OVLV)/${x#*:}"; done
+  rm -rf "$(OVLV)/$n"
+  # o primeiro nao grava (a pasta do .new e um diretorio); os demais, ausentes, entram
+  mkdir -p "$(OVLV)/.$n.apk.new/x"
+  roda nokey
+  afirma '[ ! -e "$(OVLV)/$n/$n.apk" ] && [ "$(log_tudo | grep -c "\[OK\] overlay: ")" = "$((N_OVL - 1))" ]' "esperava $((N_OVL - 1)) instaladas: $(log_tudo | grep "overlay:" | cut -c1-90 | tr '\n' '|')"
+  chmod -R u+rwx "$(OVLV)" 2>/dev/null
+  limpa
+
+  novo_cenario "overlay: pasta e LINK = o link sai, o alvo fica intacto"; aparelho_ok
+  e="$(echo "$OVL_KIT" | tr ' ' '\n' | head -1)"; n="${e#*:}"
+  rm -rf "$(OVLV)/$n"; mkdir -p "$T/alvo-ovl"; ln -s "$T/alvo-ovl" "$(OVLV)/$n"
+  roda nokey
+  afirma '[ -z "$(ls -A "$T/alvo-ovl")" ] && [ -d "$(OVLV)/$n" ] && [ ! -L "$(OVLV)/$n" ] && cmp -s "$KIT/${e%%:*}" "$(OVLV)/$n/$n.apk"' "seguiu o link ou nao instalou"
+  limpa
+
+  novo_cenario "overlay: remount do /vendor falha = nada do /vendor, mas a marca (que nao e do /vendor) entra e o kit segue"; aparelho_ok
+  rm -rf "$(OVLV)"; echo orig > "$T/root/atv/bootvideo/logo.jpg"; : > "$T/mount-falha"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && [ ! -e "$(OVLV)" ] && log_tudo | grep -q "NAO instalados"' "rc=$RC; sem o aviso"
+  afirma 'cmp -s "$KIT/marca/logo.jpg" "$T/root/atv/bootvideo/logo.jpg"' "a marca nao entrou sem o /vendor"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "a falha mudou o fluxo: telas '$(telas)'"
+  limpa
+
+  novo_cenario "overlay: APK adulterado NO PENDRIVE = o kit aborta antes de instalar"; aparelho_ok
+  e="$(echo "$OVL_KIT" | tr ' ' '\n' | head -1)"; n="${e#*:}"
+  rm -rf "$(OVLV)"; printf 'X' >> "$T/root/mnt/media_rw/USB1/${e%%:*}"
+  roda nokey
+  afirma '[ "$RC" != 0 ] && [ ! -e "$(OVLV)" ] && log_tudo | grep -q "${e%%:*}.*md5 diferente"' "rc=$RC; instalou apk adulterado"
+  limpa
+
+  novo_cenario "overlay: DESINSTALAR-SUITE = nao instala sobreposicao, prop nem marca"; aparelho_ok
+  rm -rf "$(OVLV)"; sed -i '/^vendor.nl.filemanage_file=/d' "$T/root/vendor/build.prop"
+  echo orig > "$T/root/atv/bootvideo/logo.jpg"
+  : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ ! -e "$(OVLV)" ] && ! grep -q "vendor.nl.filemanage_file" "$T/root/vendor/build.prop" && [ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = orig ]' "gravou algo do bloco 14 com a suite desinstalada"
+  limpa
+
+  # ---- prop do gerenciador de arquivos -----------------------------------------------------
+  novo_cenario "gerenciador: prop ausente = gravada uma vez, o resto do build.prop fica; 2a vez nao regrava"; aparelho_ok
+  sed -i '/^vendor.nl.filemanage_file=/d' "$T/root/vendor/build.prop"
+  cp "$T/root/vendor/build.prop" "$T/bp-antes"
+  roda nokey
+  afirma '[ "$(grep -cx "vendor.nl.filemanage_file=1" "$T/root/vendor/build.prop")" = 1 ] && log_tudo | grep -q "\[OK\] gerenciador:"' "prop: $(grep filemanage "$T/root/vendor/build.prop")"
+  afirma 'diff <(grep -v "^vendor.nl.filemanage_file=" "$T/root/vendor/build.prop") "$T/bp-antes" >/dev/null' "o build.prop perdeu ou ganhou outra linha"
+  : > "$T/calls.log"
+  roda nokey
+  afirma '! tem_chamada "^mount -o rw,remount /vendor" && log_tudo | grep -q "gerenciador: a prop do gerenciador ja estava"' "2a execucao abriu o /vendor ou regravou"
+  limpa
+
+  novo_cenario "gerenciador: prop com outro valor (=0) = trocada, sem duplicar"; aparelho_ok
+  sed -i 's/^vendor.nl.filemanage_file=1$/vendor.nl.filemanage_file=0/' "$T/root/vendor/build.prop"
+  roda nokey
+  afirma '[ "$(grep -c "^vendor.nl.filemanage_file=" "$T/root/vendor/build.prop")" = 1 ] && grep -qx "vendor.nl.filemanage_file=1" "$T/root/vendor/build.prop"' "prop: $(grep filemanage "$T/root/vendor/build.prop" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "gerenciador: o build.prop nao grava = aviso, build.prop intacto, o kit segue"; aparelho_ok
+  sed -i '/^vendor.nl.filemanage_file=/d' "$T/root/vendor/build.prop"
+  cp "$T/root/vendor/build.prop" "$T/bp-antes"; mkdir -p "$T/root/vendor/build.prop.new/x"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && cmp -s "$T/bp-antes" "$T/root/vendor/build.prop" && log_tudo | grep -q "AVISO.*gerenciador: nao consegui gravar" ' "rc=$RC; $(log_tudo | grep gerenciador | cut -c1-100)"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ]' "a falha mudou o fluxo: telas '$(telas)'"
+  chmod -R u+rwx "$T/root/vendor/build.prop.new" 2>/dev/null
+  limpa
+
+  # ---- marca MeowCast -------------------------------------------------------------------
+  novo_cenario "marca: os de fabrica sao guardados UMA vez e os do kit gravados com cat (dono e rotulo ficam); 2a vez nada; firmware que os troca nao muda o backup"; aparelho_ok
+  echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$T/root/atv/bootvideo/bootanimation.zip"
+  roda nokey
+  afirma 'cmp -s "$KIT/marca/logo.jpg" "$T/root/atv/bootvideo/logo.jpg" && cmp -s "$KIT/marca/bootanimation.zip" "$T/root/atv/bootvideo/bootanimation.zip"' "a marca do kit nao foi gravada"
+  afirma '[ "$(cat "$(S14)/marca-original/logo.jpg")" = "logo de fabrica" ] && [ "$(cat "$(S14)/marca-original/bootanimation.zip")" = "animacao de fabrica" ]' "backup dos originais errado: $(ls -l "$(S14)/marca-original" 2>&1 | tr '\n' '|')"
+  afirma 'ls -ld "$(S14)/marca-original" | grep -q "^drwx------" && [ -z "$(find "$(S14)/marca-original" -name "*.new")" ]' "pasta do backup sem 0700 ou com .new"
+  afirma 'log_tudo | grep -q "\[OK\] marca: logo.jpg gravado" && log_tudo | grep -q "\[OK\] marca: bootanimation.zip gravado"' "log sem a marca: $(log_tudo | grep marca | cut -c1-90 | tr '\n' '|')"
+  afirma '! tem_chamada "^mount -o rw,remount /vendor"' "a marca abriu o /vendor sem precisar (o aparelho ja estava com tudo no /vendor)"
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(telas)" = "aguarde escada-1 calibracao pronto " ]' "a marca mudou o fluxo do kit: telas '$(telas)'"
+  m1="$(stat -c %Y.%i "$(S14)/marca-original/logo.jpg")"
+  : > "$T/calls.log"; roda nokey
+  afirma 'log_tudo | grep -q "marca: logo.jpg ja estava igual ao do kit" && [ "$(stat -c %Y.%i "$(S14)/marca-original/logo.jpg")" = "$m1" ]' "2a execucao regravou: $(log_tudo | grep marca | cut -c1-90 | tr '\n' '|')"
+  # o firmware (ou o dono) poe outro logo; o kit grava o dele de novo e o backup continua sendo o de fabrica
+  echo "outro logo" > "$T/root/atv/bootvideo/logo.jpg"
+  roda nokey
+  afirma 'cmp -s "$KIT/marca/logo.jpg" "$T/root/atv/bootvideo/logo.jpg" && [ "$(cat "$(S14)/marca-original/logo.jpg")" = "logo de fabrica" ]' "o backup foi sobrescrito ou o logo nao voltou"
+  limpa
+
+  novo_cenario "marca: desinstalar restaura os de fabrica e a pasta da suite sai"; aparelho_ok
+  echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$T/root/atv/bootvideo/bootanimation.zip"
+  roda nokey
+  : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && [ "$(cat "$T/root/atv/bootvideo/bootanimation.zip")" = "animacao de fabrica" ]' "nao restaurou: $(cat "$T/root/atv/bootvideo/logo.jpg" | head -c 30)"
+  afirma 'log_tudo | grep -q "\[OK\] marca: logo.jpg de fabrica restaurado" && [ ! -e "$(S14)" ]' "log ou pasta da suite: $(log_tudo | grep marca | cut -c1-90 | tr '\n' '|')"
+  limpa
+
+  novo_cenario "marca: arquivo de fabrica ausente ou LINK = aviso, nada criado nem escrito no alvo do link"; aparelho_ok
+  rm -f "$T/root/atv/bootvideo/bootanimation.zip" "$T/root/atv/bootvideo/logo.jpg"
+  echo alvo > "$T/alvo-marca"; ln -s "$T/alvo-marca" "$T/root/atv/bootvideo/logo.jpg"
+  roda nokey
+  afirma '[ ! -e "$T/root/atv/bootvideo/bootanimation.zip" ] && [ "$(cat "$T/alvo-marca")" = alvo ] && [ -L "$T/root/atv/bootvideo/logo.jpg" ] && [ "$(log_tudo | grep -c "AVISO.*marca: ")" = 2 ]' "criou ou escreveu no link: $(log_tudo | grep marca | cut -c1-90 | tr '\n' '|')"
+  afirma '[ "$RC" = 0 ] && [ "$(telas)" = "aguarde escada-1 calibracao pronto " ]' "o aviso parou o kit (rc=$RC)"
+  limpa
+
+  if [ "$(id -u)" != 0 ]; then
+    novo_cenario "marca: o cat nao grava (arquivo somente leitura) = original mantido, aviso, o kit segue; desinstalar que nao restaura deixa o backup"; aparelho_ok
+    echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; chmod 444 "$T/root/atv/bootvideo/logo.jpg"
+    roda nokey
+    afirma '[ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && log_tudo | grep -q "AVISO.*marca: logo.jpg nao conferiu depois de gravar - voltei o original" && [ "$RC" = 0 ]' "rc=$RC; $(log_tudo | grep marca | cut -c1-110 | tr '\n' '|')"
+    afirma 'cmp -s "$KIT/marca/bootanimation.zip" "$T/root/atv/bootvideo/bootanimation.zip"' "a falha de um impediu o outro"
+    # liberado, o logo do kit entra; so leitura de novo, o desinstalar nao consegue devolver o de fabrica
+    chmod 644 "$T/root/atv/bootvideo/logo.jpg"
+    roda nokey
+    chmod 444 "$T/root/atv/bootvideo/logo.jpg"
+    : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+    roda nokey
+    afirma 'log_tudo | grep -q "ERRO.*marca: nao consegui restaurar logo.jpg" && log_tudo | grep -q "a pasta da suite FICA" && [ "$(cat "$(S14)/marca-original/logo.jpg")" = "logo de fabrica" ]' "o backup sumiu com o restaura falho: $(log_tudo | grep marca | cut -c1-110 | tr '\n' '|')"
+    chmod 644 "$T/root/atv/bootvideo/logo.jpg"
+    limpa
+  fi
+
+  novo_cenario "marca: arquivo da marca adulterado NO PENDRIVE = o kit aborta antes de gravar"; aparelho_ok
+  echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; printf 'X' >> "$T/root/mnt/media_rw/USB1/marca/logo.jpg"
+  roda nokey
+  afirma '[ "$RC" != 0 ] && [ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && log_tudo | grep -q "marca/logo.jpg.*md5 diferente"' "rc=$RC; gravou marca adulterada"
+  limpa
+
+  # ---- desinstalar leva o bloco 14 de volta -------------------------------------------------------
+  novo_cenario "desinstalar: sobreposicoes, prop do gerenciador e marca voltam ao de fabrica; o resto do /vendor fica"; aparelho_ok
+  echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$T/root/atv/bootvideo/bootanimation.zip"
+  roda nokey
+  afirma 'log_tudo | grep -q "marca: logo.jpg gravado"' "preparo: a marca nao foi gravada"
+  : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ -z "$(ls -d "$(OVLV)"/PFL7560Tema* 2>/dev/null)" ] && log_tudo | grep -q "\[OK\] sobreposicoes de tema removidas"' "sobrou sobreposicao: $(ls "$(OVLV)" 2>&1 | tr '\n' ' ')"
+  afirma '! grep -q "vendor.nl.filemanage_file" "$T/root/vendor/build.prop" && log_tudo | grep -q "\[OK\] gerenciador de arquivos: prop tirada"' "a prop do gerenciador ficou"
+  afirma 'grep -q "wifi_disconnect_on_boot=0" "$T/root/vendor/build.prop"' "o desinstalar levou o fix do wi-fi junto"
+  afirma 'tem_chamada "^mount -o rw,remount /vendor" && tem_chamada "^mount -o ro,remount /vendor"' "tirou sem o remount rw/ro"
+  limpa
+}
+
 c_estaticos(){
   CASO="estaticos"; SHELL_NOME="-"
   local f
@@ -1376,6 +1580,19 @@ c_estaticos(){
     afirma 'git -C "$ROOT" check-attr byte-exact -- "pendrive-autorun/$f" | grep -q "byte-exact: set"' "$f nao esta como byte-exact no .gitattributes"
   done
   afirma 'python3 -I "$ROOT/tests/simula-padroes-kit.py" >/dev/null' "simulacao dos padroes falhou"
+  # bloco 14: o kit leva TODOS os APKs de artifacts/overlay/apk (nenhum a mais, nenhum a menos), com a
+  # do android por ultimo, e a marca; tudo na KIT_LISTA e byte-exact
+  afirma '[ "$(echo "$OVL_KIT" | wc -w | tr -d " ")" = "$(ls "$ROOT"/artifacts/overlay/apk/*.apk | wc -l | tr -d " ")" ]' "KIT_OVERLAYS nao tem um item por APK de artifacts/overlay/apk"
+  afirma '[ "$(echo "$OVL_KIT" | tr " " "\n" | tail -1)" = "overlay/PFL7560TemaAndroid.apk:PFL7560TemaAndroid" ]' "a sobreposicao do android nao e a ultima de KIT_OVERLAYS"
+  for f in $OVL_KIT; do
+    afirma 'cmp -s "$ROOT/artifacts/overlay/apk/${f#*:}.apk" "$KIT/${f%%:*}"' "${f%%:*} do kit difere do de artifacts/overlay/apk"
+    afirma 'grep -q "  ${f%%:*}\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh")' "${f%%:*} fora da KIT_LISTA"
+  done
+  for f in marca/logo.jpg marca/bootanimation.zip; do
+    afirma 'cmp -s "$KIT/$f" "$ROOT/artifacts/tema/$f" && grep -q "  $f\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh")' "$f difere de artifacts/tema/marca ou esta fora da KIT_LISTA"
+  done
+  afirma 'git -C "$ROOT" check-attr byte-exact -- pendrive-autorun/overlay/PFL7560TemaAndroid.apk pendrive-autorun/marca/logo.jpg | grep -c "byte-exact: set" | grep -qx 2' "overlay/ e marca/ nao estao como byte-exact no .gitattributes"
+  afirma '! git -C "$ROOT" check-ignore -q pendrive-autorun/marca/bootanimation.zip' "o .gitignore (*.zip) esconde marca/bootanimation.zip"
   # LEIA-ME: fluxo de leigo com ate 5 passos numerados e todos os arquivos do kit citados
   afirma '[ "$(sed -n "/^COMO USAR/,/^  Resultado da parte termica/p" "$KIT/LEIA-ME.txt" | grep -cE "^  [0-9]\. ")" = 5 ]' "o fluxo do LEIA-ME nao tem exatamente 5 passos"
   for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela pfl7560.apk fontes ZYCustom.ini kit DESINSTALAR-SUITE.txt incompletas suite-panelparam-backup; do
@@ -1399,7 +1616,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
-           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app}; do
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14}; do
     echo "  $c"
     "$c"
   done

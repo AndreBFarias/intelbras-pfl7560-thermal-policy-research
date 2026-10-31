@@ -33,6 +33,8 @@
 #      suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc  (e nl_tela, fontes/ do 9A)
 #      pfl7560.apk  (app dos icones "Verificar projetor" e "Wi-Fi", bloco 9C)
 #      pfl7560-home.apk  (home nova, bloco 10A)
+#      overlay/*.apk  (sobreposicoes de tema Dracula, blocos 13A/16A) e marca/*  (logo e animacao
+#      de boot MeowCast): bloco 14
 #  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
 #  IDEMPOTENTE:
@@ -122,9 +124,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-d8d9ae43e2be088a8eb23dd5b50f917f  suite.sh
-edd046a464a7b69017afd47196dffa5f  suite-boot.sh
-78f10901d50b579849d15d98aba65e50  suite-pedido.sh
+1a8c21f3946040c19cd71fb1d69f1dad  suite.sh
+530927f77835d78670014b76670a13b4  suite-boot.sh
+0e6f34f20d0f2848581aa0ee7d28fbd5  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 06349058b023bef8992c86b6b67277d0  pfl7560.apk
 a2eaa639a4687070762d37da7cc3d122  pfl7560-home.apk
@@ -142,6 +144,17 @@ f7c622dca16e1da365a328894f74cbac  fontes/IBMPlexSansCondensed-Bold.ttf
 c90afb82696a6873464b6cc8f315f0eb  fontes/IBMPlexSansCondensed-Regular.ttf
 9f4dbd7c74436d0d895ccc3689c42490  fontes/IBMPlexSansCondensed-SemiBold.ttf
 160cec49299e5d622c5150977bfe188c  fontes/OFL.txt
+bcab5041f46f52cb81fd3360ab178dba  overlay/PFL7560TemaHiGallery.apk
+6d36a5f471a2ff85d4719f21a6dc5cd0  overlay/PFL7560TemaNLProvision.apk
+5a60ac5f7d7b68ef47dd04ffb9f39455  overlay/PFL7560TemaNLSource.apk
+6294e2b1a285e8c9e9e4b398f2fb3923  overlay/PFL7560TemaPowerService.apk
+1afda9aa85fd24f80827dadf16a8d675  overlay/PFL7560TemaTvSettings.apk
+1f102f9136010b5bd76dabb726e2aef0  overlay/PFL7560TemaZYBluetooth.apk
+82e79f714626a0f2bb07424da0c83ba6  overlay/PFL7560TemaZYFileManager.apk
+111b7d8d35df708aaac554945064ab83  overlay/PFL7560TemaZYSetting.apk
+60ecbfd22513c2b9b94d7816e56c4af1  overlay/PFL7560TemaAndroid.apk
+3f33a5898aaaff385d9e6cf42762677a  marca/logo.jpg
+85256535f156d25e65af2752de3fb90d  marca/bootanimation.zip
 "
 # KIT_LISTA_FIM
 
@@ -331,7 +344,7 @@ COR_MD5=$(kit_md5_esperado cor.sh)
 # root, 0700; arquivo regular do root com o md5 da lista). Copia a partir de $WORK (ja
 # conferida), so o que tem md5 diferente, por uma pasta de preparo DENTRO de $SUITE,
 # conferida la, e mv para o lugar; no fim confere tudo. Idempotente: 2a vez nada grava.
-suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$'; }
+suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$' -e '^overlay/' -e '^marca/'; }
 # a pasta e as subpastas dela (kit/, fontes/): um arquivo "regular" dentro de uma
 # subpasta que e link passaria pelo arq_seguro
 suite_dir_ok(){
@@ -433,11 +446,15 @@ suite_pronta(){ suite_dir_ok && conferir_em "$SUITE" suite.sh; }
 # MESMA janela rw do /vendor do .rc da suite. Vale no proximo boot. O APK vem de $WORK (ja
 # conferido pelo md5 da lista), nunca do pendrive.
 # Dois apps do kit, cada um em /vendor/app/<Pasta>/<Pasta>.apk: o "PFL7560" (Verificar
-# projetor e Wi-Fi, bloco 9C) e a home nova "PFL7560Home" (bloco 10A).
+# projetor e Wi-Fi, bloco 9C) e a home nova "PFL7560Home" (bloco 10A). Bloco 14: as
+# sobreposicoes de tema entram do mesmo jeito em /vendor/overlay/<Pasta>/<Pasta>.apk (rotulo
+# vendor_overlay_file); o $3 e a pasta de /vendor ("app", o padrao, ou "overlay") e o $4 o rotulo.
 ROTULO_APP="u:object_r:vendor_app_file:s0"
-# $1 = nome no kit (pfl7560.apk), $2 = pasta em /vendor/app (PFL7560)
+ROTULO_OVERLAY="u:object_r:vendor_overlay_file:s0"
+# $1 = nome no kit (pfl7560.apk), $2 = pasta em /vendor/app (PFL7560) [$3 = app|overlay, $4 = rotulo]
 app_conforme(){
-  _ad="$R/vendor/app/$2"; _aa="$_ad/$2.apk"
+  _ab="${3:-app}"; _ar="${4:-$ROTULO_APP}"
+  _ad="$R/vendor/$_ab/$2"; _aa="$_ad/$2.apk"
   [ -d "$_ad" ] && [ ! -L "$_ad" ] || return 1
   [ -f "$_aa" ] && [ ! -L "$_aa" ] && cmp -s "$WORK/$1" "$_aa" || return 1
   # shellcheck disable=SC2046  # divisao em campos de proposito
@@ -445,39 +462,62 @@ app_conforme(){
   case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
   [ "$3" = "$DONO_UID" ] || return 1
   _al=$(rotulo_de "$_aa")
-  [ -z "$_al" ] || [ "$_al" = "$ROTULO_APP" ]
+  [ -z "$_al" ] || [ "$_al" = "$_ar" ]
 }
 # so com o /vendor ja aberto rw. Falha so avisa (devolve !=0): o resto do kit segue.
-# $1 = nome no kit, $2 = pasta em /vendor/app
+# $1 = nome no kit, $2 = pasta em /vendor/app [$3 = app|overlay, $4 = rotulo]
 instalar_app(){
-  _ad="$R/vendor/app/$2"; _aa="$_ad/$2.apk"; _an="$R/vendor/app/.$2.apk.new"
+  _ab="${3:-app}"; _ar="${4:-$ROTULO_APP}"
+  _ad="$R/vendor/$_ab/$2"; _aa="$_ad/$2.apk"; _an="$R/vendor/$_ab/.$2.apk.new"
+  _at=app; _adesc="app do sistema"
+  if [ "$_ab" = "overlay" ]; then _at=overlay; _adesc="sobreposicao do sistema"; fi
   if ! trabalho_ok || ! trabalho_conferir "$1"; then
-    LOG "[AVISO] app: $1 em $WORK nao confere - o app NAO foi instalado (o resto do kit segue)."
+    LOG "[AVISO] $_at: $1 em $WORK nao confere - NAO foi instalado (o resto do kit segue)."
     return 1
+  fi
+  # a pasta-mae (/vendor/overlay) vem no firmware; se faltar, nasce como as outras
+  if [ ! -d "$R/vendor/$_ab" ]; then
+    { mkdir -p "$R/vendor/$_ab" && chmod 755 "$R/vendor/$_ab" && chown root:root "$R/vendor/$_ab"; } 2>/dev/null
+    chcon "$_ar" "$R/vendor/$_ab" 2>/dev/null
   fi
   # um link no lugar da pasta e apagado, nunca seguido
   [ -L "$_ad" ] && rm -f "$_ad"
   if ! { mkdir -p "$_ad" && chmod 755 "$_ad" && chown root:root "$_ad"; }; then
-    LOG "[AVISO] app: nao consegui preparar $_ad - o app NAO foi instalado (o resto do kit segue)."
+    LOG "[AVISO] $_at: nao consegui preparar $_ad - NAO foi instalado (o resto do kit segue)."
     return 1
   fi
-  chcon "$ROTULO_APP" "$_ad" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou na pasta do app."
+  chcon "$_ar" "$_ad" 2>/dev/null || LOG "[AVISO] chcon $_ar falhou na pasta de $_at."
   rm -f "$_an"
   if cp "$WORK/$1" "$_an" && chmod 644 "$_an" && chown root:root "$_an" && cmp -s "$WORK/$1" "$_an"; then
-    chcon "$ROTULO_APP" "$_an" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou no apk."
-    if mv -f "$_an" "$_aa" && app_conforme "$1" "$2"; then
-      _alf=$(rotulo_de "$_aa"); [ -n "$_alf" ] || _alf="(ls -Z nao respondeu; pedido $ROTULO_APP)"
-      LOG "[OK] app: $1 instalado como app do sistema em ${_ad#"$R"} (0644 root, rotulo $_alf). Vale depois do PROXIMO boot."
+    chcon "$_ar" "$_an" 2>/dev/null || LOG "[AVISO] chcon $_ar falhou no apk."
+    if mv -f "$_an" "$_aa" && app_conforme "$1" "$2" "$_ab" "$_ar"; then
+      _alf=$(rotulo_de "$_aa"); [ -n "$_alf" ] || _alf="(ls -Z nao respondeu; pedido $_ar)"
+      LOG "[OK] $_at: $1 instalado como $_adesc em ${_ad#"$R"} (0644 root, rotulo $_alf). Vale depois do PROXIMO boot."
       return 0
     fi
     rm -f "$_aa"
   fi
   rm -f "$_an"
-  LOG "[AVISO] app: nao consegui gravar o apk em $_ad - o app NAO foi instalado (o resto do kit segue)."
+  LOG "[AVISO] $_at: nao consegui gravar o apk em $_ad - NAO foi instalado (o resto do kit segue)."
   return 1
 }
 # os apps do kit: "nome-no-kit:Pasta"
 KIT_APPS="pfl7560.apk:PFL7560 pfl7560-home.apk:PFL7560Home"
+# as sobreposicoes de tema (bloco 14), "nome-no-kit:Pasta", com a do android SEMPRE por ultimo (ela
+# entra em todo processo: so depois das dos apps). A lista sai de artifacts/overlay/apk/ pelo
+# tests/atualizar-md5-kit.sh; NAO editar a mao.
+# KIT_OVERLAYS_INICIO
+KIT_OVERLAYS="overlay/PFL7560TemaHiGallery.apk:PFL7560TemaHiGallery
+overlay/PFL7560TemaNLProvision.apk:PFL7560TemaNLProvision
+overlay/PFL7560TemaNLSource.apk:PFL7560TemaNLSource
+overlay/PFL7560TemaPowerService.apk:PFL7560TemaPowerService
+overlay/PFL7560TemaTvSettings.apk:PFL7560TemaTvSettings
+overlay/PFL7560TemaZYBluetooth.apk:PFL7560TemaZYBluetooth
+overlay/PFL7560TemaZYFileManager.apk:PFL7560TemaZYFileManager
+overlay/PFL7560TemaZYSetting.apk:PFL7560TemaZYSetting
+overlay/PFL7560TemaAndroid.apk:PFL7560TemaAndroid
+"
+# KIT_OVERLAYS_FIM
 # Home nova (bloco 10A): o HOME do sistema e o assistente com.newlink.nlprovision (prioridade
 # 29 no filtro HOME: o set-home-activity NAO vence, visto no aparelho em 2026-10-31). Ele roda o
 # trabalho de boot e repassa a HOME ao pacote da prop vendor.newlink.launcher.package (doc 45
@@ -500,6 +540,60 @@ gravar_home_prop(){
   return 1
 }
 
+# Gerenciador de arquivos abrindo direto na lista (bloco 14): a prop vendor.nl.filemanage_file=1 no
+# /vendor/build.prop, como a da home. O desinstalar da suite a tira.
+FM_LINHA="vendor.nl.filemanage_file=1"
+fm_prop_ok(){ grep -qx "$FM_LINHA" "$BP" 2>/dev/null; }
+gravar_fm_prop(){
+  if cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=/d' "$BP.new" \
+     && echo "$FM_LINHA" >> "$BP.new" && grep -qx "$FM_LINHA" "$BP.new" && mv "$BP.new" "$BP"; then
+    LOG "[OK] gerenciador: $FM_LINHA em ${BP#"$R"} (vale no proximo boot; volta com DESINSTALAR-SUITE.txt)"
+    return 0
+  fi
+  rm -f "$BP.new"
+  LOG "[AVISO] gerenciador: nao consegui gravar a prop em $BP - o gerenciador continua na pagina inicial de fabrica."
+  return 1
+}
+
+# Marca MeowCast (bloco 14): o logo e a animacao de boot em /atv/bootvideo. O arquivo de fabrica
+# e sobrescrito com cat (preserva dono e rotulo SELinux), depois de guardada UMA vez uma copia
+# dele em $SUITE/marca-original; o suite.sh --desinstalar restaura. A imagem da particao
+# "logo" (a do carregador) NAO vem por aqui: depende dos cantos de cada aparelho (pfl7560-marca.sh).
+MARCA_DESTINO="$R/atv/bootvideo"
+MARCA_BACKUP="$SUITE/marca-original"
+KIT_MARCA="marca/logo.jpg:logo.jpg marca/bootanimation.zip:bootanimation.zip"
+marca_ok(){ [ -f "$MARCA_DESTINO/$2" ] && [ ! -L "$MARCA_DESTINO/$2" ] && cmp -s "$WORK/$1" "$MARCA_DESTINO/$2"; }
+# $1 = nome no kit, $2 = arquivo em /atv/bootvideo. Falha so avisa (devolve !=0).
+gravar_marca(){
+  _md="$MARCA_DESTINO/$2"; _mb="$MARCA_BACKUP/$2"
+  if ! trabalho_ok || ! trabalho_conferir "$1"; then
+    LOG "[AVISO] marca: $1 em $WORK nao confere - a marca NAO foi gravada (o resto do kit segue)."
+    return 1
+  fi
+  if [ ! -f "$_md" ] || [ -L "$_md" ]; then
+    LOG "[AVISO] marca: $_md nao existe como arquivo (ou e link) - nada gravado (o cat criaria um arquivo sem o dono e o rotulo do original)."
+    return 1
+  fi
+  # o original, uma vez so (a 1a vez que o arquivo difere do nosso)
+  if [ ! -e "$_mb" ]; then
+    if [ ! -e "$MARCA_BACKUP" ] && [ ! -L "$MARCA_BACKUP" ]; then ( umask 077; mkdir "$MARCA_BACKUP" ) 2>/dev/null && chmod 700 "$MARCA_BACKUP"; fi
+    if ! dir_seguro "$MARCA_BACKUP" || ! { cp "$_md" "$_mb.new" && chmod 600 "$_mb.new" && cmp -s "$_md" "$_mb.new" && mv -f "$_mb.new" "$_mb"; }; then
+      rm -f "$_mb.new"
+      LOG "[AVISO] marca: nao consegui guardar o original de $2 em $MARCA_BACKUP - a marca NAO foi gravada."
+      return 1
+    fi
+    LOG "marca: original de $2 guardado em ${MARCA_BACKUP#"$R"}"
+  fi
+  cat "$WORK/$1" > "$_md" 2>/dev/null
+  if [ "$(md5sum "$_md" 2>/dev/null | cut -d' ' -f1)" = "$(kit_md5_esperado "$1")" ]; then
+    LOG "[OK] marca: $2 gravado em ${MARCA_DESTINO#"$R"} e conferido por md5 (vale no proximo boot)"
+    return 0
+  fi
+  cat "$_mb" > "$_md" 2>/dev/null
+  LOG "[AVISO] marca: $2 nao conferiu depois de gravar - voltei o original (cmp com o backup: $(cmp -s "$_mb" "$_md" && echo igual || echo DIFERENTE))."
+  return 1
+}
+
 SUITE_INSTALAR=1
 if [ -e "$MP/DESINSTALAR-SUITE.txt" ]; then SUITE_INSTALAR=0; fi
 SUITE_OK=0
@@ -515,7 +609,9 @@ fi
 APP_PEND=0
 if [ "$SUITE_OK" = "1" ]; then
   for _ka in $KIT_APPS; do app_conforme "${_ka%%:*}" "${_ka#*:}" || APP_PEND=1; done
+  for _ko in $KIT_OVERLAYS; do app_conforme "${_ko%%:*}" "${_ko#*:}" overlay "$ROTULO_OVERLAY" || APP_PEND=1; done
   home_prop_ok || APP_PEND=1
+  fm_prop_ok || APP_PEND=1
 fi
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
@@ -741,11 +837,31 @@ if [ "$SUITE_OK" = "1" ]; then
       instalar_app "${_ka%%:*}" "${_ka#*:}"
     fi
   done
+  for _ko in $KIT_OVERLAYS; do
+    if app_conforme "${_ko%%:*}" "${_ko#*:}" overlay "$ROTULO_OVERLAY"; then
+      LOG "overlay: ${_ko%%:*} ja estava em /vendor/overlay/${_ko#*:} (igual ao do kit)"
+    elif [ "$VENDOR_RW" = "1" ]; then
+      instalar_app "${_ko%%:*}" "${_ko#*:}" overlay "$ROTULO_OVERLAY"
+    fi
+  done
   if home_prop_ok; then
     LOG "home: a prop da home ja estava no build.prop"
   elif [ "$VENDOR_RW" = "1" ]; then
     gravar_home_prop
   fi
+  if fm_prop_ok; then
+    LOG "gerenciador: a prop do gerenciador ja estava no build.prop"
+  elif [ "$VENDOR_RW" = "1" ]; then
+    gravar_fm_prop
+  fi
+  # a marca nao e do /vendor: nao precisa da janela rw, so da suite instalada (o backup mora nela)
+  for _km in $KIT_MARCA; do
+    if marca_ok "${_km%%:*}" "${_km#*:}"; then
+      LOG "marca: ${_km#*:} ja estava igual ao do kit"
+    else
+      gravar_marca "${_km%%:*}" "${_km#*:}"
+    fi
+  done
 fi
 
 sync

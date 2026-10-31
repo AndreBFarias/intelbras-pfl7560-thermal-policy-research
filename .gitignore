@@ -9,6 +9,8 @@
 # Excecao: zip oficial de fabrica (resgate / rebuild) — tracked com Git LFS
 !firmware/Software PFL7560.zip
 !firmware/Firmware PFL7560.zip
+# animacao de boot do kit (bloco 14), copia de artifacts/tema/marca/bootanimation.zip
+!pendrive-autorun/marca/bootanimation.zip
 
 
 # ===== Dados pessoais / logs do aparelho =====

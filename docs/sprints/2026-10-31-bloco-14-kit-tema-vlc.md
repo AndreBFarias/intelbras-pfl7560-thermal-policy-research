@@ -24,3 +24,14 @@ pendrive: um aparelho novo, ou este depois de regravar o firmware, não recebe e
 - Os scripts de PC seguem o estilo dos `pfl7560-*.sh` e ganham um harness com adb falso, como o
   `tests/test-processos.sh`.
 - Docs: doc 44 (o que o kit faz agora), `INSTALL.md`, `LEIA-ME.txt` do kit.
+
+## Estado (2026-10-31, branch `bloco-14/kit`)
+
+Feito e provado no PC (`make check`, `make check-kit`, `make check-fix`): tudo da tabela acima. O kit, o
+`suite-boot.sh` e o `suite.sh --desinstalar` levam as sobreposições (lista gerada de `artifacts/overlay/apk/`,
+a do `android` por último), a prop do gerenciador de arquivos, os três apps desligados e a marca de boot;
+`pfl7560-marca.sh` e `pfl7560-vlc.sh` com harness de adb falso (`tests/test-pc-marca-vlc.sh`). Doc 44, §15.
+Para a integração: depois de juntar os APKs novos em `artifacts/overlay/apk/`, rodar `bash
+tests/atualizar-md5-kit.sh` (copia para `pendrive-autorun/overlay/`, reescreve `KIT_OVERLAYS` e a `KIT_LISTA`).
+O que só o aparelho confirma está em doc 44, §15, "PROVISÓRIO". Os valores fixados do VLC (sha256 do APK e do
+certificado) foram lidos do `.sha256` publicado e do APK baixado.

@@ -11,7 +11,8 @@ Gera em artifacts/tema/marca/:
 Uso: python3 -I artifacts/tema/gerar-marca.py [lt rt lb rb]
   Os cantos sao os de persist.sys.keystone.{lt,rt,lb,rb} no formato "x,y" do aparelho
   (y conta de baixo para cima). Sem eles, usa os do projetor do dono em 2026-10-31.
-Reprodutivel: mesma entrada, mesmos bytes.
+Reprodutivel: mesma entrada, mesmos bytes. Com PFL_MARCA_SAIDA=<pasta> grava la em vez de em
+artifacts/tema/marca/.
 """
 import io
 import os
@@ -21,7 +22,9 @@ import zipfile
 from PIL import Image, ImageDraw, ImageFont
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SAIDA = os.path.join(RAIZ, "artifacts", "tema", "marca")
+# PFL_MARCA_SAIDA muda a pasta de saida (o pfl7560-marca.sh gera numa pasta temporaria, para
+# nao sobrescrever os arquivos versionados com os cantos de outro aparelho)
+SAIDA = os.environ.get("PFL_MARCA_SAIDA") or os.path.join(RAIZ, "artifacts", "tema", "marca")
 FONTE = os.path.join(RAIZ, "pendrive-autorun", "fontes", "IBMPlexSansCondensed-Bold.ttf")
 L, A = 1920, 1080
 

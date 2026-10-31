@@ -978,22 +978,67 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     LOG "override de temperatura ativo depois de parar o servico: limpando"
     rampa_limpar || _drc=1
   fi
-  # o .rc e a linha da home nova no build.prop (a tela inicial volta a de fabrica no proximo boot)
+  # as sobreposicoes de tema (bloco 14) saem ligadas do sistema ANTES de as pastas sumirem: a do
+  # android primeiro (a ultima a entrar), as dos apps depois. O disable precisa do system_server;
+  # se nao responder, a pasta some mesmo assim e a sobreposicao deixa de existir no proximo boot.
+  _ovl=$(timeout 15 cmd overlay list 2>/dev/null | tr -d '\r' | sed -n 's/^\[x\] \(com\.pfl7560\.tema\.[A-Za-z0-9_]*\).*$/\1/p')
+  for _op in $(printf '%s\n' "$_ovl" | grep -xF com.pfl7560.tema.android) $(printf '%s\n' "$_ovl" | grep -vxF com.pfl7560.tema.android); do
+    if timeout 15 cmd overlay disable "$_op" >/dev/null 2>&1; then LOG "[OK] sobreposicao $_op desligada"; else LOG "[AVISO] nao consegui desligar a sobreposicao $_op."; fi
+  done
+  # o .rc, a linha da home nova e a do gerenciador de arquivos no build.prop (a tela inicial e o
+  # gerenciador voltam ao de fabrica no proximo boot) e as pastas das sobreposicoes
   _hl=0; grep -q '^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$' "$BP" 2>/dev/null && _hl=1
-  if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ] || [ "$_hl" = "1" ]; then
+  _fl=0; grep -q '^vendor\.nl\.filemanage_file=1$' "$BP" 2>/dev/null && _fl=1
+  _ov=""
+  for _od in "$R/vendor/overlay"/PFL7560Tema*; do
+    if [ -e "$_od" ] || [ -L "$_od" ]; then _ov="$_ov $_od"; fi
+  done
+  if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ] || [ "$_hl" = "1" ] || [ "$_fl" = "1" ] || [ -n "$_ov" ]; then
     if mount -o rw,remount /vendor; then
       rm -f "$RC_SUITE"
       if [ "$_hl" = "1" ]; then
         cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$/d' "$BP.new" && mv "$BP.new" "$BP"
         rm -f "$BP.new"
       fi
+      if [ "$_fl" = "1" ]; then
+        cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=1$/d' "$BP.new" && mv "$BP.new" "$BP"
+        rm -f "$BP.new"
+      fi
+      for _od in $_ov; do rm -rf "$_od"; done
       sync
       mount -o ro,remount /vendor 2>/dev/null
     fi
     if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then LOG "[ERRO] nao consegui remover $RC_SUITE."; _drc=1; else LOG "[OK] servico de boot removido"; fi
     if grep -q '^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$' "$BP" 2>/dev/null; then LOG "[ERRO] nao consegui tirar a home nova do build.prop."; _drc=1
     elif [ "$_hl" = "1" ]; then LOG "[OK] home nova desligada (a de fabrica volta no proximo boot)"; fi
+    if grep -q '^vendor\.nl\.filemanage_file=1$' "$BP" 2>/dev/null; then LOG "[ERRO] nao consegui tirar a prop do gerenciador de arquivos do build.prop."; _drc=1
+    elif [ "$_fl" = "1" ]; then LOG "[OK] gerenciador de arquivos: prop tirada (a pagina inicial de fabrica volta no proximo boot)"; fi
+    if [ -n "$_ov" ]; then
+      _ovsobra=""
+      for _od in $_ov; do if [ -e "$_od" ] || [ -L "$_od" ]; then _ovsobra="$_ovsobra $_od"; fi; done
+      if [ -n "$_ovsobra" ]; then LOG "[ERRO] nao consegui remover as sobreposicoes:$_ovsobra"; _drc=1; else LOG "[OK] sobreposicoes de tema removidas de /vendor/overlay"; fi
+    fi
   fi
+  # Office, iOSCast e Espelhamento (bloco 14) voltam (o suite-boot.sh os desligou); so os que estao desligados
+  _dis=$(timeout 15 pm list packages -d 2>/dev/null)
+  for _ap in com.mobisystems.editor.office_registered com.newlink.cast com.hisilicon.miracast; do
+    if printf '%s\n' "$_dis" | grep -qx "package:$_ap"; then
+      if timeout 15 pm enable --user 0 "$_ap" >/dev/null 2>&1; then LOG "[OK] app $_ap religado (pm enable)"; else LOG "[AVISO] nao consegui religar $_ap."; _drc=1; fi
+    fi
+  done
+  # a marca MeowCast (bloco 14): o logo e a animacao de boot de fabrica voltam do backup que o kit
+  # guardou; cat (preserva dono e rotulo) e conferido com cmp. Se algum nao voltar, a pasta da suite
+  # (e o backup nela) FICA, para nao perder o unico original.
+  _mrc=0
+  for _mn in logo.jpg bootanimation.zip; do
+    _mb="$SUITE/marca-original/$_mn"; _md="$R/atv/bootvideo/$_mn"
+    if [ ! -f "$_mb" ] || [ -L "$_mb" ]; then continue; fi
+    if [ -f "$_md" ] && [ ! -L "$_md" ] && cat "$_mb" > "$_md" 2>/dev/null && cmp -s "$_mb" "$_md"; then
+      LOG "[OK] marca: $_mn de fabrica restaurado em /atv/bootvideo"
+    else
+      LOG "[ERRO] marca: nao consegui restaurar $_mn (o backup fica em $_mb)."; _mrc=1; _drc=1
+    fi
+  done
   # o descanso de tela MeowCast (bloco 16B) volta ao do fabricante, mas so se ainda for o nosso
   # (se o dono escolheu outro nas configuracoes, nao se mexe)
   for _k in screensaver_components screensaver_default_component; do
@@ -1009,6 +1054,7 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
   # a marca de "ligado" do suite-boot.sh nao fica para tras
   [ "$(getprop persist.sys.boot.reason 2>/dev/null)" = "pfl7560,ligado" ] && setprop persist.sys.boot.reason ""
   for _dd in "$SUITE" "$TELA_DIR"; do
+    if [ "$_dd" = "$SUITE" ] && [ "$_mrc" = "1" ]; then LOG "a pasta da suite FICA (tem o backup da marca de fabrica)."; continue; fi
     if [ -L "$_dd" ]; then rm -f "$_dd"; elif [ -e "$_dd" ]; then rm -rf "$_dd"; fi
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done

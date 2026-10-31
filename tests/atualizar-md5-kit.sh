@@ -16,6 +16,11 @@
 # nas listas quando existirem em pendrive-autorun/ (e o nl_tela tem de ser igual ao de
 # artifacts/tela/nl_tela). O pfl7560.apk (app, bloco 9C) entra so na KIT_LISTA (a suite nao o
 # executa; o newlink_update.sh o instala) e tem de ser igual ao de artifacts/app/pfl7560.apk.
+# Bloco 14: antes de tudo, regenera pendrive-autorun/overlay/ (uma copia de cada APK de
+# artifacts/overlay/apk/, SEM lista fixa: um APK novo la entra sozinho) e pendrive-autorun/marca/
+# (logo.jpg e bootanimation.zip de artifacts/tema/marca/); escreve o bloco KIT_OVERLAYS do
+# newlink_update.sh (a sobreposicao do android SEMPRE por ultimo, a ordem de instalacao e de
+# ligacao) e poe as copias na KIT_LISTA. --check confere tudo isso sem gravar.
 # Nao toca no aparelho.
 set -u
 export LC_ALL=C   # ordem dos nomes (glob) igual em qualquer maquina
@@ -63,6 +68,32 @@ for f in "$KIT"/fontes/*; do [ -f "$f" ] && FONTES="$FONTES fontes/${f##*/}"; do
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# 0. sobreposicoes e marca: o que DEVE estar em pendrive-autorun/overlay e /marca, montado em $TMP/novo
+OVL_FONTE="$ROOT/artifacts/overlay/apk"
+MARCA_FONTE="$ROOT/artifacts/tema/marca"
+mkdir -p "$TMP/novo/overlay" "$TMP/novo/marca"
+OVL_NOMES=""
+for f in "$OVL_FONTE"/*.apk; do
+  [ -f "$f" ] || continue
+  n="${f##*/}"
+  case "${n%.apk}" in
+    *[!A-Za-z0-9]*) echo "FALHA: nome de sobreposicao fora de [A-Za-z0-9]: $n"; exit 1 ;;
+  esac
+  [ "$n" = "PFL7560TemaAndroid.apk" ] && continue      # a do android vai por ultimo
+  OVL_NOMES="$OVL_NOMES $n"
+done
+[ -f "$OVL_FONTE/PFL7560TemaAndroid.apk" ] && OVL_NOMES="$OVL_NOMES PFL7560TemaAndroid.apk"
+[ -n "$OVL_NOMES" ] || { echo "FALHA: nenhum APK em artifacts/overlay/apk/"; exit 1; }
+for n in $OVL_NOMES; do cp "$OVL_FONTE/$n" "$TMP/novo/overlay/$n"; done
+MARCA_NOMES="logo.jpg bootanimation.zip"
+for n in $MARCA_NOMES; do
+  [ -f "$MARCA_FONTE/$n" ] || { echo "FALHA: sem artifacts/tema/marca/$n"; exit 1; }
+  cp "$MARCA_FONTE/$n" "$TMP/novo/marca/$n"
+done
+OVL_LISTA=""; MARCA_LISTA=""
+for n in $OVL_NOMES; do OVL_LISTA="$OVL_LISTA overlay/$n"; done
+for n in $MARCA_NOMES; do MARCA_LISTA="$MARCA_LISTA marca/$n"; done
+
 # troca o miolo entre "# <INICIO>" e "# <FIM>" de $1 pelo texto de $4 (arquivo); saida em $5
 troca_bloco(){
   awk -v ini="# $2" -v fim="# $3" -v novo="$4" '
@@ -87,19 +118,32 @@ m_pedido="$(md5 "$TMP/suite-pedido.sh")"
 { echo "SUITE_MD5=\"$m_suite\""; echo "PEDIDO_MD5=\"$m_pedido\""; } > "$TMP/b2b"
 troca_bloco "$BOOT_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2b" "$TMP/suite-boot.sh"
 
-# 3. KIT_LISTA (newlink_update.sh), com os scripts da suite ja regravados
+# 3. KIT_OVERLAYS e KIT_LISTA (newlink_update.sh), com os scripts da suite ja regravados e as
+# copias de overlay/ e marca/ como devem ficar
+{ printf 'KIT_OVERLAYS="'
+  for n in $OVL_NOMES; do printf 'overlay/%s:%s\n' "$n" "${n%.apk}"; done
+  echo '"'; } > "$TMP/b4"
+troca_bloco "$SH" KIT_OVERLAYS_INICIO KIT_OVERLAYS_FIM "$TMP/b4" "$TMP/newlink_update.ovl.sh"
 mkdir -p "$TMP/kit"
 cp -r "$KIT"/. "$TMP/kit/"
+rm -rf "$TMP/kit/overlay" "$TMP/kit/marca"
+cp -r "$TMP/novo/overlay" "$TMP/novo/marca" "$TMP/kit/"
 cp "$TMP/suite.sh" "$TMP/suite-boot.sh" "$TMP/suite-pedido.sh" "$TMP/kit/"
 # shellcheck disable=SC2086
-lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc $APK kit/*.png $FONTES; do md5sum "$f"; done)"
+lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc $APK kit/*.png $FONTES $OVL_LISTA $MARCA_LISTA; do md5sum "$f"; done)"
 { printf 'KIT_LISTA="%s\n' "$lista"; echo '"'; } > "$TMP/b3"
-troca_bloco "$SH" KIT_LISTA_INICIO KIT_LISTA_FIM "$TMP/b3" "$TMP/newlink_update.sh"
+troca_bloco "$TMP/newlink_update.ovl.sh" KIT_LISTA_INICIO KIT_LISTA_FIM "$TMP/b3" "$TMP/newlink_update.sh"
 
 if [ "${1:-}" = "--check" ]; then
   rc=0
   for f in suite.sh suite-boot.sh suite-pedido.sh newlink_update.sh; do
     cmp -s "$TMP/$f" "$KIT/$f" || { echo "FALHA: a lista md5 embutida no $f esta desatualizada (rode tests/atualizar-md5-kit.sh)"; rc=1; }
+  done
+  # as copias de overlay/ e marca/ no kit sao as de artifacts (e nao sobra nem falta arquivo)
+  for d in overlay marca; do
+    if ! diff -r "$TMP/novo/$d" "$KIT/$d" >/dev/null 2>&1; then
+      echo "FALHA: pendrive-autorun/$d difere de artifacts/ (rode tests/atualizar-md5-kit.sh)"; rc=1
+    fi
   done
   [ "$rc" = 0 ] && echo "listas md5 do kit e da suite em dia"
   exit "$rc"
@@ -107,4 +151,10 @@ fi
 for f in suite.sh suite-boot.sh suite-pedido.sh newlink_update.sh; do
   cmp -s "$TMP/$f" "$KIT/$f" || cat "$TMP/$f" > "$KIT/$f"   # cat preserva modo e atributos
 done
-echo "listas md5 gravadas em suite.sh, suite-boot.sh, suite-pedido.sh e newlink_update.sh"
+# overlay/ e marca/ do kit = exatamente o que veio de artifacts/ (sai o que nao esta mais la)
+for d in overlay marca; do
+  mkdir -p "$KIT/$d"
+  for f in "$KIT/$d"/*; do [ -f "$f" ] && [ ! -e "$TMP/novo/$d/${f##*/}" ] && rm -f "$f"; done
+  for f in "$TMP/novo/$d"/*; do cmp -s "$f" "$KIT/$d/${f##*/}" || cp "$f" "$KIT/$d/${f##*/}"; done
+done
+echo "listas md5 gravadas em suite.sh, suite-boot.sh, suite-pedido.sh e newlink_update.sh; overlay/ e marca/ do kit em dia"
