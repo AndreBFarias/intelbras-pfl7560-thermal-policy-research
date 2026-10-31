@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 AQUI = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("previa16a", os.path.join(AQUI, "gerar-previa-16a.py"))
 A = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(A)          # so as funcoes: o main() dela so roda como script
+_spec.loader.exec_module(A)
 
 B = A.B
 P, rgba, colar, texto, fonte = B.P, B.rgba, B.colar, B.texto, B.fonte
@@ -31,13 +31,10 @@ BRANCO = "#FFFFFFFF"
 PRETO = "#FF000000"
 NEGRITO = "IBMPlexSansCondensed-SemiBold.ttf"
 
-
 class App(A.App):
     PASTAS = A.App.PASTAS + ("drawable-xhdpi", "drawable-nodpi-v4")
 
     def forma(self, nome):
-        """(cheio, degrade (inicio, fim) ou None, fio, largura do fio em dp) de uma forma XML:
-        a da sobreposicao, se ela tiver, senao a do app."""
         for base in ([self.sob] if self.sob else []) + [self.dec]:
             p = os.path.join(base, "drawable", nome + ".xml")
             if os.path.isfile(p):
@@ -50,9 +47,7 @@ class App(A.App):
                         fio.group(2) if fio else None, float(fio.group(1)) if fio else 0)
         raise SystemExit("falta a forma %s" % nome)
 
-
 def pintar(t, a, nome, xy, raio):
-    """Desenha a forma <nome> (cheia ou em degrade horizontal, com o fio) no retangulo xy."""
     cheio, deg, fio, larg = a.forma(nome)
     d = ImageDraw.Draw(t)
     if deg:
@@ -70,13 +65,10 @@ def pintar(t, a, nome, xy, raio):
         cheio = None
     ret(d, xy, cheio, raio, fio, max(1, int(round(larg * DP))) if fio else 1)
 
-
 def escurecer(t, alfa=110):
     t.alpha_composite(Image.new("RGBA", (W, H), (0, 0, 0, alfa)))
 
-
 def tela_foco(a):
-    # durante o ajuste a tela mostra o que estava aberto; aqui, uma tela escura qualquer
     t = Image.new("RGBA", (W, H), rgba("#FF3A3F4B"))
     tw, th = 330 * DP, 40 * DP
     tx, ty = (W - tw) / 2, (H - th) / 2
@@ -84,7 +76,6 @@ def tela_foco(a):
     texto(ImageDraw.Draw(t), (W / 2, ty + th / 2), "Ajustando o foco automaticamente...", sp(22),
           "#FF666666", "mm")
     return t
-
 
 def tela_caixa(a):
     t = Image.new("RGBA", (W, H))
@@ -98,19 +89,17 @@ def tela_caixa(a):
     for i, nome in enumerate(["paly_back", "paly_paly", "paly_forward", "lock"]):
         im = a.img(nome + ("_focus" if i == 1 else ""))
         colar(t, im, x0 + i * (ic + 20 * DP), 200 * DP, ic, ic)
-    # botoes "Tela desligada" (em foco) e "Sair" (text_view_selector + text_color_selector)
     for i, rot in enumerate(["Tela desligada", "Sair do modo"]):
         bx, by = x0 + i * 200 * DP, 310 * DP
         foco = i == 0
         pintar(t, a, "selected_background" if foco else "unselected_background",
                [bx, by, bx + 180 * DP, by + 50 * DP], 8 * DP)
         if a.sob:
-            cor = "#FF282A36" if foco else "#FFF8F8F2"   # text_color_selector da sobreposicao
+            cor = "#FF282A36" if foco else "#FFF8F8F2"
         else:
             cor = BRANCO if foco else PRETO
         texto(ImageDraw.Draw(t), (bx + 90 * DP, by + 25 * DP), rot, sp(20), cor, "mm")
     return t
-
 
 def tela_caixa_aviso(a):
     t = tela_caixa(a)
@@ -128,7 +117,6 @@ def tela_caixa_aviso(a):
         texto(d, (bx + 97 * DP, by + 26 * DP), rot, sp(22), BRANCO if foco else PRETO, "mm")
     return t
 
-
 def tela_desligar(a):
     t = Image.new("RGBA", (W, H), rgba("#FF101418"))
     d = ImageDraw.Draw(t)
@@ -142,7 +130,6 @@ def tela_desligar(a):
         ret(d, [bx, by, bx + 210 * DP, by + 50 * DP], a.cor("red" if i == 0 else "black"), 0)
         texto(d, (bx + 105 * DP, by + 25 * DP), rot, sp(22), BRANCO, "mm")
     return t
-
 
 def tela_apagada(a):
     t = Image.new("RGBA", (W, H), rgba("#FF3A3F4B"))
@@ -162,9 +149,7 @@ def tela_apagada(a):
         texto(ImageDraw.Draw(t), (bx + 97 * DP, by + 26 * DP), rot, sp(22), BRANCO if foco else PRETO, "mm")
     return t
 
-
 def tela_video(a):
-    # um "video" qualquer por tras: degrade escuro
     t = Image.new("RGBA", (W, H))
     d = ImageDraw.Draw(t)
     for y in range(H):
@@ -182,14 +167,12 @@ def tela_video(a):
     texto(ImageDraw.Draw(t), (bx + 30 * DP, by + 22 * DP), "00:12:31 / 01:45:02", sp(18), BRANCO)
     return t
 
-
 def tela_musica(a):
     t = Image.new("RGBA", (W, H))
     colar(t, a.img("hisil_background_3"), 0, 0, W, H)
     d = ImageDraw.Draw(t)
     texto(d, (W / 2, 80 * DP), "musica.mp3", sp(30), BRANCO, "mm")
     texto(d, (W / 2, 120 * DP), "Artista desconhecido", sp(20), "#99FFFFFF", "mm")
-    # barra de progresso com o ponto (seek_thumb)
     y = H - 150 * DP
     d.rounded_rectangle([120 * DP, y - 3 * DP, W - 120 * DP, y + 3 * DP], radius=3 * DP, fill=(0, 0, 0, 80))
     d.rounded_rectangle([120 * DP, y - 3 * DP, W * 0.45, y + 3 * DP], radius=3 * DP, fill=rgba("#FFFFFFFF"))
@@ -203,13 +186,12 @@ def tela_musica(a):
         yb = H - 110 * DP
         if n:
             colar(t, a.img(n), x, yb, lado, lado * 62 / 66)
-        else:   # pausar: o desenho do framework (MediaButton.Play); aqui duas barras brancas
+        else:
             d.rectangle([x + lado * 0.35, yb + lado * 0.25, x + lado * 0.45, yb + lado * 0.7], fill=rgba(BRANCO))
             d.rectangle([x + lado * 0.55, yb + lado * 0.25, x + lado * 0.65, yb + lado * 0.7], fill=rgba(BRANCO))
             colar(t, a.img("hisil_lank_selected"), x - 6 * DP, yb - 6 * DP, lado + 12 * DP, lado + 6 * DP, nove_patch=True)
             d = ImageDraw.Draw(t)
     return t
-
 
 TELAS = [
     ("Aviso do foco automático (AutoFocus3, layout toast)", "AutoFocus3", "autofocus", tela_foco),
@@ -220,7 +202,6 @@ TELAS = [
     ("Player de vídeo HiSilicon (o IjkPlayer usa as mesmas imagens), foco em pausar", "HiVideoPlayer", "hivideoplayer", tela_video),
     ("Player de música HiSilicon, foco em pausar", "HiMusic", "himusic", tela_musica),
 ]
-
 
 def main():
     if len(sys.argv) != 2:
@@ -247,7 +228,6 @@ def main():
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     folha.convert("RGB").save(SAIDA, optimize=True)
     print(SAIDA)
-
 
 if __name__ == "__main__":
     main()

@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-# artifacts/home/build.sh - monta o APK da home "Inicio PFL7560" (bloco 10A) SEM Gradle, do zero.
-#
-#   bash artifacts/home/build.sh
-#
-# Mesmo molde do artifacts/app/build.sh: confere a paleta (artifacts/tema/dracula.txt) -> aapt2 compile + link (recursos,
-# manifest, R.java, assets com as fontes do kit) -> javac --release 8 -> d8 -> dex no zip ->
-# zipalign -> apksigner sign -> apksigner verify. Saida: artifacts/home/pfl7560-home.apk.
-# NAO copia para o kit (pendrive-autorun/): a integracao e do coordenador.
-#
-# SDK local (sem rede): ANDROID_SDK (padrao ~/Android/sdk), BUILD_TOOLS (35.0.0), PLATAFORMA
-# (android-34). Precisa de java/javac (17), zip e apksigner.
-#
-# Assinatura: chave propria e ESTAVEL, assinatura.keystore (alias pfl7560home, senha abaixo). Nao
-# e segredo: so garante que um APK novo instale POR CIMA do anterior. Nao serve para loja.
 set -euo pipefail
 export LC_ALL=C TZ=UTC
 
@@ -23,13 +9,13 @@ BT="$SDK/build-tools/${BUILD_TOOLS:-35.0.0}"
 JAR="$SDK/platforms/${PLATAFORMA:-android-34}/android.jar"
 APKSIGNER="${APKSIGNER:-$(command -v apksigner || echo "$BT/apksigner")}"
 
-VERSAO_CODIGO=5          # inteiro; sobe a cada APK novo
+VERSAO_CODIGO=5
 VERSAO_NOME="1.0"
 MIN_SDK=28
 TARGET_SDK=28
 KS="$AQUI/assinatura.keystore"
 KS_ALIAS="pfl7560home"
-KS_SENHA="pfl7560home"   # nao e segredo (ver acima)
+KS_SENHA="pfl7560home"
 SAIDA="$AQUI/pfl7560-home.apk"
 FONTES="$RAIZ/pendrive-autorun/fontes"
 PALETA="$RAIZ/artifacts/tema/dracula.txt"

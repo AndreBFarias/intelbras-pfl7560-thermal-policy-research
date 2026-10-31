@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 AQUI = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("previa18", os.path.join(AQUI, "gerar-previa-18.py"))
 D = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(D)          # so as funcoes: o main() dela so roda como script
+_spec.loader.exec_module(D)
 
 C, A, B = D.C, D.A, D.B
 P, rgba, colar, texto, fonte = B.P, B.rgba, B.colar, B.texto, B.fonte
@@ -31,18 +31,15 @@ BRANCO = "#FFFFFFFF"
 NA = "{http://schemas.android.com/apk/res/android}"
 NAPP = "{http://schemas.android.com/apk/res-auto}"
 
-
 class App(D.App):
     PASTAS = D.App.PASTAS + ("drawable-xhdpi",)
 
     def layout(self, nome, pasta="layout"):
-        """Raiz do layout <nome>: a copia da sobreposicao, se ela tiver, senao a do app."""
         for base in ([self.sob] if self.sob else []) + [self.dec]:
             p = os.path.join(base, pasta, nome + ".xml")
             if os.path.isfile(p):
                 return ET.parse(p).getroot()
         raise SystemExit("falta o layout %s" % nome)
-
 
 def por_id(raiz, ident):
     for e in raiz.iter():
@@ -50,9 +47,7 @@ def por_id(raiz, ident):
             return e
     raise SystemExit("falta o id %s" % ident)
 
-
 def tela_arquivos(a):
-    """Pagina inicial do gerenciador (MainOtherActivity, activity_main_other): os cartoes visiveis."""
     t = Image.new("RGBA", (W, H), rgba(a.cor("pt_green")))
     d = ImageDraw.Draw(t)
     raiz = a.layout("activity_main_other")
@@ -85,15 +80,12 @@ def tela_arquivos(a):
                 texto(d, (cx, cy + 40 * DP), s, sp(20), cor, "mm")
             else:
                 texto(d, (ix + isz + 20 * DP, cy - 12 * DP + i * 26 * DP), s, sp(20 if i == 0 else 14), cor, "lm")
-        if fl.get(NA + "id") == "@id/frameLayout1":     # o foco (moldura background_white, 16A)
+        if fl.get(NA + "id") == "@id/frameLayout1":
             fio = A.forma(a, "background_white", "stroke") if a.sob else BRANCO
             ret(d, r, None, 10 * DP, fio, max(1, int(round(3 * DP))))
     return t
 
-
 def tela_entradas(a):
-    """Lista de entradas (SourceUIActivity) ao abrir, antes do primeiro foco: o fundo do GridLayout
-    e o do layout_main (no primeiro foco o codigo troca por pt_grey_white, ja no tema desde o 18)."""
     t = D.fundo_qualquer()
     d = ImageDraw.Draw(t)
     grade = por_id(a.layout("layout_main"), "layout_source_grid")
@@ -109,9 +101,7 @@ def tela_entradas(a):
         texto(d, (W / 2, y + ih / 2), rot, sp(24), BRANCO, "mm")
     return t
 
-
 def tela_wifi(a):
-    """Wi-Fi (layout_wifi): o fio de 1 dp entre a linha Ativar/Desativar e a lista."""
     t = Image.new("RGBA", (W, H), rgba(a.cor("pt_green")))
     d = ImageDraw.Draw(t)
     fio = [e for e in a.layout("layout_wifi") if e.tag == "ImageView"][0].get(NA + "background")
@@ -127,12 +117,10 @@ def tela_wifi(a):
         texto(d, (lx + 20 * DP, y + 25 * DP), rede, sp(22), BRANCO, "lm")
     return t
 
-
 def tela_video(a):
-    """Player de video HiSilicon (VideoActivity, main_dpt_o): o painel de informacao (mediaInfo)."""
     t = Image.new("RGBA", (W, H))
     d = ImageDraw.Draw(t)
-    for y in range(H):                               # o video por tras, um degrade qualquer
+    for y in range(H):
         f = y / H
         d.line([(0, y), (W, y)], fill=(int(40 + 60 * f), int(70 + 40 * f), int(90 + 20 * f), 255))
     raiz = a.layout("main_dpt_o")
@@ -152,24 +140,19 @@ def tela_video(a):
     texto(d, ((W) / 2, 205 * DP), "00:42 / 01:58", sp(26), BRANCO, "mm")
     return t
 
-
 def tela_musica(a):
-    """Player de musica HiSilicon: a lista de arquivos (FileListActivity, Theme.Dialog ->
-    panel_background) por cima do player, e o botao tocar (MediaButton.Play -> ic_media_play)."""
     hm = a.himusic
     t = Image.new("RGBA", (W, H))
     colar(t, hm.img("hisil_background_3"), 0, 0, W, H)
     d = ImageDraw.Draw(t)
-    # o botao tocar no rodape, com a moldura de foco do app (17A)
     bx, by, bw, bh = W / 2 - 50 * DP, H - 90 * DP, 100 * DP, 70 * DP
     colar(t, hm.img("hisil_lank_selected"), bx, by, bw, bh, nove_patch=True)
     colar(t, a.img("ic_media_play"), bx + (bw - 48 * DP) / 2, by + (bh - 48 * DP) / 2, 48 * DP, 48 * DP)
-    # a janela da lista
     pw, ph = 520 * DP, 280 * DP
     px, py = (W - pw) / 2, 40 * DP
     colar(t, a.img("panel_background"), px, py, pw, ph, nove_patch=True)
     d = ImageDraw.Draw(t)
-    claro = a.cor("background_light")              # primary_text_dark -> bright_foreground_dark
+    claro = a.cor("background_light")
     for i, nome in enumerate(["musica.mp3", "show-ao-vivo.flac", "podcast.m4a", "trilha.ogg"]):
         y = py + 40 * DP + i * 55 * DP
         if i == 1:
@@ -178,9 +161,7 @@ def tela_musica(a):
         texto(d, (px + 40 * DP, y), nome, sp(22), claro, "lm")
     return t
 
-
 def tela_imagens(a):
-    """... e a lista de capas (ImageListAcvitity, Theme.Holo.Dialog -> dialog_full_holo_dark)."""
     hm = a.himusic
     t = Image.new("RGBA", (W, H))
     colar(t, hm.img("hisil_background_3"), 0, 0, W, H)
@@ -194,12 +175,10 @@ def tela_imagens(a):
         texto(d, (px + 40 * DP, py + 100 * DP + i * 55 * DP), nome, sp(22), claro, "lm")
     return t
 
-
 def app_musica(dec, sob):
     a = App(os.path.join(dec, "framework-res"), sob)
-    a.himusic = App(os.path.join(dec, "HiMusic"), "himusic")    # o app ja no tema (17A) nos dois lados
+    a.himusic = App(os.path.join(dec, "HiMusic"), "himusic")
     return a
-
 
 TELAS = [
     ("Gerenciador de arquivos, página inicial (activity_main_other): os cartões", "ZYFileManager", "zyfilemanager",
@@ -214,7 +193,6 @@ TELAS = [
     ("Player de música: lista de imagens (dialog_full_holo_dark), pela do android", None, "android", tela_imagens,
      app_musica),
 ]
-
 
 def main():
     if len(sys.argv) != 2:
@@ -244,7 +222,6 @@ def main():
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     folha.convert("RGB").save(SAIDA, optimize=True)
     print(SAIDA)
-
 
 if __name__ == "__main__":
     main()

@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# artifacts/home/gerar-previas.sh - previas 1920x1080 da home, renderizadas no PC.
-#
-#   bash artifacts/home/gerar-previas.sh
-#
-# Compila o codigo de desenho do app (os arquivos Java puros de src/: Pintor, Tema, Item, Icones,
-# Acoes, Modelo, Desenho) junto com o pintor Java2D de previa-src/ e grava os PNG em
-# artifacts/home/previa/. Usa as fontes do kit (pendrive-autorun/fontes). Tambem confere a
-# navegacao do D-pad. Precisa so de java/javac (17); roda sem tela (java.awt.headless).
 set -euo pipefail
 export LC_ALL=C TZ=UTC
 

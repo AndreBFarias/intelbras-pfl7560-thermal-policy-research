@@ -1,32 +1,4 @@
 #!/usr/bin/env python3
-# artifacts/overlay/conferir.py - confere cada sobreposicao (RRO) contra o APK do alvo (blocos 13A, 16A, 17A, 18 e 19B).
-#
-#   python3 -I artifacts/overlay/conferir.py <pasta com os APKs alvo extraidos do firmware>
-#
-# A pasta precisa ter (em qualquer subpasta) o APK de cada alvo, extraido do firmware (doc 48,
-# secao Metodo): ZYSetting, NLProvision, framework-res, ZYBluetooth, ZYFileManager, TvSettings,
-# HiGalleryL, NLSourcePlayer, PowerService, desde o 17A AutoFocus3, ZYSpeakerModel e
-# NewLinkService (e os players) e, desde o 18, HiPinyinIME, NLHotkeyService, ZYCustomUI,
-# HiTvSetting e PackageInstaller. O alvo de cada sobreposicao e achado pelo nome do
-# pacote, nao pelo nome do arquivo.
-#
-# Para cada APK de artifacts/overlay/apk/ confere, com `aapt2 dump`:
-#  1. o <overlay android:targetPackage> e o pacote de um APK alvo da pasta, e nao ha classes.dex;
-#  2. todo recurso da sobreposicao existe no alvo com o MESMO tipo e o mesmo nome;
-#  3. toda configuracao que o alvo tem para o recurso (ex.: hdpi-v4) a sobreposicao tambem tem
-#     (senao, na configuracao que falta, o recurso do alvo ganha e a troca nao aparece);
-#  4. nenhum valor da sobreposicao referencia recurso (@0x...): no Android 9 o id de um recurso
-#     so da sobreposicao cairia no espaco do alvo;
-#  5. nada de dimen, style, integer, bool ou string (so cor, forma e imagem: color,
-#     drawable e, desde o 16A, mipmap, que e imagem como drawable; o gerenciador de arquivos
-#     guarda os icones da lista em mipmap; e, desde o 19B, layout, na regra do item 6);
-#  6. (19B) cada layout, em cada configuracao, e o do alvo com so cores trocadas: o `aapt2 dump
-#     xmltree` dos dois e igual linha a linha (mesmos elementos, mesma ordem, mesmos atributos,
-#     mesmos ids e referencias com o MESMO numero do alvo), tirando o numero da linha do fonte e o
-#     texto cru '(Raw: "@...")' que o aapt antigo guarda ao lado de uma referencia (o numero fica
-#     comparado); a unica diferenca aceita e um atributo cujo valor e cor literal (#aarrggbb) nos dois. Por
-#     isso o item 4 nao vale para layout: as referencias dele sao as do alvo, numero a numero.
-# Sai com 1 se qualquer item falhar. Imprime a tabela recurso / tipo / configs / valor alvo -> novo.
 import os, re, subprocess, sys, zipfile
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -43,7 +15,6 @@ def pacote(apk):
     return m.group(1) if m else None
 
 def recursos(apk):
-    """{tipo/nome: {config: valor}} a partir do aapt2 dump resources."""
     out, cur = {}, None
     for ln in aapt2('dump', 'resources', apk).splitlines():
         m = re.match(r'\s+resource 0x[0-9a-f]+ (\S+/\S+)', ln)
@@ -62,9 +33,6 @@ def alvo_da_sobreposicao(apk):
     return m.group(1) if m else None
 
 def arvore(apk, arquivo):
-    """Linhas do xmltree sem o numero da linha do fonte e sem o texto cru de uma referencia (o
-    aapt antigo do fabricante guarda '(Raw: "@style/x")' ao lado do numero, o aapt2 nao; quem
-    vale em tempo de execucao e o numero, que continua comparado)."""
     x = aapt2('dump', 'xmltree', '--file', arquivo, apk)
     out = []
     for ln in x.splitlines():
@@ -73,7 +41,6 @@ def arvore(apk, arquivo):
     return out
 
 def comparar_layout(sob_apk, sob_arq, alv_apk, alv_arq):
-    """(erros, cores trocadas): item 6 do cabecalho."""
     a, b = arvore(alv_apk, alv_arq), arvore(sob_apk, sob_arq)
     if len(a) != len(b):
         return [f'{sob_arq}: {len(b)} linhas na arvore, o alvo tem {len(a)}'], 0
@@ -135,7 +102,6 @@ def main():
                     erros.append(f'valor com referencia em ({c})')
             trocas = None
             if tipo == 'layout' and rr in alv:
-                # item 6: a arvore do alvo, so com cores trocadas (o item 4 nao vale aqui)
                 trocas = 0
                 for c, v in sorted(sob[rr].items()):
                     ms = re.match(r'\(file\) (\S+\.xml)', v)
@@ -146,7 +112,6 @@ def main():
                     erros += e
                     trocas += t
             else:
-                # referencias dentro dos XML compilados (shape/selector)
                 for c, v in sob[rr].items():
                     m = re.match(r'\(file\) (\S+\.xml)', v)
                     if m:

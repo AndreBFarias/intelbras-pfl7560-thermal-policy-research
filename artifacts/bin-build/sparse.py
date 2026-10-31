@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# Parser/patcher do Android sparse image (formato simples: header + chunks).
 import struct
 import os
 
@@ -7,7 +6,6 @@ SPARSE_MAGIC = 0xed26ff3a
 RAW, FILL, DONTCARE, CRC = 0xCAC1, 0xCAC2, 0xCAC3, 0xCAC4
 
 def parse(path):
-    """Retorna (blk, total_blocks, chunks). chunks: (tipo,'out_blk',cnt,data_off,fill)."""
     with open(path, 'rb') as f:
         hdr = f.read(28)
         magic, major, minor, fhdr, chdr, blk, total_blocks, total_chunks, crc = \
@@ -46,7 +44,6 @@ def expand(path, outpath):
     return blk, total, chunks
 
 def block_map(blk, chunks):
-    """out_block -> ('raw', sparse_offset) | ('fill',) | ('dontcare',)"""
     m = {}
     for ct, ob, cnt, off, fill in chunks:
         if ct == 'crc':
@@ -55,12 +52,7 @@ def block_map(blk, chunks):
             m[ob + i] = ('raw', off + i * blk) if ct == 'raw' else (ct,)
     return m
 
-
 def pack(raw_path, out_path, blk=4096):
-    """Empacota ext4 raw em Android sparse so com chunks RAW e DONTCARE, a forma do stock
-    (o loader nunca gravou FILL, doc 47). Usa mmap + regioes (nao concatena bytes de raw na RAM).
-    Retorna (size_bytes, n_chunks, total_blocks).
-    """
     import mmap
     size = os.path.getsize(raw_path)
     if size % blk:
@@ -68,7 +60,6 @@ def pack(raw_path, out_path, blk=4096):
     total = size // blk
     zero = b'\x00' * blk
 
-    # regioes: ['dontcare'|'raw', start, count]
     regions = []
     with open(raw_path, 'rb') as f:
         mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
@@ -98,7 +89,6 @@ def pack(raw_path, out_path, blk=4096):
         finally:
             mm.close()
     return os.path.getsize(out_path), nchunks, total
-
 
 if __name__ == '__main__':
     import sys

@@ -20,11 +20,10 @@ FONTE = os.path.join(RAIZ, "pendrive-autorun", "fontes", "IBMPlexMono-Regular.tt
 NOMES = ["aviso-abertura-tomada", "aviso-abertura-pendrive", "aviso-etapa-temperatura",
          "aviso-alerta", "aviso-final-pendrive", "resumo-tudo-certo", "resumo-correcao",
          "resumo-atencao", "resumo-pendentes"]
-FUNDO = (0x28, 0x2A, 0x36)   # fundo
-SEC = (0xB4, 0xBC, 0xCF)     # comentario clareado (ver README)
-FIO = (0x62, 0x72, 0xA4)     # comentario
+FUNDO = (0x28, 0x2A, 0x36)
+SEC = (0xB4, 0xBC, 0xCF)
+FIO = (0x62, 0x72, 0xA4)
 LW, LH, GAP, MARG, ROT = 960, 540, 32, 48, 44
-
 
 def main():
     imgs = []
@@ -51,6 +50,5 @@ def main():
     saida = os.path.join(AQUI, "previa", "telas.png")
     folha.save(saida, "PNG", optimize=True)
     print("gerado", os.path.relpath(saida, RAIZ))
-
 
 main()

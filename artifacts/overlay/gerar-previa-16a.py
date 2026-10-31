@@ -21,7 +21,7 @@ from PIL import Image, ImageDraw
 AQUI = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("previa13a", os.path.join(AQUI, "gerar-previa.py"))
 B = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(B)          # so as funcoes: o main() dela so roda como script
+_spec.loader.exec_module(B)
 
 P, rgba, colar, texto, fonte, nove = B.P, B.rgba, B.colar, B.texto, B.fonte, B.nove
 W, H, K, DP = B.W, B.H, B.K, B.DP
@@ -29,10 +29,8 @@ SAIDA = os.path.join(AQUI, "previa", "antes-depois-16a.png")
 BRANCO = "#FFFFFFFF"
 PRETO = "#FF000000"
 
-
 def sp(n):
     return B.sp(n)
-
 
 def cores_xml(arq):
     if not os.path.isfile(arq):
@@ -40,9 +38,7 @@ def cores_xml(arq):
     with open(arq, encoding="utf-8") as f:
         return {n: v for n, v in re.findall(r'<color name="([^"]+)">(#[0-9A-Fa-f]+)<', f.read())}
 
-
 class App:
-    """Um app do fabricante: cores e imagens de fabrica ou com a sobreposicao por cima."""
 
     PASTAS = ("drawable-hdpi", "drawable-hdpi-v4", "drawable", "mipmap-pt-hdpi", "mipmap-hdpi", "mipmap-xhdpi")
 
@@ -66,18 +62,14 @@ class App:
                         return Image.open(p)
         raise SystemExit("falta a imagem %s" % nome)
 
-
 def forma(a, nome, elem):
-    """Cor literal de <solid> ou <stroke> de uma forma da sobreposicao (res/drawable/<nome>.xml)."""
     with open(os.path.join(AQUI, a.sobnome, "res", "drawable", nome + ".xml"), encoding="utf-8") as f:
         m = re.search(r'<%s[^>]*android:color="(#[0-9A-Fa-f]+)"' % elem, f.read())
     return m.group(1)
 
-
 def ret(d, xy, cor, raio=0, fio=None, larg=1):
     d.rounded_rectangle(xy, radius=raio, fill=rgba(cor) if cor else None,
                         outline=rgba(fio) if fio else None, width=larg)
-
 
 def tela_bluetooth(a):
     t = Image.new("RGBA", (W, H), rgba(a.cor("pt_green")))
@@ -113,7 +105,6 @@ def tela_bluetooth(a):
         y += 10 * DP
     return t
 
-
 def tela_arquivos(a):
     t = Image.new("RGBA", (W, H), rgba(a.cor("pt_green")))
     d = ImageDraw.Draw(t)
@@ -127,12 +118,11 @@ def tela_arquivos(a):
         colar(t, a.img(ic), x + (cw - 80 * DP) / 2, y + 10 * DP, 80 * DP, 80 * DP)
         texto(d, (x + cw / 2, y + 115 * DP), nome, sp(18), BRANCO, "mm")
         if i == 0:
-            if a.sob:   # background_white da sobreposicao: fio de 3 dp
+            if a.sob:
                 ret(d, [x, y, x + cw, y + chh], None, 0, forma(a, "background_white", "stroke"), max(1, int(round(3 * DP))))
-            else:       # de fabrica: fio de 3 dp em @color/bg_while
+            else:
                 ret(d, [x, y, x + cw, y + chh], None, 0, BRANCO, max(1, int(round(3 * DP))))
     return t
-
 
 def tela_operacao(a):
     t = tela_arquivos(a)
@@ -149,7 +139,6 @@ def tela_operacao(a):
         texto(d, (W / 2, by + 25 * DP), rot, sp(25), BRANCO if foco else PRETO, "mm")
     return t
 
-
 def tela_modo(a):
     t = Image.new("RGBA", (W, H), rgba(a.cor("pt_green")))
     d = ImageDraw.Draw(t)
@@ -162,9 +151,9 @@ def tela_modo(a):
     for i, m in enumerate(modos):
         iy = py + 30 * DP + i * 62 * DP
         if i == 1:
-            if a.sob:   # forma bg_itemcolor da sobreposicao
+            if a.sob:
                 ret(d, [px + 14 * DP, iy, px + pw - 14 * DP, iy + 57 * DP], forma(a, "bg_itemcolor", "solid"), 10 * DP)
-            else:   # degrade laranja #FB884C -> #DC6641 da fabrica
+            else:
                 g = Image.new("RGBA", (int(pw - 28 * DP), int(57 * DP)))
                 gd = ImageDraw.Draw(g)
                 c0, c1 = rgba(a.cor("color_FB884C")), rgba(a.cor("color_DC6641"))
@@ -179,7 +168,6 @@ def tela_modo(a):
         im = a.img("selected_image" if i == 1 else "unselected_image")
         colar(t, im, px + pw - 27 * DP - im.width * K, iy + 28 * DP - im.height * K / 2)
     return t
-
 
 def tela_energia(a):
     t = Image.new("RGBA", (W, H), rgba("#FF3A3F4B"))
@@ -199,7 +187,6 @@ def tela_energia(a):
         texto(d, (x + lado / 2, y + lado + 22 * DP), rot, sp(20), BRANCO, "mm")
     return t
 
-
 def tela_sem_sinal(a):
     t = Image.new("RGBA", (W, H), rgba(a.cor("pt_green")))
     d = ImageDraw.Draw(t)
@@ -207,7 +194,6 @@ def tela_sem_sinal(a):
     colar(t, im, W / 2 - im.width * K / 2, H * 0.30)
     texto(d, (W / 2, H * 0.30 + im.height * K + 30 * DP), "Sem sinal. Verifique o cabo do HDMI 1.", sp(26), BRANCO, "mm")
     return t
-
 
 def tela_pareamento(a):
     t = Image.new("RGBA", (W, H), rgba("#FF3A3F4B"))
@@ -224,7 +210,6 @@ def tela_pareamento(a):
         texto(d, (ax + 20 * DP, ay + 25 * DP), rot, sp(22), BRANCO, "lm")
     return t
 
-
 def tela_dialogo_toast(a):
     t = Image.new("RGBA", (W, H), rgba("#FF3A3F4B"))
     t.alpha_composite(Image.new("RGBA", (W, H), (0, 0, 0, 110)))
@@ -238,7 +223,6 @@ def tela_dialogo_toast(a):
     for i, rot in enumerate(["CANCELAR", "OK"]):
         texto(d, (px + pw - 140 * DP + i * 80 * DP, py + ph - 36 * DP), rot,
               fonte("IBMPlexSansCondensed-SemiBold.ttf", 16 * DP), "#FF80CBC4", "mm")
-    # Toast: forma toast_frame (raio 22 dp) e texto #DE000000 (cor global; nao muda)
     tw, th = 300 * DP, 48 * DP
     tx, ty = (W - tw) / 2, H - 64 * DP - th
     if a.sob:
@@ -248,7 +232,6 @@ def tela_dialogo_toast(a):
         ret(d, [tx, ty, tx + tw, ty + th], "#E6EEEEEE", 22 * DP)
     texto(d, (W / 2, ty + th / 2), "Arquivo copiado", sp(14), "#DE000000", "mm")
     return t
-
 
 TELAS = [
     ("Bluetooth (com.example.bluetoothsetting), foco no 1º pareado", "ZYBluetooth", "zybluetooth", tela_bluetooth),
@@ -261,10 +244,8 @@ TELAS = [
     ("Diálogo escuro do Leanback e Toast do sistema (framework)", None, "android", tela_dialogo_toast),
 ]
 
-# valores de fabrica do framework (aapt2 dump resources do framework-res.apk; doc 48)
 FW_ANTES = {"background_leanback_dark": "#FF324248", "primary_text_leanback_dark": "#CCEEEEEE",
             "secondary_text_leanback_dark": "#99EEEEEE"}
-
 
 class Fw:
     def __init__(self, sob):
@@ -276,7 +257,6 @@ class Fw:
 
     def cor(self, nome):
         return self.cores[nome]
-
 
 def main():
     if len(sys.argv) != 2:
@@ -306,7 +286,6 @@ def main():
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     folha.convert("RGB").save(SAIDA, optimize=True)
     print(SAIDA)
-
 
 if __name__ == "__main__":
     main()

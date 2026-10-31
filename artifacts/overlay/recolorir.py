@@ -1,31 +1,4 @@
 #!/usr/bin/env python3
-# artifacts/overlay/recolorir.py - troca as cores das imagens do fabricante pela paleta Dracula,
-# sem mudar o desenho (blocos 13A, 16A, 17A, 18 e 19B).
-#
-#   python3 -I artifacts/overlay/recolorir.py <app desmontado pelo apktool> <res da sobreposicao> [tabela]
-#
-#   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery, zyspeakermodel,
-#   ijkplayer, hivideoplayer, himusic, hipinyinime, zycustomui, android (19B: framework-res). Ex.:
-#   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado> artifacts/overlay/zysetting/res
-#   python3 -I artifacts/overlay/recolorir.py <ZYBluetooth desmontado> artifacts/overlay/zybluetooth/res zybluetooth
-#
-# Roda UMA vez por firmware, sobre o app desmontado (apktool d, que devolve os 9-patch com a
-# borda de marcacao). A saida vai para o res/ da sobreposicao e entra no git: o build.sh nao
-# precisa do firmware. Para cada recurso da tabela, recolore TODAS as variantes que o alvo tem
-# (drawable/, drawable-hdpi/...), com o mesmo nome e a mesma pasta: a sobreposicao so ganha do
-# alvo na configuracao que ela mesma oferece.
-#
-# Como recolore: cada pixel e escrito como mistura de duas cores-ancora do desenho original
-# (ex.: o fundo teal e o branco do icone, com o antisserrilhado entre elas) e reescrito com a
-# mesma mistura das cores Dracula correspondentes. O alfa e mantido (ou multiplicado, quando a
-# tabela pede). Num .9.png a borda de 1 px (marcacao de estica e de margem) fica intacta.
-# O destino de uma ancora e um token da paleta ou, desde o 17A, uma cor literal '#RRGGBB'
-# (ex.: o preto do desenho continua preto).
-# Bloco 18: um .gif (animado) e recolorido na PALETA de cada quadro (a global e as locais), com a
-# mesma mistura de ancoras; o resto do arquivo (quadros, tempos, transparencia) fica byte a byte.
-# Ancoras cinzentas sao colineares: um cinza cai em cheio (distancia 0) no PRIMEIRO par que o
-# contem, na ordem da tabela. Por isso, nas tabelas de cinza, os tons do corpo vem antes do preto
-# (ver as teclas do hipinyinime).
 import os, sys, glob
 from PIL import Image
 
@@ -40,42 +13,29 @@ with open(os.path.join(AQUI, '..', 'tema', 'dracula.txt'), encoding='utf-8') as 
 def hexrgb(s):
     return tuple(int(s[i:i + 2], 16) for i in (1, 3, 5))
 
-# recurso -> (ancoras {cor de fabrica: token Dracula}, multiplicador de alfa)
 ZYSETTING = {
-    # moldura de foco das listas (estilo rgtp_ui=1) e a do outro estilo: branco -> rosa
     'item_focus_white': ({'#FFFFFF': 'rosa'}, 1),
     'item_focus': ({'#FFFFFF': 'rosa', '#0FC4C2': 'rosa'}, 1),
-    # os 4 cartoes da tela principal das Configuracoes: teal -> linha, icone branco -> texto
     'pt_bt': ({'#1D3034': 'linha', '#FFFFFF': 'texto'}, 1),
     'pt_dlp': ({'#1D3034': 'linha', '#FFFFFF': 'texto'}, 1),
     'pt_other': ({'#1D3034': 'linha', '#FFFFFF': 'texto'}, 1),
     'pt_update': ({'#1D3034': 'linha', '#FFFFFF': 'texto'}, 1),
-    # chave Ligado/Desligado (texto pintado na imagem): verde -> verde, teal -> linha
     'open_check_pt': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
     'open_check_en': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
     'open_check_es': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
     'close_check_pt': ({'#153134': 'linha', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
     'close_check_en': ({'#153134': 'linha', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
     'close_check_es': ({'#153134': 'linha', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
-    # janela de senha do Wi-Fi: painel preto -> linha; campo em foco verde -> comentario
-    # (o texto do campo e branco fixo no layout); campo parado branco 20% -> fundo cheio
     'confirm_dialog_bg': ({'#000000': 'linha'}, 1),
     'edit_large_focus': ({'#82AA81': 'comentario'}, 1),
     'edit_large_normal': ({'#FFFFFF': 'fundo'}, 5),
-    # botoes da janela de senha: parado preto com fio branco -> fundo com fio comentario;
-    # em foco branco -> rosa (o texto em foco vem do color/button_text, que vira fundo)
     'button_bg_normal': ({'#000000': 'fundo', '#FFFFFF': 'comentario'}, 1),
     'button_bg_press': ({'#FFFFFF': 'rosa'}, 1),
-    # bloco 16A. Modo de imagem e de brilho (Outras configuracoes): o item escolhido tem um
-    # circulo branco com o miolo laranja -> miolo rosa
     'selected_image': ({'#FFFFFF': 'texto', '#E97445': 'rosa'}, 1),
-    # janela de atualizacao automatica (systemupdate_tip): botoes em foco azuis -> comentario
-    # (o texto em foco e branco: 4,7:1)
     'update': ({'#0A59F7': 'comentario'}, 1),
     'cancel': ({'#0A59F7': 'comentario'}, 1),
 }
 
-# Bluetooth (com.example.bluetoothsetting): a mesma moldura, a mesma chave do ZYSetting
 CHAVE = {
     'open_check_pt': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
     'open_check_en': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
@@ -86,29 +46,20 @@ CHAVE = {
 }
 ZYBLUETOOTH = dict(CHAVE, item_focus=({'#FFFFFF': 'rosa'}, 1))
 
-# Gerenciador de arquivos (com.newlink.filemanager), estilo rgtp_ui=1
 ZYFILEMANAGER = {
-    # icones da lista (pasta, musica, audio, video): teal escuro -> comentario (3,0:1 no fundo)
     'pt_list_folder_icon': ({'#163134': 'comentario'}, 1),
     'pt_list_audio_icon': ({'#163134': 'comentario'}, 1),
     'pt_list_music_icon': ({'#163134': 'comentario'}, 1),
     'pt_list_video_icon': ({'#163134': 'comentario'}, 1),
-    # "carregando" verde -> rosa (o rosa marca o que esta em andamento)
     'loading_pt': ({'#00B26B': 'rosa'}, 1),
 }
 
-# Galeria (com.hisilicon.higallery): miniatura escolhida, moldura branca com brilho azul -> rosa
 HIGALLERY = {
     'gallery_selected': ({'#FFFFFF': 'rosa', '#2EA0FF': 'rosa', '#000000': 'fundo'}, 1),
 }
 
-# Bloco 17A. Modo caixa de som Bluetooth (com.zhiying.bluetoothmodelservice), rgtp_ui=1
 ZYSPEAKERMODEL = {
-    # fundo da tela (primeira imagem do FlyBanner com isPTStyle): teal -> fundo, desenho branco ->
-    # texto, o corpo preto do celular continua preto
     'pt_bg': ({'#163134': 'fundo', '#FFFFFF': 'texto', '#000000': '#000000'}, 1),
-    # botoes de tocar/pausar/voltar/avancar/bloquear em foco: circulo azul -> rosa; o icone branco
-    # -> fundo (6,0:1 sobre rosa; parados os icones sao brancos sem circulo e ficam)
     'paly_paly_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
     'paly_pause_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
     'paly_back_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
@@ -116,36 +67,21 @@ ZYSPEAKERMODEL = {
     'lock_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
 }
 
-# Bloco 17A. Barra de controle dos players HiSilicon (IjkPlayer e HiVideoPlayer usam as mesmas
-# imagens): barra azul-marinho translucida -> fundo/linha/comentario, o preto da sombra continua
 FAIXA = {'video_bottom': ({'#001736': 'fundo', '#1A426D': 'linha', '#96A8BB': 'comentario',
                            '#000000': '#000000'}, 1)}
-# botao em foco: quadrado azul-marinho translucido com brilho azul -> fundo com brilho rosa;
-# o icone (branco com degrade cinza) -> texto
 BOTAO = ({'#00184E': 'fundo', '#0099FD': 'rosa', '#FFFFFF': 'texto'}, 1)
 IJKPLAYER = dict(FAIXA, pause_focus=BOTAO, play_focus=BOTAO, control_settings_focus=BOTAO)
 HIVIDEOPLAYER = dict(FAIXA, pause_focus=BOTAO, play_focus=BOTAO, fastbackward_focus=BOTAO,
                      fastforward_focus=BOTAO, next_focus=BOTAO, previous_focus=BOTAO)
 
-# Bloco 17A. Player de musica (com.hisilicon.android.music)
 HIMUSIC = {
-    # fundo da tela: degrade azul-marinho, azul-claro, laranja e vermelho -> fundo, comentario e
-    # linha (texto branco por cima: no mais claro, comentario, 4,7:1)
     'hisil_background_3': ({'#090934': 'fundo', '#A4D1E1': 'comentario', '#E8AA6F': 'comentario',
                             '#B43134': 'linha'}, 1),
-    # moldura de foco dos botoes (9-patch): azul -> rosa, a sombra preta continua
     'hisil_lank_selected': ({'#11A9E1': 'rosa', '#000000': '#000000'}, 1),
-    # ponto da barra de progresso: esfera azul -> rosa, o brilho -> texto
     'hisil_yuandian': ({'#31AEDC': 'rosa', '#B0EAFF': 'texto'}, 1),
     'hisil_yuandian_selected': ({'#31AEDC': 'rosa', '#B0EAFF': 'texto'}, 1),
 }
 
-# Bloco 18. Teclado na tela (com.hisilicon.android.inputmethod.remote). As teclas sao cinza com
-# sombra preta translucida; a tecla em foco (SoftKeyboardView.drawSoftKey: a de foco usa a
-# imagem "hl" com a cor normal do rotulo, branco) e cinza-claro. Corpo parado -> linha (rotulo
-# branco 9,2:1), a sombra continua preta; corpo em foco -> comentario (rotulo branco 4,7:1) e a
-# sombra vira a moldura rosa. O ponto do Shift: apagado continua escuro, aceso (verde) -> verde.
-# Ordem: os cinzas do corpo antes do preto (ver o cabecalho).
 TECLA = {'#464646': 'linha', '#6B6B6B': 'linha', '#BABABA': 'linha', '#000000': '#000000'}
 TECLA_FOCO = {'#787878': 'comentario', '#AFAFAF': 'comentario', '#DADADA': 'comentario', '#000000': 'rosa'}
 SHIFT_ACESO = {'#B7E74B': 'verde', '#E4F9B2': 'texto'}
@@ -158,40 +94,27 @@ HIPINYINIME = {
     'normal_key_hl_bg': (TECLA_FOCO, 1),
     'light_key_hl_bg': (TECLA_FOCO, 1),
     'light_key_up_hl_bg': (dict(TECLA_FOCO, **SHIFT_ACESO), 1),
-    # barra de candidatos (modo pinyin): branca -> linha, o fio de cima -> comentario
     'cands_container_bg': ({'#FAFAFA': 'linha', '#636163': 'comentario'}, 1),
     'candidates_area_bg': ({'#FFFFFF': 'linha', '#F3F3F3': 'linha', '#777C81': 'comentario',
                             '#474C52': 'fundo'}, 1),
     'candidates_vertical_line': ({'#D8D8D8': 'comentario'}, 1),
     'arrow_left': ({'#333333': 'texto'}, 1),
     'arrow_right': ({'#333333': 'texto'}, 1),
-    # candidato em foco e texto sendo composto: laranja -> rosa (texto em cima: color/*, -> fundo)
     'candidate_hl_bg': ({'#FFA61A': 'rosa', '#FF8A1E': 'rosa', '#000000': '#000000'}, 1),
     'composing_area_bg': ({'#FFFFFF': 'linha', '#909398': 'comentario', '#000000': '#000000'}, 1),
     'composing_hl_bg': ({'#FFA335': 'rosa', '#FF9030': 'rosa', '#000000': '#000000'}, 1),
     'composing_area_cursor': ({'#FF7E00': 'rosa', '#E57100': 'rosa'}, 1),
 }
 
-# Bloco 18. Pareamento do controle (com.zhiying.sourceui, MatchIRUIYuYinActivity): GIF animado de
-# tela cheia. Fundo azul em degrade -> fundo, linha e comentario (texto branco 4,7:1 no mais
-# claro); o brilho dos aneis -> roxo; o controle (cinza-escuro), o branco e o vermelho do LED ficam.
 PAREAMENTO = ({'#1F1F1F': '#1F1F1F', '#000000': '#000000', '#FFFFFF': '#FFFFFF',
                '#002060': 'fundo', '#0052BD': 'linha', '#006BEF': 'comentario',
                '#76C8FB': 'roxo', '#D82E2E': '#D82E2E'}, 1)
 ZYCUSTOMUI = {'match_ir_yuyin1280x800': PAREAMENTO, 'match_ir_jinju': PAREAMENTO}
 
-# Bloco 19B. Framework (android, framework-res desmontado): as imagens do sistema que o HiMusic usa
-# (doc 48, secao 12.7), so em drawable-xhdpi no alvo.
 ANDROID = {
-    # botao tocar/pausar do player de musica (@android:style/MediaButton.Play e ic_media_pause):
-    # icone branco -> texto; o contorno cinza translucido fica
     'ic_media_play': ({'#FFFFFF': 'texto', '#7F7F7F': '#7F7F7F'}, 1),
     'ic_media_pause': ({'#FFFFFF': 'texto', '#7F7F7F': '#7F7F7F'}, 1),
-    # janela das listas do HiMusic com Theme.Dialog (FileListActivity): painel preto 90% com fio
-    # cinza #505050 -> fundo com fio comentario (como o Toast, secao 10.6); a sombra vai junto
     'panel_background': ({'#000000': 'fundo', '#505050': 'comentario'}, 1),
-    # ... e com Theme.Holo.Dialog (ImageListAcvitity): corpo #282828 -> fundo, o realce da borda ->
-    # linha, a sombra preta fica. Ordem: os cinzas do corpo antes do preto (ver o cabecalho)
     'dialog_full_holo_dark': ({'#282828': 'fundo', '#343434': 'linha', '#000000': '#000000'}, 1),
 }
 
@@ -201,7 +124,6 @@ TABELAS = {'zysetting': ZYSETTING, 'zybluetooth': ZYBLUETOOTH, 'zyfilemanager': 
            'zycustomui': ZYCUSTOMUI, 'android': ANDROID}
 
 def melhor(px, ancoras):
-    """(i, j, t): px ~ ancora i misturada com j na fracao t (j=None: so i)."""
     best = None
     for i, a in enumerate(ancoras):
         d = sum((px[k] - a[k]) ** 2 for k in range(3))
@@ -228,7 +150,6 @@ def nova_cor(k, orig, novo):
     return tuple(round(novo[i][c] + t * (novo[j][c] - novo[i][c])) for c in range(3))
 
 def recolorir_gif(src, dst, mapa):
-    """Recolore so as tabelas de cor (global e locais) de um GIF; o resto fica byte a byte."""
     orig, novo = ancoras(mapa)
     b = bytearray(open(src, 'rb').read())
     if b[:6] not in (b'GIF87a', b'GIF89a'):
@@ -246,9 +167,9 @@ def recolorir_gif(src, dst, mapa):
     if b[10] & 0x80:
         pos = tabela(pos, b[10])
     while b[pos] != 0x3B:
-        if b[pos] == 0x21:                      # extensao: rotulo + sub-blocos
+        if b[pos] == 0x21:
             pos = blocos(pos + 2)
-        elif b[pos] == 0x2C:                    # quadro: descritor, tabela local, LZW
+        elif b[pos] == 0x2C:
             flags = b[pos + 9]
             pos += 10
             if flags & 0x80:

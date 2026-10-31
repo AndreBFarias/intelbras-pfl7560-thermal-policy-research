@@ -21,7 +21,6 @@ RAIZ = os.path.join(AQUI, "..", "..")
 FONTES = os.path.join(RAIZ, "pendrive-autorun", "fontes")
 SAIDA = os.path.join(AQUI, "previa", "antes-depois.png")
 
-
 def paleta():
     p = {}
     with open(os.path.join(RAIZ, "artifacts", "tema", "dracula.txt"), encoding="utf-8") as f:
@@ -31,24 +30,20 @@ def paleta():
                 p[k] = v
     return p
 
-
 def rgba(h):
     h = h.lstrip("#")
     if len(h) == 6:
         h = "ff" + h
     return (int(h[2:4], 16), int(h[4:6], 16), int(h[6:8], 16), int(h[0:2], 16))
 
-
 def cores_overlay(arq):
     with open(arq, encoding="utf-8") as f:
         return {n: v for n, v in re.findall(r'<color name="([^"]+)">(#[0-9A-Fa-f]+)<', f.read())}
-
 
 P = paleta()
 ZY_NOVO = cores_overlay(os.path.join(AQUI, "zysetting", "res", "values", "colors.xml"))
 FW_NOVO = cores_overlay(os.path.join(AQUI, "android", "res", "values", "colors.xml"))
 
-# Valores de fabrica (aapt2 dump resources dos APKs do firmware; doc 48).
 ANTES = {
     "pt_green": "#FF00B26B", "pt_green_black": "#FF163134",
     "btn_txt_foco": "#FF000000", "btn_txt": "#FFFFFFFF",
@@ -61,26 +56,22 @@ DEPOIS = {
     "lb_fundo": FW_NOVO["background_leanback_light"],
     "lb_texto": FW_NOVO["primary_text_leanback_light"],
     "lb_sec": FW_NOVO["secondary_text_leanback_light"],
-    "realce": "#1F000000",       # ripple_material_light: a sobreposicao NAO muda
+    "realce": "#1F000000",
 }
-ACENTO_MATERIAL = "#FF009688"   # colorAccent do Material claro: a sobreposicao NAO muda
+ACENTO_MATERIAL = "#FF009688"
 
-W, H = 768, 432            # cada tela: 1920x1080 em 0,4
-K = W / 1920.0             # px da tela -> px da folha
-DP = 1.5 * K               # dp -> px da folha (densidade 1,5)
+W, H = 768, 432
+K = W / 1920.0
+DP = 1.5 * K
 MARG, GAP, ROT, CAB = 40, 24, 40, 70
-
 
 def fonte(nome, tam):
     return ImageFont.truetype(os.path.join(FONTES, nome), max(8, int(round(tam))))
 
-
 def sp(n):
     return fonte("IBMPlexSansCondensed-Regular.ttf", n * DP)
 
-
 def nove(img, w, h):
-    """Desenha um .9.png (com a borda de marcacao) esticado para w x h."""
     im = img.convert("RGBA")
     iw, ih = im.size
     top = [x for x in range(1, iw - 1) if im.getpixel((x, 0))[3] > 0]
@@ -99,10 +90,8 @@ def nove(img, w, h):
                 out.alpha_composite(c.crop((sx0, sy0, sx1, sy1)).resize((dx1 - dx0, dy1 - dy0)), (dx0, dy0))
     return out
 
-
 def colar(tela, img, x, y, w=None, h=None, nove_patch=False):
     if nove_patch:
-        # o 9-patch e hdpi: desenha no tamanho em px de tela e escala junto
         im = nove(img, int(round(w / K)), int(round(h / K)))
         im = im.resize((max(1, int(round(im.width * K))), max(1, int(round(im.height * K)))))
     else:
@@ -112,10 +101,8 @@ def colar(tela, img, x, y, w=None, h=None, nove_patch=False):
         im = im.resize((max(1, int(round(w))), max(1, int(round(h)))))
     tela.alpha_composite(im, (int(round(x)), int(round(y))))
 
-
 def texto(d, xy, s, f, cor, ancora="la"):
     d.text(xy, s, font=f, fill=rgba(cor), anchor=ancora)
-
 
 class Imgs:
     def __init__(self, base):
@@ -128,7 +115,6 @@ class Imgs:
                 if os.path.isfile(p):
                     return Image.open(p)
         raise SystemExit("falta a imagem %s em %s" % (nome, self.base))
-
 
 def tela_principal(img, c):
     t = Image.new("RGBA", (W, H), rgba(c["pt_green"]))
@@ -143,7 +129,6 @@ def tela_principal(img, c):
     m = 12 * DP
     colar(t, img("item_focus_white"), x0 - m, y0 - m, lado + 2 * m, lado + 2 * m, nove_patch=True)
     return t
-
 
 def tela_wifi(img, c):
     t = Image.new("RGBA", (W, H), rgba(c["pt_green"]))
@@ -166,7 +151,6 @@ def tela_wifi(img, c):
             m = 6 * DP
             colar(t, img("item_focus_white"), lx - m, ry - m, lw + 2 * m, 60 * DP + 2 * m, nove_patch=True)
     return t
-
 
 def tela_senha(img, c):
     t = tela_wifi(img, c)
@@ -192,7 +176,6 @@ def tela_senha(img, c):
         texto(d, (bx + bw / 2, by + bh / 2), rot, sp(20), c["btn_txt_foco"] if foco else c["btn_txt"], "mm")
     return t
 
-
 def tela_hdmi(img, c):
     t = Image.new("RGBA", (W, H), rgba(P["fundo"]))
     t.alpha_composite(Image.new("RGBA", (W, H), (0, 0, 0, 120)))
@@ -212,7 +195,6 @@ def tela_hdmi(img, c):
             d.rectangle([cx - bw / 2, by, cx + bw / 2, by + bh], fill=rgba(c["pt_green"]))
         texto(d, (cx, by + bh / 2), rot, sp(21), "#FFFFFFFF", "mm")
     return t
-
 
 def tela_temperatura(img, c):
     t = Image.new("RGBA", (W, H), rgba(P["fundo"]))
@@ -235,7 +217,6 @@ def tela_temperatura(img, c):
     texto(d, (bx + bw / 2, by + bh / 2), "OK", fonte("IBMPlexSansCondensed-SemiBold.ttf", 16 * DP), ACENTO_MATERIAL, "mm")
     return t
 
-
 TELAS = [
     ("Configurações (MainPTActivity), foco no 1º cartão", tela_principal),
     ("Wi-Fi (WifiSettingActivity), foco na 1ª rede", tela_wifi),
@@ -243,7 +224,6 @@ TELAS = [
     ("Aviso de HDMI (MyDialog, SYSTEM_ALERT), foco em Sim", tela_hdmi),
     ("Temperatura anormal (AlertDialog, tema Leanback claro)", tela_temperatura),
 ]
-
 
 def main():
     if len(sys.argv) != 2:
@@ -255,7 +235,7 @@ def main():
         try:
             return depois_zy(nome)
         except SystemExit:
-            return antes(nome)     # imagem que a sobreposicao nao troca (setas, sinal de Wi-Fi)
+            return antes(nome)
 
     largura = 2 * MARG + 2 * W + GAP
     altura = 2 * MARG + CAB + len(TELAS) * (H + ROT) + (len(TELAS) - 1) * GAP
@@ -276,7 +256,6 @@ def main():
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     folha.convert("RGB").save(SAIDA, optimize=True)
     print(SAIDA)
-
 
 if __name__ == "__main__":
     main()

@@ -1,21 +1,4 @@
 #!/usr/bin/env python3
-# artifacts/overlay/molde-alvo.py - ids do alvo para as sobreposicoes de LAYOUT (bloco 19B).
-#
-#   python3 -I artifacts/overlay/molde-alvo.py <APK alvo do firmware> <pasta da sobreposicao>
-#       grava <pasta>/alvo-ids.txt (roda UMA vez por firmware, como o recolorir.py; entra no git)
-#   python3 -I artifacts/overlay/molde-alvo.py --gerar <pasta da sobreposicao> <saida>
-#       (o build.sh chama) gera em <saida> o molde: AndroidManifest.xml, res/values/molde.xml e
-#       ids.txt (--stable-ids); imprime o pacote alvo
-#
-# Por que: um layout da sobreposicao e uma copia do layout do alvo e cita recursos do alvo (ids,
-# dimen, string, drawable, atributos da biblioteca). No Android 9 o XML compilado da sobreposicao
-# e lido no espaco de ids do ALVO, entao cada referencia tem de sair com o numero que ela tem no
-# alvo. O alvo-ids.txt guarda esses numeros (so nome, tipo, id e, para atributo, o formato); o
-# molde e um APK so de nomes, com esses ids, que o aapt2 usa como -I no link da sobreposicao. O
-# --stable-ids da aos recursos da propria sobreposicao o id que eles tem no alvo, para que uma
-# referencia a um recurso que ela troca (ex.: @color/color7) tambem saia com o numero do alvo.
-# Nenhum valor do molde entra no APK final: so os numeros. Quem prova que o layout compilado e
-# igual ao do alvo (mesma arvore, mesmos numeros) e o conferir.py.
 import hashlib, os, re, subprocess, sys, xml.etree.ElementTree as ET
 
 SDK = os.environ.get('ANDROID_SDK', os.path.expanduser('~/Android/sdk'))
@@ -28,7 +11,6 @@ def alvo_do_manifesto(pasta):
         return re.search(r'targetPackage="([^"]+)"', f.read()).group(1)
 
 def proprios(pasta):
-    """tipo/nome de cada recurso que a sobreposicao define (arquivos e valores)."""
     out = set()
     res = os.path.join(pasta, 'res')
     for d in sorted(os.listdir(res)):
@@ -43,7 +25,6 @@ def proprios(pasta):
     return out
 
 def citados(pasta):
-    """tipo/nome de cada recurso do alvo que os layouts da sobreposicao citam."""
     out = set()
     res = os.path.join(pasta, 'res')
     for d in sorted(os.listdir(res)):
@@ -115,7 +96,7 @@ def gerar(pasta, saida):
             tipo, nome = r.split('/')
             ids.append(f'{pacote}:{r} = {rid}')
             if r in meus:
-                continue                     # a propria sobreposicao define (so o id e fixado)
+                continue
             if tipo == 'attr':
                 fmt = '|'.join(t for t in resto[0].split('|') if t not in ('enum', 'flags', 'any'))
                 filho = 'flag' if 'flags' in resto[0] else 'enum'
@@ -129,7 +110,7 @@ def gerar(pasta, saida):
                 valores.append(f'<attr name="{nome}"{fa}>' + ''.join(simb) + '</attr>')
             elif tipo in VALOR:
                 valores.append(VALOR[tipo].format(n=nome))
-            elif tipo == 'layout':               # citado por <include>: um arquivo vazio basta
+            elif tipo == 'layout':
                 os.makedirs(os.path.join(saida, 'res', 'layout'), exist_ok=True)
                 with open(os.path.join(saida, 'res', 'layout', nome + '.xml'), 'w', encoding='utf-8') as f:
                     f.write(f'<View xmlns:android="{NS_ANDROID}"/>\n')

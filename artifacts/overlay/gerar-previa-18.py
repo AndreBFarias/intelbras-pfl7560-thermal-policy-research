@@ -20,7 +20,7 @@ from PIL import Image, ImageDraw
 AQUI = os.path.dirname(os.path.abspath(__file__))
 _spec = importlib.util.spec_from_file_location("previa17a", os.path.join(AQUI, "gerar-previa-17a.py"))
 C = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(C)          # so as funcoes: o main() dela so roda como script
+_spec.loader.exec_module(C)
 
 A, B = C.A, C.B
 P, rgba, colar, texto, fonte = B.P, B.rgba, B.colar, B.texto, B.fonte
@@ -31,16 +31,13 @@ BRANCO = "#FFFFFFFF"
 PRETO = "#FF000000"
 NEGRITO = C.NEGRITO
 
-
 class App(C.App):
     def __init__(self, dec, sob=None):
         super().__init__(dec, sob)
-        # cores so da configuracao television (PackageInstaller): a de fabrica e, por cima, a nova
         for base in [self.dec] + ([self.sob] if self.sob else []):
             self.cores.update(A.cores_xml(os.path.join(base, "values-television", "colors.xml")))
 
     def forma(self, nome):
-        """Como a da 17A, mas resolvendo @color/x da forma de fabrica pelas cores do app."""
         import re
         for base in ([self.sob] if self.sob else []) + [self.dec]:
             p = os.path.join(base, "drawable", nome + ".xml")
@@ -56,7 +53,6 @@ class App(C.App):
         raise SystemExit("falta a forma %s" % nome)
 
     def gif(self, nome):
-        """Primeiro quadro do GIF (o da sobreposicao, se ela tiver)."""
         for base in ([self.sob] if self.sob else []) + [self.dec]:
             p = os.path.join(base, "drawable", nome + ".gif")
             if os.path.isfile(p):
@@ -65,14 +61,10 @@ class App(C.App):
                 return im.convert("RGBA")
         raise SystemExit("falta o gif %s" % nome)
 
-
 def fundo_qualquer():
-    """Uma tela escura qualquer por tras dos avisos."""
     return Image.new("RGBA", (W, H), rgba("#FF3A3F4B"))
 
-
 def tela_teclado(a):
-    # campo de senha do Wi-Fi por tras; o teclado ocupa a parte de baixo
     t = fundo_qualquer()
     d = ImageDraw.Draw(t)
     texto(d, (W / 2, 60 * DP), "Senha do Wi-Fi", sp(26), BRANCO, "mm")
@@ -80,10 +72,9 @@ def tela_teclado(a):
     ky = H - kh
     colar(t, a.img("skb_container_bg"), 0, ky - 50 * DP, W, kh + 50 * DP, nove_patch=True)
     colar(t, a.img("skb_bg"), 0, ky, W, kh)
-    # barra de candidatos (modo pinyin) em cima do teclado
     colar(t, a.img("candidates_area_bg"), 0, ky - 50 * DP, W, 50 * DP, nove_patch=True)
     d = ImageDraw.Draw(t)
-    cands = ["ni", "nihao", "nin", "nian", "niu"]   # a fonte da folha nao tem CJK: so a cor importa
+    cands = ["ni", "nihao", "nin", "nian", "niu"]
     cx = 60 * DP
     for i, c in enumerate(cands):
         cw = 90 * DP
@@ -97,7 +88,6 @@ def tela_teclado(a):
         texto(d, (cx + 8 * DP, ky - 42 * DP), str(i + 1), sp(12), a.cor("footnote_color"))
         cx += cw + 10 * DP
     colar(t, a.img("arrow_right"), W - 30 * DP, ky - 32 * DP, 15 * DP, 21 * DP)
-    # quatro linhas de teclas
     linhas = ["qwertyuiop", "asdfghjkl", "zxcvbnm"]
     tw, th = W / 10, kh / 4
     for r, ln in enumerate(linhas):
@@ -108,7 +98,6 @@ def tela_teclado(a):
             x, y = x0 + i * tw, ky + r * th
             colar(t, a.img(nome), x, y, tw, th, nove_patch=True)
             texto(ImageDraw.Draw(t), (x + tw / 2, y + th / 2), ch, sp(26), a.cor("label_color"), "mm")
-    # ultima linha: shift aceso, ?123, espaco e enter
     y = ky + 3 * th
     for x, w, nome, rot in ((0, 2 * tw, "light_key_up_bg", "Shift"), (2 * tw, 1.5 * tw, "light_key_bg", "?123"),
                             (3.5 * tw, 4.5 * tw, "normal_key_bg", "espaço"), (8 * tw, 2 * tw, "normal_key_bg", "OK")):
@@ -116,11 +105,10 @@ def tela_teclado(a):
         texto(ImageDraw.Draw(t), (x + w / 2, y + th / 2), rot, sp(22), a.cor("label_color"), "mm")
     return t
 
-
 def tela_atalho(a):
     t = fundo_qualquer()
     escurecer(t)
-    pw, ph = 572 * K, 260 * DP          # o layout my_dialog usa px de tela (572 px)
+    pw, ph = 572 * K, 260 * DP
     px, py = (W - pw) / 2, (H - ph) / 2
     pintar(t, a, "bg_white_90", [px, py, px + pw, py + ph], 20 * K)
     d = ImageDraw.Draw(t)
@@ -132,7 +120,6 @@ def tela_atalho(a):
         pintar(t, a, "button_bg_itemcolor" if foco else "button_bg_item_white", [bx, by, bx + bw, by + bh], 40 * DP)
         texto(ImageDraw.Draw(t), (bx + bw / 2, by + bh / 2), rot, sp(20), BRANCO if foco else PRETO, "mm")
     return t
-
 
 def tela_entradas(a):
     t = fundo_qualquer()
@@ -150,15 +137,12 @@ def tela_entradas(a):
         texto(d, (W / 2, y + ih / 2), rot, sp(24), BRANCO, "mm")
     return t
 
-
 def tela_pareamento(a):
     t = Image.new("RGBA", (W, H))
     colar(t, a.gif("match_ir_yuyin1280x800"), 0, 0, W, H)
     return t
 
-
 def tela_menu_imagem(a):
-    # a entrada HDMI por tras (um degrade qualquer) e o menu a direita
     t = Image.new("RGBA", (W, H))
     d = ImageDraw.Draw(t)
     for y in range(H):
@@ -187,7 +171,6 @@ def tela_menu_imagem(a):
         y += lh
     return t
 
-
 def tela_permissao(a):
     t = fundo_qualquer()
     escurecer(t, 160)
@@ -203,9 +186,7 @@ def tela_permissao(a):
         texto(d, (bx, by + 14 * DP), rot, sp(16), "#FFEEEEEE", "lm")
     return t
 
-
 def tela_desligar(a):
-    """A contagem de desligar do 17A com o titulo da sobreposicao do android (holo_red_dark)."""
     t = Image.new("RGBA", (W, H), rgba("#FF101418"))
     d = ImageDraw.Draw(t)
     pw, ph = 600 * DP, 220 * DP
@@ -219,28 +200,21 @@ def tela_desligar(a):
         texto(d, (bx + 105 * DP, by + 25 * DP), rot, sp(22), BRANCO, "mm")
     return t
 
-
 def tela_toast(a):
-    """ToastActivity do NewLinkService: tela cheia @android:color/background_light, texto preto."""
     t = Image.new("RGBA", (W, H), rgba(a.cor("background_light")))
     texto(ImageDraw.Draw(t), (W / 2, H / 2), "Atualização concluída", sp(48), PRETO, "mm")
     return t
 
-
 def app_entradas(dec, sob):
     a = App(os.path.join(dec, "ZYCustomUI"), sob)
-    # o titulo nao tem cor no codigo: a de texto do tema escuro (primary_text_dark ->
-    # bright_foreground_dark -> background_light do framework, que a do android troca)
     fw = App(os.path.join(dec, "framework-res"), "android" if sob else None)
     a.titulo = fw.cor("background_light")
     return a
-
 
 def app_android(dec, sob):
     a = App(os.path.join(dec, "framework-res"), sob)
     a.nl = App(os.path.join(dec, "NewLinkService"), "newlinkservice" if sob else None)
     return a
-
 
 TELAS = [
     ("Teclado na tela (HiPinyinIME), foco no G e candidato 2", "HiPinyinIME", "hipinyinime", tela_teclado, App),
@@ -254,7 +228,6 @@ TELAS = [
     ("Contagem de desligar: título vermelho pela sobreposição do android", None, "android", tela_desligar, app_android),
     ("ToastActivity do NewLinkService (background_light pela do android)", "framework-res", "android", tela_toast, App),
 ]
-
 
 def main():
     if len(sys.argv) != 2:
@@ -284,7 +257,6 @@ def main():
     os.makedirs(os.path.dirname(SAIDA), exist_ok=True)
     folha.convert("RGB").save(SAIDA, optimize=True)
     print(SAIDA)
-
 
 if __name__ == "__main__":
     main()
