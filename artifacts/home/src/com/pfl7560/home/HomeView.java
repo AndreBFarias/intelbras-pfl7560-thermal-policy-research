@@ -12,6 +12,8 @@ import android.view.View;
 final class HomeView extends View {
     interface Ouvinte {
         void abrir(Item item);
+
+        void aplicarLuz(int nivel);
     }
 
     private final Modelo modelo;
@@ -48,6 +50,7 @@ final class HomeView extends View {
 
     @Override
     public boolean onKeyDown(int codigo, KeyEvent ev) {
+        if (modelo.luzAberta) return teclaLuz(codigo, ev);
         boolean mudou;
         switch (codigo) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
@@ -78,5 +81,27 @@ final class HomeView extends View {
             invalidate();
         }
         return true;
+    }
+
+    /** Com o painel de luz aberto: setas escolhem, OK aplica, BACK fecha (o BACK e da Activity). */
+    private boolean teclaLuz(int codigo, KeyEvent ev) {
+        switch (codigo) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                if (modelo.moverLuz(-1)) invalidate();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (modelo.moverLuz(1)) invalidate();
+                return true;
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                if (ev.getRepeatCount() == 0) ouvinte.aplicarLuz(modelo.nivelLuz());
+                return true;
+            default:
+                return super.onKeyDown(codigo, ev);
+        }
     }
 }

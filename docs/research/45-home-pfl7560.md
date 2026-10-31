@@ -265,3 +265,26 @@ o pintor é o `PintorCanvas` (Canvas do Android); no PC é o `PintorJ2D` (Java2D
    o "depois" da §4.3, o alerta de temperatura e o controle.
 5. Voltar com `cmd package set-home-activity com.newlink.nlprovision/.MainActivity` e apertar HOME: tem de
    aparecer a home de fábrica.
+
+## 11. Atalho Luz (bloco 15, versionCode 3)
+
+Pedido do dono: "controlamos a iluminação travando ela no 100%, não conseguimos um botão na interface pra
+controlar isso abaixando ela?". Sim: o `sbl` do `hidebug` baixa a luz do LED (doc 44 §13).
+
+- **Atalho.** "Luz", entre Imagem e Configurações, com um sol desenhado no traço da home e o valor atual por
+  baixo ("100%", em Plex Mono). A fileira Atalhos passou de 6 para 7 cartões (a mesma largura da fileira Apps).
+- **Painel.** OK no atalho abre o painel "Luz do projetor" (tela cheia, no tema): 100, 80, 60, 40 e 25
+  ("Econômico"), com uma barra em cada um; o nível atual leva "Atual" em verde. Setas escolhem, OK aplica (o
+  painel fica aberto, para ir de um nível a outro), BACK fecha. Um aviso diz que a proteção térmica continua
+  baixando a luz sozinha e que o nível volta a cada boot.
+- **Ponte.** OK grava só os dígitos em `luz`, em `getDataDir()` (`FileOutputStream`, fora da thread da
+  interface). O vigia root aplica e devolve o valor em `luz-atual`; o app lê esse arquivo (100 se não existe)
+  ao abrir, a cada minuto e 4 s depois de um OK. Enquanto o root não responde, o app mostra o nível pedido.
+- **Sem permissão nova.** O APK continua com as duas permissões normais.
+- **Provas no PC.** 15 conferências de navegação (o painel abre no nível mais perto do atual, anda de 100 a 25
+  sem passar das pontas, HOME fecha o painel), prévias `home-foco-luz.png`, `home-painel-luz.png` e
+  `home-painel-luz-economico.png` abertas e conferidas, build determinístico, `aapt2 dump badging` com
+  versionCode 3.
+- **PROVISÓRIO (só o aparelho confirma):** o painel e o atalho no projetor (leitura da parede, foco por D-pad);
+  o app conseguir ler o `luz-atual` que o root escreve (SELinux); o valor aparecer certo depois de um reboot; a
+  luz mudar de fato a cada nível (o dono já viu o 30 escurecer com o `sbl` à mão).

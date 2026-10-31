@@ -101,8 +101,13 @@ exit 0'
   stub cmd 'echo "cmd $*" >> "$T/calls.log"
 echo "priority=0 isDefault=false"; echo "com.hisilicon.higallery/.NetworkHiGallery"'
   stub logcat 'echo "logcat $*" >> "$T/calls.log"; [ -f "$T/logcat-saida" ] && cat "$T/logcat-saida"; exit 0'
-  # hidebug: registra os argumentos e a entrada (o gtt chegaria por ela); saida de mentira
-  stub hidebug 'echo "HIDEBUG $* $(cat 2>/dev/null | tr "\n" " ")" >> "$T/calls.log"
+  # hidebug: registra os argumentos e a entrada (o gtt chegaria por ela); saida de mentira.
+  # Bloco 15: "sbl N" guarda N em $T/bl (salvo com $T/bl-trava, o fabricante que atrasa) e "gbl"
+  # devolve "backlight:N" (100 sem nada guardado)
+  stub hidebug 'in=$(cat 2>/dev/null | tr "\n" " ")
+echo "HIDEBUG $* $in" >> "$T/calls.log"
+case "$in" in *"sbl "*) n=${in##*sbl }; n=${n%% *}; [ -f "$T/bl-trava" ] || echo "$n" > "$T/bl" ;; esac
+case "$in" in *gbl*) echo "backlight:$(cat "$T/bl" 2>/dev/null || echo 100)"; exit 0 ;; esac
 if [ -f "$T/hidebug-saida" ]; then cat "$T/hidebug-saida"; else printf "fan speed : 3000\nfan speed : 2950\nbacklight brightness : 1000\n"; fi'
   cp "$b/hidebug" "$R/vendor/bin/hidebug"
   # nl_camcheck: faixas acha 16; niveis olha o byte lvds_fmt (como no test-kit-pendrive);
@@ -476,6 +481,143 @@ c_pedido(){
   instala_suite; echo "# x" >> "$S/suite.sh"; : > "$PED/pedir-verificacao"
   roda_pedido y "$PED" pedir-verificacao
   afirma '[ "$(chamadas setsid)" = 0 ] && grep -q "NAO executado" "$S/vigia.log"' "lancou o suite.sh adulterado"
+  limpa
+}
+
+# bloco 15: o atalho Luz da home. $PED/luz e o pedido do app; $PED/luz-atual a resposta do root
+hb(){ grep -c "^HIDEBUG" "$T/calls.log" 2>/dev/null || true; }
+modo(){ stat -c %a "$1" 2>/dev/null; }
+c_luz(){
+  local v
+  novo_cenario "luz: pedido valido (60) = guarda, aplica pelo hidebug, confere e devolve ao app"
+  instala_suite; printf '60' > "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma 'tem_chamada "HIDEBUG  picture sbl 60 quit "' "sem o sbl 60: $(grep HIDEBUG "$T/calls.log")"
+  afirma 'tem_chamada "HIDEBUG  picture gbl quit "' "sem a leitura gbl"
+  afirma '[ "$(cat "$S/luz")" = 60 ] && [ "$(modo "$S/luz")" = 600 ]' "luz guardada errada: '$(cat "$S/luz" 2>/dev/null)' modo $(modo "$S/luz")"
+  afirma '[ "$(cat "$PED/luz-atual")" = 60 ] && [ "$(modo "$PED/luz-atual")" = 600 ]' "luz-atual errado: '$(cat "$PED/luz-atual" 2>/dev/null)' modo $(modo "$PED/luz-atual")"
+  afirma 'tem_chamada "chown -h $(id -u):$(id -g) $PED/luz-atual.novo"' "luz-atual sem chown -h para o dono da pasta: $(grep chown "$T/calls.log")"
+  afirma '[ ! -e "$PED/luz" ] && [ ! -e "$PED/luz-atual.novo" ]' "o pedido ou o temporario sobrou"
+  afirma '[ "$(chamadas setsid)" = 0 ] && ! grep -q "^GTT" "$T/calls.log" && ! grep -q "^HIDEBUG.*gtt" "$T/calls.log"' "lancou a suite ou chamou gtt"
+  afirma 'grep -q "luz 60% aplicada" "$S/vigia.log"' "log sem a confirmacao: $(tail -3 "$S/vigia.log")"
+  limpa
+
+  # a luz nao tem a protecao de 10 min
+  novo_cenario "luz: a suite terminou ha 1 min = aplica mesmo assim (sem a protecao de 10 min)"
+  instala_suite; echo $(( $(date +%s) - 60 )) > "$S/ultimo-fim"; printf '80\n' > "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma '[ "$(cat "$PED/luz-atual")" = 80 ] && tem_chamada "sbl 80"' "nao aplicou dentro dos 10 min"
+  limpa
+
+  novo_cenario "luz: zeros a esquerda e fim de linha (060) = 60"
+  instala_suite; printf '060\r\n' > "$PED/luz"
+  roda_pedido y "$PED" luz
+  afirma '[ "$(cat "$PED/luz-atual")" = 60 ] && tem_chamada "sbl 60 quit"' "060 nao virou 60"
+  limpa
+
+  for v in abc 5 9 200 101 "" 1000 -60 "6a0" "60 70" "0" "000" "6.0"; do
+    novo_cenario "luz: pedido invalido '$v' = recusado, nada aplicado"
+    instala_suite; printf '%s' "$v" > "$PED/luz"
+    roda_pedido w "$PED" luz
+    afirma '[ "$(hb)" = 0 ] && [ ! -e "$S/luz" ] && [ ! -e "$PED/luz-atual" ]' "aplicou/guardou o invalido '$v': $(grep HIDEBUG "$T/calls.log")"
+    afirma '[ ! -e "$PED/luz" ] && grep -q "recusado" "$S/vigia.log"' "o invalido '$v' nao foi apagado/registrado"
+    limpa
+  done
+
+  novo_cenario "luz: o pedido e um LINK = apaga o link, nao le o alvo, nada aplicado"
+  instala_suite; echo 60 > "$T/alvo-luz"; ln -s "$T/alvo-luz" "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma '[ "$(hb)" = 0 ] && [ ! -e "$S/luz" ] && [ "$(cat "$T/alvo-luz")" = 60 ] && [ ! -L "$PED/luz" ]' "seguiu o link"
+  limpa
+
+  novo_cenario "luz: pasta que nao e de app (UID abaixo do minimo) = apaga e ignora"
+  instala_suite; echo 60 > "$PED/luz"
+  APP_UID_MIN_TESTE=99999999 roda_pedido w "$PED" luz
+  afirma '[ "$(hb)" = 0 ] && [ ! -e "$S/luz" ] && grep -q "nao veio do app" "$S/vigia.log" && [ ! -e "$PED/luz" ]' "aceitou luz de quem nao e app"
+  limpa
+
+  novo_cenario "luz: eventos que nao sao w/y e nomes parecidos = ignorados"
+  instala_suite; echo 60 > "$PED/luz"
+  roda_pedido n "$PED" luz; roda_pedido d "$PED" luz; roda_pedido w "$PED" luzes; roda_pedido w "$PED" luz-atual; roda_pedido w "$PED" ../luz
+  afirma '[ "$(hb)" = 0 ] && [ -e "$PED/luz" ]' "tratou um evento que nao devia"
+  limpa
+
+  novo_cenario "luz: trava ocupada (rampa no meio) = guarda, nao aplica"
+  instala_suite; mkdir "$R/dev/pfl7560-suite.lock"; echo 40 > "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma '[ "$(hb)" = 0 ] && [ "$(cat "$S/luz")" = 40 ] && grep -q "trava" "$S/vigia.log" && [ ! -e "$PED/luz-atual" ]' "aplicou com a trava ou nao guardou"
+  limpa
+
+  novo_cenario "luz: o gbl nao confirma (gravacao atrasada do fabricante) = avisa, 3 leituras, devolve o que o aparelho disse"
+  instala_suite; echo 100 > "$T/bl"; : > "$T/bl-trava"; echo 60 > "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma '[ "$(grep -c "HIDEBUG  picture gbl" "$T/calls.log")" = 3 ] && [ "$(chamadas "sleep 1")" = 2 ]' "nao tentou 3 vezes: $(grep -c gbl "$T/calls.log") leituras"
+  afirma 'grep -q "gbl leu .100." "$S/vigia.log" && [ "$(cat "$PED/luz-atual")" = 100 ] && [ "$(cat "$S/luz")" = 60 ]' "aviso/luz-atual/guardada erradas: $(tail -2 "$S/vigia.log")"
+  limpa
+
+  novo_cenario "luz: luz-atual e luz-atual.novo plantados como link no app = nao seguidos"
+  instala_suite; echo X > "$T/alvo-x"; ln -s "$T/alvo-x" "$PED/luz-atual"; ln -s "$T/alvo-x" "$PED/luz-atual.novo"; echo 60 > "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma '[ "$(cat "$T/alvo-x")" = X ] && [ -f "$PED/luz-atual" ] && [ ! -L "$PED/luz-atual" ] && [ "$(cat "$PED/luz-atual")" = 60 ]' "seguiu um link ao escrever o luz-atual"
+  limpa
+
+  novo_cenario "luz: sem o hidebug = guarda, avisa, nao escreve luz-atual"
+  instala_suite; rm -f "$R/vendor/bin/hidebug"; echo 60 > "$PED/luz"
+  roda_pedido w "$PED" luz
+  afirma '[ "$(cat "$S/luz")" = 60 ] && grep -q "hidebug ausente" "$S/vigia.log" && [ ! -e "$PED/luz-atual" ]' "reagiu mal ao hidebug ausente"
+  limpa
+
+  novo_cenario "luz: a verificacao continua funcionando (luz e depois pedir-verificacao)"
+  instala_suite; echo 60 > "$PED/luz"; : > "$PED/pedir-verificacao"
+  roda_pedido w "$PED" luz; roda_pedido w "$PED" pedir-verificacao
+  afirma 'tem_chamada "setsid sh $S/suite.sh pedido" && [ ! -e "$PED/pedir-verificacao" ] && [ "$(cat "$PED/luz-atual")" = 60 ]' "a verificacao ou a luz quebrou"
+  limpa
+
+  # ---- boot ----
+  novo_cenario "luz: boot reaplica o nivel guardado e atualiza o luz-atual"
+  instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"
+  roda_boot
+  afirma 'tem_chamada "HIDEBUG  picture sbl 40 quit " && [ "$(cat "$PED/luz-atual")" = 40 ]' "nao reaplicou: $(grep HIDEBUG "$T/calls.log")"
+  afirma 'grep -q "reaplicando a luz guardada: 40%" "$S/boot.log" && grep -q "vigia do pedido ligado" "$S/boot.log"' "log do boot: $(cat "$S/boot.log")"
+  afirma 'awk "/sbl 40/ { a = NR } /^inotifyd/ { b = NR } END { exit !(a > 0 && b > a) }" "$T/calls.log"' "a luz nao foi aplicada antes do vigia"
+  limpa
+
+  novo_cenario "luz: boot com gatilho nunca reaplica do mesmo jeito (escolha do dono)"
+  instala_suite; echo nunca > "$S/gatilho"; echo 25 > "$S/luz"; chmod 600 "$S/luz"
+  roda_boot
+  afirma 'tem_chamada "sbl 25 quit" && [ "$(cat "$PED/luz-atual")" = 25 ] && [ "$(chamadas setsid)" = 0 ]' "gatilho nunca barrou a luz ou lancou a suite"
+  limpa
+
+  novo_cenario "luz: boot sem o arquivo luz nao mexe no hidebug"
+  instala_suite
+  roda_boot
+  afirma '[ "$(hb)" = 0 ] && [ ! -e "$PED/luz-atual" ]' "mexeu na luz sem escolha do dono"
+  limpa
+
+  for v in abc 5 200; do
+    novo_cenario "luz: boot com o arquivo guardado invalido '$v' = nao aplica"
+    instala_suite; printf '%s' "$v" > "$S/luz"; chmod 600 "$S/luz"
+    roda_boot
+    afirma '[ "$(hb)" = 0 ] && grep -q "invalida" "$S/boot.log"' "reaplicou o invalido '$v'"
+    limpa
+  done
+
+  novo_cenario "luz: boot com o arquivo luz LINK = ignorado"
+  instala_suite; echo 40 > "$T/alvo-luz"; ln -s "$T/alvo-luz" "$S/luz"
+  roda_boot
+  afirma '[ "$(hb)" = 0 ] && grep -q "link ou de outro dono" "$S/boot.log"' "seguiu o link"
+  limpa
+
+  novo_cenario "luz: boot com o suite-pedido.sh adulterado = luz NAO reaplicada"
+  instala_suite; echo 40 > "$S/luz"; echo "# x" >> "$S/suite-pedido.sh"
+  roda_boot
+  afirma '[ "$(hb)" = 0 ] && grep -q "luz NAO reaplicada" "$S/boot.log"' "reaplicou com o script adulterado"
+  limpa
+
+  novo_cenario "luz: pedido de luz pendente de antes do vigia = tratado uma vez ao ligar"
+  instala_suite; echo 70 > "$PED/luz"
+  roda_boot
+  afirma 'grep -q "pedido de luz pendente" "$S/boot.log" && [ "$(cat "$S/luz")" = 70 ] && [ "$(cat "$PED/luz-atual")" = 70 ] && [ ! -e "$PED/luz" ]' "o pendente de luz nao foi tratado: $(tail -4 "$S/boot.log" | tr '\n' '|')"
   limpa
 }
 
@@ -1185,7 +1327,10 @@ c_estaticos(){
   afirma '[ "$(grep -c "setprop \"\$PROP_OVERRIDE\"" "$KIT/suite.sh")" = 2 ] && grep -q "setprop \"\$PROP_OVERRIDE\" \"\$INJETADO\"$" "$KIT/suite.sh" && grep -q "setprop \"\$PROP_OVERRIDE\" '"''"'" "$KIT/suite.sh"' "setprop do override fora do padrao (so 71000 e vazio)"
   # o hidebug: a unica entrada e gfs/gbri; gtt nunca
   afirma '[ "$(grep -c "HIDEBUG" "$KIT/suite.sh")" -ge 1 ] && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qiE "gtt"' "suite.sh cita gtt fora de comentario"
-  afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "hidebug|gtt"' "boot/pedido citam hidebug/gtt"
+  # (bloco 15: o suite-pedido.sh passa a falar com o hidebug so para a luz, "sbl" e "gbl"; gtt nunca)
+  afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "gtt"' "boot/pedido citam gtt"
+  afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" | grep -qi "hidebug"' "o boot fala com o hidebug direto (deve chamar o suite-pedido.sh)"
+  afirma '[ -z "$(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")" ]' "o suite-pedido.sh manda ao hidebug algo alem de sbl/gbl: $(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")"
   # os 4 pontos e o modo de projecao: so leitura
   # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa
   afirma '! grep -n "exit !" "$KIT"/*.sh' "script do kit com exit !(...) no awk: $(grep -n "exit !" "$KIT"/*.sh | head -3)"
@@ -1199,7 +1344,7 @@ c_estaticos(){
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
-for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_pedido c_instalacao c_desinstalar \
+for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_pedido c_luz c_instalacao c_desinstalar \
          c_etapas_cor c_etapas_geometria c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente}; do
   echo "  $c"
   "$c"

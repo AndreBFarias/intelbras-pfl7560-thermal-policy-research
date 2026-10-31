@@ -370,3 +370,49 @@ e anote o resultado (a linha de base). Espera: tudo verde.
 17. **Fechamento.** `PFL_IP=$IP ./pfl7560-saude.sh` e `--vivacidade` verdes; `gatilho` de volta em `auto`;
     `$S/ultimo.log` sem `[ERRO]`. Registre o resultado de cada passo na seção "Estado" das tarefas 9, 9A, 9B e
     9C.
+
+## 13. A luz da home (bloco 15)
+
+O atalho **Luz** da home (doc 45 §11) usa o mesmo vigia do pedido de verificação, com um segundo nome de arquivo.
+
+**Medido no aparelho em 2026-10-31.** `printf 'picture\nsbl N\nquit\n' | /vendor/bin/hidebug` (N de 0 a 100)
+baixa a luz do LED de verdade (com 30, "escureceu bem"); a leitura é `printf 'picture\ngbl\nquit\n' | hidebug`,
+que devolve `backlight:N`. O `sbl` não mexe no `backlight brightness` do módulo custom (continua 1000), que é onde
+a proteção térmica age (1000 para 850 entre 66 e 70 °C): os dois convivem. A gravação do `sbl` pelo fabricante é
+**atrasada e não confiável** (com 60 aplicado e reboot logo depois, voltou o 30 anterior); por isso o nível
+escolhido é guardado por nós e reaplicado em todo boot. O `hidebug` só roda como root, por isso a ponte pelo
+arquivo.
+
+**Fluxo.** O app grava só dígitos em `luz`, na pasta privada dele. O vigia chama o `suite-pedido.sh`, que:
+
+1. aceita o nome `luz` além de `pedir-verificacao`, com o mesmo evento (`w` ou `y`) e a mesma conferência de
+   origem (arquivo regular, não link, dono igual ao da pasta, UID de app);
+2. lê **só** o conteúdo do arquivo (até 16 bytes, sem `\r\n`) e exige dígitos puros, no máximo 3, valendo de 10
+   a 100 (zeros à esquerda saem). Letras, sinal, vazio, `5`, `200`, `1000` e `6.0` são recusados, com log;
+3. apaga o pedido; guarda o número em `/data/vendor/pfl7560-suite/luz` (root, 0600);
+4. aplica com `sbl N` e confere com `gbl` (até 3 leituras, 1 s entre elas; o log avisa se não confere);
+5. devolve o valor lido em `luz-atual` na pasta do app: criado com `noclobber` (nunca segue um link plantado),
+   `chown -h` para o dono da pasta, 0600, e `mv` por cima (o rename substitui um link, não o segue). O app lê esse
+   arquivo e mostra "100%" no atalho.
+
+Não usa a proteção de 10 min. Com a trava da suíte ocupada (a rampa no meio) só guarda: o próximo boot aplica.
+**Boot.** O `suite-boot.sh`, antes de ligar o vigia e com qualquer `gatilho`, chama
+`suite-pedido.sh aplicar-luz` (o md5 do `suite-pedido.sh` é conferido antes): se `luz` existe, é do root, não é
+link e vale 10 a 100, reaplica e atualiza o `luz-atual`. Sem o arquivo, não mexe em nada. Um pedido de luz que já
+estava na pasta antes de o vigia ligar é tratado uma vez ao ligar.
+
+**O `gtt` continua proibido.** O `suite-pedido.sh` só manda ao `hidebug` `picture`/`sbl`/`gbl`/`quit`; o
+`suite-boot.sh` não fala com o `hidebug`. O harness confere (estático e em todos os cenários).
+
+**Provas no PC** (`tests/test-suite.sh`, caso `c_luz`): pedido válido, 13 inválidos, link, UID abaixo do mínimo,
+eventos errados, trava, `gbl` que não confirma, links plantados no app, `hidebug` ausente, boot reaplicando
+(inclusive com `gatilho` nunca), boot com arquivo inválido, link ou `suite-pedido.sh` adulterado, pedido pendente,
+e a verificação seguindo normal.
+
+**PROVISÓRIO (só o aparelho confirma):** (a) o vigia root conseguir criar e dar `chown` no `luz-atual` dentro da
+pasta do app (SELinux `vendor_shell` em `app_data_file`) e o app conseguir lê-lo; sem isso o atalho mostra 100%
+sempre, mas a luz muda; (b) o `gbl` logo depois do `sbl` já devolver o valor novo (senão o log avisa e o
+`luz-atual` guarda o valor antigo até o próximo boot); (c) o `sbl` aplicado no `boot_completed` pegar (o
+fabricante pode regravar depois); (d) a janela de 4 s do app para reler o `luz-atual`.
+**Não feito:** aplicar o nível guardado no fim da suíte (o `suite.sh` não foi tocado); com a rampa rodando, o
+pedido só vale a partir do próximo boot.

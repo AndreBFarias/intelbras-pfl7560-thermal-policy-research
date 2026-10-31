@@ -1,11 +1,22 @@
 # Home PFL7560 (`com.pfl7560.home`, bloco 10A)
 
 Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1,
-HDMI 2, USB-C), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Imagem, Configurações, Espelhamento),
+HDMI 2, USB-C), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Imagem, Luz, Configurações, Espelhamento),
 **Apps** e uma linha de estado (rede e temperatura do LED). Só D-pad, com o foco em rosa. Pesquisa, intents,
 riscos e desenho: [doc 45](../../docs/research/45-home-pfl7560.md).
 
 ![prévia](previa/home-foco-entrada.png)
+
+## Luz (bloco 15)
+
+O atalho **Luz** mostra o valor atual por baixo ("100%") e, com OK, abre o painel "Luz do projetor" com 5
+níveis (100, 80, 60, 40 e 25 "Econômico"). Setas escolhem, OK aplica, BACK fecha. O app não fala com o
+`hidebug` (só roda como root): grava o número, só dígitos, no arquivo `luz` da pasta privada dele
+(`getDataDir()`), e o vigia root do kit (`suite-pedido.sh`) aplica com `sbl N`, confere com `gbl` e devolve o
+valor em `luz-atual` (lido de volta pelo app). O nível escolhido fica guardado pelo kit e é reaplicado em todo
+boot (`suite-boot.sh`). Doc 44 (vigia) e doc 45 (home).
+
+![painel de luz](previa/home-painel-luz.png)
 
 ## Ligar e desligar (sem exceção, nesta ordem)
 
@@ -34,7 +45,7 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 2`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
+`minSdk 28`, `targetSdk 28`, `versionCode 3`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
 ambas normais.
 
 ## Código

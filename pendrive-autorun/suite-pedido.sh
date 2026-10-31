@@ -16,6 +16,15 @@
 #  grava ali (em /sdcard qualquer app gravaria). Apaga o arquivo (o conteudo e
 #  ignorado), respeita a protecao de 10 min e a trava, e lanca suite.sh pedido
 #  destacado com o md5 conferido NA HORA contra o embutido aqui.
+#
+#  Bloco 15 (atalho Luz da home): o mesmo molde, com o arquivo "luz". O app grava
+#  so digitos (10..100) na pasta dele; este script confere a origem como acima, le SO
+#  digitos (ate 3), recusa o resto, guarda o nivel em $SUITE/luz (root, 0600), aplica
+#  pelo hidebug ("picture", "sbl N"), confere com "gbl" e devolve o valor ao app em
+#  luz-atual (dono = UID do app, 0600). Nao usa a protecao de 10 min; com a trava
+#  ocupada (rampa no meio) so guarda. suite-boot.sh chama "suite-pedido.sh aplicar-luz"
+#  em todo boot para reaplicar o nivel guardado (a gravacao do sbl pelo fabricante e
+#  atrasada e nao confiavel: um reboot logo depois perde o valor).
 # ============================================================================
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
@@ -26,6 +35,8 @@ SUITE="$R/data/vendor/pfl7560-suite"
 FIM_ARQ="$SUITE/ultimo-fim"
 LOCK="$R/dev/pfl7560-suite.lock"
 PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
+LUZ_ARQ="$SUITE/luz"
+HIDEBUG="$R/vendor/bin/hidebug"
 INTERVALO_MIN=600
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
@@ -54,17 +65,24 @@ arq_seguro(){
   [ "$3" = "$DONO_UID" ]
 }
 md5_de(){ md5sum "$1" 2>/dev/null | cut -d' ' -f1; }
-# o pedido veio do app: arquivo regular cujo dono e o dono da pasta, e esse dono e um
+# a pasta do app: diretorio real (nao link) cujo dono e um UID de app. Deixa o dono em
+# _du e o grupo em _dg.
+pasta_do_app(){
+  [ -d "$PEDIDO_DIR" ] && [ ! -L "$PEDIDO_DIR" ] || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ldn "$PEDIDO_DIR" 2>/dev/null); _du="${3:-}"; _dg="${4:-}"
+  case "$_du" in ''|*[!0-9]*) return 1 ;; esac
+  case "$_dg" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$_du" -ge "$APP_UID_MIN" ]
+}
+# o pedido $1 veio do app: arquivo regular cujo dono e o dono da pasta, e esse dono e um
 # UID de app. Nenhum link e seguido.
 pedido_do_app(){
-  [ -d "$PEDIDO_DIR" ] && [ ! -L "$PEDIDO_DIR" ] || return 1
-  [ -f "$PEDIDO_DIR/pedir-verificacao" ] && [ ! -L "$PEDIDO_DIR/pedir-verificacao" ] || return 1
-  # shellcheck disable=SC2046  # divisao em campos de proposito
-  set -- $(ls -ldn "$PEDIDO_DIR" 2>/dev/null); _du="${3:-}"
+  pasta_do_app || return 1
+  [ -f "$PEDIDO_DIR/$1" ] && [ ! -L "$PEDIDO_DIR/$1" ] || return 1
   # shellcheck disable=SC2046
-  set -- $(ls -ln "$PEDIDO_DIR/pedir-verificacao" 2>/dev/null); _fu="${3:-}"
-  case "$_du" in ''|*[!0-9]*) return 1 ;; esac
-  [ "$_du" -ge "$APP_UID_MIN" ] && [ "$_fu" = "$_du" ]
+  set -- $(ls -ln "$PEDIDO_DIR/$1" 2>/dev/null); _fu="${3:-}"
+  [ "$_fu" = "$_du" ]
 }
 terminou_ha_pouco(){
   _fim=$(head -n 1 "$FIM_ARQ" 2>/dev/null | tr -cd '0-9' | cut -c1-20)
@@ -73,26 +91,104 @@ terminou_ha_pouco(){
   [ "$_agora" -ge "$_fim" ] && [ $(( _agora - _fim )) -lt "$INTERVALO_MIN" ]
 }
 
-# so o arquivo do pedido, e so escrita fechada (w) ou movido para dentro (y)
-[ "${3:-}" = "pedir-verificacao" ] || exit 0
+# ---- luz (bloco 15) ----------------------------------------------------------
+# So digitos, ate 3, de 10 a 100 (zeros a esquerda saem: "060" = 60). Devolve o numero em
+# stdout; qualquer outra coisa (letras, sinal, vazio, 5, 200) e recusada.
+luz_valida(){
+  case "$1" in ''|*[!0-9]*) return 1 ;; esac
+  [ "${#1}" -le 3 ] || return 1
+  _n=$(printf '%s' "$1" | sed 's/^0*//')
+  [ -n "$_n" ] && [ "$_n" -ge 10 ] && [ "$_n" -le 100 ] || return 1
+  printf '%s' "$_n"
+}
+# uma linha ASCII imprimivel e curta, so para o log
+limpo(){ printf '%s' "$1" | tr -cd ' -~' | cut -c1-20; }
+# devolve o valor ao app: luz-atual na pasta dele, dono = o da pasta, 0600. Cria com
+# noclobber (nunca segue um link plantado), chown -h e rename (que substitui, nao segue).
+escrever_luz_atual(){
+  if ! pasta_do_app; then LOG "[AVISO] pasta do app ausente, link ou de dono invalido - luz-atual nao escrita."; return 1; fi
+  _t="$PEDIDO_DIR/luz-atual.novo"
+  rm -f "$_t"
+  if ! ( set -C; umask 077; printf '%s\n' "$1" > "$_t" ) 2>/dev/null; then
+    LOG "[AVISO] nao consegui criar $_t - luz-atual nao escrita."; return 1
+  fi
+  if ! chown -h "$_du:$_dg" "$_t" 2>/dev/null; then
+    rm -f "$_t"; LOG "[AVISO] chown de luz-atual falhou - nao escrita."; return 1
+  fi
+  [ -L "$PEDIDO_DIR/luz-atual" ] && rm -f "$PEDIDO_DIR/luz-atual"
+  mv -f "$_t" "$PEDIDO_DIR/luz-atual"
+}
+# aplica $1 (10..100) pelo hidebug, confere lendo gbl (ate 3 leituras, 1 s entre elas) e
+# devolve ao app o que o aparelho disse
+aplicar_luz(){
+  if [ ! -x "$HIDEBUG" ]; then LOG "[AVISO] hidebug ausente - luz $1 nao aplicada."; return 1; fi
+  printf 'picture\nsbl %s\nquit\n' "$1" | timeout 15 "$HIDEBUG" >/dev/null 2>&1
+  _k=0
+  while :; do
+    _lido=$(printf 'picture\ngbl\nquit\n' | timeout 15 "$HIDEBUG" 2>/dev/null | sed -n 's/^.*backlight:\([0-9]*\).*$/\1/p' | head -n 1)
+    [ "$_lido" = "$1" ] && break
+    _k=$(( _k + 1 ))
+    [ "$_k" -ge 3 ] && break
+    sleep 1
+  done
+  if [ "$_lido" = "$1" ]; then
+    LOG "luz $1% aplicada (o gbl confere)"
+  else
+    LOG "[AVISO] luz $1% pedida, mas o gbl leu '$(limpo "$_lido")'"
+  fi
+  case "$_lido" in ''|*[!0-9]*) return 1 ;; esac
+  [ "${#_lido}" -le 3 ] || return 1
+  escrever_luz_atual "$_lido"
+}
+# pedido de luz ja lido ($1 = o conteudo bruto): valida, guarda e aplica
+tratar_luz(){
+  if ! _v=$(luz_valida "$1"); then
+    LOG "[AVISO] pedido de luz recusado (conteudo '$(limpo "$1")': so 10 a 100, so digitos)."
+    return 0
+  fi
+  ( umask 077; printf '%s\n' "$_v" > "$LUZ_ARQ.novo" ) && mv -f "$LUZ_ARQ.novo" "$LUZ_ARQ"
+  if [ -d "$LOCK" ]; then LOG "a suite esta rodando (trava): luz $_v% guardada, aplica no proximo boot."; return 0; fi
+  aplicar_luz "$_v"
+}
+
+# modo do boot: reaplica o nivel guardado em $SUITE/luz (suite-boot.sh, antes do vigia)
+if [ "${1:-}" = "aplicar-luz" ]; then
+  dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - luz nao reaplicada."; exit 1; }
+  [ -e "$LUZ_ARQ" ] || exit 0
+  arq_seguro "$LUZ_ARQ" || { LOG "[AVISO] $LUZ_ARQ e link ou de outro dono - ignorado."; exit 0; }
+  _b=$(head -c 16 "$LUZ_ARQ" 2>/dev/null | tr -d '\r\n')
+  if ! _v=$(luz_valida "$_b"); then LOG "[AVISO] luz guardada invalida ('$(limpo "$_b")') - nao reaplicada."; exit 0; fi
+  LOG "reaplicando a luz guardada: $_v%"
+  aplicar_luz "$_v"
+  exit 0
+fi
+
+# so os arquivos dos pedidos, e so escrita fechada (w) ou movido para dentro (y)
+NOME="${3:-}"
+case "$NOME" in pedir-verificacao|luz) ;; *) exit 0 ;; esac
 case "${1:-}" in *w*|*y*) ;; *) exit 0 ;; esac
 # a origem e conferida ANTES de apagar; depois apaga (um link e apagado, nunca
-# seguido); o conteudo nao e lido
+# seguido). O pedido de verificacao nao tem o conteudo lido; o de luz tem, so se veio do app
 DO_APP=0
-pedido_do_app && DO_APP=1
-rm -f "$PEDIDO_DIR/pedir-verificacao"
+pedido_do_app "$NOME" && DO_APP=1
+LUZ_BRUTO=""
+if [ "$NOME" = "luz" ] && [ "$DO_APP" = "1" ]; then
+  LUZ_BRUTO=$(head -c 16 "$PEDIDO_DIR/luz" 2>/dev/null | tr -d '\r\n')
+fi
+rm -f "$PEDIDO_DIR/$NOME"
 if ! dir_seguro "$SUITE"; then
   echo "[PFL7560-suite-pedido] [ERRO] $SUITE nao e uma pasta so do root - pedido ignorado."
   exit 1
 fi
 exec >>"$SUITE/vigia.log" 2>&1 </dev/null
-LOG "pedido de verificacao recebido ($(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null))"
+LOG "pedido de $NOME recebido ($(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null))"
 # um pedido que nao se apaga (uma pasta com o nome, por exemplo) nao vira laco de suites
-if [ -e "$PEDIDO_DIR/pedir-verificacao" ] || [ -L "$PEDIDO_DIR/pedir-verificacao" ]; then
-  LOG "[AVISO] nao consegui apagar o pedido $PEDIDO_DIR/pedir-verificacao - pedido ignorado."
+if [ -e "$PEDIDO_DIR/$NOME" ] || [ -L "$PEDIDO_DIR/$NOME" ]; then
+  LOG "[AVISO] nao consegui apagar o pedido $PEDIDO_DIR/$NOME - pedido ignorado."
   exit 0
 fi
 if [ "$DO_APP" != "1" ]; then LOG "[AVISO] o pedido nao veio do app (dono do arquivo nao e o da pasta do app) - ignorado."; exit 0; fi
+if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi
 if terminou_ha_pouco; then LOG "a suite terminou ha menos de 10 min - pedido ignorado."; exit 0; fi
 # ULTIMA conferencia antes de executar

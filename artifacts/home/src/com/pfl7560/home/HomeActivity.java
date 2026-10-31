@@ -29,6 +29,8 @@ import java.util.List;
  */
 public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static final long AVISO_MS = 5000L;
+    /** Tempo para o root aplicar a luz e gravar luz-atual antes de reler. */
+    private static final long LUZ_RELER_MS = 4000L;
 
     private final Handler principal = new Handler(Looper.getMainLooper());
     private Modelo modelo;
@@ -49,6 +51,13 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         @Override
         public void onReceive(Context c, Intent i) {
             carregarApps();
+        }
+    };
+
+    private final Runnable reler = new Runnable() {
+        @Override
+        public void run() {
+            lerEstado();
         }
     };
 
@@ -147,18 +156,62 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         if (modelo == null) return;
-        modelo.inicio();
+        modelo.inicio();   // fecha tambem o painel de luz
         modelo.aviso = null;
         vista.invalidate();
     }
 
-    /** BACK na home nao faz nada (nao ha para onde voltar). */
+    /** BACK fecha o painel de luz; na home em si nao faz nada (nao ha para onde voltar). */
     @Override
     public void onBackPressed() {
+        if (modelo != null && modelo.luzAberta) {
+            modelo.fecharLuz();
+            modelo.aviso = null;
+            vista.invalidate();
+        }
+    }
+
+    /** OK no painel de luz: grava o pedido (fora da thread da interface) e mostra o nivel pedido. */
+    @Override
+    public void aplicarLuz(final int nivel) {
+        final Context app = getApplicationContext();
+        modelo.luz = nivel;
+        modelo.aviso = "Luz " + nivel + "%: pedido enviado";
+        vista.invalidate();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final boolean ok = Leitor.pedirLuz(app, nivel);
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        if (!ok) {
+                            modelo.luz = Leitor.luzAtual(app);
+                            modelo.aviso = "Não consegui pedir a luz";
+                        }
+                        vista.invalidate();
+                        principal.removeCallbacks(apagarAviso);
+                        principal.postDelayed(apagarAviso, AVISO_MS);
+                        // o que vale e o que o root gravou em luz-atual
+                        principal.removeCallbacks(reler);
+                        principal.postDelayed(reler, LUZ_RELER_MS);
+                    }
+                });
+            }
+        }, "home-luz");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
     }
 
     @Override
     public void abrir(Item item) {
+        if (Acoes.LUZ.equals(item.acao)) {
+            modelo.abrirLuz();
+            modelo.aviso = null;
+            vista.invalidate();
+            return;
+        }
         boolean ok;
         try {
             ok = Abridor.abrir(this, item);
@@ -223,6 +276,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                 } catch (Throwable e) {
                     temp = null;
                 }
+                final int luz = Leitor.luzAtual(app);
                 final String r = rede;
                 final String tt = temp;
                 principal.post(new Runnable() {
@@ -231,6 +285,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                         if (isDestroyed()) return;
                         modelo.wifi = r;
                         modelo.temperatura = tt;
+                        modelo.luz = luz;
                         vista.invalidate();
                     }
                 });
