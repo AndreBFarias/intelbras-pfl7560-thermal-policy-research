@@ -18,7 +18,8 @@ root (`pendrive-autorun/suite-boot.sh`, `suite-pedido.sh`) confere que o dono do
 pasta, com UID de app (>= 10000). O app não sabe se o pedido foi atendido (a suíte ignora o pedido se outra
 já estiver rodando; fora isso o ícone sempre roda), e o vigia só liga no boot: o ícone vale a partir do boot
 **seguinte** à instalação. O `Descanso` grava `descanso-inicio` e `descanso-fim` na mesma pasta, e o vigia
-baixa a luz a 10% enquanto ele está na tela (doc 44 §14.1).
+baixa a luz a 10% enquanto ele está na tela (doc 44 §14.1). Desde o versionCode 5 (bloco 21) os dois pedidos
+saem de uma única thread, na ordem: o `fim` nunca chega antes do `inicio` e a luz não fica presa em 10%.
 
 ## Compilar
 
@@ -54,7 +55,7 @@ e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/ge
 ## Provas
 
 - `build.sh` gera o APK do zero e `apksigner verify` passa.
-- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='4'` (o 4 é o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='5'` (o 5 é o dos pedidos do descanso em ordem, bloco 21; o 4, o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
   duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
 - O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
 
