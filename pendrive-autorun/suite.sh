@@ -47,6 +47,10 @@ VIGIA_PID="$R/dev/pfl7560-suite.vigia"
 LOGF="$SUITE/ultimo.log"
 RES="$SUITE/resultados.txt"
 FIM_ARQ="$SUITE/ultimo-fim"
+# suites que comecaram e nao chegaram ao fim (queda de energia, travamento, reboot no
+# meio): o suite-boot.sh para de rodar sozinho depois de 2 seguidas (protecao contra
+# laco de reexecucao que a dos 10 min nao pega, porque ela so conta suites terminadas)
+INCOMPLETAS_ARQ="$SUITE/incompletas"
 GERA_DIR="$SUITE/tela"
 TELA_DIR="$R/sdcard/pfl7560-suite"
 PEDIDO_DIR="$R/data/media/0/pfl7560"
@@ -229,6 +233,7 @@ sair(){
   [ -n "$LOGCAT_PID" ] && kill "$LOGCAT_PID" 2>/dev/null
   if [ "$TRAVA_MINHA" = "1" ]; then
     date +%s > "$FIM_ARQ.new" 2>/dev/null && mv -f "$FIM_ARQ.new" "$FIM_ARQ"
+    rm -f "$INCOMPLETAS_ARQ"
     if [ -f "$RES.new" ]; then
       res fim "$(date +%s 2>/dev/null)"
       mv -f "$RES.new" "$RES"
@@ -236,6 +241,11 @@ sair(){
     copiar_log_pendrive
     rmdir "$LOCK" 2>/dev/null
   fi
+}
+# conta mais uma suite comecada (zerada no fim, pelo sair)
+contar_inicio(){
+  _ni=$(head -n 1 "$INCOMPLETAS_ARQ" 2>/dev/null | tr -cd '0-9' | cut -c1-4)
+  echo $(( ${_ni:-0} + 1 )) > "$INCOMPLETAS_ARQ.new" 2>/dev/null && mv -f "$INCOMPLETAS_ARQ.new" "$INCOMPLETAS_ARQ"
 }
 copiar_log_pendrive(){
   [ "$MODO" = "pendrive" ] && [ -n "$MP" ] && [ -d "$MP" ] || return 0
@@ -901,6 +911,7 @@ if ! pegar_lock; then
 fi
 trap sair EXIT
 trap 'exit 130' INT TERM HUP
+contar_inicio
 rm -f "$LOGF"
 exec >"$LOGF" 2>&1 </dev/null
 RUN_ID=$(date +%s 2>/dev/null | tr -cd '0-9')

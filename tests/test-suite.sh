@@ -948,6 +948,33 @@ exec '"$(command -v ls)"' "$@"'
   afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "a suite deveria seguir"
   limpa
 
+  novo_cenario "conferente: 2 suites interrompidas seguidas = o boot nao roda mais sozinho"
+  instala_suite; echo sempre > "$S/gatilho"; echo 2 > "$S/incompletas"
+  roda_boot
+  afirma 'ult_hist | grep -q "incompletas=2; gatilho=sempre; decisao=nao; motivo=interrompida_2x_seguidas$"' "historico: '$(ult_hist)'"
+  afirma '! grep -q "suite.sh tomada" "$T/calls.log"' "lancou depois de 2 interrupcoes"
+  limpa
+
+  novo_cenario "conferente: 1 suite interrompida = ainda roda"
+  instala_suite; echo sempre > "$S/gatilho"; echo 1 > "$S/incompletas"
+  roda_boot
+  afirma 'ult_hist | grep -q "incompletas=1; gatilho=sempre; decisao=sim; motivo=gatilho_sempre$"' "historico: '$(ult_hist)'"
+  limpa
+
+  novo_cenario "conferente: a suite conta o inicio e zera no fim"
+  etapa_feliz; echo 1 > "$S/incompletas"
+  stub wm 'cat "$PFL_ROOT/data/vendor/pfl7560-suite/incompletas" > "$T/inc-durante" 2>/dev/null; echo "Physical size: 1920x1080"'
+  roda_suite tomada
+  afirma '[ "$(cat "$T/inc-durante" 2>/dev/null)" = 2 ]' "durante a suite o contador devia ser 2: '$(cat "$T/inc-durante" 2>/dev/null)'"
+  afirma '[ ! -e "$S/incompletas" ]' "o contador nao foi zerado no fim"
+  limpa
+
+  novo_cenario "conferente: a suite morta por TERM tambem zera (o trap chega ao fim)"
+  etapa_feliz; echo 40 > "$T/mata-no-sleep"
+  roda_suite tomada
+  afirma '[ "$RC" = 130 ] && [ ! -e "$S/incompletas" ]' "rc=$RC ou contador ficou"
+  limpa
+
   novo_cenario "conferente: pedido que nao se apaga (pasta) = ignorado, sem lancar"
   instala_suite; mkdir -p "$PED/pedir-verificacao/x"
   roda_pedido w "$PED" pedir-verificacao

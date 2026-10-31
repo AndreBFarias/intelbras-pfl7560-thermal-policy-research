@@ -36,6 +36,7 @@ SUITE="$R/data/vendor/pfl7560-suite"
 HIST="$SUITE/historico-boot.txt"
 GATILHO_ARQ="$SUITE/gatilho"
 FIM_ARQ="$SUITE/ultimo-fim"
+INCOMPLETAS_ARQ="$SUITE/incompletas"
 BOOT_LOG="$SUITE/boot.log"
 LOCK="$R/dev/pfl7560-suite.lock"
 VIGIA_PID="$R/dev/pfl7560-suite.vigia"
@@ -49,8 +50,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="ea698598b4b0d5a45e92f73f414179f9"
-PEDIDO_MD5="762c34410ecf54b0c672d8c04ab7ef2e"
+SUITE_MD5="7b6de30bb8493995a513da94ab2992c0"
+PEDIDO_MD5="bc8bf7092f39da219db1d4c64812f65a"
 # SUITE_MD5_FIM
 
 # PROVISORIO (teste final no aparelho, bloco 9 item 2): os dois criterios do gatilho
@@ -61,6 +62,8 @@ PEDIDO_MD5="762c34410ecf54b0c672d8c04ab7ef2e"
 #      (botao = shutdown,userrequested; adb reboot -p = shutdown,shell).
 ANO_MIN=2020
 INTERVALO_MIN=600     # protecao contra laco: a suite terminou ha menos de 10 min = nao roda
+INCOMPLETAS_MAX=2     # protecao contra laco: 2 suites seguidas sem chegar ao fim (queda,
+                      # travamento ou reboot no meio) = nao roda sozinha ate uma terminar
 ESPERA_MONTAGEM=20    # PROVISORIO: espera um pendrive do kit montar antes de decidir
 HIST_MAX=30
 VIGIA_INTERVALO=30    # laco do vigia sem inotifyd
@@ -102,6 +105,8 @@ ler_sinais(){
   S_ANO=$(echo "$S_RELOGIO" | sed -n 's/^\([0-9][0-9][0-9][0-9]\)-.*$/\1/p')
   S_RTC=$(head -n 1 "$RTC" 2>/dev/null | tr -cd '0-9' | cut -c1-20)
   S_PM=$(head -n 12 "$PM" 2>/dev/null)
+  S_INC=$(head -n 1 "$INCOMPLETAS_ARQ" 2>/dev/null | tr -cd '0-9' | cut -c1-4)
+  S_INC=${S_INC:-0}
 }
 
 # ---- decisao -----------------------------------------------------------------
@@ -124,6 +129,7 @@ decidir(){
   GATILHO=$(head -1 "$GATILHO_ARQ" 2>/dev/null | tr -cd 'a-z')
   case "$GATILHO" in auto|sempre|nunca) ;; *) GATILHO=auto ;; esac
   if [ "$GATILHO" = "nunca" ]; then MOTIVO=gatilho_nunca; return 0; fi
+  if [ "$S_INC" -ge "$INCOMPLETAS_MAX" ]; then MOTIVO="interrompida_${S_INC}x_seguidas"; return 0; fi
   if [ -d "$LOCK" ]; then MOTIVO=trava_ocupada; return 0; fi
   if terminou_ha_pouco; then MOTIVO=terminou_ha_menos_de_10min; return 0; fi
   # o fluxo do pendrive cobre (newlink_update.sh lanca a suite no modo pendrive)
@@ -142,7 +148,7 @@ decidir(){
 }
 
 registrar(){
-  _l="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null); boot_reason=$(limpo "$S_BR"); persist_boot_reason=$(limpo "$S_PBR"); ro_bootreason=$(limpo "$S_RBR"); relogio_boot=$(limpo "$S_RELOGIO"); ano_boot=$S_ANO; rtc_epoch=$S_RTC; pm=$(limpo "$S_PM" 160); gatilho=$GATILHO; decisao=$DECISAO; motivo=$MOTIVO"
+  _l="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null); boot_reason=$(limpo "$S_BR"); persist_boot_reason=$(limpo "$S_PBR"); ro_bootreason=$(limpo "$S_RBR"); relogio_boot=$(limpo "$S_RELOGIO"); ano_boot=$S_ANO; rtc_epoch=$S_RTC; pm=$(limpo "$S_PM" 160); incompletas=$S_INC; gatilho=$GATILHO; decisao=$DECISAO; motivo=$MOTIVO"
   # printf, nao echo: o echo do sh do aparelho interpreta barra invertida (um \c cortaria a linha)
   { tail -n $(( HIST_MAX - 1 )) "$HIST" 2>/dev/null; printf '%s\n' "$_l"; } > "$HIST.new" && mv -f "$HIST.new" "$HIST"
 }
