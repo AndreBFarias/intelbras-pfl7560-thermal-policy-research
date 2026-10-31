@@ -80,6 +80,6 @@ Notas críticas:
 #   [done] saida.bin  VALIDO (conteudo + metadados stock nos 3 arquivos)
 ```
 
-**Ainda é obrigatório testar em hardware** com pendrive de resgate **oficial** (`usb_update.bin` = stock) separado e pronto. O protótipo antigo sem metadados foi apagado; não reutilize builds antigas.
+**Ainda é obrigatório testar em hardware** com pendrive de resgate **oficial** (`usb_update.bin` = stock) separado e pronto (`./install.sh --pendrive <pasta> --com-firmware` ou `tests/preparar-pendrive.sh <dispositivo>` preparam um, com o `usb_update.bin` conferido por md5; ver [`INSTALL.md`](../../INSTALL.md)). O protótipo antigo sem metadados foi apagado; não reutilize builds antigas.
 
 Recuperação: [`../../docs/guide/16-recuperacao-brick.md`](../../docs/guide/16-recuperacao-brick.md).

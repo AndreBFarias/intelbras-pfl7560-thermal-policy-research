@@ -87,7 +87,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png` e a suíte: `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png`, a suíte: `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`, as telas dela: `nl_tela` e `fontes/*`, e o app `pfl7560.apk`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Depois roda a **suíte de verificação** (ângulo, foco, nitidez, temperatura, teste da proteção térmica e um resumo em tela cheia), instala o app dos ícones **Verificar projetor** e **Wi-Fi** e deixa um serviço de boot: dali em diante a suíte roda sozinha quando o projetor volta da tomada e a pedido pelo ícone (que só vale a partir do boot seguinte). Sem serial, sem arquivo para editar, idempotente; `DESINSTALAR-SUITE.txt` no pendrive desliga a suíte. Com `--com-firmware` o pendrive leva também o firmware de resgate (`tests/preparar-pendrive.sh` prepara um do zero). Provado só em simulação; bancada no aparelho pendente: [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md) (seção "Teste no aparelho").
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash
@@ -181,19 +181,20 @@ refaça o teste de cor.
 
 ```
 .
-├── install.sh / install.bat        # setup do PC (Linux·macOS / Windows)
+├── install.sh / install.bat        # setup do PC (Linux·macOS / Windows) e kit no pendrive (--pendrive [--com-firmware])
 ├── requirements · REQUIREMENTS.md
 ├── pfl7560-fix.sh                  # correção térmica (status/apply/revert) — sonda o sensor
 ├── pfl7560-saude.sh                # verifica se a correção está ativa (12 checagens, passivo)
 │                                   #   --vivacidade = prova forte, e o ÚNICO modo não read-only
 ├── pfl7560-vigia-lsadc.sh          # acompanha a proteção durante o uso real (passivo)
 ├── pfl7560-monitor-props.sh        # curva térmica por props (passivo)
+├── pfl7560-processos.sh            # CPU por processo com o projetor parado + props (só leitura, bloco 9C)
 ├── pfl7560-monitor-termico.sh      # curva térmica por hidebug (sonda — só pontual)
 ├── pfl7560-autocaptura.sh          # captura automática da curva em uso real (sonda — serviço DESABILITADO)
 ├── pfl7560-lcd-color.sh            # correção de cor pós-troca de painel (VESA/JEIDA)
 ├── pfl7560-menu.sh · pfl7560-evidencias.sh · PFL7560-Corrigir.desktop
 ├── INSTALL.md · LICENSE (GPLv3)
-├── pendrive-autorun/               # método sem PC
+├── pendrive-autorun/               # método sem PC: kit + suíte de verificação + app (pfl7560.apk)
 ├── docs/
 │   ├── dossie-teardown.html        # dossiê visual do teardown (fotos + achados)
 │   ├── research/                   # teardown, causa-raiz, build, LCD, plano mestre (31),
@@ -206,9 +207,12 @@ refaça o teste de cor.
 ├── artifacts/
 │   ├── bin-build/                  # builder do .bin (com metadados/SELinux)
 │   ├── lcd-color-fix/              # lvdsctl + padrões de teste de cor
+│   ├── camcheck/ · tela/           # nl_camcheck (câmera) e nl_tela (telas da suíte), ARM
+│   ├── app/                        # app "PFL7560" (Verificar projetor, Wi-Fi): fonte, build.sh sem Gradle, chave
 │   └── (ZYCustom stock/fix, históricos)
 ├── media/                          # fotos do teardown + evidências
 ├── tests/                          # make check (md5) · check-kit · check-bin · check-fix (simulação, sem aparelho)
+│                                   #   preparar-pendrive.sh = formata e prepara um pendrive (só removível por USB)
 ├── firmware/                       # zip oficial (LFS) + .bin (fora do Git)
 └── referencia/                     # manuais PDF (fora do Git)
 ```

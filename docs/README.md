@@ -48,6 +48,9 @@
 | [`research/41-auto-pareamento-camera-e-kit-universal.md`](research/41-auto-pareamento-camera-e-kit-universal.md) | **Cor automática após troca de LCD:** a câmera interna é USB UVC (lida direto por V4L2, captura ainda não provada); não existe ID elétrico do painel; critério **"duas metades" 63\|64** que não se engana com balanço de branco; desenho do **kit universal** de pendrive (térmica + cor, idempotente, para leigo) |
 | [`research/42-firmware-2026-10-modelo-sem-usbc.md`](research/42-firmware-2026-10-modelo-sem-usbc.md) | **Firmware de 2026-10-20 decompilado:** é o modelo **sem USB-C** (V1.0.0.1), não atualização do V1.0.0.9; **a térmica não mudou** (o bug do mux segue de fábrica); 4 perfis de painel novos; não aplicar no aparelho com USB-C; lições para o kit e o builder |
 
+| [`research/43-pesquisa-autofoco-keystone-teclas.md`](research/43-pesquisa-autofoco-keystone-teclas.md) | **Pesquisa de firmware para a suíte de boot:** como disparar o autofoco e saber que terminou (`sys.newlink.auto`), onde ficam os 4 pontos (`persist.sys.keystone.*`), por que nenhuma tecla do controle chama um script nosso, o modo de projeção e como o launcher lista os apps (`LAUNCHER`) |
+| [`research/44-suite-de-boot.md`](research/44-suite-de-boot.md) | **A suíte de verificação de boot:** o que é, como instala (kit de pendrive, serviço de boot, app, firmware de resgate), os três gatilhos (tomada, pendrive, ícone), etapas, telas, arquivos no aparelho, como desligar, limites, o que não foi feito e o que ficou PROVISÓRIO. Termina no **roteiro único "Teste no aparelho"** |
+
 ## Reparo de hardware — troca do painel LCD e correção de cor
 
 Tema distinto do térmico: quando se **troca o micro-painel LCD** do motor óptico, as primárias saem
@@ -78,7 +81,12 @@ Os blocos de correção abertos a partir da sessão do doc 40, cada um com a se�
 | [`sprints/2026-10-29-bloco-4-prova-da-build.md`](sprints/2026-10-29-bloco-4-prova-da-build.md) | Prova de que a build é funcional (partes no aparelho abertas) |
 | [`sprints/2026-10-29-bloco-5-kit-universal.md`](sprints/2026-10-29-bloco-5-kit-universal.md) | Kit universal de pendrive: térmica + cor "duas metades" (software feito; bancada aberta) |
 | [`sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md`](sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md) | Kit, builder e fix para os dois modelos (feito, só em software) |
-| [`sprints/2026-10-30-bloco-7-cor-automatica.md`](sprints/2026-10-30-bloco-7-cor-automatica.md) | Cor automática pela câmera interna (`nl_camcheck faixas/niveis`), escada de 16 cinzas no lugar das duas metades e `force-stop` da galeria entre telas (em código e provado com stubs; falta a prova no aparelho) |
+| [`sprints/2026-10-30-bloco-7-cor-automatica.md`](sprints/2026-10-30-bloco-7-cor-automatica.md) | Cor automática pela câmera interna (`nl_camcheck faixas/niveis`), escada de 16 cinzas no lugar das duas metades e `force-stop` da galeria entre telas (provada no aparelho no bloco 8) |
+| [`sprints/2026-10-30-bloco-8-camera-robusta.md`](sprints/2026-10-30-bloco-8-camera-robusta.md) | Câmera robusta: janela de colunas 47–53 % e captura 1280×720; prova no aparelho com reboot |
+| [`sprints/2026-10-30-bloco-9-suite-de-boot.md`](sprints/2026-10-30-bloco-9-suite-de-boot.md) | Suíte de boot: decisões do dono, fatos, contratos C-geo, C-tela e C-res (documentação final: [doc 44](research/44-suite-de-boot.md)) |
+| [`sprints/2026-10-30-bloco-9a-tela-e-geometria.md`](sprints/2026-10-30-bloco-9a-tela-e-geometria.md) | `nl_tela` (telas geradas no aparelho) e `nl_camcheck geometria` |
+| [`sprints/2026-10-30-bloco-9b-suite.md`](sprints/2026-10-30-bloco-9b-suite.md) | A suíte (`suite.sh`), o serviço de boot, os gatilhos, a integração com o kit |
+| [`sprints/2026-10-30-bloco-9c-app-pendrive-docs.md`](sprints/2026-10-30-bloco-9c-app-pendrive-docs.md) | App (Verificar projetor, Wi-Fi), pendrive com firmware de resgate, `pfl7560-processos.sh` e os documentos |
 
 ## Arquivo interno (histórico de auditorias)
 
@@ -86,4 +94,4 @@ Pasta [`archive/`](archive/) — sprints e auditorias internas (não é o caminh
 
 ## Artefatos
 
-Pasta [`../artifacts/`](../artifacts/) — `ZYCustom.ini` stock e build, `bin-build/`, históricos.
+Pasta [`../artifacts/`](../artifacts/) — `ZYCustom.ini` stock e build, `bin-build/`, `app/` (o app da suíte), `camcheck/` e `tela/` (binários ARM da suíte), históricos.

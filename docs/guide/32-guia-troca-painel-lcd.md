@@ -71,10 +71,23 @@ correção térmica e faz o teste de cor da **escada de 16 cinzas**: faixas que 
 **embaralham** quando o formato está errado (a câmera interna confere sozinha)
 ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §4).
 
-1. Metades **iguais**: não aperte nada. Em 30 s ele segue e a cor não é mexida.
-2. Metades **diferentes**: aperte qualquer tecla do controle. O kit troca o formato e mostra de novo.
-3. Agora iguais? Aperte de novo para **manter**. Continuam diferentes? Não aperte: em 30 s ele volta ao
+Na maioria dos casos você **não aperta nada**: a câmera interna olha a escada e o kit decide. Escada em
+ordem = a cor está certa e nada é mexido. Fora de ordem = ele troca o formato sozinho, confere de novo e mostra
+"COR CORRIGIDA AUTOMATICAMENTE" (qualquer tecla do controle em 30 s desfaz). Só se a câmera não ajudar ele
+pergunta olhando a tela:
+
+1. Escada **em ordem** (faixas que sobem do escuro ao claro, nenhuma fora do lugar): não aperte nada. Em 30 s ele
+   segue e a cor não é mexida.
+2. Escada **fora de ordem**: aperte qualquer tecla do controle. O kit troca o formato e mostra de novo.
+3. Agora em ordem? Aperte de novo para **manter**. Continua fora de ordem? Não aperte: em 30 s ele volta ao
    formato de antes.
+
+Depois da cor, o kit roda o resto da **suíte de verificação** (ângulo, foco, nitidez, temperatura e um teste
+da proteção, em que a imagem escurece por cerca de 1 minuto: é proposital) e mostra um **resumo** em tela cheia
+por 20 s. Se o painel foi trocado e o formato ficou errado de novo em outro dia (por exemplo, depois de
+regravar o firmware), basta o projetor voltar da tomada: a suíte roda sozinha e corrige (o gatilho da tomada ainda não foi provado no aparelho). Também dá para pedir
+pelo ícone **Verificar projetor** na lista de apps (vale a partir do boot seguinte à instalação do kit).
+Detalhes: [doc 44](../research/44-suite-de-boot.md).
 
 Antes de trocar, o kit faz backup da `panelparam` (conferido com `cmp`) e grava um journal: se faltar
 energia no meio do teste, o formato original volta no boot seguinte. Rodar de novo é inofensivo.

@@ -1,6 +1,7 @@
 # nl_camcheck - camera interna do PFL7560 (V4L2, somente leitura)
 
-Programa ARM (32 bits, NDK r27c) que o kit de pendrive usa para ler a camera
+Programa ARM (32 bits, NDK r27c) que o kit de pendrive e a suite de boot
+(`docs/research/44-suite-de-boot.md`) usam para ler a camera
 interna (`/dev/video0`, uvcvideo). Nunca escreve controle da camera (sem
 `S_CTRL`): exposicao, ganho e balanco de branco ficam como estao.
 
