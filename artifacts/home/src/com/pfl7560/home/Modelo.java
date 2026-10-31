@@ -60,11 +60,17 @@ public final class Modelo {
     }
 
     public static Modelo padrao() {
-        return new Modelo(new Item[] {
-            new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1),
-            new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2),
-            new Item("USB-C", Icones.USB_C, Acoes.USB_C),
-        }, new Item[] {
+        return padrao(true);
+    }
+
+    /** comUsbC false = modelo sem a entrada USB-C (V1.0.0.1 NOTYPEC, doc 42): so as duas HDMI. */
+    public static Modelo padrao(boolean comUsbC) {
+        Item hdmi1 = new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1);
+        Item hdmi2 = new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2);
+        Item[] entradas = comUsbC
+                ? new Item[] {hdmi1, hdmi2, new Item("USB-C", Icones.USB_C, Acoes.USB_C)}
+                : new Item[] {hdmi1, hdmi2};
+        return new Modelo(entradas, new Item[] {
             new Item("Verificar projetor", Icones.VERIFICAR, Acoes.VERIFICAR),
             new Item("Wi-Fi", Icones.WIFI, Acoes.WIFI),
             new Item("Bluetooth", Icones.BLUETOOTH, Acoes.BLUETOOTH),

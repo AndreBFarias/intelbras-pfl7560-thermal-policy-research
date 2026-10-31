@@ -1,5 +1,6 @@
 package com.pfl7560.home.previa;
 
+import com.pfl7560.home.Acoes;
 import com.pfl7560.home.Desenho;
 import com.pfl7560.home.Icones;
 import com.pfl7560.home.Item;
@@ -231,6 +232,14 @@ public final class Previa {
         o.definirApps(com);
         verdade(o.apps.size() == m.apps.size() && !m.apps.isEmpty(), "a fileira Apps nao traz Office, iOSCast nem Espelhamento");
         for (Item it : o.apps) verdade(!Modelo.OCULTOS.contains(it.pacote), "oculto na fileira: " + it.pacote);
+        Modelo n = Modelo.padrao(false);
+        n.definirApps(apps);
+        verdade(n.entradas.length == 2, "modelo sem USB-C: so HDMI 1 e HDMI 2");
+        for (Item it : n.entradas) verdade(!Acoes.USB_C.equals(it.acao), "modelo sem USB-C com o cartao USB-C");
+        verdade(n.mover(1, 0) && !n.mover(1, 0) && n.focado().acao.equals(Acoes.HDMI2), "duas entradas, a ultima e HDMI 2");
+        verdade(n.mover(0, 1) && n.fileira == Modelo.ATALHOS, "de HDMI 2 desce para os atalhos");
+        while (n.mover(1, 0)) { }
+        verdade(n.mover(0, -1) && n.fileira == Modelo.ENTRADAS && n.coluna == 1, "de Configuracoes sobe para HDMI 2");
         Modelo v = base();
         v.definirApps(new ArrayList<Item>());
         v.mover(0, 1);

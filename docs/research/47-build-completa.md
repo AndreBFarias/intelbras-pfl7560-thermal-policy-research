@@ -4,6 +4,12 @@
 gate BIN-S4a: só com a palavra do dono naquele momento, com o pendrive de resgate na mão, e **nunca** no modelo
 sem USB-C com esta base. Spec: [bloco 12](../sprints/2026-10-31-bloco-12-build-completa.md).
 
+> **Bloco 21 (2026-10-31): leia a §10 primeiro.** A folga de 65312 bytes das seções 2 e 6 vinha toda de chunks
+> FILL que o re-pack criava, forma que o loader nunca gravou; as builds `eae3a83d` e `397698b9` saíram de uso. O
+> gate BIN-S4a passa a gravar `PFL7560-S4a-NAO-GRADUADO.bin` (os 3 fixes nos mesmos blocos do stock, md5
+> `a6e5da14…`), e a build completa vira o BIN-S4b, realocada, com o `.rc`, o app, a home e as 20 sobreposições
+> (`PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin`, md5 `e6b41856…`).
+
 Pedido do dono: "nossa nova build vai conferir isso tudo né? por default? [...] ter essas correções e o sistema
 operacional todo prontinho."
 
@@ -23,7 +29,9 @@ operacional todo prontinho."
   a `panelparam` provavelmente vem no container ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3) e a
   gravação devolve o formato de cor ao de fábrica: um painel JEIDA precisa do kit para voltar a ter cor certa. O
   JEIDA não entra no `.bin`, porque depende do painel de cada aparelho.
-- **Recomendação:** opção (a) da spec, do tamanho que cabe: `.bin` com os 3 fixes e o `.rc`; app e suíte pelo
+- **Bloco 21:** com `--realocar` (opção c, §10) o app, a home e as 20 sobreposições cabem; a suíte segue pelo
+  pendrive, porque mora no `/data`.
+- **Recomendação (bloco 12):** opção (a) da spec, do tamanho que cabe: `.bin` com os 3 fixes e o `.rc`; app e suíte pelo
   pendrive do kit, uma vez, logo depois da gravação. Nenhum script do kit precisa mudar (seção 4).
 
 ## 2. A medida que manda: a folga do slot do vendor
@@ -40,6 +48,10 @@ Medido no stock V1.0.0.9 (`28a2f280…`, extraído do zip LFS conferido pelo sha
 | Depois dos 3 fixes (build `eae3a83d`) | 80540020 bytes: folga de **53024** (12,9 blocos) |
 | Depois dos 3 fixes e do `.rc` (`conteudo.txt`) | 80548212 bytes: folga de **44832** (10,9 blocos) |
 
+**Correção do bloco 21:** essa folga é 100 % dos 8 chunks FILL do re-pack (16 blocos de libs como
+`/lib/libhi_msp.so`: 16 x 4096 - (8 x 16 + 8 x 12) = 65312). O stock só tem RAW e DONTCARE e ocupa o slot exato;
+sem FILL, nada novo cabe no slot (§10).
+
 O limite não é o ext4, que tem 213 MiB livres: é o transporte. O sparse do vendor ocupa um slot fixo dentro do
 container LOAD, e crescer além dele exige mexer na tabela, no `checksum1` e na posição dos records 15 a 18
 (opção c).
@@ -50,7 +62,7 @@ bloco de xattr**; uma pasta nova gasta 2 blocos (o da pasta e o de xattr).
 | O que entraria | Blocos de 4 KiB | Cabe nos 12,9 que sobram? |
 |---|---|---|
 | `pfl7560-suite.rc` (398 B) | 2 | sim |
-| app: `PFL7560.apk` (95577 B) e a pasta `/vendor/app/PFL7560` | 24 + 1 + 2 = **27** | não |
+| app: `PFL7560.apk` (95577 B no bloco 12; 189941 B no bloco 21) e a pasta `/vendor/app/PFL7560` | 24 + 1 + 2 = **27** | não |
 | suíte: 21 arquivos (1247378 B: scripts, `nl_tela`, `nl_camcheck`, `lvdsctl`, `kit/*.png`, `fontes/*`) e 3 pastas | 316 + 21 + 6 = **343** | não |
 
 A rodada real com o app no manifesto confirma: o gerador recusa com `maior que o slot stock`, e nenhum `.bin` é
@@ -85,7 +97,9 @@ gerado (seção 6).
 outros), reescrever os offsets e tamanhos deles e o do vendor na tabela, o tamanho total em `0x10` e o
 `checksum1`; e provar, no PC, que o container novo é coerente. A dúvida que só o aparelho tira é se o loader
 aceita um record maior que a partição de origem do container de fábrica (a partição na eMMC tem 300 MiB, então o
-dado expandido continua cabendo). É uma decisão do dono, para outro bloco.
+dado expandido continua cabendo). É uma decisão do dono, para outro bloco. **Bloco 21:** o risco estava
+superestimado, porque esses são os mesmos campos que a HiSilicon muda entre o V1.0.0.1 e o V1.0.0.9 (os records
+são contíguos e sem alinhamento); implementado como `--realocar` (§10).
 
 ## 4. Recomendação, e o que mudaria no kit
 
@@ -173,13 +187,15 @@ recusas no [README do builder](../../artifacts/bin-build/README.md). O que impor
   `sparse empacotado (80658804) maior que o slot stock (80593044) em 65760 bytes` (o app pediu exatamente 27
   blocos, 110592 bytes). Nenhum `.bin` gerado.
 
-Nada no aparelho: nem adb, nem projetor.
+Nada no aparelho: nem adb, nem projetor. **Bloco 21:** `make check-bin` tem 324 verificações sem stock e 443 com
+os dois stocks; a recusa do app "maior que o slot stock" deixou de existir (§10).
 
 ## 7. O que fica PROVISÓRIO até o gate BIN-S4a
 
 O [doc 31](31-plano-mestre-bin-final.md) §3 já fixou a ordem: o BIN-S4a grava o **delta mínimo** (só os 3
-fixes, a build `eae3a83d`), para que um travamento não tenha variável confusa; a build com arquivo novo em
-`/vendor/etc/init` vem numa 2ª gravação (o antigo BIN-S4b). A build desta rodada (`397698b9`) é essa segunda.
+fixes), para que um travamento não tenha variável confusa; a build com arquivo novo em `/vendor/etc/init` vem
+numa 2ª gravação (o antigo BIN-S4b). **Bloco 21:** a 1ª é a `PFL7560-S4a` (`a6e5da14`, nos mesmos blocos) e a 2ª
+a `PFL7560-S4b-COMPLETO` (`e6b41856`, realocada, com `.rc`, app, home e sobreposições); a `397698b9` saiu de uso.
 Só o aparelho confirma:
 
 1. que o loader grava a build e o Android sobe com os 3 fixes (BIN-S4a) e, na 2ª gravação, também com o `.rc`
@@ -199,12 +215,15 @@ fixes; só se ela subir limpa vem a 2ª, com o `.rc`.
 
 1. Gere a build: `unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d <pasta>` e
    `python3 artifacts/bin-build/build_fix_bin.py <pasta>/PFL7560.bin artifacts/ZYCustom_390.ini <saída.bin>`
-   (1ª gravação: md5 `eae3a83db44f790b64b9a5838a27a977`, a que já está em `firmware/`), ou o mesmo comando com
-   `--conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `397698b97c23b64cfee9e64d55c7f9aa` com o kit de
-   hoje; se o `.rc` mudar, o md5 muda também). As duas terminam em `VALIDO`.
+   (1ª gravação: md5 `a6e5da14cb3f53b42a457eb92bd91814`), ou o mesmo comando com
+   `--realocar --conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `e6b41856e26add86d0fad8881c0bf145`
+   com o kit de hoje; se um APK ou o `.rc` mudar, o md5 muda também). As duas terminam em `VALIDO`, depois do
+   `verificar_bin`; `build_fix_bin.py --verificar <saída.bin> <stock.bin>` repete a conferência.
 2. **Pendrive de resgate pronto e separado:** `tests/preparar-pendrive.sh <dispositivo>` ou
    `./install.sh --pendrive <ponto> --com-firmware`, com o `usb_update.bin` de **fábrica do modelo com USB-C**
-   (md5 `28a2f280eee313a4b115567926b2ba4f`). Confira o md5 de novo no pendrive. Nunca o `Firmware PFL7560.zip`.
+   (md5 `28a2f280eee313a4b115567926b2ba4f`) **na raiz**, como `usb_update.bin`: o loader só procura esse nome na
+   raiz. Uma cópia numa subpasta (`resgate-oficial/`) só serve depois de copiada para a raiz num PC. Confira o md5
+   de novo no pendrive. Nunca o `Firmware PFL7560.zip`.
 3. **Pendrive do kit pronto** (`./install.sh --pendrive <ponto>`), para logo depois da gravação.
 4. Confirme que o aparelho é o **modelo com USB-C** (V1.0.0.9). No sem USB-C, esta build não serve.
 5. Anote o formato de cor atual (JEIDA hoje) e, se quiser, guarde um backup da `panelparam` pelo kit.
@@ -226,6 +245,9 @@ kit de resgate").
 - por adb, se der: `ls -lZ /vendor/etc/init/pfl7560-suite.rc` (`-rw-r--r-- root root` e
   `vendor_configs_file`; só na 2ª gravação), `md5sum /vendor/etc/ZYCustom.ini` (`252ab7a7…`) e
   `grep wifi_disconnect /vendor/build.prop` (`=0`);
+- gravar qualquer `.bin` (o nosso ou o oficial) regrava 19 partições, inclusive a `logo` e o `/atv`: o
+  carregador volta à marca Intelbras (só o `pfl7560-marca.sh` pelo PC repõe a MeowCast, porque depende do
+  keystone de cada aparelho) e o `/atv/bootvideo` volta ao de fábrica (o kit repõe);
 - depois, plugue o pendrive do kit e ligue: o `newlink_update.log` (em ASCII, como o script) deve trazer
   `termico ja estava ok`, `wi-fi ja estava ok`, `xiri ja estava desabilitado`,
   `suite: servico de boot ja estava instalado` (na 1ª gravação, `[OK] suite: servico de boot instalado`),
@@ -244,7 +266,49 @@ kit de resgate").
 
 ## 9. Decisões que ficam com o dono
 
-- **Aumentar o slot do vendor (opção c)** para a build levar app e suíte: novo código no gerador, provas no PC e
-  um 1º teste no aparelho de risco diferente do BIN-S4a.
-- Até lá, a build "completa" possível é a desta rodada: fixes e `.rc`; o resto pelo kit.
+- **Aumentar o slot do vendor (opção c)**: feito no bloco 21 (`--realocar`); falta o 1º teste no aparelho, o
+  BIN-S4b, só depois de a S4a subir.
 - Gravar em duas etapas (doc 31) ou ir direto à build com o `.rc`: a recomendação é a de duas etapas.
+
+## 10. A forma do sparse e os dois modos do gerador (bloco 21)
+
+**Medido.** O sparse do vendor no stock V1.0.0.9 tem 10 chunks (5 RAW, 5 DONTCARE) e ocupa o slot exato (sobra
+0 B); o V1.0.0.1 também. As builds `eae3a83d` e `397698b9` usavam chunks FILL (`0xCAC2`, 8 deles, nos dados de
+libs como `/lib/libhi_msp.so` e `/lib/mediadrm/libwvdrmengine.so`) e deixavam 53024 e 44832 B de zeros soltos
+depois do último chunk. O loader tem código para FILL, mas a única build já gravada (julho) tinha a forma do
+stock, e o CRC que ele confere é o do container, não o do que foi escrito na eMMC: um erro no caminho FILL
+estragaria essas libs sem aviso, e zeros lidos como cabeçalho de chunk parariam a gravação no record 14.
+
+**O que o gerador faz agora** (`artifacts/bin-build/build_fix_bin.py`, README do builder):
+
+- `sparse.pack` só emite RAW e DONTCARE, e nunca há zeros soltos: o sparse ocupa exatamente o `img_length`.
+- **Padrão, nos mesmos blocos (gate BIN-S4a):** os 3 fixes vão nos blocos de dados que os arquivos já ocupam
+  (ZYCustom 3 blocos, `build.prop` 2, `init.bigfish.rc` 4), direto nos chunks RAW do sparse original, e só o
+  `i_size` do inode muda. Layout de chunks, slot, cabeçalho e `checksum1` iguais aos do stock; modo, dono e rótulo
+  de todos os inodes intactos por construção. Recusa se um arquivo pedir outro número de blocos.
+- **`--realocar` (BIN-S4b):** grava pelo `debugfs` com os metadados carimbados, re-empacota e muda o tamanho do
+  record 14 no container: `img_length` dele, `offset` dos records 15 a 18 (+ delta), `file_len` e `checksum1`;
+  os records 15 a 18 vão byte a byte. É o único modo que aceita `--conteudo`.
+- **`verificar_bin`**, antes de a saída ganhar o nome final (ela é escrita em `<saída>.tmp`): `header_len`,
+  `file_len` e `checksum1`; cabeçalho igual ao do stock fora dos campos do tamanho; blob e os 19 records
+  contíguos, os outros byte a byte iguais aos do stock, CRC do 14; forma do sparse (só RAW e DONTCARE,
+  `total_sz` coerente, soma = `total_blks`, consumido = `img_length`); e a árvore inteira do vendor contra a do
+  stock (`e2fsck -fn` limpo, só os 3 fixes e o manifesto mudam, metadados de todos os inodes iguais). Também
+  pela linha de comando: `build_fix_bin.py --verificar <bin> <stock> [--conteudo <manifesto>]`.
+
+**Builds de 2026-10-31** (locais em `firmware/`, md5 em `firmware/*.md5`):
+
+| Build | md5 | CRC do vendor | O que leva |
+|---|---|---|---|
+| `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | `0x883b40d6` | escada, Wi-Fi e xiri, nos mesmos blocos; 1393758396 B, como o stock |
+| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `e6b41856e26add86d0fad8881c0bf145` | `0xdb34914f` | o mesmo, mais o `.rc` da suíte, app, home e as 20 sobreposições (`conteudo.txt`); record 14 com +3407872 B |
+| V1.0.0.1 (sem USB-C), nos mesmos blocos, só em software | `e3e3e87ce08a625c83c3824eafd26d9b` | `0xe5b1294a` | a mesma conta com o `ZYCustom_390.NOTYPEC.ini` |
+
+**O que o `.bin` não leva de jeito nenhum:** o JEIDA (cada painel), a partição `logo` (cada keystone) e o estado
+em `/data` (apps desligados, sobreposições ligadas, home pela prop, descanso de tela), que a suíte refaz no 1º
+boot com o pendrive do kit. Office, iOSCast e Espelhamento ficam no `/system` (outro slot): tirá-los não libera
+espaço no vendor, e o `--realocar` dispensa esse espaço; eles seguem só desligados.
+
+**PROVISÓRIO até o aparelho:** que o loader grava a S4a como gravou a de julho (forma do stock) e o Android sobe
+com os 3 fixes; e, só depois disso, que o loader aceita o container realocado da S4b (`file_len`, offsets e
+`checksum1` novos) e que o kit, logo depois, acha app, home e sobreposições "já estava ... (igual ao do kit)".

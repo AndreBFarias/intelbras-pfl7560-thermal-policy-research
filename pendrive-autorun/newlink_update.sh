@@ -86,7 +86,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034  # so conferidos pelo harness contra o build.sh e o apk
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="4"
+APP_VERSION_CODE="5"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
 DONO_UID=0
@@ -121,16 +121,16 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-539096ea65bd73683697574a3be5c023  cor.sh
+e2a2f0b02fabd301bb6c89c3e1c3b08a  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
-8bf8bae6410b6b289d55e92671870d3b  nl_camcheck
+02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-cb410c3c471e0dfc32723fdcd04d018d  suite.sh
-c0a793544d9261f0474117c63172455f  suite-boot.sh
-882a5be0f7828389957b703cadba9083  suite-pedido.sh
+478e0f4852d5d40f2ff2f6a4583beb25  suite.sh
+da3cdd1f71418cadbd081c82089e4a30  suite-boot.sh
+9e5ddccd0e72f0ace8b25a6f61ede657  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-2b70e7f67a4c8979c7974e0face601a3  pfl7560.apk
-a2eaa639a4687070762d37da7cc3d122  pfl7560-home.apk
+94af8f73937bf96cf311b93ef642814f  pfl7560.apk
+1fd6a1982149ca52becb263a846fdaee  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png

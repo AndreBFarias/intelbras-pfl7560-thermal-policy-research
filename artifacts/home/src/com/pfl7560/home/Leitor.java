@@ -149,6 +149,17 @@ final class Leitor {
         }
     }
 
+    /** O aparelho tem entrada USB-C: zysys.typec_count > 0 ou zysys.source.typec1 definida (o V1.0.0.1 nao tem nenhuma das duas). */
+    static boolean temUsbC() {
+        String n = prop("zysys.typec_count").trim();
+        try {
+            if (!n.isEmpty()) return Integer.parseInt(n) > 0;
+        } catch (NumberFormatException e) {
+            // valor estranho: decide pela fonte
+        }
+        return !prop("zysys.source.typec1").trim().isEmpty();
+    }
+
     /** android.os.SystemProperties.get por reflexao (API escondida, liberada para targetSdk 28). "" se falhar. */
     static String prop(String nome) {
         try {

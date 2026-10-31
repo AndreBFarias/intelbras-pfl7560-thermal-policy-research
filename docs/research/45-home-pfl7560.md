@@ -325,3 +325,18 @@ remover o office suite (ocultar da home)". Os três já foram desligados à mão
   Office de exemplo não aparece na de rolagem (12 apps). `build.sh` gera o APK com versionCode 4.
 - **PROVISÓRIO (só o aparelho confirma):** a home nova no projetor com 6 atalhos e sem o iOSCast na fileira Apps.
 
+## 13. Modelo sem USB-C e a luz fora da thread da interface (bloco 21, versionCode 5)
+
+- **Entradas.** O kit também instala a home no modelo sem USB-C (V1.0.0.1, doc 42), cujo `build.prop` não tem
+  `zysys.typec_count` nem `zysys.source.typec1`. O cartão USB-C só aparece quando `Leitor.temUsbC()` acha uma das
+  duas (`typec_count` > 0 ou a fonte definida); sem elas, a fileira Entradas tem só HDMI 1 e HDMI 2.
+- **Luz.** Quando o pedido de luz falha, a luz atual (que roda um `getprop`) é lida na thread `home-luz`, não mais
+  na da interface.
+- **Paleta.** O `build.sh` lê os 11 tokens de `artifacts/tema/dracula.txt`, a fonte única, e não mais do doc de
+  sprint do bloco 10.
+- **Provas no PC.** `gerar-previas.sh` confere a navegação com duas entradas (HDMI 2 é a última, desce para os
+  atalhos e volta de Configurações para HDMI 2); sem o `Modelo.padrao(boolean)` o código nem compila. As prévias
+  de sempre não mudaram (md5 iguais). `build.sh` gera o APK com versionCode 5.
+- **PROVISÓRIO (só o aparelho confirma):** no modelo com USB-C, o cartão continua lá (o `build.prop` do V1.0.0.9 tem
+  `zysys.typec_count=1`); no sem USB-C, nenhum aparelho do dono para conferir.
+

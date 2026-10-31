@@ -57,8 +57,8 @@ def block_map(blk, chunks):
 
 
 def pack(raw_path, out_path, blk=4096):
-    """Empacota ext4 raw em Android sparse (raw/fill/dontcare).
-    Usa mmap + regioes (nao concatena bytes de raw na RAM).
+    """Empacota ext4 raw em Android sparse so com chunks RAW e DONTCARE, a forma do stock
+    (o loader nunca gravou FILL, doc 47). Usa mmap + regioes (nao concatena bytes de raw na RAM).
     Retorna (size_bytes, n_chunks, total_blocks).
     """
     import mmap
@@ -68,41 +68,17 @@ def pack(raw_path, out_path, blk=4096):
     total = size // blk
     zero = b'\x00' * blk
 
-    # regioes: ('dontcare'|('fill', val)|'raw', start, count)
+    # regioes: ['dontcare'|'raw', start, count]
     regions = []
     with open(raw_path, 'rb') as f:
         mm = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
         try:
-            i = 0
-            while i < total:
-                block = mm[i * blk:(i + 1) * blk]
-                if block == zero:
-                    kind = 'dontcare'
-                    extra = None
+            for i in range(total):
+                kind = 'dontcare' if mm[i * blk:(i + 1) * blk] == zero else 'raw'
+                if regions and regions[-1][0] == kind:
+                    regions[-1][2] += 1
                 else:
-                    word = block[:4]
-                    if len(block) == blk and block == word * (blk // 4):
-                        kind = 'fill'
-                        extra = struct.unpack('<I', word)[0]
-                    else:
-                        kind = 'raw'
-                        extra = None
-                if regions:
-                    pk, ps, pc, pe = regions[-1]
-                    if pk == kind and kind == 'dontcare':
-                        regions[-1] = (pk, ps, pc + 1, pe)
-                        i += 1
-                        continue
-                    if pk == kind and kind == 'fill' and pe == extra:
-                        regions[-1] = (pk, ps, pc + 1, pe)
-                        i += 1
-                        continue
-                    if pk == kind and kind == 'raw':
-                        regions[-1] = (pk, ps, pc + 1, pe)
-                        i += 1
-                        continue
-                regions.append((kind, i, 1, extra))
-                i += 1
+                    regions.append([kind, i, 1])
         finally:
             mm.close()
 
@@ -112,14 +88,11 @@ def pack(raw_path, out_path, blk=4096):
         try:
             o.write(struct.pack('<IHHHHIIII',
                                 SPARSE_MAGIC, 1, 0, 28, 12, blk, total, nchunks, 0))
-            for kind, start, cnt, extra in regions:
+            for kind, start, cnt in regions:
                 if kind == 'raw':
                     data_len = cnt * blk
                     o.write(struct.pack('<HHII', RAW, 0, cnt, 12 + data_len))
                     o.write(mm[start * blk: start * blk + data_len])
-                elif kind == 'fill':
-                    o.write(struct.pack('<HHII', FILL, 0, cnt, 16))
-                    o.write(struct.pack('<I', extra))
                 else:
                     o.write(struct.pack('<HHII', DONTCARE, 0, cnt, 12))
         finally:

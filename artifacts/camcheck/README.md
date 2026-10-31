@@ -7,7 +7,9 @@ interna (`/dev/video0`, uvcvideo). Nunca escreve controle da camera (sem
 
 Fonte: `nl_camcheck.c`. Binario do aparelho: `nl_camcheck` (esta pasta) e a
 mesma copia em `pendrive-autorun/nl_camcheck` (o kit confere o md5 dela antes de
-cada execucao).
+cada execucao). Bloco 21: `grab` e a captura usam no maximo 4 buffers mesmo que o
+driver de mais, saem 1 se o driver nao der nenhum, e `grab` sai 1 se a gravacao do
+quadro ficar incompleta (o `test-camcheck.sh` prova com um driver de mentira).
 
 ## Compilar
 

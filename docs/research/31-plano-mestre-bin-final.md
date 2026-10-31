@@ -16,6 +16,9 @@ Data desta revisão: 2026-07-12.
 > - **O builder serve aos dois modelos** ([bloco 6](../sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md),
 >   T6.2): lê o offset do vendor da tabela do container e recusa `.ini` de outro modelo. Stock V1.0.0.9 →
 >   `eae3a83d…`; stock V1.0.0.1 sem USB-C → `0d294cb3…`, **só em software**.
+> - **Bloco 21 (2026-10-31):** as builds acima saíram de uso (re-pack com chunks FILL e zeros soltos no slot). O
+>   BIN-S4a grava `PFL7560-S4a` (`a6e5da14…`, os 3 fixes nos mesmos blocos do stock) e o BIN-S4b a
+>   `PFL7560-S4b-COMPLETO` (`e6b41856…`, realocada, com `.rc`, app, home e sobreposições); [doc 47](47-build-completa.md) §10.
 > - **Etapa 3 (vigia de tela) tem o gate de viabilidade reaberto:** o `am start ... VIEW` deu tela preta
 >   neste aparelho (**OPT-S13**, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3).
 > - **A `panelparam` provavelmente vai junto no `.bin`** (ver a correção na §1).
