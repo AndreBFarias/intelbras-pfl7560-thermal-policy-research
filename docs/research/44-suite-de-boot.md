@@ -2,11 +2,9 @@
 
 **Estado em 2026-10-31: em uso no projetor do dono.** A suíte rodou no aparelho pelo boot, pelo ícone
 "Verificar projetor" e pelo pendrive; a luz da home (§13), o descanso de tela (§14 e §14.1) e o que o kit leva
-do bloco 14 (§15) também foram provados lá. O estado do conjunto está em
-[`docs/ESTADO.md`](../ESTADO.md). Falta no aparelho: tirar da tomada **com o projetor
-ligado** com o cabo de verdade (a marca foi provada com `sysrq b`, passo 7), a varredura fina de foco com o foco
-ruim de propósito (§16) e o que segue marcado **PROVISÓRIO** ao longo do texto (reunido na seção 11). A seção
-12 é o roteiro do teste, escrito antes dele.
+do bloco 14 (§15) também foram provados lá. O que falta no aparelho está em [`docs/ESTADO.md`](../ESTADO.md);
+o que segue marcado **PROVISÓRIO** ao longo do texto está reunido na seção 11. A seção 12 é o roteiro do teste,
+escrito antes dele.
 
 Origem: o pedido do dono de 2026-10-30, depois do [bloco 8](../sprints/2026-10-30-bloco-8-camera-robusta.md):
 ao ligar depois de ficar sem energia, o projetor roda a suíte de correção (câmera, cor, ângulo, foco, imagem,
