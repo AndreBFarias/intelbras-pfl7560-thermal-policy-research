@@ -9,10 +9,11 @@ Bateria verde depois do bloco 21, em verificações sem falha:
 
 | `make check-kit` | `make check-fix` | `make check-bin` |
 |---|---|---|
-| 197 / 94 / 690 / 569 / 97 / 35 / 72 / 42 | 50 | 324 (443 com os dois stocks reais) |
+| 197 / 94 / 690 / 569 / 97 / 35 / 72 / 42 | 50 | 324 (444 com os dois stocks reais) |
 
 A ordem do `check-kit`: `test-camcheck`, `test-tela`, `test-kit-pendrive`, `test-suite`, `test-preparar-pendrive`,
-`test-processos`, `test-pc-marca-vlc`, `test-qualidade`. O `make check` também passa. Como rodar: [`tests/README.md`](../tests/README.md).
+`test-processos`, `test-pc-marca-vlc`, `test-qualidade`. Com a S4a local em `firmware/`, o `test-preparar-pendrive`
+dá 94: pula os 3 casos que copiariam 1,4 GB. O `make check` também passa. Como rodar: [`tests/README.md`](../tests/README.md).
 
 ## No projetor do dono (192.168.1.5), provado
 
@@ -37,9 +38,24 @@ A ordem do `check-kit`: `test-camcheck`, `test-tela`, `test-kit-pendrive`, `test
   `bootanimation.zip`.
 - **Apps:** Office, iOSCast e Espelhamento desligados; VLC 3.7.1 em `/vendor/app/VLC`.
 
-O que o bloco 21 mudou no kit (descanso que volta ao nível de antes, motivo do boot, desinstalar mais limpo, `sync`
-antes de trocar arquivo de boot, app e home com `versionCode` 5, `nl_camcheck` novo) ainda não rodou no aparelho:
-entra com o pendrive novo.
+## O que o bloco 21 mudou
+
+Nada disto rodou no aparelho ainda; entra com o pendrive novo.
+
+- **Kit:** o descanso de tela volta ao nível de luz de antes (não mais a 100 %); abertura e resumo seguem o motivo
+  do boot; o `--desinstalar` apaga os sinais do descanso e a trava da suíte; `sync` antes de cada `mv` sobre
+  arquivo de boot no `/vendor`; o `newlink_update.sh` com o `PATH` fixo; app e home com `versionCode` 5 (pedidos
+  do descanso em ordem; home sem o cartão USB-C no modelo sem USB-C) e o `nl_camcheck` que limita os buffers.
+- **Código sem comentário** (shell, Python, C, Java, Makefile): o porquê foi para [`codigo/`](codigo/) e o mapa
+  para [`MAPA.md`](MAPA.md). Provado sem mudança de comando: árvore do `bash` igual antes e depois nos 36 scripts,
+  `ast` igual nos 17 Python, objetos C e `.class` iguais. Os APKs foram refeitos (mesmo bytecode, só a tabela de
+  linhas muda), então o kit os reinstala por cima, com o mesmo `versionCode` 5.
+- **Pendrive:** o nosso `.bin` (S4a) na raiz como `usb_update.bin`; o oficial em `resgate-oficial/`; recusa
+  pendrive com `DESINSTALAR-SUITE.txt` ou com `usb_update.bin` sem `--com-firmware`.
+- **Gerador do `.bin`:** nos mesmos blocos do stock por padrão, sparse só RAW e DONTCARE, `verificar_bin` antes de
+  a saída ganhar o nome, e `--realocar` para a build com app, home e sobreposições (doc 47 §10).
+- **Docs:** um dono por fato (ESTADO aqui, ventiladores no doc 07, painéis no doc 33, `.bin` no doc 47),
+  [`glossario.md`](glossario.md), [`../CONTRIBUTING.md`](../CONTRIBUTING.md) e o índice [`README.md`](README.md).
 
 ## Pendrive
 
@@ -52,13 +68,19 @@ Layout decidido pelo dono em 2026-10-31 (bloco 21), gerado por `./install.sh --p
   ele vai para a raiz de outro pendrive como `usb_update.bin` ([guia 16](guide/16-recuperacao-brick.md)).
 
 O pendrive físico do dono (`sda`, Cruzer Fit, FAT32 "PFL7560") estava no arranjo antigo (oficial na raiz e o
-`.bin` antigo em `firmware-nosso-NAO-GRADUADO/`) e é regravado no fechamento do bloco 21.
+`.bin` antigo em `firmware-nosso-NAO-GRADUADO/`) e é regravado no fechamento do bloco 21. Antes de gravar, a S4a
+tem de estar em `firmware/` do repositório principal (o `install.sh --com-firmware` recusa sem ela). Com a S4a na
+raiz, **ligar segurando o POWER com este pendrive plugado grava a S4a**; ligar normalmente só roda o kit.
 
 ## Build
 
-`PFL7560-S4a-NAO-GRADUADO.bin` (local, md5 `a6e5da14…`): os 3 fixes nos mesmos blocos do stock. Depois dela, só se
-subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`e6b41856…`), com o `.rc` da suíte, o app, a home e as
-sobreposições. As duas passam no `verificar_bin` no PC e **não foram gravadas**. Detalhes, ordem e roteiro:
+`PFL7560-S4a-NAO-GRADUADO.bin` (local, md5 `a6e5da14cb3f53b42a457eb92bd91814`, 1393758396 B, CRC do vendor
+`0x883b40d6`): só os 3 fixes (escada de brilho no `ZYCustom.ini`, Wi-Fi no `build.prop`, `xiriservice` desligado no
+`init.bigfish.rc`), nos mesmos blocos do stock, com o layout de chunks, o slot e o `checksum1` do stock. Regerada
+no fim do bloco 21 a partir do stock V1.0.0.9 com o gerador sem comentário: o mesmo md5. É a que vai para o
+pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`31702b647ba9b2bca98e6da625231e69`,
+CRC `0xd8e4e78b`, refeita com os APKs novos), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
+saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram gravadas**. Detalhes, ordem e roteiro:
 [doc 47](research/47-build-completa.md) §8, §10 e §11; tabela das builds: [`firmware/README.md`](../firmware/README.md).
 
 ## Só com o dono no projetor
@@ -73,10 +95,12 @@ sobreposições. As duas passam no `verificar_bin` no PC e **não foram gravadas
 5. Tema com a luz da sala: o contraste do roxo, do rosa e do vermelho sobre o cartão (3,5 a 3,8:1) nas telas da
    suíte; se o plano de fundo for aplicado, o arco roxo de 3 px e o gradiente sem faixas
    ([`artifacts/tema/README.md`](../artifacts/tema/README.md)).
-6. Do bloco 21: um descanso de tela **sem** nível escolhido no botão Luz (a luz tem de voltar ao nível de antes);
-   `mount | grep vendor` para saber se o `/vendor` tem `auto_da_alloc` ou `nodelalloc` (o `sync` antes do `mv`
-   está no doc 44 §11).
-7. Se quiser: gravar a S4a (gate BIN-S4a) com o resgate à mão, pelo roteiro do doc 47 §8.
+6. Do bloco 21, no 1º boot com o pendrive novo: o `newlink_update.log` com `[OK] app` e a home reinstalados por
+   cima (mesmo `versionCode` 5, md5 novo) e a home ainda como tela inicial; um descanso de tela **sem** nível
+   escolhido no botão Luz (a luz tem de voltar ao nível de antes); `mount | grep vendor` para saber se o `/vendor`
+   tem `auto_da_alloc` ou `nodelalloc` (o `sync` antes do `mv` está no doc 44 §11).
+7. Se quiser: gravar a S4a (gate BIN-S4a) com o resgate oficial pronto num **outro** pendrive, pelo roteiro do
+   doc 47 §8. Só o aparelho prova que o loader grava a S4a e que o Android sobe com os 3 fixes; a S4b só depois.
 
 Fica de fora do tema, por decisão: o branco global do Android (`@android:color/white`), porque trocá-lo muda
 todo branco do sistema. Doc 48 §13.4.

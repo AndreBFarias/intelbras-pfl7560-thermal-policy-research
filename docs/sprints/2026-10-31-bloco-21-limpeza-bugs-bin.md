@@ -6,7 +6,7 @@ Pedido do dono, antes de sair:
 - repositório fácil para quem chega (iniciante ou ferramenta): achar dados e arquivos rápido, código sem
   comentários, pouco texto repetido;
 - correção: bugs, melhorias, QA, UI e UX, lacunas em aberto, problemas legados e o `.bin` que funcione de vez;
-- 8 agentes Opus; no fim, merge e push na `main` e o pendrive com o sistema novo.
+- 8 agentes; no fim, merge e push na `main` e o pendrive com o sistema novo.
 
 Decisões do dono (2026-10-31):
 - pendrive: **o nosso `.bin` na raiz** como `usb_update.bin`; o oficial V1.0.0.9 guardado em `resgate-oficial/` no
@@ -14,7 +14,7 @@ Decisões do dono (2026-10-31):
 - sem comentários em **todo código** (shell, Python, C, Java, Makefile). Antes de tirar, o que o comentário
   explica (o porquê) passa para os docs. Ficam os funcionais: shebang, diretivas do `shellcheck`, `# noqa` e afins.
 
-## Agentes (8 Opus, um workflow)
+## Agentes (8, numa rodada só)
 
 | fase | agente | o quê | onde |
 |---|---|---|---|
@@ -39,4 +39,11 @@ O coordenador junta `bloco-21/integracao` na sessão e na `main`, dá push, gera
 
 ## Estado
 
-Em voo (2026-10-31).
+Pronto para integrar (2026-10-31): A1 a A8 terminaram em `bloco-21/integracao`; falta o coordenador juntar na
+sessão e na `main`, copiar a S4a para `firmware/` do repositório principal e gravar o pendrive.
+
+- Bateria verde: `make check` OK; `check-kit` 197 / 94 / 690 / 569 / 97 / 35 / 72 / 42; `check-fix` 50;
+  `check-bin` 324 (444 com os dois stocks reais); `shellcheck` sem aviso em todos os `.sh` versionados.
+- `.bin` para o pendrive: `PFL7560-S4a-NAO-GRADUADO.bin`, md5 `a6e5da14cb3f53b42a457eb92bd91814` (só os 3 fixes, nos
+  mesmos blocos do stock), regerado no fim do bloco com o mesmo md5. A S4b (`31702b64…`) só depois de a S4a subir.
+- O que mudou, o que falta e o que só o aparelho prova: [`ESTADO.md`](../ESTADO.md).
