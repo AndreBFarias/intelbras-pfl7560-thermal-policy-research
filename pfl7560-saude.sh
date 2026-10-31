@@ -152,8 +152,7 @@ vivacidade(){
   printf "  dura ~40 s. O override e limpo ao final aconteca o que acontecer.\n\n"
 
   limpa_override(){
-    local i
-    for i in 1 2 3; do
+    for _ in 1 2 3; do
       sh_ "setprop $PROP_OVERRIDE ''" >/dev/null 2>&1
       if [ "$(sh_ "getprop ro.product.model")" = "PFL7560" ] \
          && [ -z "$(sh_ "getprop $PROP_OVERRIDE")" ]; then
@@ -208,7 +207,8 @@ vivacidade(){
   fi
 
   mkdir -p evidencias/vivacidade 2>/dev/null
-  local dest="evidencias/vivacidade/$(date +%Y-%m-%d-%H%M%S).log"
+  local dest
+  dest="evidencias/vivacidade/$(date +%Y-%m-%d-%H%M%S).log"
   mv "$tmp" "$dest" 2>/dev/null && printf "\n  log do teste: %s\n" "$dest"
   trap - EXIT INT TERM
   [ "${n_warn:-0}" -ge 1 ] && [ "${desce:-0}" -ge 1 ]

@@ -121,9 +121,10 @@ cmd_curva(){
 
   conecta
   RESTAURAR=1
-  local dir="evidencias/$(date +%Y-%m-%d)"
+  local dir out
+  dir="evidencias/$(date +%Y-%m-%d)"
   mkdir -p "$dir"
-  local out="$dir/brilho-${nivel}-$(date +%H%M%S).tsv"
+  out="$dir/brilho-${nivel}-$(date +%H%M%S).tsv"
   printf 'ts\tuptime_s\tnivel_alvo\tbri_real\tambiente_C\toptica_C\tplaca_C\tdelta_sobre_amb\tregime\n' > "$out"
 
   say "== curva termica no nivel $nivel =="

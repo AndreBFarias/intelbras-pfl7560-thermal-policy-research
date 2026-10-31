@@ -17,7 +17,7 @@ REGIME_BANDA="${REGIME_BANDA:-2.4}"
 PISO_SIG="${PISO_SIG:-4.6}"
 MAX_FALHAS="${MAX_FALHAS:-10}"
 
-V='\033[1;32m'; X='\033[1;31m'; A='\033[1;33m'; C='\033[1;36m'; Z='\033[0m'
+X='\033[1;31m'; A='\033[1;33m'; C='\033[1;36m'; Z='\033[0m'
 err(){ printf "${X}[ERRO]${Z}  %s\n" "$*" >&2; }
 warn(){ printf "${A}[AVISO]${Z} %s\n" "$*" >&2; }
 say(){ printf "${C}%s${Z}\n" "$*"; }
@@ -89,7 +89,8 @@ conecta(){
 coleta(){
   case "$AMB" in ''|*[!0-9.]*) err "--ambiente e OBRIGATORIO e numerico (ex.: 24.5). Veja o cabecalho."; exit 2 ;; esac
   conecta
-  local dir="evidencias/$(date +%Y-%m-%d)"
+  local dir
+  dir="evidencias/$(date +%Y-%m-%d)"
   OUT="${OUT:-$dir/props-$(date +%H%M%S).tsv}"
   mkdir -p "$(dirname "$OUT")"
   printf 'ts\tboot_id\tt_rel_s\trotulo\tuptime_s\tambiente_C\toptica_C\tplaca_C\tdelta_amb\tregime\toverride\n' > "$OUT"
