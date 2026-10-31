@@ -58,7 +58,7 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    proposital), e termina num **resumo** em tela cheia (20 s; qualquer tecla fecha) e na tela "Pode tirar o
    pendrive". Tire o pendrive. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive ficam
    `newlink_update.log` (procure `CORRECAO APLICADA COM SUCESSO`), `newlink_cor.log` e `newlink_suite.log`.
-   O mesmo pendrive instala o app `pfl7560.apk` (`pm install -r`, antes da suíte; uma falha só avisa no log) e o
+   O mesmo pendrive instala o app `pfl7560.apk` (como app do sistema em `/vendor/app`, antes da suíte; uma falha só avisa no log) e o
    serviço de boot da suíte. **Daí em diante a suíte roda sozinha, sem pendrive,** quando o projetor volta da
    tomada, e a pedido pelo ícone **"Verificar projetor"** (o app também tem o ícone "Wi-Fi"). O ícone só passa a
    valer no **boot seguinte** à instalação (o vigia do pedido liga no boot): desligue e ligue uma vez. Um pedido

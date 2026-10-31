@@ -40,9 +40,16 @@ Pelo kit de pendrive, no `newlink_update.sh` (nada de adb):
    copiado do `init.bigfish.rc` vizinho) e só então movido para a pasta que o init lê. Um `.rc` que não confira
    é removido. Vale a partir do **próximo** boot. O brick de julho veio de `.rc` com modo `0664` e sem rótulo
    ([README](../../README.md)): por isso a conferência.
-4. **O app** (`pfl7560.apk`, seção 7): `pm install -r`, a partir da cópia conferida em
-   `/data/vendor/pfl7560-kit`, **antes** de lançar a suíte, se o app não está instalado ou se o versionCode é
-   outro. Falha de instalação só avisa no log: o kit segue.
+4. **O app** (`pfl7560.apk`, seção 7) entra como **app do sistema**, em `/vendor/app/PFL7560/PFL7560.apk`.
+   - É gravado na mesma abertura rw do `/vendor` que o `.rc` usa, **antes** de lançar a suíte.
+   - Vem da cópia conferida em `/data/vendor/pfl7560-kit`.
+   - Fica com pasta 0755, arquivo 0644, dono root e rótulo `vendor_app_file`.
+   - Só é regravado se faltar ou estiver diferente.
+   - Vale a partir do **próximo** boot.
+   - O `pm install` deste firmware recusa qualquer app de fora (`INSTALL_FAILED_INVALID_INSTALL_LOCATION`), o que
+     foi visto no aparelho em 2026-10-30. O sistema varre o `/vendor/app` no boot, como faz com o
+     `KeymasterProvisionDemo` de fábrica, e o app aparece com `flags=[ SYSTEM ]`.
+   - Uma falha de instalação só avisa no log, e o kit segue.
 5. Lança `suite.sh pendrive` destacado (`setsid`). Se a fase térmica mudou algo, o aparelho reinicia antes (como
    sempre); o app já está instalado nessa altura.
 
@@ -128,7 +135,7 @@ qualquer modo, porque o app não sabe).
 
 1. **Abertura** (`aviso`): título por modo ("Voltou a energia. Conferindo o projetor.", "Pendrive do kit
    encontrado. Conferindo o projetor.", "Verificação pedida. Conferindo o projetor."), 4 passos em `fila`,
-   rodapé "não precisa apertar nada". 5 s. Depois `aguardar_autofoco` (uma vez): espera `sys.newlink.auto`
+   sem rodapé. 5 s. Depois `aguardar_autofoco` (uma vez): espera `sys.newlink.auto`
    (doc 43 §2.3), não `vendor.focus.camera.is_focused`, que não indica fim de foco.
 2. **Cor:** prepara `/data/vendor/pfl7560-kit` a partir da pasta da suíte e roda `cor.sh <mp ou vazio> <aviso>
    <md5> suite`. No modo `suite` o `cor.sh` não mostra a tela final e grava `cor-resultado.txt`
@@ -151,6 +158,17 @@ qualquer modo, porque o app não sabe).
    correção térmica, Wi-Fi, motivo do boot, data e hora). Até 3 dicas. Depois, `force-stop` da galeria e
    `input keyevent KEYCODE_HOME`. No modo `pendrive` ainda vem a tela "Pode tirar o pendrive." até ele sair (até
    60 s); com a fase térmica do kit falhando, essa tela sai em alerta e manda ver o `newlink_update.log`.
+
+### Achados do primeiro teste no aparelho (2026-10-30), já no código
+
+| Achado | O que a suíte faz |
+|---|---|
+| Avisos do sistema por cima da imagem cobrem as faixas que a câmera lê. Com o aviso "Temperatura anormal" (da rampa) a câmera leu 8 e 14 de 16 faixas; com o "Dispositivo conectado. Deseja abrir HDMI1?" leu 5; sem eles, 16 de 16 | Antes de cada tela, fecha o aviso focado. O de temperatura (`com.newlink.nlprovision`) só tem OK, então recebe ENTER. Os outros recebem BACK, que cancela: no da HDMI o botão em destaque é o de ABRIR, e ENTER trocaria de entrada. O descanso de tela também sai com BACK |
+| A câmera pode falhar mesmo assim | Até 3 leituras, com o autofoco refeito entre elas. Se ainda falhar, a tela "A câmera não conseguiu ler a tela." espera uma tecla do controle **sem prazo**: a etapa não avança sozinha (pedido do dono). Na cor, a conferência segue à mão com a pessoa presente. Na geometria, são mais 3 leituras; se falharem, a etapa fica "pendente", para que uma câmera quebrada não trave o projetor |
+| O `awk` do Android 9 recusa `exit` com negação (`illegal arithmetic operator`): o "LED quente" nunca seria detectado | `if ... exit 0; exit 1`; um teste estático proíbe a forma antiga |
+| O `inotifyd` do toybox ignora a 1ª letra da máscara (`:wy` vigiava só `y`) | Máscara `:wwy`; um pedido que já estava na pasta é tratado quando o vigia liga |
+| O `pm install` recusa apps de fora | O app vai para `/vendor/app` (seção 2) |
+| Pedido do dono: nenhuma frase nem rótulo começa com minúscula | O `nl_tela` põe maiúscula na 1ª letra de cada texto e depois de `. `, `! `, `? ` e ` · ` ("Agora", "Na fila", "Feito", "Nítido") |
 
 ## 5. Telas
 
@@ -256,7 +274,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 | Leitura de `persist.sys.mountingmode` (o rótulo do menu não foi provado) e a unidade de `fan speed` (0 = parada) | `suite.sh` | comparar com o menu e o `hidebug` |
 | `inotifyd` no toybox do Android 9 e o evento de escrita do app na pasta ext4 | `suite-boot.sh` | teste 5 e 6 |
 | `logcat -T 1` no Android 9 (sem ele: "não reagiu" falso, nunca injeção sem limpeza) | `suite.sh` | teste 12 |
-| `pm install -r` a partir de `/data/vendor/pfl7560-kit`, como root no `exec` do init | `newlink_update.sh` | teste 1 e 2: o `[OK] app` no `newlink_update.log`. Se vier `[AVISO] app: pm install falhou`, anote a mensagem: o `system_server` lê o APK pelo descritor que o `pm` abre, e o SELinux pode negar a leitura de um arquivo de `/data/vendor` (hipótese, não medida) |
+| App em `/vendor/app` pelo `exec` do init (pendrive real) | `newlink_update.sh` | teste 1 e 2: o `[OK] app` no `newlink_update.log`. Já provado pela instalação por rede em 2026-10-30, com `codePath=/vendor/app/PFL7560` e `flags=[ SYSTEM ]` |
 | Formato do `top` do Android 9 (toybox, `S[%CPU]`) no `pfl7560-processos.sh` | `pfl7560-processos.sh` | teste 14 |
 | Tempo de geração e abertura do PNG do `nl_tela` pela galeria | `nl_tela`, `suite.sh` | teste 13 |
 | `tests/preparar-pendrive.sh` e a opção 5 do `install.bat` com firmware | `tests/`, `install.bat` | teste 15 (o `.bat` e o `.ps1` nunca rodaram: não há Windows aqui) |

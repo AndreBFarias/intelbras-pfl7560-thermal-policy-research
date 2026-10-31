@@ -30,8 +30,9 @@ determinístico (o mesmo md5 a cada execução).
 ## Versão e assinatura
 
 - `VERSAO_CODIGO` no `build.sh` e `APP_VERSION_CODE` no `pendrive-autorun/newlink_update.sh` têm de ser
-  iguais (o `tests/test-kit-pendrive.sh` confere os dois e o `aapt2 dump badging` do APK). O kit instala
-  (`pm install -r`) quando o app não está instalado ou o versionCode é outro.
+  iguais (o `tests/test-kit-pendrive.sh` confere os dois e o `aapt2 dump badging` do APK). O kit põe o APK em
+  `/vendor/app/PFL7560/` como app do sistema quando ele falta ou difere: o `pm install` deste firmware recusa
+  apps de fora (`INSTALL_FAILED_INVALID_INSTALL_LOCATION`, visto no aparelho em 2026-10-30).
 - `assinatura.keystore` (PKCS12, alias `pfl7560`, senha no `build.sh`): chave própria e estável. Não é
   segredo: só garante que um APK novo instale POR CIMA do anterior. Não serve para loja.
 - O APK leva os esquemas de assinatura v1, v2 e v3. O `apksigner verify` sem opções lista só o v3 (com
@@ -52,5 +53,5 @@ Plex do kit. A saída é determinística. `python3 -I artifacts/app/gerar-icones
 
 ## Pendente (aparelho)
 
-- `pm install -r` do APK no aparelho (como root, dentro do `exec` do init), os ícones na lista de apps e o
-  pedido chegando ao vigia: passos 1, 2, 5 e 6 do roteiro "Teste no aparelho" do doc 44.
+- Provado por rede em 2026-10-30: o app em `/vendor/app` (`flags=[ SYSTEM ]`) e o pedido do "Verificar
+  projetor" chegando ao vigia. Falta ver os ícones na lista de apps com o controle (passo 5 do doc 44).
