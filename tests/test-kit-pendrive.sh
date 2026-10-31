@@ -1173,6 +1173,45 @@ print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\",
 # ---------------------------------------------------------------------------
 # estaticos
 # ---------------------------------------------------------------------------
+# conferente do 9B: o caminho de antes (cor.sh lancado direto pelo autorun, com as telas
+# dele) continua valendo quando a suite nao roda; aqui com DESINSTALAR-SUITE.txt
+c_sem_suite_legado(){
+  local u
+  novo_cenario "sem a suite (DESINSTALAR): cor.sh direto, sem tecla = telas de antes"; aparelho_ok
+  u="$T/root/mnt/media_rw/USB1"; : > "$u/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma 'grep -q "lancando a fase de cor (cor.sh) destacada" "$T/out.log" && ! grep -q "suite.sh pendrive" "$T/out.log"' "nao lancou o cor.sh direto"
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "mexeu na panelparam sem tecla"
+  afirma '[ "$(telas)" = "aguarde escada-1 pronto " ]' "telas: '$(telas)'"
+  afirma '[ ! -e "$T/root/data/vendor/pfl7560-suite" ] && [ ! -e "$T/root/vendor/etc/init/pfl7560-suite.rc" ]' "a suite ficou instalada"
+  afirma '[ -s "$u/newlink_cor.log" ] && [ ! -e "$u/newlink_suite.log" ]' "log do pendrive"
+  limpa
+
+  novo_cenario "sem a suite (DESINSTALAR): tecla + tecla = grava, backup no pendrive"; aparelho_ok
+  u="$T/root/mnt/media_rw/USB1"; : > "$u/DESINSTALAR-SUITE.txt"
+  roda key key
+  afirma '[ "$(pp_byte)" = 1 ] && [ ! -e "$(W)/journal" ]' "nao gravou ou journal sobrou"
+  afirma 'cmp -s "$u/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup do pendrive"
+  afirma '[ "$(telas)" = "aguarde escada-1 escada-1 escada-2 pronto " ]' "telas: '$(telas)'"
+  limpa
+
+  novo_cenario "sem a suite (DESINSTALAR): .ini desconhecido = tela final erro do cor.sh"
+  head -c 3000 /dev/urandom | base64 > "$T/root/vendor/etc/ZYCustom.ini"
+  u="$T/root/mnt/media_rw/USB1"; : > "$u/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ "$(telas)" = "aguarde escada-1 erro " ]' "telas: '$(telas)'"
+  limpa
+
+  novo_cenario "sem a suite (DESINSTALAR): auto em ordem = telas de antes"; aparelho_ok
+  u="$T/root/mnt/media_rw/USB1"; : > "$u/DESINSTALAR-SUITE.txt"
+  auto_on 0
+  roda
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(nl_chamadas faixas)" = 1 ] && [ "$(nl_chamadas niveis)" = 1 ]' "chamadas da camera: $(grep '^nl_camcheck' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(telas)" = "aguarde calibracao escada-1 pronto " ]' "telas: '$(telas)'"
+  afirma '! grep -q "^HIDEBUG" "$T/calls.log"' "sem a suite ninguem chama o hidebug"
+  limpa
+}
+
 c_estaticos(){
   CASO="estaticos"; SHELL_NOME="-"
   local f
@@ -1234,7 +1273,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
-           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente}; do
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado}; do
     echo "  $c"
     "$c"
   done
