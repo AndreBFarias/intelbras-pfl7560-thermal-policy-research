@@ -10,6 +10,10 @@ escuros do Leanback e a forma do Toast. A varredura de todo app com tela do firm
 **Bloco 17A (2026-10-31):** seis sobreposições novas (foco automático, modo caixa de som, avisos do
 `NewLinkService`, IjkPlayer, player de vídeo e de música HiSilicon), §11. A do `android` não foi tocada.
 
+**Bloco 18 (2026-10-31):** cinco sobreposições novas (teclado na tela, avisos de tecla de atalho, pareamento do
+controle e lista de entradas, menu de imagem das entradas, instalador) e a do `android` com mais 2 cores (o título
+vermelho da contagem de desligar e o `background_light`), versionCode 3, §12. Vinte ao todo.
+
 Origem: o pedido do dono de 2026-10-31 ("Dentro das configs segue o tema antigo"; "Esse sim e não tão fora
 do tema", sobre o aviso de HDMI) e o [bloco 13](../sprints/2026-10-31-bloco-13-tema-no-sistema.md), parte 13A.
 Os APKs ficam em [`artifacts/overlay/`](../../artifacts/overlay/README.md). Paleta e tons derivados:
@@ -313,15 +317,15 @@ esta rodada não mapeou os recursos dele (ficou para o próximo bloco, §10.9).
 | `system/app/Miracast` | `com.hisilicon.miracast` | Espelhamento | desligado com `pm disable-user` |
 | `system/app/NLOfficeSuit` | `com.mobisystems.editor.office_registered` | Office | desligado com `pm disable-user` |
 | `system/app/RGTPLauncher` | `com.newlink.hisilauncher` | home do fabricante | não é mais a home (a nossa, doc 45); fora |
-| `system/app/HiPinyinIME` | `com.hisilicon.android.inputmethod.remote` | teclado na tela (senha do Wi-Fi, renomear) | não analisado: próximo bloco, por decisão do dono (§11.6) |
-| `system/app/NLHotkeyService` | `com.newlink.hotkeyservices` | avisos de tecla de atalho (`MyDialog` claro, `ToastActivity`) | não analisado a fundo (painel `bg_white_90`, texto preto fixo): próximo bloco (§11.6) |
-| `system/priv-app/NewLinkService` | `com.newlink.service` | contagem de desligar do descanso, aviso de tela apagada, atualização do MCU e concluída, `BlackDialog` | sim: `PFL7560TemaNewLinkService` (17A, §11.3); o `ToastActivity` e o aviso de USB usam cor do framework (§11.5) |
-| `system/app/ZYCustomUI` | `com.zhiying.sourceui` | pareamento do controle por IR/voz (`MatchIRUIActivity`, `SYSTEM_ALERT`) | não analisado: próximo bloco (§11.6) |
+| `system/app/HiPinyinIME` | `com.hisilicon.android.inputmethod.remote` | teclado na tela (senha do Wi-Fi, renomear) | sim: `PFL7560TemaHiPinyinIME` (18, §12.1) |
+| `system/app/NLHotkeyService` | `com.newlink.hotkeysservices` (com s, lido no manifesto) | avisos de tecla de atalho (`MyDialog` claro, `ToastActivity`) | sim, o `MyDialog`: `PFL7560TemaNLHotkeyService` (18, §12.2); a `ToastActivity` fica (cores do framework, §12.7) |
+| `system/priv-app/NewLinkService` | `com.newlink.service` | contagem de desligar do descanso, aviso de tela apagada, atualização do MCU e concluída, `BlackDialog` | sim: `PFL7560TemaNewLinkService` (17A, §11.3); o título vermelho e a `ToastActivity` pela do `android` (18, §12.6); o aviso de USB fica (§12.7) |
+| `system/app/ZYCustomUI` | `com.zhiying.sourceui` | pareamento do controle por voz (`MatchIRUIYuYinActivity`, `SYSTEM_ALERT`) e lista de entradas (`SourceUIActivity`) | sim: `PFL7560TemaZYCustomUI` (18, §12.3) |
 | `system/app/ZYSpeakerModel` | `com.zhiying.bluetoothmodelservice` | modo caixa de som Bluetooth (aberto pelo menu de energia e pela tela de Bluetooth) | sim: `PFL7560TemaZYSpeakerModel` (17A, §11.2) |
 | `system/app/AutoFocus3` | `com.zhiying.autofocus` | foco e trapézio automáticos: o aviso durante o ajuste; telas de calibração de fábrica | só o aviso: `PFL7560TemaAutoFocus` (17A, §11.1); a imagem de teste da câmera fica de propósito |
-| `system/app/HiTvSetting` | `com.hisilicon.tvsetting` | menu de imagem e som das entradas | não analisado: próximo bloco (§11.6) |
+| `system/app/HiTvSetting` | `com.hisilicon.tvsetting` | menu de imagem e som das entradas | sim: `PFL7560TemaHiTvSetting` (18, §12.4) |
 | `system/app/HiMusic`, `system/priv-app/HiVideoPlayer`, `system/app/IjkPlayer` | players do fabricante | abertos pelo gerenciador de arquivos (o IjkPlayer para vídeo com áudio AC3/EAC3) | sim: `PFL7560TemaHiMusic`, `PFL7560TemaHiVideoPlayer`, `PFL7560TemaIjkPlayer` (17A, §11.4) |
-| `system/priv-app/PackageInstaller` | `com.android.packageinstaller` | instalar e desinstalar app | não analisado: próximo bloco (§11.6); os `AlertDialog` dele caem nos temas Leanback da `android` (INFERIDO) |
+| `system/priv-app/PackageInstaller` | `com.android.packageinstaller` | instalar e desinstalar app, pedido de permissão | sim, o que é do app: `PFL7560TemaPackageInstaller` (18, §12.5); as telas de instalar ficam claras (tema claro do framework) |
 | `system/app/Bluetooth` | `com.android.bluetooth` | receber arquivo por Bluetooth (OPP) | não analisado; diálogo do framework (INFERIDO) |
 | `system/priv-app/WTProvision`, `Service2`, `TvQuickSettings`, `SettingsIntelligence`, `StorageManager` | serviços e telas sem atalho neste aparelho | nenhuma vista no uso | fora |
 | `system/app/HiFactoryMenu`, `NLFactoryMenu`, `NLAutoTest`, `TvTestingTools` | menus e testes de fábrica | só com código de fábrica | fora |
@@ -608,3 +612,175 @@ Os nove cartões do gerenciador de arquivos ficam como estão (§10.5): abrir di
 - Instalação: a mesma da §6, uma pasta por APK em `/vendor/overlay/`: `PFL7560TemaAutoFocus`,
   `PFL7560TemaZYSpeakerModel`, `PFL7560TemaNewLinkService`, `PFL7560TemaIjkPlayer`, `PFL7560TemaHiVideoPlayer`,
   `PFL7560TemaHiMusic` (pacotes `com.pfl7560.tema.<pasta>`). Nenhuma mexe no framework.
+
+---
+
+## 12. Bloco 18: as últimas telas fora do tema (2026-10-31)
+
+Pedido do dono: "Pode tocar todo o resto". Spec: [bloco 18](../sprints/2026-10-31-bloco-18-overlays-finais.md):
+os cinco apps que o 17A deixou para depois (§11.6) e a do `android` com o que só ela alcança (§11.5). Mesmo método
+do 13A, 16A e 17A (§1, §7): só `color`, `drawable` e `mipmap`, mesmo nome e mesmo tipo do alvo, valores literais,
+conferido pelo `conferir.py`. As quinze de antes não mudaram de nome nem de pacote; as catorze dos apps saem com o
+mesmo md5; só a do `android` mudou (versionCode 3).
+
+Arquivos lidos (md5, 8 primeiros dígitos): `HiPinyinIME.apk` `62879976`; `NLHotkeyService.apk` `d4b261df`;
+`ZYCustomUI.apk` `f6e125df`; `HiTvSetting.apk` `fb57556c`; `PackageInstaller.apk` `26c4c1ab`;
+`framework-res.apk` `3c124b63` (o mesmo do 13A). O smali dos que só têm odex saiu como no 16A (§1).
+
+### 12.1 `com.hisilicon.android.inputmethod.remote` → `PFL7560TemaHiPinyinIME.apk`
+
+O teclado na tela (o PinyinIME do AOSP adaptado ao controle). A pele está em `xml/skb_template1.xml`: fundo
+`skb_bg`, teclas `normal_key_bg`/`light_key_bg`/`light_key_up_bg` e as versões `_hl_`. Com o controle, a tecla em
+foco é desenhada com a imagem `_hl_` e a cor **normal** do rótulo (`SoftKeyboardView.drawSoftKey`: o ramo do foco
+chama `getKeyHlBg` + `getColor`, vtable 17 e 12 de `SoftKey`), branca. CONFIRMADO no smali (odex; vtable pela
+ordem dos métodos da classe).
+
+| Recurso | Fábrica | Drácula |
+|---|---|---|
+| `drawable/skb_bg`, `skb_container_bg` | cinza `#272727`, fio `#848A90` | `fundo`, fio `comentario` |
+| `drawable/normal_key_bg`, `light_key_bg`, `light_key_up_bg` (9-patch) | tecla cinza `#464646`–`#6B6B6B` com sombra preta | corpo `linha` (rótulo branco 9,2:1), sombra preta; o ponto do Shift aceso `verde` |
+| `drawable/normal_key_hl_bg`, `light_key_hl_bg`, `light_key_up_hl_bg` | tecla cinza-claro `#787878`–`#DADADA` | corpo `comentario` (rótulo branco 4,7:1) e a sombra vira a **moldura rosa** |
+| `drawable/cands_container_bg`, `candidates_area_bg`, `candidates_vertical_line`, `arrow_left`/`_right` | barra de candidatos branca, fio e setas cinza | `linha`, fio `comentario`, setas `texto` |
+| `drawable/candidate_hl_bg`, `composing_hl_bg`, `composing_area_cursor` | laranja | `rosa` |
+| `drawable/composing_area_bg` | branco 85% | `linha` |
+| `color/candidate_color`, `composing_color` | preto | `texto` |
+| `color/active_candidate_color`, `composing_color_hl` | preto / branco | `fundo` (6,0:1 sobre rosa) |
+| `color/recommended_candidate_color` | laranja `#E35900` | `laranja` (5,4:1) |
+| `color/footnote_color`, `composing_color_idle` | `#343233` / `#777777` | secundário `#B4BCCF` |
+
+A barra de candidatos e o texto sendo composto só aparecem no modo pinyin. O balão da tecla (`key_balloon_bg`,
+branco com `balloon_color` preto) fica claro. As teclas são cinzas puras e colineares: o `recolorir.py` resolve um
+cinza pelo primeiro par de âncoras que o contém, por isso a tabela põe os cinzas do corpo antes do preto.
+
+### 12.2 `com.newlink.hotkeysservices` → `PFL7560TemaNLHotkeyService.apk`
+
+O pacote é `com.newlink.hotkeysservices` (com s; a §10.1 dizia sem). Os avisos de tecla de atalho (restaurar os
+padrões de fábrica, modo de envelhecimento) são o `view/MyDialog` (`TYPE_SYSTEM_ALERT`), layout `my_dialog`, com
+texto preto fixo (`color/black`, `#333333`; nos botões `parseColor`). Decisão do coordenador: painel claro.
+
+| Recurso | Fábrica | Drácula |
+|---|---|---|
+| `drawable/bg_white_90` | branco 90%, raio 20 px | `texto` 90%, mesmo raio |
+| `drawable/button_bg_itemcolor` | degradê laranja, raio 40 dp | `comentario` (texto branco 4,7:1), como no ZYSetting e no `NewLinkService` |
+| `drawable/button_bg_item_white` | branco | `texto` com fio `comentario` de 1 dp |
+
+A `ToastActivity` dele é uma tela cheia com o fundo do tema claro do framework e texto `@android:color/black`: fica
+(§12.7).
+
+### 12.3 `com.zhiying.sourceui` → `PFL7560TemaZYCustomUI.apk`
+
+Duas telas que o dono vê:
+
+- **Pareamento do controle por voz.** Com `zysys.match_irui_jinju=1` (getprop do aparelho), o `BootBroadcastReceiver`
+  abre a `MatchIRUIYuYinActivity` até o dono apertar OK (preferência `match_irui_jinju`). Ela põe numa janela
+  `TYPE_SYSTEM_ALERT` um `GifImageView` com `drawable/match_ir_yuyin1280x800` (sem `zysys.dpi`, o padrão "720p";
+  com "800p", `match_ir_jinju`). São GIFs animados de 24 quadros, fundo azul com texto em chinês. O `recolorir.py`
+  troca só as **paletas** (a global e as 23 locais): azul → `fundo`/`linha`/`comentario` (texto branco 4,7:1 no mais
+  claro), brilho dos anéis → `roxo`; o controle, o branco e o vermelho do LED ficam. Quadros, tempos e transparência
+  ficam byte a byte (o cabeçalho e o tamanho são os do alvo).
+- **Lista de entradas.** O botão de entrada do controle (`com.android.tv.action.VIEW_INPUTS`,
+  `TV_INPUT_BUTTON`) e o comando de voz (`VoiceBroadcastReceiver.openSource` do `NewLinkService`) abrem a
+  `SourceUIActivity`. Com `rgtp_ui.style=1` (`isPTStyle`) o painel pinta `pt_grey_white` no primeiro foco e cada
+  entrada usa `edit_text_large_green` (`pt_green` em foco, `pt_green_black` parada), texto branco do layout.
+
+| Recurso | Fábrica | Drácula |
+|---|---|---|
+| `drawable/match_ir_yuyin1280x800`, `match_ir_jinju` (GIF) | fundo azul `#002060`–`#006BEF` | `fundo`, `linha`, `comentario`; anéis `roxo` |
+| `color/pt_grey_white` | verde-claro `#E1EFE9` | `fundo` (o título, sem cor no código, sai claro: INFERIDO) |
+| `color/pt_green` | `#00B26B` | `comentario` (branco 4,7:1) |
+| `color/pt_green_black` | `#163134` | `linha` (branco 9,2:1) |
+
+A `MatchIRUIActivity` (`zysys.match_irui`), a `SourceLCActivity` e a `BurnInActivity` não abrem neste aparelho
+(props ausentes / fábrica): ficam.
+
+### 12.4 `com.hisilicon.tvsetting` → `PFL7560TemaHiTvSetting.apk`
+
+O `NLSourcePlayer` (entradas HDMI) abre a `SettingActivity` com `com.hisilicon.android.intent.action.tvsetting`
+(o IjkPlayer e o HiVideoPlayer também). Painel `activity_setting` à direita, linhas `MainView`, `MainTextView`,
+`SelectorView`, `ProgressView`, `CheckBoxView`; a linha em foco pinta `selct_back_color` (`onFocusChange`).
+
+| Recurso | Fábrica | Drácula |
+|---|---|---|
+| `color/back_color` | `#202125` | `fundo` (painel e as janelas do app) |
+| `color/selct_back_color` | `#3B454B` | `comentario` (texto branco 4,7:1) |
+| `color/seekbar_bg_color` | `#606060` | `linha` |
+| `color/seekbar_progress_fill_enable_color` | branco | `rosa` |
+| `color/seekbar_progress_fill_color` | `#898989` | `comentario` |
+| `color/seekbar_progress_fill_focus_color` | amarelo `#FFD800` | `rosa` |
+
+O `layer-list` das barras cita `@android:id/...` e fica (§10.5); as cores que as formas dele citam, não: são essas.
+O texto das linhas vem do array `text_colorchange` (branco, `#6B6B6B` desligado, `#FFD800`): tipo `array`, fora do
+método; o amarelo dá 3,4:1 sobre `comentario`.
+
+### 12.5 `com.android.packageinstaller` → `PFL7560TemaPackageInstaller.apk`
+
+| Recurso | Configuração | Fábrica | Drácula | Onde |
+|---|---|---|---|---|
+| `color/grant_permissions_background_color` | `television` | `#263238` | `fundo` | pedido de permissão do modo TV (`layout-television/grant_permissions`) |
+| `color/grant_permissions_focus_highlight` | `television` | branco 15% | `comentario` (texto `#EEEEEE` 4,1:1) | botão em foco do pedido |
+| `color/lb_guidedactions_background` | padrão | `#111111` | `fundo` | opções da desinstalação no modo TV (`UninstallAlertFragment`, GuidedStep do Leanback), como no TvSettings |
+| `color/bigIconColor` | padrão | cinza `#C8CCCE` | `comentario` (4,7:1 no branco) | ícone das telas de instalar e da desinstalação |
+
+As telas de instalar (`PackageInstallerActivity`, `InstallInstalling`, `InstallSuccess`, `InstallFailed`) usam
+`DialogWhenLarge` = `Theme.DeviceDefault.Light.NoActionBar`: fundo, texto e botões são cores globais do tema claro
+do framework e ficam (painel claro). O lado esquerdo da desinstalação (`guidedStepBackground` =
+`?android:colorBackground` do tema escuro do framework) também.
+
+### 12.6 `android`: o que só ela alcança (versionCode 3)
+
+**Só cores.** A do `android` vai de 6 para 8 cores (e a forma do Toast do 16A); nenhuma imagem, dimensão ou layout.
+
+| Recurso | Fábrica | Drácula | Quem usa |
+|---|---|---|---|
+| `color/holo_red_dark` | `#CC0000` | `vermelho` (4,5:1 sobre o painel `fundo`; era 2,4:1) | título da contagem de desligar do `NewLinkService` (`activity_shut_down`). No `framework-res.apk` nenhum recurso a cita além da definição: a troca só alcança os apps que a usam |
+| `color/background_light` | `#FFFFFF` | `texto` | fundo da `ToastActivity` do `NewLinkService` (texto `@android:color/black`, 19,7:1: painel claro). No framework ela é ainda o `colorBackground` do `Theme.Light` antigo e o valor de `bright_foreground_dark`, o texto claro dos temas escuros antigos e Holo (`primary_text_dark` e cia.): esses passam do branco ao `texto` Drácula |
+
+Conferido contra o `framework-res.apk` (varredura de `res/` desmontado: `holo_red_dark` só na definição;
+`background_light` só em `colors.xml`, linha 51, e `styles.xml`, linha 434).
+
+### 12.7 O que não dá para trocar só com cor e forma (18)
+
+- **Aviso de USB do `NewLinkService`** (`activity_usb`): fundo `@android:color/white`. Trocar o `white` do framework
+  mudaria todo branco de todo app (ícones, textos, fundos): fora de proporção. Fica branco com texto preto, que é o
+  painel claro da decisão do coordenador (`texto` e branco diferem em menos de 3%).
+- **`ToastActivity` do `NLHotkeyService`**: fundo do tema claro do Material do framework (cor global); texto preto.
+  Fica (painel claro).
+- **Botões de mídia do HiMusic** (`MediaButton.Play`/`.Pause`): `ic_media_play`/`ic_media_pause` do framework são PNG
+  (`drawable-xhdpi`), imagem; a do `android` é só cor e forma. Já são brancos, ≈ `texto`. Ficam.
+- **Listas do HiMusic** (`FileListActivity` com `Theme.Dialog`, `ImageListAcvitity` com `Theme.Holo.Dialog`): o fundo
+  da janela é 9-patch do framework (`panel_background`, `dialog_full_holo_dark`), imagem com margem; trocá-lo por
+  forma mudaria a margem (layout). Ficam cinza-escuros; o texto delas (`primary_text_dark`) passa a `texto` pelo
+  `background_light`, e o foco (`mselector`) já é rosa (17A).
+- **Texto das linhas do HiTvSetting**: array de strings (§12.4).
+- **As telas de instalar do PackageInstaller**: tema claro do framework (§12.5).
+
+### 12.8 PROVISÓRIO (só o aparelho confirma)
+
+1. As cinco novas aparecem no `cmd overlay list` sob os pacotes alvo e ligam (§8, item 1); a do teclado, a de um
+   IME, como as outras.
+2. Teclado: a tecla em foco sai em `comentario` com a moldura rosa e o rótulo branco; a barra de candidatos (pinyin)
+   escura. Se o foco do controle usar outro caminho que não o `drawSoftKey` lido (odex), o foco pode sair sem a
+   moldura.
+3. Pareamento: o `GifImageView` (droidsonroids) anima o GIF recolorido igual ao de fábrica (só as paletas mudaram).
+   Para ver de novo: apagar a preferência `match_irui_jinju` do `com.zhiying.sourceui` ou dados do app.
+4. Lista de entradas: aparece no botão de entrada do controle com o painel `fundo` e o foco `comentario`.
+5. Menu de imagem das entradas (botão de menu numa entrada HDMI) e o pedido de permissão do modo TV como na prévia
+   (`artifacts/overlay/previa/antes-depois-18.png`; desenho com os valores, não captura).
+6. A do `android` nova (versionCode 3) substitui a anterior no próximo boot; o título da contagem de desligar sai
+   `vermelho` e a `ToastActivity` com o fundo `texto`. Ligar só com o pendrive de emergência à mão (§7).
+
+### 12.9 Construção e provas
+
+- `build.sh` monta as vinte; cada entrada de `SOBREPOSICOES` aceita um versionCode próprio no 4º campo
+  (`pasta:Nome:minSdk:versao`); só a do `android` usa (3). As catorze dos apps de antes saem com **o mesmo md5** do
+  17A (`md5sum -c`: 14 SUCESSO, só a do `android` difere). Duas rodadas seguidas, mesmo md5 nas vinte;
+  `apksigner verify` passa nas vinte (v3).
+- `recolorir.py` ganhou as tabelas `hipinyinime` e `zycustomui` e recolore `.gif` pela paleta. As imagens do HiMusic
+  (17A) regeneradas com o código novo saem com o mesmo md5.
+- `python3 -I artifacts/overlay/conferir.py <pasta com os 20 APKs alvo>`: **TUDO OK, 162 recursos** (os 118 do 17A,
+  2 novos do `android`, 24 do teclado, 3 do `NLHotkeyService`, 5 do `ZYCustomUI`, 6 do HiTvSetting, 4 do
+  PackageInstaller). Os GIFs dentro do APK são byte a byte os de `zycustomui/res`.
+- `python3 -I artifacts/overlay/gerar-previa-18.py <pasta com os apps desmontados>`: a prévia das 8 telas.
+- Kit: `bash tests/atualizar-md5-kit.sh` copia as vinte para `pendrive-autorun/overlay/` (a do `android` por último em
+  `KIT_OVERLAYS`); `make check`, `make check-kit` e `make check-fix` verdes. O `PFL7560TemaZYCustomUI.apk` tem 1,5 MB
+  (os dois GIFs); o `/vendor` tem folga (doc 47).
