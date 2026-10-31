@@ -271,7 +271,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 - **PATH dos serviços.** O init sobe o serviço `pfl7560_suite` com o PATH do `/vendor`, e `cmd`, `pm`, `am`,
   `settings`, `input`, `dumpsys` e `logcat` moram em `/system/bin` (visto no aparelho em 2026-10-31: `exec cmd:
   No such file or directory` no boot). O `suite-boot.sh`, o `suite-pedido.sh`, o `suite.sh` e o `cor.sh` fixam o
-  PATH (`/system/bin` antes) na primeira linha que roda em produção.
+  PATH (`/system/bin` antes) na primeira linha que roda em produção; desde o bloco 21 o `newlink_update.sh` também.
 - O `inotifyd` vigia a pasta que existia quando ligou. Se a pasta de um app for apagada e criada de novo (o app
   desinstalado e instalado outra vez; a atualização por cima, que o kit faz, mantém a pasta), o pedido daquele
   app só volta a ser lido no boot seguinte.

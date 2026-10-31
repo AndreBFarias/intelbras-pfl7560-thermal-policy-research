@@ -1835,7 +1835,7 @@ c_estaticos(){
   afirma '[ -z "$(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")" ]' "o suite-pedido.sh manda ao hidebug algo alem de sbl/gbl: $(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")"
   # os 4 pontos e o modo de projecao: so leitura
   # o servico de boot sobe com o PATH do /vendor: os scripts fixam o PATH com /system/bin
-  for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh; do
+  for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh newlink_update.sh; do
     afirma 'grep -q "^  PATH=\"/system/bin:/system/xbin:/vendor/bin:/vendor/xbin\"; export PATH$" "$KIT/$f"' "$f sem o PATH fixo com /system/bin"
   done
   # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa

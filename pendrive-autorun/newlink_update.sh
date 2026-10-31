@@ -64,6 +64,7 @@
 # So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
 # do ambiente, para que nenhuma seja porta de entrada em producao; R fica vazio.
 if [ "${PFL_TESTE:-}" != "1" ]; then
+  PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
   unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE
 fi
 R="${PFL_ROOT:-}"
