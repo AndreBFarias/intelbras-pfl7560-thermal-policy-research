@@ -421,3 +421,26 @@ porque o sentido de "0 frente" em relação ao número do `gfd` não é conhecid
   recusa `\|` em `grep` no kit.
 - Próximo passo (bloco novo): uma varredura só com passo relativo (`sfd2`), contando os passos e voltando pelo
   mesmo número de passos, sem depender do `gfd`; antes, medir no aparelho o sentido de `sfd2 0` e `sfd2 1`.
+
+## 12. Medido no aparelho em 2026-10-31: cantos zerados, sem mover o projetor
+
+Leitura (§7 passos 1 e 2): saída 1920x1080 a 60 Hz, `offset` 0, `sr_en` NO, `persist.display.720p=false`. A
+resolução está no máximo. Os 4 pontos manuais estavam em 0; a correção vinha do keystone automático
+(`persist.newlink.autokeystone_enabled=1`).
+
+Mapa 3x3 (`nl_camcheck nitidez`, borda 10-90 % em px da câmera 1280x720, menor é melhor):
+
+| Estado | Inclinação | Trapézio | Linha de cima (E/C/D) | Meio | Baixo |
+|---|---|---|---|---|---|
+| Correção automática (`lt=95,905 rt=1710,1010 lb=35,20 rb=1760,25`) | 2,58° | 11,9 % | 3,51 / 2,33 / 1,99 | 2,97 / 1,58 / 1,82 | 2,39 / 1,69 / 2,05 |
+| Cantos zerados (tela oficial, "Restaurar padrão") | 0,62° | 2,1 % | 4,08 / 3,46 / 3,35 | 4,11 / 1,42 / 1,98 | 3,83 / 1,45 / 1,71 |
+| Zerados + autofoco sem keystone | 0,61° | 2,1 % | 4,07 / 3,49 / 3,42 | 4,09 / 1,77 / 1,64 | 3,75 / 1,44 / 1,75 |
+
+- **O projetor já está quase de frente para a parede.** Com os cantos zerados, a câmera vê 2,1 % de trapézio; o
+  keystone automático levava a 11,9 %. A correção automática entortava a imagem.
+- **O borrão da esquerda e de cima é ótico.** Ele continua sem reamostragem (cantos zerados) e o autofoco não o
+  muda. Com a imagem quase reta, distância à parede também não explica. Suspeitos, para o próximo bloco: o
+  assento do LCD depois das trocas (painel fora de paralelo), a Fresnel 2 empenada, a lente. As linhas não se
+  comparam em valor absoluto entre os estados: com cantos zerados a imagem é maior e as regiões caem mais para
+  fora do campo da lente.
+- O aviso "Deseja abrir HDMI1?" apareceu de novo cerca de 1 minuto depois do boot, por cima da tela oficial.
