@@ -450,3 +450,6 @@ Mapa 3x3 (`nl_camcheck nitidez`, borda 10-90 % em px da câmera 1280x720, menor 
   desligado. Os cantos ficam em `0,1080 / 1920,1080 / 0,0 / 1920,0`. Para voltar: a mesma tela, seta para a
   direita. A `AutoKeystoneActivity` (`com.newlink.hisetting`) **não** é a chave: é a calibração de fábrica do
   keystone automático ("确认" grava a referência), e não foi tocada.
+- O dono confirma que o LCD é novo e está assentado reto: sai da lista. Sobram, nesta ordem: a própria câmera
+  (fora do eixo, `Camera_DiffX=130`; conferir a olho se a esquerda também parece pior), a Fresnel 2 empenada
+  (luz rasante), o espelho de 45° e a lente.
