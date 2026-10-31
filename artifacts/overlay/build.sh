@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A, 16A, 17A e 18, do zero, sem Gradle.
+# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A, 16A, 17A, 18 e 19B, do zero, sem Gradle.
 #
 #   bash artifacts/overlay/build.sh
 #
@@ -31,6 +31,16 @@
 # Os recursos so tem valores literais (nenhuma referencia @...): no Android 9 uma sobreposicao
 # nao enxerga recurso que so ela tem, e um id dela cairia no espaco de ids do alvo. Por isso o
 # link nao precisa do APK do alvo; quem confere nome e tipo contra o alvo e o conferir.py.
+#
+# Bloco 19B: layout. Uma sobreposicao com <pasta>/alvo-ids.txt (gerado do firmware pelo
+# molde-alvo.py e versionado) traz layouts copiados do alvo, iguais, so com as cores trocadas.
+# Um layout cita recursos do alvo, e no Android 9 o XML da sobreposicao e lido no espaco de ids do
+# ALVO: cada referencia tem de sair com o numero do alvo. Para isso o link ganha um molde (APK so
+# de nomes, com os ids do alvo) como -I, --stable-ids com esses ids (os recursos da propria
+# sobreposicao saem com o id que tem no alvo) e --rename-resources-package com o pacote alvo (as
+# referencias sem pacote do layout se resolvem no molde). O APK do alvo nao e preciso. Os
+# layouts sao a unica excecao a regra de nenhuma referencia; o conferir.py prova que cada um e
+# igual ao do alvo (mesma arvore, mesmos numeros) com so os valores de cor diferentes.
 #
 # SDK local (sem rede): ANDROID_SDK (padrao ~/Android/sdk), BUILD_TOOLS (35.0.0), PLATAFORMA
 # (android-34). Precisa de java (keytool/apksigner) e zip.
@@ -64,14 +74,16 @@ SAIDA="$AQUI/apk"
 # Bloco 18: um 4o campo opcional da o versionCode daquela sobreposicao (pasta:Nome:minSdk:versao;
 # minSdk vazio = o padrao). So a do android usa (3: ganhou cores no bloco 18); as outras continuam
 # com VERSAO_CODIGO e saem com o mesmo md5 de antes.
-SOBREPOSICOES="zysetting:PFL7560TemaZYSetting nlprovision:PFL7560TemaNLProvision
-  zybluetooth:PFL7560TemaZYBluetooth zyfilemanager:PFL7560TemaZYFileManager tvsettings:PFL7560TemaTvSettings
+# Bloco 19B: 3 nas quatro que ganharam layout (zysetting, zyfilemanager, hivideoplayer, zycustomui)
+# e 4 na do android (ganhou imagens); as outras quinze saem com o mesmo md5 do bloco 18.
+SOBREPOSICOES="zysetting:PFL7560TemaZYSetting::3 nlprovision:PFL7560TemaNLProvision
+  zybluetooth:PFL7560TemaZYBluetooth zyfilemanager:PFL7560TemaZYFileManager::3 tvsettings:PFL7560TemaTvSettings
   higallery:PFL7560TemaHiGallery:1 nlsource:PFL7560TemaNLSource powerservice:PFL7560TemaPowerService
   autofocus:PFL7560TemaAutoFocus zyspeakermodel:PFL7560TemaZYSpeakerModel newlinkservice:PFL7560TemaNewLinkService
-  ijkplayer:PFL7560TemaIjkPlayer hivideoplayer:PFL7560TemaHiVideoPlayer:1 himusic:PFL7560TemaHiMusic:1
-  hipinyinime:PFL7560TemaHiPinyinIME nlhotkeyservice:PFL7560TemaNLHotkeyService zycustomui:PFL7560TemaZYCustomUI
+  ijkplayer:PFL7560TemaIjkPlayer hivideoplayer:PFL7560TemaHiVideoPlayer:1:3 himusic:PFL7560TemaHiMusic:1
+  hipinyinime:PFL7560TemaHiPinyinIME nlhotkeyservice:PFL7560TemaNLHotkeyService zycustomui:PFL7560TemaZYCustomUI::3
   hitvsetting:PFL7560TemaHiTvSetting packageinstaller:PFL7560TemaPackageInstaller
-  android:PFL7560TemaAndroid::3"
+  android:PFL7560TemaAndroid::4"
 
 for f in "$BT/aapt2" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER"; do
   [ -e "$f" ] || { echo "FALTA: $f" >&2; exit 1; }
@@ -86,12 +98,25 @@ for par in $SOBREPOSICOES; do
   min="${min:-$MIN_SDK}"
   versao="${versao:-$VERSAO_CODIGO}"
   echo ">> $nome ($dir, versionCode $versao)"
-  # nenhuma referencia a recurso dentro da sobreposicao (ver o cabecalho)
-  if grep -rEn '"@(\+?id|color|drawable|style|dimen|string|layout|mipmap|android:)' "$AQUI/$dir/res"; then
+  # nenhuma referencia a recurso dentro da sobreposicao (ver o cabecalho), salvo nos layouts (19B)
+  if grep -rEn --exclude-dir='layout*' '"@(\+?id|color|drawable|style|dimen|string|layout|mipmap|android:)' "$AQUI/$dir/res"; then
     echo "ERRO: referencia a recurso em $dir/res (so valores literais)" >&2; exit 1
   fi
+  molde=()
+  if [ -f "$AQUI/$dir/alvo-ids.txt" ]; then
+    M="$B/$dir-molde"
+    alvo="$(python3 -I "$AQUI/molde-alvo.py" --gerar "$AQUI/$dir" "$M")"
+    "$BT/aapt2" compile --dir "$M/res" -o "$M/res.zip"
+    "$BT/aapt2" link -o "$M/molde.apk" -I "$JAR" --manifest "$M/AndroidManifest.xml" \
+      --stable-ids "$M/ids.txt" "$M/res.zip"
+    molde=(-I "$M/molde.apk" --stable-ids "$M/ids.txt" --rename-resources-package "$alvo")
+    echo "   layout: molde com os ids de $alvo"
+  elif [ -n "$(find "$AQUI/$dir/res" -maxdepth 1 -name 'layout*' -print -quit)" ]; then
+    echo "ERRO: $dir tem layout e nao tem alvo-ids.txt (rode o molde-alvo.py)" >&2; exit 1
+  fi
   "$BT/aapt2" compile --dir "$AQUI/$dir/res" -o "$B/$dir.zip"
-  "$BT/aapt2" link -o "$B/$dir.apk" -I "$JAR" --manifest "$AQUI/$dir/AndroidManifest.xml" \
+  "$BT/aapt2" link -o "$B/$dir.apk" -I "$JAR" ${molde[@]+"${molde[@]}"} \
+    --manifest "$AQUI/$dir/AndroidManifest.xml" \
     --min-sdk-version "$min" --target-sdk-version "$TARGET_SDK" \
     --version-code "$versao" --version-name "$VERSAO_NOME" \
     --no-auto-version "$B/$dir.zip"
