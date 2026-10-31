@@ -501,11 +501,16 @@ FIM
 
 # executa o kit ate a 2a pergunta e "cai a energia": a 2a espera de tecla mata o
 # processo. Sobra o byte em JEIDA, o journal, o backup e o gancho GERADO pelo cor.sh.
+# A "queda" mata SO o cor.sh DESTE cenario (o caminho dele passa por $T): um pkill pelo
+# nome so ("pfl7560-kit/cor.sh") matava tambem o cor.sh de outra rodada do harness na
+# mesma maquina (outra arvore, outro make check-kit), que falhava sem motivo (bloco 19C).
+# shellcheck disable=SC2016  # o $T expande dentro do stub, na hora da queda
+mata_cor(){ echo 'pkill -9 -f "$T/root/data/vendor/pfl7560-kit/cor.sh"; sleep 1'; }
 gera_gancho_interrompido(){
   stub getevent 'echo "getevent $*" >> "$T/calls.log"
 n=$(cat "$T/n" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n"
 [ "$n" = 1 ] && echo "/dev/input/event2: EV_KEY       KEY_OK                DOWN"
-if [ "$n" = 2 ]; then pkill -9 -f "pfl7560-kit/cor.sh"; sleep 1; fi
+if [ "$n" = 2 ]; then '"$(mata_cor)"'; fi
 exit 0'
   roda
   rmdir "$T/root/dev/pfl7560-kit.lock" 2>/dev/null   # /dev e tmpfs: o lock some com a queda de energia
@@ -892,7 +897,7 @@ c_auto_errado(){
   # gancho; o gancho de boot que o proprio cor.sh gerou devolve o original
   novo_cenario "auto: queda de energia depois da troca = journal e gancho restauram"; aparelho_ok
   auto_on 1
-  stub getevent 'echo "getevent $*" >> "$T/calls.log"; pkill -9 -f "pfl7560-kit/cor.sh"; sleep 1; exit 0'
+  stub getevent 'echo "getevent $*" >> "$T/calls.log"; '"$(mata_cor)"'; exit 0'
   roda
   rmdir "$T/root/dev/pfl7560-kit.lock" 2>/dev/null
   afirma '[ "$(pp_byte)" = 1 ] && tem_chamada "lvdsctl fmt 1"' "a troca automatica deveria ter deixado o byte em 1"
