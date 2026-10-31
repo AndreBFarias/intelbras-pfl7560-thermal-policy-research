@@ -8,7 +8,8 @@
 # polling supervisionado -- e o que este script faz, rodando como servico de
 # usuário do systemd (Restart=always + linger: sobrevive a logout e a reboot).
 #
-# Não altera NADA no aparelho: so le gtt/gfs/gbri via hidebug.
+# Não grava nada no aparelho, mas cada gtt avança o anel do termistor (doc 37): o
+# serviço fica DESABILITADO desde 2026-08-18; rode só pontual e supervisionado.
 #
 # Uso manual:  ./pfl7560-autocaptura.sh
 # Como servico: systemctl --user {start,stop,status} pfl7560-autocaptura
@@ -52,7 +53,8 @@ garante_root(){
 }
 
 tenta_ip(){
-  local ip="$1" dev="$ip:$PORTA"
+  local ip="$1"
+  local dev="$ip:$PORTA"
   timeout 4 bash -c "cat < /dev/null > /dev/tcp/$ip/$PORTA" 2>/dev/null || return 1
   timeout 8 $ADB connect "$dev" >/dev/null 2>&1
   if eh_projetor "$dev"; then garante_root "$dev"; echo "$dev"; return 0; fi
