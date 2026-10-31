@@ -103,10 +103,8 @@ própria janela, sem depender do papel de parede.
   formato errado; o `tests/simula-padroes-kit.py` confere isso. Pintá-las de Drácula quebraria a
   função delas. Não foram tocadas.
 
-## Pendente (aparelho)
+## No aparelho
 
-- Ver as telas da suíte no projetor: o contraste do roxo, do rosa e do vermelho sobre o cartão
-  (3,5 a 3,8:1) com a luz da sala; se algum sumir, subir o tom como na tabela acima.
-- Ver os ícones novos na lista de apps (o APK subiu para `versionCode` 2, hoje 4: o kit reinstala por cima).
-- Se o plano de fundo for aplicado (pela home ou pelo app), conferir se o arco roxo de 3 px aparece
-  e se o gradiente não faz faixas no projetor.
+As telas da suíte, a home e as sobreposições rodam no projetor do dono. O que ainda falta olhar (contraste do
+roxo, do rosa e do vermelho com a luz da sala, o arco e o gradiente do plano de fundo) está em
+[`docs/ESTADO.md`](../../docs/ESTADO.md).
