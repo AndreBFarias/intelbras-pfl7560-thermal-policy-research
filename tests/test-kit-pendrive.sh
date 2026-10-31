@@ -22,6 +22,7 @@
 # Precisa de: dash, busybox, shellcheck (opcional), pkill, python3 com PIL e numpy.
 #
 #   bash tests/test-kit-pendrive.sh
+# shellcheck disable=SC2034,SC2115
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
