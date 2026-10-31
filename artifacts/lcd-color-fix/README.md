@@ -59,10 +59,8 @@ adb shell "cd /data/local/tmp && LD_LIBRARY_PATH=/vendor/lib:/system/lib ./lvdsc
 
 ## Padrões de teste (exibir via: adb push X.png /sdcard/ ; am start -a VIEW -d file:///sdcard/X.png -t image/png)
 
-> **Ressalva (2026-09-03):** essa via funcionou em 2026-07-10 (doc 28), mas na sessão do
-> [doc 39](../../docs/research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3 o `am start ... VIEW`
-> abriu a galeria com **tela preta** (OPT-S13, aberto). Se a tela ficar preta, abra o PNG pelo gerenciador
-> de arquivos com o controle remoto.
+> Antes de cada tela nova: `am force-stop com.hisilicon.higallery`, senão a galeria fica na imagem anterior
+> (OPT-S13, fechado em 2026-10-30; [bloco 7](../../docs/sprints/2026-10-30-bloco-7-cor-automatica.md)).
 
 - `teste-cor-barras.png` — barras de cor puras rotuladas (discrimina swap de canal).
 - `gamma-test.png` — gradientes + patches de cinza (discrimina gamma/bit-mapping nos meios-tons).

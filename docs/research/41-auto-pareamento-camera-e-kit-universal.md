@@ -124,10 +124,8 @@ imagem errada, e no automático uma tecla em 30 s desfaz.
   coordenador roda o `cor.sh` real via adb a partir de JEIDA e de VESA e confere com `cmp -l` e com a câmera.
 - Garantir que o autorun rode no 1º boot (o `nl_usb_update.sh` de fábrica só olha o pendrive em
   `sys.boot_completed=1`; se a montagem atrasar, perde a vez; a instrução é religar).
-- Garantir, sem a bancada, que as telas aparecem: o kit as mostra por `am start ... VIEW`, que deu tela
-  preta em 2026-09-03 (OPT-S13, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3). A
-  etapa E1(e) do bloco 5 decide. **Atualização (2026-10-30):** a primeira tela abre (PNG em `/sdcard`), mas
-  a segunda não substitui a primeira sem `am force-stop` da galeria (§8).
+- Mostrar as telas sem a bancada: resolvido (OPT-S13 fechado em 2026-10-30): `am start ... VIEW` com o PNG em
+  `/sdcard` e `am force-stop` da galeria antes de cada tela (§8).
 - Painéis que precisem de `swap`/`bit`/`map`: ficam no wizard com PC, de propósito.
 - Térmica em firmware diferente de V1.0.0.9 e V1.0.0.1 (md5 de fábrica desconhecido: o kit recusa). O
   V1.0.0.1, do modelo sem USB-C, passou a ser reconhecido no bloco 6.
