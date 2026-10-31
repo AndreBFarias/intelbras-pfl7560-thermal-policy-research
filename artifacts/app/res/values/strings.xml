@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_nome">PFL7560</string>
+    <string name="verificar_nome">Verificar projetor</string>
+    <string name="wifi_nome">Wi-Fi</string>
+    <string name="verificar_ok_titulo">Verificação pedida.</string>
+    <string name="verificar_ok_texto">O projetor começa em instantes.</string>
+    <string name="verificar_erro_titulo">Não consegui pedir a verificação.</string>
+    <string name="verificar_erro_texto">Feche e abra de novo. Se repetir, reinstale o app com o pendrive do kit.</string>
+    <string name="wifi_erro_titulo">Não consegui abrir o Wi-Fi.</string>
+    <string name="wifi_erro_texto">Abra as configurações do projetor e escolha Wi-Fi.</string>
+</resources>

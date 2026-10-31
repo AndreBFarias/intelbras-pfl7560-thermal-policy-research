@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App "PFL7560" (bloco 9C): dois icones na lista de apps do projetor. Nenhuma permissao:
+     o pedido de verificacao vai para a pasta privada do proprio app. versionCode/versionName
+     e minSdk/targetSdk entram pelo aapt2 link (ver build.sh). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.verificar">
+
+    <application
+        android:label="@string/app_nome"
+        android:icon="@mipmap/ic_verificar"
+        android:allowBackup="false"
+        android:theme="@style/Tema">
+
+        <activity
+            android:name=".VerificarActivity"
+            android:label="@string/verificar_nome"
+            android:icon="@mipmap/ic_verificar"
+            android:banner="@drawable/banner_verificar"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".WifiActivity"
+            android:label="@string/wifi_nome"
+            android:icon="@mipmap/ic_wifi"
+            android:banner="@drawable/banner_wifi"
+            android:exported="true"
+            android:excludeFromRecents="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
