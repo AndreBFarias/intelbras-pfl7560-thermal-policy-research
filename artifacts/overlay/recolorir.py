@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 # artifacts/overlay/recolorir.py - troca as cores das imagens do fabricante pela paleta Dracula,
-# sem mudar o desenho (blocos 13A e 16A).
+# sem mudar o desenho (blocos 13A, 16A e 17A).
 #
 #   python3 -I artifacts/overlay/recolorir.py <app desmontado pelo apktool> <res da sobreposicao> [tabela]
 #
-#   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery. Ex.:
+#   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery, zyspeakermodel,
+#   ijkplayer, hivideoplayer, himusic. Ex.:
 #   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado> artifacts/overlay/zysetting/res
 #   python3 -I artifacts/overlay/recolorir.py <ZYBluetooth desmontado> artifacts/overlay/zybluetooth/res zybluetooth
 #
@@ -18,6 +19,8 @@
 # (ex.: o fundo teal e o branco do icone, com o antisserrilhado entre elas) e reescrito com a
 # mesma mistura das cores Dracula correspondentes. O alfa e mantido (ou multiplicado, quando a
 # tabela pede). Num .9.png a borda de 1 px (marcacao de estica e de margem) fica intacta.
+# O destino de uma ancora e um token da paleta ou, desde o 17A, uma cor literal '#RRGGBB'
+# (ex.: o preto do desenho continua preto).
 import os, sys, glob
 from PIL import Image
 
@@ -94,8 +97,47 @@ HIGALLERY = {
     'gallery_selected': ({'#FFFFFF': 'rosa', '#2EA0FF': 'rosa', '#000000': 'fundo'}, 1),
 }
 
+# Bloco 17A. Modo caixa de som Bluetooth (com.zhiying.bluetoothmodelservice), rgtp_ui=1
+ZYSPEAKERMODEL = {
+    # fundo da tela (primeira imagem do FlyBanner com isPTStyle): teal -> fundo, desenho branco ->
+    # texto, o corpo preto do celular continua preto
+    'pt_bg': ({'#163134': 'fundo', '#FFFFFF': 'texto', '#000000': '#000000'}, 1),
+    # botoes de tocar/pausar/voltar/avancar/bloquear em foco: circulo azul -> rosa; o icone branco
+    # -> fundo (6,0:1 sobre rosa; parados os icones sao brancos sem circulo e ficam)
+    'paly_paly_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'paly_pause_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'paly_back_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'paly_forward_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'lock_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+}
+
+# Bloco 17A. Barra de controle dos players HiSilicon (IjkPlayer e HiVideoPlayer usam as mesmas
+# imagens): barra azul-marinho translucida -> fundo/linha/comentario, o preto da sombra continua
+FAIXA = {'video_bottom': ({'#001736': 'fundo', '#1A426D': 'linha', '#96A8BB': 'comentario',
+                           '#000000': '#000000'}, 1)}
+# botao em foco: quadrado azul-marinho translucido com brilho azul -> fundo com brilho rosa;
+# o icone (branco com degrade cinza) -> texto
+BOTAO = ({'#00184E': 'fundo', '#0099FD': 'rosa', '#FFFFFF': 'texto'}, 1)
+IJKPLAYER = dict(FAIXA, pause_focus=BOTAO, play_focus=BOTAO, control_settings_focus=BOTAO)
+HIVIDEOPLAYER = dict(FAIXA, pause_focus=BOTAO, play_focus=BOTAO, fastbackward_focus=BOTAO,
+                     fastforward_focus=BOTAO, next_focus=BOTAO, previous_focus=BOTAO)
+
+# Bloco 17A. Player de musica (com.hisilicon.android.music)
+HIMUSIC = {
+    # fundo da tela: degrade azul-marinho, azul-claro, laranja e vermelho -> fundo, comentario e
+    # linha (texto branco por cima: no mais claro, comentario, 4,7:1)
+    'hisil_background_3': ({'#090934': 'fundo', '#A4D1E1': 'comentario', '#E8AA6F': 'comentario',
+                            '#B43134': 'linha'}, 1),
+    # moldura de foco dos botoes (9-patch): azul -> rosa, a sombra preta continua
+    'hisil_lank_selected': ({'#11A9E1': 'rosa', '#000000': '#000000'}, 1),
+    # ponto da barra de progresso: esfera azul -> rosa, o brilho -> texto
+    'hisil_yuandian': ({'#31AEDC': 'rosa', '#B0EAFF': 'texto'}, 1),
+    'hisil_yuandian_selected': ({'#31AEDC': 'rosa', '#B0EAFF': 'texto'}, 1),
+}
+
 TABELAS = {'zysetting': ZYSETTING, 'zybluetooth': ZYBLUETOOTH, 'zyfilemanager': ZYFILEMANAGER,
-           'higallery': HIGALLERY}
+           'higallery': HIGALLERY, 'zyspeakermodel': ZYSPEAKERMODEL, 'ijkplayer': IJKPLAYER,
+           'hivideoplayer': HIVIDEOPLAYER, 'himusic': HIMUSIC}
 
 def melhor(px, ancoras):
     """(i, j, t): px ~ ancora i misturada com j na fracao t (j=None: so i)."""
@@ -117,7 +159,7 @@ def melhor(px, ancoras):
 
 def recolorir(src, dst, mapa, malfa):
     orig = [hexrgb(k) for k in mapa]
-    novo = [PAL[v] for v in mapa.values()]
+    novo = [PAL[v] if v in PAL else hexrgb(v) for v in mapa.values()]
     im = Image.open(src).convert('RGBA')
     w, h = im.size
     nove = src.endswith('.9.png')

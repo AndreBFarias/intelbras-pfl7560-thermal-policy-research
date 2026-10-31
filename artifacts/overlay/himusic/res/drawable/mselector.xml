@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Foco das listas do player de musica (listSelector do sub_list). De fabrica fio ciano
+     #FF00DAFF de 4 px -> rosa. Mesmos raios e espessura. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="false">
+        <shape>
+            <corners android:radius="4.0px" />
+        </shape>
+    </item>
+    <item android:state_focused="true" android:state_pressed="false">
+        <shape>
+            <corners android:radius="4.0px" />
+            <stroke android:width="4.0px" android:color="#FFFF79C6" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape>
+            <corners android:radius="5.0px" />
+            <stroke android:width="4.0px" android:color="#FFFF79C6" />
+        </shape>
+    </item>
+</selector>

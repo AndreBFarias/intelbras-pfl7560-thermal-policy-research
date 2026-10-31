@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula dos avisos do NewLinkService (com.newlink.service, bloco 17A):
+     contagem de desligar do descanso de tela, aviso de tela apagada, aviso de atualizacao e os
+     avisos raros do BootService. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.newlinkservice (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.newlinkservice">
+    <overlay android:targetPackage="com.newlink.service" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

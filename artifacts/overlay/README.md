@@ -1,4 +1,4 @@
-# Sobreposições Drácula do sistema do fabricante (blocos 13A e 16A)
+# Sobreposições Drácula do sistema do fabricante (blocos 13A, 16A e 17A)
 
 Pedido do dono (2026-10-31): "Dentro das configs segue o tema antigo". As telas do fabricante passam
 para a paleta do bloco 10 (`artifacts/tema/dracula.txt`) por **sobreposição de recursos em tempo
@@ -16,19 +16,26 @@ o Android as troca na hora de desenhar. Mapa completo, limites e saída de emerg
 | `PFL7560TemaHiGallery.apk` | `com.pfl7560.tema.higallery` | `com.hisilicon.higallery` | botões em foco do menu da galeria e miniatura escolhida (16A) |
 | `PFL7560TemaNLSource.apk` | `com.pfl7560.tema.nlsource` | `com.newlink.nlsource` | tela "sem sinal" das entradas HDMI/USB-C e o aviso `MyDialog` (16A) |
 | `PFL7560TemaPowerService.apk` | `com.pfl7560.tema.powerservice` | `com.zhiying.powerservice` | menu de energia: círculos parados, em foco (rosa) e Desligar (vermelho) (16A) |
+| `PFL7560TemaAutoFocus.apk` | `com.pfl7560.tema.autofocus` | `com.zhiying.autofocus` | só o aviso durante o foco/trapézio automático; a imagem de teste da câmera fica (doc 48 §11.1) (17A) |
+| `PFL7560TemaZYSpeakerModel.apk` | `com.pfl7560.tema.zyspeakermodel` | `com.zhiying.bluetoothmodelservice` | modo caixa de som: fundo, botões em foco rosa, aviso de sair (17A) |
+| `PFL7560TemaNewLinkService.apk` | `com.pfl7560.tema.newlinkservice` | `com.newlink.service` | contagem de desligar do descanso, aviso de tela apagada, avisos de atualização e o `BlackDialog` (17A) |
+| `PFL7560TemaIjkPlayer.apk` | `com.pfl7560.tema.ijkplayer` | `com.newlink.isuperred.ijkplayerdemo` | barra de controle e botões em foco do player (17A) |
+| `PFL7560TemaHiVideoPlayer.apk` | `com.pfl7560.tema.hivideoplayer` | `com.hisilicon.android.videoplayer` | barra de controle, botões em foco e menus do player de vídeo (17A, minSdk 1) |
+| `PFL7560TemaHiMusic.apk` | `com.pfl7560.tema.himusic` | `com.hisilicon.android.music` | fundo, moldura de foco, ponto da barra e foco da lista do player de música (17A, minSdk 1) |
 | `PFL7560TemaAndroid.apk` | `com.pfl7560.tema.android` | `android` | **só 6 cores e 1 forma**: diálogos claros e escuros do Leanback ("Temperatura anormal") e o fundo do Toast. Instalar por último |
 
 | Arquivo | O que é |
 | --- | --- |
-| `build.sh` | gera os nove APKs do zero (`aapt2 compile/link`, `zipalign`, `apksigner`); reprodutível (mesmo md5); minSdk por sobreposição quando o alvo tem `v21`/`hdpi-v4` |
+| `build.sh` | gera os quinze APKs do zero (`aapt2 compile/link`, `zipalign`, `apksigner`); reprodutível (mesmo md5); minSdk por sobreposição quando o alvo tem `v21`/`hdpi-v4` |
 | `conferir.py` | confere cada APK contra o APK do alvo extraído do firmware: mesmo nome e **mesmo tipo**, todas as configurações do alvo cobertas, nenhum valor com referência, só `color`, `drawable` e `mipmap` |
-| `recolorir.py` | gera as imagens recoloridas a partir do app desmontado, uma tabela por app (`zysetting`, `zybluetooth`, `zyfilemanager`, `higallery`; roda uma vez por firmware) |
+| `recolorir.py` | gera as imagens recoloridas a partir do app desmontado, uma tabela por app (`zysetting`, `zybluetooth`, `zyfilemanager`, `higallery`, `zyspeakermodel`, `ijkplayer`, `hivideoplayer`, `himusic`; roda uma vez por firmware) |
 | `gerar-previa.py` | desenha `previa/antes-depois.png`, as cinco telas do 13A antes e depois, com os valores |
 | `gerar-previa-16a.py` | desenha `previa/antes-depois-16a.png`, as oito telas do 16A antes e depois |
+| `gerar-previa-17a.py` | desenha `previa/antes-depois-17a.png`, as sete telas do 17A antes e depois |
 | `assinatura.keystore` | chave própria e estável (alias `pfl7560tema`, senha no `build.sh`; não é segredo) |
 
     bash artifacts/overlay/build.sh
-    python3 -I artifacts/overlay/conferir.py <pasta com os 9 APKs alvo do firmware (doc 48 §10.1)>
+    python3 -I artifacts/overlay/conferir.py <pasta com os 15 APKs alvo do firmware (doc 48 §10.1 e §11)>
 
 Instalação (não feita; o coordenador integra ao kit): `/vendor/overlay/<Nome>/<Nome>.apk`, pasta
 0755 e arquivo 0644 de root, rótulo `vendor_overlay_file`, reboot, depois `cmd overlay enable

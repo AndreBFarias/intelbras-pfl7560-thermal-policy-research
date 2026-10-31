@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Botao em foco da tela do modo caixa de som ("Tela desligada" / "Sair", text_view_selector).
+     De fabrica degrade verde-agua -> lilas; agora rosa, o foco do tema. O texto em foco vem do
+     text_color_selector (fundo sobre rosa 6,0:1). Mesmo raio (dp_8 = 8 dp). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FFFF79C6" />
+    <corners android:radius="8dp" />
+</shape>

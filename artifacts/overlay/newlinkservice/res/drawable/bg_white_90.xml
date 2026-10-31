@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Painel do aviso de tela apagada (activity_shimba_light, screen/MyDialog do ScreenService).
+     Texto preto fixo (color/black, agora fundo, e #333333): o painel continua claro. De fabrica
+     branco 90% -> texto 90%. Mesmo raio. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="13dp" />
+    <solid android:color="#E6F8F8F2" />
+</shape>
