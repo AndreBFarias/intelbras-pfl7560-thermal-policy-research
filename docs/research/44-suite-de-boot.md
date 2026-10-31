@@ -1,8 +1,12 @@
 # 44 — Suíte de boot: verificação automática ao voltar da tomada, ao inserir o pendrive e pelo ícone (2026-10-30)
 
-**Estado: pronta em código e provada só em simulação (harness com stubs). Nada disto rodou no aparelho.**
-O teste no aparelho é a seção 12, em roteiro único e ordenado. O que depende dele está marcado
-**PROVISÓRIO** ao longo do texto e reunido na seção 11.
+**Estado em 2026-10-31: em uso no projetor do dono.** A suíte rodou no aparelho pelo boot, pelo ícone
+"Verificar projetor" e pelo pendrive; a luz da home (§13), o descanso de tela (§14 e §14.1) e o que o kit leva
+do bloco 14 (§15) também foram provados lá. O estado do conjunto está em
+[`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md). Falta no aparelho: tirar da tomada **com o projetor
+ligado** com o cabo de verdade (a marca foi provada com `sysrq b`, passo 7), a varredura fina de foco com o foco
+ruim de propósito (§16) e o que segue marcado **PROVISÓRIO** ao longo do texto (reunido na seção 11). A seção
+12 é o roteiro do teste, escrito antes dele.
 
 Origem: o pedido do dono de 2026-10-30, depois do [bloco 8](../sprints/2026-10-30-bloco-8-camera-robusta.md):
 ao ligar depois de ficar sem energia, o projetor roda a suíte de correção (câmera, cor, ângulo, foco, imagem,
@@ -122,14 +126,17 @@ histórico registra o motivo `interrompida_2x_seguidas`). Uma suíte pelo pedido
 zera o contador.
 
 **Pedido do app.** O app grava `pedir-verificacao` na **pasta privada dele**,
-`/data/data/com.pfl7560.verificar`. O vigia (`inotifyd` na pasta, eventos `w` e `y`; sem `inotifyd`, um laço de
-30 s) chama o `suite-pedido.sh`, que: aceita só o arquivo `pedir-verificacao`; exige que seja um arquivo
+`/data/data/com.pfl7560.verificar`. O vigia olha **duas pastas**: a do Verificar (`pedir-verificacao`,
+`descanso-inicio`, `descanso-fim`) e a da home, `/data/data/com.pfl7560.home` (`luz`, §13). É um `inotifyd` com
+as duas pastas, eventos `w` e `y`; sem `inotifyd`, um laço de 30 s que confere os mesmos arquivos. Cada evento
+chama o `suite-pedido.sh`, que: aceita cada nome só pela pasta do app dele; exige que seja um arquivo
 **regular** (um link é recusado) cujo **dono seja o dono da pasta**, com UID de app (≥ 10000); apaga o arquivo;
-respeita a trava e os 10 minutos; e lança `suite.sh pedido` com o md5 conferido na hora. Por que a pasta
-privada: em `/sdcard` qualquer app gravaria o arquivo e dispararia, como root, uma suíte com a rampa ativa
-(revisão de segurança de 2026-10-30, commit `3c92cdb`). **Consequência para quem usa:** um pedido feito até 10
-minutos depois do fim de outra suíte é ignorado em silêncio (a tela do app diz "Verificação pedida" de
-qualquer modo, porque o app não sabe).
+respeita a trava de uma suíte em curso; e lança `suite.sh pedido` com o md5 conferido na hora. **O ícone sempre
+roda** (pedido do dono em 2026-10-31): a proteção de 10 minutos vale só para o gatilho do boot, contra laço; o
+`vigia.log` registra quando o pedido veio dentro dela. Por que a pasta privada: em `/sdcard` qualquer app
+gravaria o arquivo e dispararia, como root, uma suíte com a rampa ativa (revisão de segurança de 2026-10-30,
+commit `3c92cdb`). **Consequência para quem usa:** um pedido feito com uma suíte já rodando é ignorado em
+silêncio (a tela do app diz "Verificação pedida" de qualquer modo, porque o app não sabe).
 
 ## 4. Etapas, em detalhe
 
@@ -164,7 +171,7 @@ qualquer modo, porque o app não sabe).
 
 | Achado | O que a suíte faz |
 |---|---|
-| Avisos do sistema por cima da imagem cobrem as faixas que a câmera lê. Com o aviso "Temperatura anormal" (da rampa) a câmera leu 8 e 14 de 16 faixas; com o "Dispositivo conectado. Deseja abrir HDMI1?" leu 5; sem eles, 16 de 16 | Antes de cada tela, fecha o aviso focado. O de temperatura (`com.newlink.nlprovision`) só tem OK, então recebe ENTER. Os outros recebem BACK, que cancela: no da HDMI o botão em destaque é o de ABRIR, e ENTER trocaria de entrada. O descanso de tela também sai com BACK |
+| Avisos do sistema por cima da imagem cobrem as faixas que a câmera lê. Com o aviso "Temperatura anormal" (da rampa) a câmera leu 8 e 14 de 16 faixas; com o "Dispositivo conectado. Deseja abrir HDMI1?" leu 5; sem eles, 16 de 16 | Antes de cada tela, fecha o aviso focado. O de temperatura (`com.newlink.nlprovision`) só tem OK, então recebe o OK do controle (`DPAD_CENTER`), alternando com ENTER de reserva: o ENTER sozinho não o fecha (visto no aparelho em 2026-10-31). Os outros recebem BACK, que cancela: no da HDMI o botão em destaque é o de ABRIR, e o OK trocaria de entrada. O descanso de tela também sai com BACK |
 | A câmera pode falhar mesmo assim | Até 3 leituras, com o autofoco refeito entre elas. Se ainda falhar, a tela "A câmera não conseguiu ler a tela." espera uma tecla do controle **sem prazo**: a etapa não avança sozinha (pedido do dono). Na cor, a conferência segue à mão com a pessoa presente. Na geometria, são mais 3 leituras; se falharem, a etapa fica "pendente", para que uma câmera quebrada não trave o projetor |
 | O `awk` do Android 9 recusa `exit` com negação (`illegal arithmetic operator`): o "LED quente" nunca seria detectado | `if ... exit 0; exit 1`; um teste estático proíbe a forma antiga |
 | O `inotifyd` do toybox ignora a 1ª letra da máscara (`:wy` vigiava só `y`) | Máscara `:wwy`; um pedido que já estava na pasta é tratado quando o vigia liga |
@@ -193,7 +200,9 @@ No aparelho:
 | `…/gatilho`, `incompletas`, `ultimo-fim` | modo do gatilho (`auto`, `sempre`, `nunca`), contador de suítes interrompidas, hora do fim da última |
 | `…/boot.log`, `vigia.log`, `lancador.log`, `cor-resultado.txt`, `panelparam-backup-<serial>.img` | saída do serviço, do vigia e do lançador; resultado da cor; backup da `panelparam` do modo sem pendrive |
 | `/vendor/etc/init/pfl7560-suite.rc` (0644 root:root, `vendor_configs_file`) | o serviço de boot |
-| `/data/data/com.pfl7560.verificar/pedir-verificacao` | o pedido do app (some depois de lido) |
+| `/data/data/com.pfl7560.verificar/pedir-verificacao`, `descanso-inicio`, `descanso-fim` | o pedido de verificação e os sinais do descanso de tela (somem depois de lidos) |
+| `/data/data/com.pfl7560.home/luz` | o pedido de luz da home (some depois de lido; §13) |
+| `…/luz` (root, 0600) e a prop `vendor.pfl7560.luz` | o nível de luz que o dono escolheu, reaplicado em todo boot, e o valor que o root devolve à home |
 | `/sdcard/pfl7560-suite/` | os PNG que a galeria abre |
 | `/dev/pfl7560-suite.lock`, `/dev/pfl7560-suite.vigia` | a trava e o pid do vigia (somem no reboot) |
 | `/data/vendor/pfl7560-kit/` | a pasta de trabalho do kit (`cor.sh`, `journal`, backup) |
@@ -216,7 +225,7 @@ vão junto porque custaram pouco):
   (a tela escondida aberta na parede em 2026-10-30); se nada abrir, mostra a mensagem e fecha.
 
 Desde o bloco 16B o app tem também o descanso de tela `.Descanso` (§14), um serviço sem ícone; o APK leva a
-fonte Plex Condensed Bold em `assets/` (`versionCode` 3).
+fonte Plex Condensed Bold em `assets/` (`versionCode` 3; hoje 4, com a luz no descanso, §14.1).
 
 Assinado com a chave estável `artifacts/app/assinatura.keystore` (senha no `build.sh`; não é segredo: só garante
 que um APK novo instale por cima do anterior). Versão: `VERSAO_CODIGO` no `build.sh` e `APP_VERSION_CODE` no
@@ -230,7 +239,9 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
   pendrive a cópia do backup da `panelparam` que a suíte guardou no aparelho, como
   `suite-panelparam-backup-<serial>.img` (com `.md5`, conferida com `cmp`); para o serviço (`ctl.stop`) e o
   vigia; limpa o override de temperatura se a suíte morreu no meio da rampa; remove o `.rc` (com remount), a
-  pasta da suíte, a pasta das telas e o pedido pendente; e o kit roda só a fase de cor, como antes do bloco 9.
+  pasta da suíte, a pasta das telas e os pedidos pendentes (`pedir-verificacao` e o `luz` da home); a linha
+  `vendor.newlink.launcher.package` sai do `build.prop` (a home de fábrica volta no boot seguinte); e o kit roda
+  só a fase de cor, como antes do bloco 9.
 - **Só o gatilho da tomada:** `adb shell 'echo nunca > /data/vendor/pfl7560-suite/gatilho'` (root). O pedido
   pelo ícone e o pendrive continuam.
 - **O descanso de tela volta ao do fabricante** no mesmo `--desinstalar` (§14): se `screensaver_components` ou
@@ -238,8 +249,10 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
   `com.newlink.screensaver/com.newlink.screensaver.ScreenService`. Se o dono escolheu outro, não se mexe.
 - **O bloco 14 também volta** no mesmo `--desinstalar` (§15): sobreposições de tema desligadas e removidas, a
   prop do gerenciador de arquivos tirada, Office/iOSCast/Espelhamento religados e a marca de fábrica restaurada.
-- **O app não sai com a suíte:** a pasta é dele. Tirar: `adb uninstall com.pfl7560.verificar`. Sem a suíte, o
-  ícone não faz nada.
+- **Os apps não saem com a suíte:** o Verificar (`/vendor/app/PFL7560`) e a home (`/vendor/app/PFL7560Home`)
+  são apps do sistema, gravados no `/vendor`, e o `adb uninstall` não tira app do sistema. Sem a suíte, o ícone
+  não faz nada e a home deixa de ser a tela inicial. Tirar de vez: apagar a pasta deles com o `/vendor` aberto rw
+  (root) e reiniciar, ou regravar o firmware de fábrica.
 
 ## 9. Limites e riscos conhecidos
 
@@ -254,7 +267,13 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 - **Pendrive deixado plugado:** a suíte (com a rampa) roda a cada boot pelo fluxo do pendrive, e a proteção de
   `incompletas` não vale para ele (como o `cor.sh` antes). Tire o pendrive.
 - Sem o app instalado, o vigia não liga e o log diz isso.
-- O pedido do app dentro dos 10 minutos do fim de outra suíte é ignorado sem aviso na tela.
+- O pedido do app com uma suíte já rodando (trava) é ignorado sem aviso na tela.
+- **PATH dos serviços.** O init sobe o serviço `pfl7560_suite` com o PATH do `/vendor`, e `cmd`, `pm`, `am`,
+  `settings`, `input`, `dumpsys` e `logcat` moram em `/system/bin` (visto no aparelho em 2026-10-31: `exec cmd:
+  No such file or directory` no boot). O `suite-boot.sh`, o `suite-pedido.sh`, o `suite.sh` e o `cor.sh` fixam o
+  PATH (`/system/bin` antes) na primeira linha que roda em produção.
+- O `inotifyd` vigia a pasta que existia quando ligou. Se um app for reinstalado (a pasta dele é apagada e
+  criada de novo), o pedido daquele app só volta a ser lido no boot seguinte.
 - `inotifyd`: pelo código do toybox e do busybox, `y` é "movido para dentro" e `m` "movido para fora" (a ajuda
   de uma das versões diz o contrário). O teste 6 confirma.
 
@@ -281,9 +300,9 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 | `LIMIAR_BORDA_PX_1280=3.5` (proporcional à largura) | `suite.sh` | bordas reais no aparelho (o 640×480 real passaria dele) |
 | `AUTOFOCO_FOLGA=5` e a espera por `sys.newlink.auto` | `suite.sh` | teste 11 |
 | Leitura de `persist.sys.mountingmode` (o rótulo do menu não foi provado) e a unidade de `fan speed` (0 = parada) | `suite.sh` | comparar com o menu e o `hidebug` |
-| `inotifyd` no toybox do Android 9 e o evento de escrita do app na pasta ext4 | `suite-boot.sh` | teste 5 e 6 |
+| `inotifyd` no toybox do Android 9 e o evento de escrita do app na pasta ext4 | `suite-boot.sh` | **provado** em 2026-10-30 e 2026-10-31: a máscara `:wwy` (§4) e o ícone disparando a suíte pelo vigia do boot |
 | `logcat -T 1` no Android 9 (sem ele: "não reagiu" falso, nunca injeção sem limpeza) | `suite.sh` | teste 12 |
-| App em `/vendor/app` pelo `exec` do init (pendrive real) | `newlink_update.sh` | teste 1 e 2: o `[OK] app` no `newlink_update.log`. Já provado pela instalação por rede em 2026-10-30, com `codePath=/vendor/app/PFL7560` e `flags=[ SYSTEM ]` |
+| App em `/vendor/app` pelo `exec` do init (pendrive real) | `newlink_update.sh` | o app em `/vendor/app` já foi provado pela instalação por rede em 2026-10-30 (`codePath=/vendor/app/PFL7560`, `flags=[ SYSTEM ]`); falta ver o `[OK] app` no `newlink_update.log` de um pendrive real (testes 1 e 2) |
 | Formato do `top` do Android 9 (toybox, `S[%CPU]`) no `pfl7560-processos.sh` | `pfl7560-processos.sh` | teste 14 |
 | Tempo de geração e abertura do PNG do `nl_tela` pela galeria | `nl_tela`, `suite.sh` | teste 13 |
 | `tests/preparar-pendrive.sh` e a opção 5 do `install.bat` com firmware | `tests/`, `install.bat` | teste 15 (o `.bat` e o `.ps1` nunca rodaram: não há Windows aqui) |
@@ -308,7 +327,7 @@ e anote o resultado (a linha de base). Espera: tudo verde.
 2. **Conferir a instalação.**
    `adb shell "ls -ld $S; ls -lZ /vendor/etc/init/pfl7560-suite.rc; pm list packages --show-versioncode com.pfl7560.verificar; tail -30 $S/ultimo.log"`.
    Esperado: pasta `drwx------ root`; `.rc` `-rw-r--r-- root root` com `vendor_configs_file`; o pacote com
-   `versionCode:1`; no `newlink_update.log`, `[OK] app: ... instalado` e `[OK] suite: servico de boot instalado`.
+   `versionCode:4`; no `newlink_update.log`, `[OK] app: ... instalado` e `[OK] suite: servico de boot instalado`.
 3. **Idempotência.** Desligue, plugue o mesmo pendrive, ligue. Esperado: `suite: arquivos ja estavam em dia`,
    `app: ... ja estava instalado`, `servico de boot ja estava instalado`; a suíte roda de novo (modo pendrive)
    sem regravar nada; o aparelho não reinicia.
@@ -321,8 +340,9 @@ e anote o resultado (a linha de base). Espera: tudo verde.
    **Wi-Fi**: abre a tela de Wi-Fi (`WIFI_SETTINGS`; se não, a do fabricante). Toque em **Verificar projetor**:
    mensagem "Verificação pedida" por 3 s e a abertura "Verificação pedida. Conferindo o projetor." em instantes;
    `adb shell "tail -5 $S/vigia.log; ls -ln /data/data/com.pfl7560.verificar/"` mostra a linha "pedido de
-   verificacao recebido" e a pasta sem o arquivo. Toque de novo **antes de 10 minutos**: nada acontece e o
-   `vigia.log` diz "a suite terminou ha menos de 10 min, mas o pedido e do dono: roda" e a suíte roda de novo (pedido do dono em 2026-10-31: o ícone sempre roda; só a trava de uma suíte em curso segura). Se o ícone não aparecer: o launcher não
+   verificacao recebido" e a pasta sem o arquivo. Toque de novo **logo depois do fim**: a suíte roda de novo e o
+   `vigia.log` diz "a suite terminou ha menos de 10 min, mas o pedido e do dono: roda" (pedido do dono em
+   2026-10-31: o ícone sempre roda; só a trava de uma suíte em curso segura). Se o ícone não aparecer: o launcher não
    lista por `LAUNCHER`; olhar `dumpsys package com.pfl7560.verificar` (doc 43 §6 diz que lista).
 6. **Pedido que não é do app.** Root: `adb shell "touch /data/data/com.pfl7560.verificar/pedir-verificacao"`
    (o dono é o root, não o app). Esperado: o `vigia.log` diz "o pedido nao veio do app (dono do arquivo nao e o
@@ -341,8 +361,8 @@ e anote o resultado (a linha de base). Espera: tudo verde.
    do painel: VESA → JEIDA" em `corrigido` e "1 correção feita"; `adb shell "cat $S/cor-resultado.txt; ls $S/panelparam-backup-*"`
    (resultado `corrigido`, backup na pasta da suíte). `PFL_IP=$IP ./pfl7560-saude.sh`: a checagem de cor
    passa. **Guarde esse backup**: o passo 15 o leva para o pendrive.
-10. **Inclinar de propósito.** Calce um dos pés por uns 2° e toque em "Verificar projetor" (espere 10 min desde a
-    última suíte). `adb shell "grep -E 'geo_|quatro_pontos|dicas' $S/resultados.txt"`. Esperado:
+10. **Inclinar de propósito.** Calce um dos pés por uns 2° e toque em "Verificar projetor".
+    `adb shell "grep -E 'geo_|quatro_pontos|dicas' $S/resultados.txt"`. Esperado:
     `geo_inclinacao_graus` com módulo perto do real e a dica "Imagem inclinada: abaixe o pé ..." (se os 4 pontos
     estão ligados, o conselho é zerá-los). **Confirme o lado:** a dica diz esquerdo ou direito conforme
     `SINAL_INCLINACAO` (`suite.sh`); se estiver trocado, inverta a constante (`1` ↔ `-1`), rode
@@ -400,14 +420,16 @@ arquivo.
    a 100 (zeros à esquerda saem). Letras, sinal, vazio, `5`, `200`, `1000` e `6.0` são recusados, com log;
 3. apaga o pedido; guarda o número em `/data/vendor/pfl7560-suite/luz` (root, 0600);
 4. aplica com `sbl N` e confere com `gbl` (até 3 leituras, 1 s entre elas; o log avisa se não confere);
-5. devolve o valor lido em `luz-atual` na pasta do app: criado com `noclobber` (nunca segue um link plantado),
-   `chown -h` para o dono da pasta, 0600, e `mv` por cima (o rename substitui um link, não o segue). O app lê esse
-   arquivo e mostra "100%" no atalho.
+5. devolve o valor lido ao app pela prop `vendor.pfl7560.luz` (`setprop`); a home lê com `getprop` e mostra o
+   número no atalho ("100%" enquanto a prop não existir). O root **não escreve nada** na pasta do app: a primeira
+   versão escrevia um `luz-atual` lá, e a revisão de segurança de 2026-10-31 trocou pela prop (escrever como root
+   num caminho que o app controla abre corrida de link). O pedido também é **movido** (`mv`, que não segue link)
+   para a pasta só do root antes de ser lido, e lido com prazo (um FIFO não trava o vigia).
 
 Não usa a proteção de 10 min. Com a trava da suíte ocupada (a rampa no meio) só guarda: o próximo boot aplica.
 **Boot.** O `suite-boot.sh`, antes de ligar o vigia e com qualquer `gatilho`, chama
 `suite-pedido.sh aplicar-luz` (o md5 do `suite-pedido.sh` é conferido antes): se `luz` existe, é do root, não é
-link e vale 10 a 100, reaplica e atualiza o `luz-atual`. Sem o arquivo, não mexe em nada. Um pedido de luz que já
+link e vale 10 a 100, reaplica e atualiza a prop `vendor.pfl7560.luz`. Sem o arquivo, não mexe em nada. Um pedido de luz que já
 estava na pasta antes de o vigia ligar é tratado uma vez ao ligar.
 
 **O `gtt` continua proibido.** O `suite-pedido.sh` só manda ao `hidebug` `picture`/`sbl`/`gbl`/`quit`; o
@@ -418,11 +440,10 @@ eventos errados, trava, `gbl` que não confirma, links plantados no app, `hidebu
 (inclusive com `gatilho` nunca), boot com arquivo inválido, link ou `suite-pedido.sh` adulterado, pedido pendente,
 e a verificação seguindo normal.
 
-**PROVISÓRIO (só o aparelho confirma):** (a) o vigia root conseguir criar e dar `chown` no `luz-atual` dentro da
-pasta do app (SELinux `vendor_shell` em `app_data_file`) e o app conseguir lê-lo; sem isso o atalho mostra 100%
-sempre, mas a luz muda; (b) o `gbl` logo depois do `sbl` já devolver o valor novo (senão o log avisa e o
-`luz-atual` guarda o valor antigo até o próximo boot); (c) o `sbl` aplicado no `boot_completed` pegar (o
-fabricante pode regravar depois); (d) a janela de 4 s do app para reler o `luz-atual`.
+**Provado no aparelho em 2026-10-31:** o botão Luz da home aplica o nível e o boot o reaplica (estado em
+[`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md)). **PROVISÓRIO:** se o `gbl` logo depois do `sbl` já
+devolve sempre o valor novo (senão o log avisa e a prop guarda o valor lido); a janela de 4 s do app para reler a
+prop.
 **Não feito:** aplicar o nível guardado no fim da suíte (o `suite.sh` não foi tocado); com a rampa rodando, o
 pedido só vale a partir do próximo boot.
 
