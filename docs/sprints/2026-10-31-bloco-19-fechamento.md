@@ -80,3 +80,9 @@ conferir, sem presumir:
 
 Corrija na origem. Se a causa for real no script, corrija o script, porque o aparelho também a teria. Prove com o
 laço sem falha nenhuma.
+
+## Estado (bloco 20, 2026-10-31)
+
+19A, 19B e 19C integrados (merges `c8c13e9`, `5894761` e `26db6c1`). 19C: a causa estava no harness, não no
+script (`7bc8b31`: a queda de energia simulada matava pelo nome o `cor.sh` de outra rodada do harness na mesma
+máquina). Estado final em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).

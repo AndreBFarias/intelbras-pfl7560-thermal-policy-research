@@ -180,3 +180,13 @@ medida é do teste final (passo 14).
 O que falta, tudo no aparelho: a seção 12 do doc 44 inteira, em especial o gatilho da tomada (os sinais de
 `sys.boot.reason` e do relógio depois de faltar energia), o sinal da inclinação, o `pm install` do app, o
 `inotifyd` e as telas do `nl_tela` na galeria. O que ficou PROVISÓRIO está na seção 11 do doc 44.
+
+## Atualização (bloco 20, 2026-10-31)
+
+A suíte saiu da simulação: roda no projetor do dono pelo boot, pelo ícone e pelo pendrive ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)). O que
+mudou desde o texto acima, com o porquê no doc 44:
+
+- o gatilho da tomada é a marca `pfl7560,ligado` em `persist.sys.boot.reason` (o aparelho não tem RTC e o motivo
+  do boot repete o do último desligamento limpo); provado com `sysrq b`, falta com o cabo tirado de verdade;
+- o app entra como app do sistema em `/vendor/app` (o `pm install` deste firmware recusa apps de fora);
+- o ícone sempre roda (a proteção de 10 min vale só para o boot) e o vigia olha duas pastas (Verificar e home).

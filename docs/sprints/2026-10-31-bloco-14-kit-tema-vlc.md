@@ -35,3 +35,9 @@ Para a integração: depois de juntar os APKs novos em `artifacts/overlay/apk/`,
 tests/atualizar-md5-kit.sh` (copia para `pendrive-autorun/overlay/`, reescreve `KIT_OVERLAYS` e a `KIT_LISTA`).
 O que só o aparelho confirma está em doc 44, §15, "PROVISÓRIO". Os valores fixados do VLC (sha256 do APK e do
 certificado) foram lidos do `.sha256` publicado e do APK baixado.
+
+## Atualização (bloco 20, 2026-10-31)
+
+No aparelho: as 20 sobreposições ligadas pelo `suite-boot.sh`, a do `android` por último; Office, iOSCast e
+Espelhamento desligados; a marca MeowCast no carregador, no `logo.jpg` e no `bootanimation.zip`; VLC 3.7.1 em
+`/vendor/app/VLC` ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)).

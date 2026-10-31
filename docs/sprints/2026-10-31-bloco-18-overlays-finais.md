@@ -26,3 +26,8 @@ Provas: `conferir.py` TUDO OK contra cada APK alvo extraído do firmware; `apksi
 depois em `artifacts/overlay/previa/`. Nada no aparelho. Stage só por caminho explícito; commits pequenos sem
 linha de atribuição; push do branch. Relatório no schema: feito, provas, commits, provisorio, desvios,
 pendente.
+
+## Estado (bloco 20, 2026-10-31)
+
+Integrado (merge `05d70f1`); ligadas no aparelho. Falta olhar com o controle o teclado na tela, o pareamento do
+controle, o menu de imagem de uma entrada HDMI e a contagem de desligar (item 2 de "Só com o dono" em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)).

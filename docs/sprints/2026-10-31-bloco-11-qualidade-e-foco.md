@@ -91,3 +91,8 @@ Desvio do pedido: o valor do item não é "Centro 1,9 px · Pior canto 3,1 px" p
 
 A conferir no aparelho: doc 44 §16, "PROVISÓRIO". A hipótese 1 (reamostragem contra ótica) ainda pede o dono
 zerar os 4 pontos e rodar a suíte de novo, comparando os dois mapas.
+
+## Atualização (bloco 20, 2026-10-31)
+
+Integrado no merge `c8c13e9`. A varredura fina de foco ainda não foi vista no aparelho: é o item 3 de "Só com
+o dono no projetor" em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).

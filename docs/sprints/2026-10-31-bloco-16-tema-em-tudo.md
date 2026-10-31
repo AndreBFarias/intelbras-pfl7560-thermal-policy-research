@@ -75,3 +75,9 @@ Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-16b`, branch `bloco
 Nenhum agente fala com o projetor. Stage só por caminho explícito; commits pequenos em pt-BR sem acento, sem
 linha de atribuição; push do branch. Kit em ASCII puro. Relatório no schema: feito, provas, commits, provisorio,
 desvios, pendente.
+
+## Estado (bloco 20, 2026-10-31)
+
+16A e 16B integrados (merges `a48ab07` e `3d352a2`). O descanso MeowCast está em uso no aparelho e, desde
+`76b6f5b`, baixa a luz a 10% enquanto está na tela (doc 44 §14.1). A home (`versionCode` 4) está sem Espelhamento.
+Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).

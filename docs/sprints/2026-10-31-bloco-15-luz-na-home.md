@@ -57,3 +57,11 @@ os docs 44 e 45 (uma seção cada).
 
 Nada de adb nem projetor. Stage só por caminho explícito; commits pequenos sem linha de atribuição; push do
 branch. Kit em ASCII puro. Relatório no schema: feito, provas, commits, provisorio, desvios, pendente.
+
+## Estado (bloco 20, 2026-10-31)
+
+Integrado (merge `090fe68`) e provado no aparelho: o botão Luz aplica o nível e o boot o reaplica ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)).
+Diferenças do texto acima: o root devolve o valor pela prop `vendor.pfl7560.luz` (a home lê com `getprop`), não
+por um arquivo `luz-atual` na pasta do app, que saiu na revisão de segurança (o root não escreve num caminho que o
+app controla); o pedido é movido para a pasta só do root antes de ser lido; o vigia olha também a pasta da home
+(`bce360e`), porque o pedido de luz mora lá. Doc 44 §13.
