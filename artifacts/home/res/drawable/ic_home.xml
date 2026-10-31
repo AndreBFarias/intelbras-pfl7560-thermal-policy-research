@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icone do app, desenhado em vetor: disco fundo, contorno de casa em roxo, porta em rosa. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp" android:height="96dp"
+    android:viewportWidth="64" android:viewportHeight="64">
+    <path android:fillColor="@color/fundo"
+        android:pathData="M32,2 A30,30 0 1,1 31.99,2 Z" />
+    <path android:strokeColor="@color/roxo" android:strokeWidth="4"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M14,30 L32,15 L50,30 M19,26 L19,48 L45,48 L45,26" />
+    <path android:strokeColor="@color/rosa" android:strokeWidth="4"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M28,48 L28,37 L36,37 L36,48" />
+</vector>
