@@ -87,7 +87,8 @@ passo no [`INSTALL.md`](INSTALL.md), método 1.
 **Desfazer.** Um arquivo vazio `DESINSTALAR-SUITE.txt` na raiz do pendrive, e ligar com ele plugado: sai o
 serviço, a pasta da suíte, a home como tela inicial, as sobreposições e a prop do gerenciador; os três apps do
 fabricante voltam; o logo e a animação de fábrica são restaurados; o descanso volta ao do fabricante. A térmica
-fica (desfaz com `./pfl7560-fix.sh revert` pelo PC), a cor fica no formato que o painel pede, e os dois apps
+fica (desfaz pelo PC com `./pfl7560-fix.sh revert`, que precisa do backup de fábrica de um `apply` feito naquele
+PC, ou regravando o firmware de fábrica), a cor fica no formato que o painel pede, e os dois apps
 ficam instalados sem efeito (são apps do sistema; o `adb uninstall` não os tira). Resgate total: o firmware de
 fábrica por power-hold ([guia 16](docs/guide/16-recuperacao-brick.md)), que apaga o `/data`.
 
