@@ -189,6 +189,8 @@ refaça o teste de cor.
 ├── pfl7560-vigia-lsadc.sh          # acompanha a proteção durante o uso real (passivo)
 ├── pfl7560-monitor-props.sh        # curva térmica por props (passivo)
 ├── pfl7560-processos.sh            # CPU por processo com o projetor parado + props (só leitura, bloco 9C)
+├── pfl7560-marca.sh                # marca MeowCast na partição `logo` do carregador (backup, dd, releitura; bloco 14)
+├── pfl7560-vlc.sh                  # VLC 3.7.1 como app do sistema (sha256 e assinatura conferidos; bloco 14)
 ├── pfl7560-monitor-termico.sh      # curva térmica por hidebug (sonda — só pontual)
 ├── pfl7560-autocaptura.sh          # captura automática da curva em uso real (sonda — serviço DESABILITADO)
 ├── pfl7560-lcd-color.sh            # correção de cor pós-troca de painel (VESA/JEIDA)

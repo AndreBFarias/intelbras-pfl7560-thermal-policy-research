@@ -40,6 +40,8 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    - `pendrive-autorun/suite.sh`, `suite-boot.sh`, `suite-pedido.sh` e `pfl7560-suite.rc` (a suíte de verificação, bloco 9B)
    - `pendrive-autorun/nl_tela` (gera as telas da suíte) e `pendrive-autorun/fontes/*` (as fontes dela, na subpasta `fontes/` do pendrive)
    - `pendrive-autorun/pfl7560.apk` (o app dos ícones "Verificar projetor" e "Wi-Fi", bloco 9C)
+   - `pendrive-autorun/overlay/*.apk` (as sobreposições do tema Drácula do sistema, uma por tela do fabricante, na subpasta `overlay/` do pendrive; bloco 14)
+   - `pendrive-autorun/marca/` (`logo.jpg` e `bootanimation.zip`, a marca MeowCast do boot, na subpasta `marca/` do pendrive; bloco 14)
    - `pendrive-autorun/kit/*.png` (oito imagens, na subpasta `kit/` do pendrive)
 
    O jeito certo é pelo instalador, que copia tudo e **confere o md5 de cada arquivo depois da cópia**
@@ -64,10 +66,20 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    valer no **boot seguinte** à instalação (o vigia do pedido liga no boot): desligue e ligue uma vez. Um pedido
    até 10 minutos depois do fim de outra suíte é ignorado. Detalhes, arquivos e limites:
    [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md).
+   **Tema e marca (bloco 14).** Na mesma passada o kit grava as sobreposições Drácula em `/vendor/overlay`
+   (a do `android`, que mexe no sistema inteiro, por último), a linha que faz o gerenciador de arquivos abrir
+   direto na lista e a marca MeowCast em `/atv/bootvideo` (guardando antes o logo e a animação de fábrica). Tudo
+   vale no **boot seguinte**: no boot, o serviço da suíte liga as sobreposições (`cmd overlay enable`) e desliga o
+   Office, o iOSCast e o Espelhamento (espere uns 20 s antes de reiniciar de novo, porque o sistema grava esse
+   estado com atraso). Como a do `android` entra em todo processo, tenha o pendrive de resgate à mão. A imagem
+   do carregador (partição `logo`) e o VLC **não** vão no pendrive: `PFL_IP=<ip> ./pfl7560-marca.sh` e
+   `PFL_IP=<ip> ./pfl7560-vlc.sh` (cada um faz backup ou confere o que baixa, e tem modo de desfazer). Detalhes:
+   [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md) §15.
 7. **Para desligar a suíte:** crie um arquivo vazio `DESINSTALAR-SUITE.txt` na raiz do pendrive e ligue com ele
    plugado: remove o serviço, a pasta da suíte e o pedido, leva a cópia do backup da cor para o pendrive
-   (`suite-panelparam-backup-<serial>.img`) e roda só a fase de cor. O app fica instalado, sem efeito; para tirá-lo,
-   `adb uninstall com.pfl7560.verificar`.
+   (`suite-panelparam-backup-<serial>.img`) e roda só a fase de cor. Também desliga e remove as sobreposições de tema,
+   tira a linha do gerenciador de arquivos, religa o Office/iOSCast/Espelhamento e restaura a marca de fábrica.
+   O app fica instalado, sem efeito; para tirá-lo, `adb uninstall com.pfl7560.verificar`.
 
 É **idempotente** (rodar de novo não muda nada nem reinicia) e só age se o modelo for `PFL7560`. A parte
 térmica reconhece o `.ini` de fábrica **dos dois modelos** (e as versões anteriores nossas) e troca **só as

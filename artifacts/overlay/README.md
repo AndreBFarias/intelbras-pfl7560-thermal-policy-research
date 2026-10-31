@@ -30,6 +30,9 @@ o Android as troca na hora de desenhar. Mapa completo, limites e saída de emerg
     bash artifacts/overlay/build.sh
     python3 -I artifacts/overlay/conferir.py <pasta com os 9 APKs alvo do firmware (doc 48 §10.1)>
 
-Instalação (não feita; o coordenador integra ao kit): `/vendor/overlay/<Nome>/<Nome>.apk`, pasta
-0755 e arquivo 0644 de root, rótulo `vendor_overlay_file`, reboot, depois `cmd overlay enable
-<pacote>`. Não estáticas: `cmd overlay disable <pacote>` desfaz na hora. Passo a passo no doc 48, §6.
+Instalação: **o kit do pendrive faz sozinho** (bloco 14). `bash tests/atualizar-md5-kit.sh` copia cada APK desta
+pasta `apk/` para `pendrive-autorun/overlay/` (sem lista fixa: um APK novo aqui entra sozinho, a do `android` sempre
+por último) e o `newlink_update.sh` os grava em `/vendor/overlay/<Nome>/<Nome>.apk` (pasta 0755, arquivo 0644, root,
+rótulo `vendor_overlay_file`); no boot seguinte o `suite-boot.sh` liga com `cmd overlay enable <pacote>` as que o
+sistema lista como desligadas. O `DESINSTALAR-SUITE.txt` desliga e remove todas. Detalhes: `docs/research/44`, §15.
+Na mão, o passo a passo está no doc 48, §6. Não estáticas: `cmd overlay disable <pacote>` desfaz na hora.
