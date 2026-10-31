@@ -62,16 +62,16 @@ segurando o botão de power.**
 > - **Segurar o power ao ligar REFLASHA o firmware de fábrica**, o que **apaga a correção** (volta ao stock) e
 >   **formata o `/data`** (perde apps/configuração do usuário). Só use isto para **recuperar um boot travado**,
 >   não como uso normal.
-> - O **pendrive de resgate** (com `usb_update.bin`) deve ficar **FISICAMENTE SEPARADO** do pendrive de autorun
->   (o kit v2) e **desconectado no dia a dia**. Juntar os dois arquivos no mesmo pendrive tem um risco: um
->   resgate acidental (power-hold com o pendrive plugado) apagaria a correção. O `LEIA-ME.txt` do kit aceita
->   esse "kit de emergência" pessoal (arranjo B) só para quem conhece o risco e mantém o pendrive
->   desconectado no uso normal; para dar a outra pessoa, use o arranjo A, só com o kit.
-> - `usb_update.bin` deve **SEMPRE** ser o **firmware de FÁBRICA do seu modelo** (do `Software PFL7560.zip`
->   para o V1.0.0.9 com USB-C; o modelo sem USB-C tem o seu, V1.0.0.1,
->   [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)). **NUNCA** renomeie
->   o `PFL7560-FIX.bin` (em quarentena) para `usb_update.bin`: como ele brica o boot (rótulo SELinux ausente,
->   ver seção 2), o power-hold o gravaria e **bricaria o aparelho** — o oposto de um resgate.
+> - O **pendrive de resgate** (com `usb_update.bin` de fábrica) fica **FISICAMENTE SEPARADO** do pendrive do kit
+>   e **desconectado no dia a dia**: um power-hold acidental com ele plugado apagaria a correção.
+> - **O pendrive do kit feito com `install.sh --com-firmware` NÃO é de resgate.** Pela decisão do dono de
+>   2026-10-31, a raiz dele leva o **nosso** `.bin` (`PFL7560-S4a`, nunca provado no aparelho) como
+>   `usb_update.bin`, e o oficial fica guardado em `resgate-oficial/PFL7560.bin`. Para resgatar, copie esse
+>   arquivo num PC para a raiz de outro pendrive com o nome `usb_update.bin` ([`INSTALL.md`](../../INSTALL.md)).
+> - No pendrive de resgate, `usb_update.bin` é **SEMPRE** o **firmware de FÁBRICA do seu modelo** (do
+>   `Software PFL7560.zip` para o V1.0.0.9 com USB-C; o modelo sem USB-C tem o seu, V1.0.0.1,
+>   [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)). **NUNCA** recrie o protótipo de julho: sem
+>   rótulo SELinux (seção 2), o power-hold o gravaria e **bricaria o aparelho**, o oposto de um resgate.
 
 ### Passo a passo (testado e aprovado)
 

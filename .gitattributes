@@ -1,7 +1,7 @@
 firmware/*.zip filter=lfs diff=lfs merge=lfs -text
 
 # Artefatos BYTE-EXATOS: o md5 destes arquivos e o contrato do projeto.
-# `make check` valida 6 deles, e o INI_MD5_OK do pendrive-autorun/newlink_update.sh
+# `make check` valida 9 deles, e o INI_MD5_OK do pendrive-autorun/newlink_update.sh
 # e um GATE -- md5 divergente faz o autorun RECUSAR aplicar o fix.
 # Conteudo mistura ASCII, chines GBK e mojibake latin-1, e o trailing whitespace
 # faz parte dos bytes originais do vendor.
