@@ -77,9 +77,9 @@ DONO_UID=0
 # Gerado por tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO
 # editar a mao. nl_tela e fontes/ entram quando existirem no kit (bloco 9A).
 # SUITE_LISTA_INICIO
-SUITE_LISTA="539096ea65bd73683697574a3be5c023  cor.sh
+SUITE_LISTA="e2a2f0b02fabd301bb6c89c3e1c3b08a  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
-8bf8bae6410b6b289d55e92671870d3b  nl_camcheck
+02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
