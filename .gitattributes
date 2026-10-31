@@ -65,3 +65,4 @@ artifacts/overlay/apk/*.apk         -text byte-exact
 artifacts/overlay/assinatura.keystore  -text byte-exact
 artifacts/overlay/*/res/**/*.png    -text byte-exact
 artifacts/overlay/previa/*.png      -text byte-exact
+artifacts/tema/marca/*             -text byte-exact
