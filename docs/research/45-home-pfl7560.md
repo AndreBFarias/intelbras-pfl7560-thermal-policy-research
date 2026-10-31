@@ -93,7 +93,7 @@ então o 9C não muda. Só a tela inicial estava errada.
 | Bluetooth | ação `android.settings.BLUETOOTH_SETTINGS` | só o `ZYBluetooth` (`BaseActivity`) a declara. As Configurações de fábrica abrem `com.example.bluetoothsetting/.MainActivity` direto (`MainPTActivity$3`), mas essa atividade **não é exportada** e um app de fora não a abre | alta |
 | Imagem | ação `android.settings.projection.cra.6d.sen_new` (tela de Projeção: foco, correção, direção); reservas `com.zhiying.settings/.pictureSetting.pictureModeActivity` (Modo de imagem, `exported=true`) e `android.settings.SETTINGS` | as Configurações de fábrica (`MainActivity` → `ZY_PT_SETTING` com `rgtp_ui.style=1`, smali L248) abrem o item DLP por `NLPEntryUtils.getDLPIntent` (L118): `zysys.dlp_setting=2` → `getProjectionIntent`; `zysys.projection.is_new=2` → `get6DProjectionIntent` (L52); `vendor.newlink.projection_6d.style=1` → `...cra.6d.sen_new` (L68) → `ProjectionCra6DSenNewActivity` (`exported=true`) | alta para abrir; média para o conteúdo da tela (INFERIDO pelo nome) |
 | Configurações | ação `android.settings.SETTINGS` (o mesmo do launcher, `startActivityByAction`) | só o `ZYSetting` a declara | alta |
-| Espelhamento | `getLaunchIntentForPackage("com.hisilicon.miracast")`; reserva `com.newlink.cast` (iOSCast) | `MainActivityBx.onClick` (Miracast em chip não MediaTek e não Allwinner; o aparelho é `Hisilicon`) | alta |
+| ~~Espelhamento~~ | **removido no bloco 16B** (o dono não quer; §12). Era `getLaunchIntentForPackage("com.hisilicon.miracast")`, reserva `com.newlink.cast` (iOSCast) | `MainActivityBx.onClick` (Miracast em chip não MediaTek e não Allwinner; o aparelho é `Hisilicon`) | alta |
 | Apps | `MAIN` + `LAUNCHER` com o componente exato e `NEW_TASK \| RESET_TASK_IF_NEEDED` | doc 43 §6 (`AppUtils.queryAppInfo`) | alta |
 
 Nenhuma das ações implícitas acima tem dois donos no firmware, então não aparece o seletor "Abrir com".
@@ -288,3 +288,26 @@ controlar isso abaixando ela?". Sim: o `sbl` do `hidebug` baixa a luz do LED (do
 - **PROVISÓRIO (só o aparelho confirma):** o painel e o atalho no projetor (leitura da parede, foco por D-pad);
   o app conseguir ler o `luz-atual` que o root escreve (SELinux); o valor aparecer certo depois de um reboot; a
   luz mudar de fato a cada nível (o dono já viu o 30 escurecer com o `sbl` à mão).
+
+## 12. Sem Espelhamento e sem os apps desligados (bloco 16B, versionCode 4)
+
+Pedido do dono: "Temos o ioscast e o espelhamento de tela. Acho que não precisamos deles também" e "falta
+remover o office suite (ocultar da home)". Os três já foram desligados à mão no aparelho com `pm disable-user`
+(`com.mobisystems.editor.office_registered`, `com.newlink.cast` e `com.hisilicon.miracast`).
+
+- **Atalho.** O cartão Espelhamento saiu (`Modelo.padrao()`, `Acoes.ESPELHAR` e o caso no `Abridor`, com o
+  `lancador()` que só ele usava). A fileira Atalhos passa de 7 para 6 cartões: Verificar projetor, Wi-Fi, Bluetooth,
+  Imagem, Luz e Configurações. A largura do cartão não mudou (é a da fileira Apps, que continua em 7 colunas), então
+  as duas fileiras seguem alinhadas e sobra um espaço à direita nos atalhos. O desenho `Icones.ESPELHAR` fica: um app
+  qualquer com "cast" ou "mirror" no pacote ainda o usa.
+- **Fileira Apps.** `queryIntentActivities(MAIN+LAUNCHER)` sem `MATCH_DISABLED_COMPONENTS` não devolve app
+  desligado (por isso eles já sumiram da lista, como o dono viu). Por garantia, `Modelo.OCULTOS` lista os três
+  pacotes e o `Modelo.definirApps` os tira da fileira mesmo que algum volte a ligar (atualização de firmware,
+  redefinição). O Miracast saiu da lista `FORA` do `Leitor` (era o "já é o atalho Espelhamento") e foi para o
+  `OCULTOS`. No firmware sobram 3 apps visíveis: Alto-falante Bluetooth, Gerenciador de arquivos e VideoPlayer.
+- **Provas no PC.** `gerar-previas.sh` roda conferências novas na navegação (de USB-C desce para Configurações, 6
+  atalhos, os três pacotes ocultos nunca entram na fileira, a lista de exemplo traz um "Office (oculto)" e o
+  iOSCast de propósito); as prévias foram regeneradas e abertas: o iOSCast sumiu da fileira Apps (3 apps) e o
+  Office de exemplo não aparece na de rolagem (12 apps). `build.sh` gera o APK com versionCode 4.
+- **PROVISÓRIO (só o aparelho confirma):** a home nova no projetor com 6 atalhos e sem o iOSCast na fileira Apps.
+

@@ -214,6 +214,9 @@ vão junto porque custaram pouco):
 - **Wi-Fi:** abre `android.settings.WIFI_SETTINGS`; se não resolver, `com.zhiying.settings/.network.WifiSettingActivity`
   (a tela escondida aberta na parede em 2026-10-30); se nada abrir, mostra a mensagem e fecha.
 
+Desde o bloco 16B o app tem também o descanso de tela `.Descanso` (§14), um serviço sem ícone; o APK leva a
+fonte Plex Condensed Bold em `assets/` (`versionCode` 3).
+
 Assinado com a chave estável `artifacts/app/assinatura.keystore` (senha no `build.sh`; não é segredo: só garante
 que um APK novo instale por cima do anterior). Versão: `VERSAO_CODIGO` no `build.sh` e `APP_VERSION_CODE` no
 `newlink_update.sh` têm de ser iguais (o harness confere, e confere com o `aapt2 dump badging`). Para publicar
@@ -229,6 +232,9 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
   pasta da suíte, a pasta das telas e o pedido pendente; e o kit roda só a fase de cor, como antes do bloco 9.
 - **Só o gatilho da tomada:** `adb shell 'echo nunca > /data/vendor/pfl7560-suite/gatilho'` (root). O pedido
   pelo ícone e o pendrive continuam.
+- **O descanso de tela volta ao do fabricante** no mesmo `--desinstalar` (§14): se `screensaver_components` ou
+  `screensaver_default_component` ainda apontam para o `com.pfl7560.verificar`, voltam para
+  `com.newlink.screensaver/com.newlink.screensaver.ScreenService`. Se o dono escolheu outro, não se mexe.
 - **O app não sai com a suíte:** a pasta é dele. Tirar: `adb uninstall com.pfl7560.verificar`. Sem a suíte, o
   ícone não faz nada.
 
@@ -416,3 +422,46 @@ sempre, mas a luz muda; (b) o `gbl` logo depois do `sbl` já devolver o valor no
 fabricante pode regravar depois); (d) a janela de 4 s do app para reler o `luz-atual`.
 **Não feito:** aplicar o nível guardado no fim da suíte (o `suite.sh` não foi tocado); com a rampa rodando, o
 pedido só vale a partir do próximo boot.
+
+## 14. Descanso de tela MeowCast (bloco 16B)
+
+Pedido do dono: o descanso de tela do fabricante mostrava o logo da Intelbras; o sistema agora se chama
+**MeowCast** (marca em `artifacts/tema/gerar-marca.py`: fundo `#120B1A`, nome `#9D7AD0`, IBM Plex Sans Condensed
+Bold).
+
+**O serviço.** `com.pfl7560.verificar/.Descanso`, um `DreamService` no app do 9C (`versionCode` 3). No manifesto:
+`android:permission="android.permission.BIND_DREAM_SERVICE"` (só o sistema liga o serviço; não é
+`uses-permission`, o APK continua sem permissão pedida) e o filtro `android.service.dreams.DreamService`. Tela
+inteira no fundo `#120B1A`, o nome "MeowCast" em `#9D7AD0` (a Plex Condensed Bold vai nos `assets/fontes/` do
+APK, com a licença `OFL.txt`; se faltar, `sans-serif-condensed` bold) e, menor e mais apagada (`#6C5390`, o
+nome a 65% sobre o fundo), a hora `HH:mm`. A cada minuto cheio do relógio o conjunto desliza em 3 s para o
+lugar seguinte de uma lista de 5, sempre a 80% da folga da tela, para não ficar parado. `setInteractive(false)`,
+`setFullscreen(true)`, sem trabalho além de um `Handler` com um tique por minuto.
+
+**Como liga.** O `suite-boot.sh`, em todo boot e com qualquer gatilho (inclusive `nunca`), logo depois de
+reaplicar a luz e antes de ligar o vigia:
+
+1. confere que o sistema enxerga o serviço: `cmd package query-services --components -a
+   android.service.dreams.DreamService` com `com.pfl7560.verificar/...Descanso` na saída; se o `cmd` não
+   responder, `dumpsys package com.pfl7560.verificar` com o `Descanso`. Sem o serviço, **não mexe em nada** e
+   registra no `boot.log`;
+2. para cada uma de `screensaver_components` e `screensaver_default_component`: `settings get secure <chave>`
+   e, se não for `com.pfl7560.verificar/.Descanso`, `settings put secure <chave> com.pfl7560.verificar/.Descanso`.
+   Chave já certa não é regravada. Um `put` que falha só avisa no log; o boot segue.
+
+Cada `settings` e `cmd` leva `timeout` (10 e 15 s). **Desinstalar:** §8.
+
+**Provas no PC** (`tests/test-suite.sh`, caso `c_descanso`, com um `settings` de mentira que guarda as chaves):
+do fabricante para o nosso; chave vazia (`null`); segundo boot sem regravar; só uma chave errada regrava só ela;
+serviço ausente não mexe; o `dumpsys package` como reserva do `cmd`; gatilho `nunca` também liga; `put` que
+falha não derruba o boot. E no `c_desinstalar`: as duas chaves voltam ao `ScreenService` do fabricante.
+`aapt2 dump xmltree` do APK mostra o `<service>` com a permissão e o filtro.
+
+**PROVISÓRIO (só o aparelho confirma):** (a) o `cmd package query-services --components` no Android 9 do
+projetor (a reserva do `dumpsys` cobre se não existir); (b) `settings put secure` como root no
+`boot_completed` pegar e o sistema aceitar o componente `com.pfl7560.verificar/.Descanso` (forma curta); (c) o
+descanso entrar de fato depois do tempo ocioso (`screen_off_timeout` e o `screensaver_enabled` estarem
+ligados neste firmware; o bloco não mexe neles); (d) o desenho no projetor: tamanho do nome, a hora a 65% legível
+na parede, o deslize sem engasgo; (e) o descanso do fabricante (`ScreenService`) ter parado de aparecer;
+(f) o `suite-boot.sh` só roda no boot: com o app novo recém-instalado em `/vendor/app` pelo kit, o descanso liga
+no primeiro boot em que o serviço já existir (a conferência é feita a cada boot).
