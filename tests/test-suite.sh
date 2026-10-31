@@ -1535,7 +1535,13 @@ MOTIVOS
   etapa_feliz; echo key > "$T/keys"
   roda_suite tomada
   afirma 'grep -q "resumo fechado por tecla" "$S/ultimo.log"' "log sem o fechamento por tecla"
-  afirma 'tem_chamada "getevent -ql"' "sem getevent"
+  afirma 'tem_chamada "getevent -qlc 3" && ! grep -n "getevent" "$KIT"/suite.sh "$KIT"/cor.sh | grep -v "getevent -qlc "' "getevent sem -c: no aparelho a saida fica presa no buffer do pipe"
+  limpa
+
+  novo_cenario "luz: escolhida com a suite rodando = o fim da suite aplica"
+  etapa_feliz; echo 40 > "$S/luz"
+  roda_suite tomada
+  afirma 'tem_chamada "HIDEBUG  picture sbl 40 quit " && [ "$(luz_prop)" = 40 ] && grep -q "luz guardada aplicada no fim da suite: 40%" "$S/ultimo.log"' "o fim da suite nao aplicou a luz guardada"
   limpa
 
   novo_cenario "pendrive: outra suite rodando = o modo pendrive espera (aqui 0 s) e sai sem mexer"
@@ -1748,7 +1754,7 @@ c_estaticos(){
   afirma '[ "$(grep -c "^INJETADO=71000$" "$KIT/suite.sh")" = 1 ] && ! grep -q "INJETADO=.*\\\$" "$KIT/suite.sh"' "INJETADO nao e o 71000 literal"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -q 75000' "suite.sh cita 75000 fora de comentario"
   afirma '[ "$(grep -c "setprop \"\$PROP_OVERRIDE\"" "$KIT/suite.sh")" = 2 ] && grep -q "setprop \"\$PROP_OVERRIDE\" \"\$INJETADO\"$" "$KIT/suite.sh" && grep -q "setprop \"\$PROP_OVERRIDE\" '"''"'" "$KIT/suite.sh"' "setprop do override fora do padrao (so 71000 e vazio)"
-  afirma '[ "$(grep -c "| timeout 15 \"\$HIDEBUG\"" "$KIT/suite.sh")" = 2 ] && grep -q "^    gfd|gfdr) ;;$" "$KIT/suite.sh" && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qE "sfd2|sfd3|saps|/proc/msp/gpio"' "o hidebug recebe algo fora de gfs/gbri e gfd/gfdr/sfd"
+  afirma '[ "$(grep -c "| timeout 15 \"\$HIDEBUG\"" "$KIT/suite.sh")" = 3 ] && [ "$(grep -c "picture.nsbl %s.nquit.n. .\$_lz. | timeout 15" "$KIT/suite.sh")" = 1 ] && grep -q "^    gfd|gfdr) ;;$" "$KIT/suite.sh" && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qE "sfd2|sfd3|saps|/proc/msp/gpio"' "o hidebug recebe algo fora de gfs/gbri, gfd/gfdr/sfd e sbl da luz guardada"
   afirma '[ "$(grep -c "HIDEBUG" "$KIT/suite.sh")" -ge 1 ] && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qiE "gtt"' "suite.sh cita gtt fora de comentario"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "gtt"' "boot/pedido citam gtt"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" | grep -qi "hidebug"' "o boot fala com o hidebug direto (deve chamar o suite-pedido.sh)"

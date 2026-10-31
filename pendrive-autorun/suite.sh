@@ -30,7 +30,7 @@ NLTELA="${PFL_NLTELA:-$SUITE/nl_tela}"
 DONO_UID=0
 
 # SUITE_LISTA_INICIO
-SUITE_LISTA="59053e6eb1c2bc9dab08d83ac71f1892  cor.sh
+SUITE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
@@ -199,6 +199,7 @@ sair(){
     fi
     copiar_log_pendrive
     rmdir "$LOCK" 2>/dev/null
+    luz_do_dono
   fi
 }
 parar_logcat(){
@@ -461,7 +462,7 @@ esperar_ok_camera(){
   tela aviso camera "$CAMPOS"
   LOG "camera sem leitura: esperando uma tecla do controle, sem prazo"
   _eo=0
-  until getevent -ql 2>/dev/null | grep -q 'EV_KEY.*DOWN'; do
+  until getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'; do
     _eo=$(( _eo + 1 ))
     if [ "$ESPERA_OK_VOLTAS" != "0" ] && [ "$_eo" -ge "$ESPERA_OK_VOLTAS" ]; then LOG "(teste) espera encerrada"; return 1; fi
     sleep 1
@@ -513,6 +514,17 @@ classificar_nitidez(){
   fi
 }
 
+# shellcheck disable=SC2317
+luz_do_dono(){
+  arq_seguro "$SUITE/luz" || return 0
+  _lz=$(head -c 16 "$SUITE/luz" 2>/dev/null | tr -d '\r\n')
+  case "$_lz" in ''|*[!0-9]*) return 0 ;; esac
+  [ "${#_lz}" -le 3 ] && [ "$_lz" -ge 10 ] && [ "$_lz" -le 100 ] || return 0
+  [ -x "$HIDEBUG" ] || return 0
+  printf 'picture\nsbl %s\nquit\n' "$_lz" | timeout 15 "$HIDEBUG" >/dev/null 2>&1
+  setprop vendor.pfl7560.luz "$_lz"
+  LOG "luz guardada aplicada no fim da suite: $_lz%"
+}
 hb_foco(){
   case "$1" in
     gfd|gfdr) ;;
@@ -961,7 +973,7 @@ etapa_resumo(){
   res dicas "$(grep -c '' "$SUITE/dicas.tmp" 2>/dev/null)"
   LOG "resumo: $N_ITENS itens, $N_CORR correcao(oes), $N_ATEN atencao(oes)"
   if tela resumo resumo "$CAMPOS"; then
-    if timeout "$TEMPO_RESUMO" getevent -ql 2>/dev/null | grep -q 'EV_KEY.*DOWN'; then LOG "resumo fechado por tecla"; fi
+    if timeout "$TEMPO_RESUMO" getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'; then LOG "resumo fechado por tecla"; fi
   else
     LOG "[AVISO] resumo sem tela gerada: o resultado esta em $RES"
   fi

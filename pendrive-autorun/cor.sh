@@ -158,7 +158,7 @@ aguardar_autofoco(){
 }
 
 esperar_tecla(){
-  timeout "$TEMPO_TECLA" getevent -ql 2>/dev/null | grep -q 'EV_KEY.*DOWN'
+  timeout "$TEMPO_TECLA" getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'
 }
 
 lvdsctl_confere(){

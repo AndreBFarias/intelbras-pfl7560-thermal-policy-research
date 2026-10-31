@@ -34,13 +34,13 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-59053e6eb1c2bc9dab08d83ac71f1892  cor.sh
+0dbcf2861f96e24e728342732ce54340  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-b6d0df8ae28d52dc4782d56d53afdd0b  suite.sh
-02027df01cd03cfc306d441234cd9c67  suite-boot.sh
-07d84f7510f4fc048c276c435a52ea85  suite-pedido.sh
+1d2f122c967fbf86b2ef07f956de0a36  suite.sh
+0af777a14a1c58522a45fcc7a2623694  suite-boot.sh
+daff5dfb2e8c03a9b621e03b7e483268  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 95aeb3c015dca7fc722b16971a1b9156  pfl7560.apk
 8899cc7d36063af3307bfecc91f924c3  pfl7560-home.apk

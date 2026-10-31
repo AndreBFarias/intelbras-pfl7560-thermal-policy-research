@@ -20,7 +20,7 @@ APP_UID_MIN=10000
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="b6d0df8ae28d52dc4782d56d53afdd0b"
+SUITE_MD5="1d2f122c967fbf86b2ef07f956de0a36"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -114,7 +114,7 @@ tratar_luz(){
     return 0
   fi
   ( umask 077; printf '%s\n' "$_v" > "$LUZ_ARQ.novo" ) && mv -f "$LUZ_ARQ.novo" "$LUZ_ARQ"
-  if [ -d "$LOCK" ]; then LOG "a suite esta rodando (trava): luz $_v% guardada, aplica no proximo boot."; return 0; fi
+  if [ -d "$LOCK" ]; then LOG "a suite esta rodando (trava): luz $_v% guardada, aplica no fim da suite ou no proximo boot."; return 0; fi
   aplicar_luz "$_v"
 }
 
