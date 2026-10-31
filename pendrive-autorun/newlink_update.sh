@@ -115,13 +115,13 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-a8859bfde8c210907811e91d14ae584b  cor.sh
+56dd74f1e2e7d04ad3236b818c587f52  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 a5a6751858ad3ff528a3aa04b29da746  nl_tela
-aafd6ee3704a28d98d9c79abe06b5c7e  suite.sh
-22f1b5b0b0d8f580b326fa0efa15537b  suite-boot.sh
-d59307c15a112b7cf1e9156535724531  suite-pedido.sh
+707a2fc87c8ae34642c661608e14cd15  suite.sh
+f7d57e561a24bf41259dd0c261c5210f  suite-boot.sh
+de0c2acf09683c9537b0853889c3e898  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 5e177ab534186fc7b0b2b68f6fba1b2c  pfl7560.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png

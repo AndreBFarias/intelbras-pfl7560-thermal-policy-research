@@ -212,12 +212,17 @@ mostrar(){
   case "$_pk" in
     ''|android|*[!A-Za-z0-9._]*) _pk="com.hisilicon.higallery" ;;
   esac
-  # alerta de sistema do firmware por cima (o "Temperatura anormal" do nlprovision cobre
-  # o meio da tela, onde a camera le): ENTER no alerta focado o fecha (aparelho, 2026-10-30)
+  # alerta de sistema do firmware por cima cobre o meio da tela, onde a camera le
+  # (aparelho, 2026-10-30). Janela focada sem atividade = alerta: o do nlprovision
+  # ("Temperatura anormal") so tem OK -> ENTER; outro (o "Deseja abrir HDMI1?" do
+  # com.zhiying.settings, com ABRIR em destaque) -> BACK, que cancela.
   _fa=0
-  while [ "$_fa" -lt 3 ] && dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | grep -aq 'com.newlink.nlprovision'; do
-    LOG "alerta do sistema (nlprovision) na tela: fechando com ENTER"
-    input keyevent KEYCODE_ENTER >/dev/null 2>&1
+  while [ "$_fa" -lt 3 ]; do
+    _fp=$(dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | head -1 | sed -n 's/.* u0 \([^ }]*\)}.*/\1/p')
+    case "$_fp" in ''|*/*) break ;; esac
+    LOG "alerta do sistema ($_fp) na tela: fechando"
+    if [ "$_fp" = "com.newlink.nlprovision" ]; then input keyevent KEYCODE_ENTER >/dev/null 2>&1
+    else input keyevent KEYCODE_BACK >/dev/null 2>&1; fi
     sleep 1; _fa=$(( _fa + 1 ))
   done
   am force-stop "$_pk" >/dev/null 2>&1

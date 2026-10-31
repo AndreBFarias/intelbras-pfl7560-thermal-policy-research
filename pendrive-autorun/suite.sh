@@ -71,7 +71,7 @@ DONO_UID=0
 # Gerado por tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO
 # editar a mao. nl_tela e fontes/ entram quando existirem no kit (bloco 9A).
 # SUITE_LISTA_INICIO
-SUITE_LISTA="a8859bfde8c210907811e91d14ae584b  cor.sh
+SUITE_LISTA="56dd74f1e2e7d04ad3236b818c587f52  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 a5a6751858ad3ff528a3aa04b29da746  nl_tela
@@ -317,19 +317,27 @@ gerar_tela(){
 }
 # mostra um PNG: fecha a galeria a forca e abre de novo (bloco 7: a 2a imagem para a
 # galeria aberta nao troca); o pacote vem do resolvedor de VIEW de PNG
-# alerta de sistema do firmware por cima de tudo (o "Temperatura anormal" que a rampa
-# provoca, do com.newlink.nlprovision): ele cobre o meio da tela, onde a camera le as
-# faixas, e so sai com OK. Visto no aparelho em 2026-10-30: com ele, 8 de 16 faixas;
-# sem ele, 16 de 16. ENTER no alerta focado o fecha.
+# alertas de sistema do firmware por cima de tudo cobrem o meio da tela, onde a camera le
+# as faixas (vistos no aparelho em 2026-10-30: com eles, 5 a 14 de 16 faixas; sem eles,
+# 16 de 16). Janela focada sem atividade (so o pacote, sem "/") = alerta:
+#  - com.newlink.nlprovision ("Temperatura anormal", que a rampa provoca): so tem OK -> ENTER;
+#  - qualquer outro (com.zhiying.settings "Dispositivo conectado. Deseja abrir HDMI1?", com o
+#    botao de ABRIR em destaque): BACK, que cancela sem trocar nada.
 fechar_alertas(){
   _fa=0
   while [ "$_fa" -lt 3 ]; do
-    dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | grep -aq 'com.newlink.nlprovision' || return 0
-    LOG "alerta do sistema (nlprovision) na tela: fechando com ENTER"
-    input keyevent KEYCODE_ENTER >/dev/null 2>&1
+    _fp=$(dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | head -1 | sed -n 's/.* u0 \([^ }]*\)}.*/\1/p')
+    case "$_fp" in ''|*/*) return 0 ;; esac
+    if [ "$_fp" = "com.newlink.nlprovision" ]; then
+      LOG "alerta do sistema ($_fp) na tela: fechando com ENTER (so tem OK)"
+      input keyevent KEYCODE_ENTER >/dev/null 2>&1
+    else
+      LOG "alerta do sistema ($(limpo "$_fp" 60)) na tela: cancelando com BACK"
+      input keyevent KEYCODE_BACK >/dev/null 2>&1
+    fi
     sleep 1; _fa=$(( _fa + 1 ))
   done
-  LOG "[AVISO] o alerta do sistema nao fechou depois de 3 ENTER"
+  LOG "[AVISO] o alerta do sistema nao fechou depois de 3 teclas"
   return 1
 }
 mostrar_arq(){

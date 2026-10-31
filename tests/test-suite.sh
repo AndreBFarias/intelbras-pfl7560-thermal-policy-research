@@ -149,7 +149,8 @@ exit 0'
   stub input 'echo "input $*" >> "$T/calls.log"'
   # alerta de sistema do firmware: "$T/alerta" = quantas consultas ainda o mostram focado
   stub dumpsys 'n=$(cat "$T/alerta" 2>/dev/null || echo 0)
-if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 com.newlink.nlprovision}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
+p=$(cat "$T/alerta-pacote" 2>/dev/null || echo com.newlink.nlprovision)
+if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 $p}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
   stub wm 'echo "Physical size: 1920x1080"'
   stub dmesg '[ -f "$T/dmesg" ] && cat "$T/dmesg"; exit 0'
   stub inotifyd 'echo "inotifyd $*" >> "$T/calls.log"; exit 0'
@@ -369,10 +370,10 @@ c_gatilho_seguranca(){
 }
 
 c_vigia(){
-  novo_cenario "vigia: inotifyd na pasta do pedido, eventos n e y (o toybox nao entrega w de dentro da pasta)"
+  novo_cenario "vigia: inotifyd na pasta do pedido, mascara wwy (o toybox ignora a 1a letra)"
   instala_suite
   roda_boot
-  afirma 'tem_chamada "inotifyd $S/suite-pedido.sh $PED:ny"' "inotifyd nao foi ligado: $(grep inotifyd "$T/calls.log")"
+  afirma 'tem_chamada "inotifyd $S/suite-pedido.sh $PED:wwy"' "inotifyd nao foi ligado: $(grep inotifyd "$T/calls.log")"
   afirma 'grep -q "vigia do pedido ligado: inotifyd" "$S/boot.log"' "log sem o tipo do vigia"
   afirma '[ -s "$R/dev/pfl7560-suite.vigia" ]' "sem o pid do vigia"
   limpa
@@ -429,10 +430,10 @@ c_pedido(){
   afirma 'tem_chamada "setsid sh $S/suite.sh pedido"' "nao lancou a suite"
   limpa
 
-  novo_cenario "pedido: evento n (criado: o que o toybox entrega) = apaga e lanca"
+  novo_cenario "pedido: evento n (criado, ainda sem o conteudo) = ignorado; o w vem depois"
   instala_suite; : > "$PED/pedir-verificacao"
   roda_pedido n "$PED" pedir-verificacao
-  afirma '[ ! -e "$PED/pedir-verificacao" ] && tem_chamada "setsid sh $S/suite.sh pedido"' "o evento n nao lancou"
+  afirma '[ "$(chamadas setsid)" = 0 ] && [ -e "$PED/pedir-verificacao" ]' "tratou o evento de criacao"
   limpa
 
   local ev
@@ -742,8 +743,14 @@ c_etapas_geometria(){
   novo_cenario "camera: alerta do sistema na tela = fechado com ENTER antes de mostrar"
   etapa_feliz; echo 1 > "$T/alerta"
   roda_suite tomada
-  afirma 'tem_chamada "input keyevent KEYCODE_ENTER" && grep -q "alerta do sistema (nlprovision)" "$S/ultimo.log"' "o alerta nao foi fechado"
+  afirma 'tem_chamada "input keyevent KEYCODE_ENTER" && grep -q "alerta do sistema (com.newlink.nlprovision)" "$S/ultimo.log"' "o alerta nao foi fechado"
   afirma '[ "$(res camera)" = ok ]' "camera: $(res camera)"
+  limpa
+
+  novo_cenario "camera: outro alerta do sistema (HDMI) = cancelado com BACK, nunca ENTER"
+  etapa_feliz; echo 1 > "$T/alerta"; echo "com.zhiying.settings" > "$T/alerta-pacote"
+  roda_suite tomada
+  afirma 'tem_chamada "input keyevent KEYCODE_BACK" && ! tem_chamada "input keyevent KEYCODE_ENTER"' "teclas: $(grep "^input" "$T/calls.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "camera: falha 2x e le na 3a = sem chamar a pessoa, autofoco entre as tentativas"

@@ -34,7 +34,7 @@ APP_UID_MIN=10000
 
 # md5 do suite.sh. Gerado por tests/atualizar-md5-kit.sh. NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="aafd6ee3704a28d98d9c79abe06b5c7e"
+SUITE_MD5="707a2fc87c8ae34642c661608e14cd15"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -73,9 +73,9 @@ terminou_ha_pouco(){
   [ "$_agora" -ge "$_fim" ] && [ $(( _agora - _fim )) -lt "$INTERVALO_MIN" ]
 }
 
-# so o arquivo do pedido, e so criado (n), movido para dentro (y) ou escrita fechada (w)
+# so o arquivo do pedido, e so escrita fechada (w) ou movido para dentro (y)
 [ "${3:-}" = "pedir-verificacao" ] || exit 0
-case "${1:-}" in *n*|*w*|*y*) ;; *) exit 0 ;; esac
+case "${1:-}" in *w*|*y*) ;; *) exit 0 ;; esac
 # a origem e conferida ANTES de apagar; depois apaga (um link e apagado, nunca
 # seguido); o conteudo nao e lido
 DO_APP=0

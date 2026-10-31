@@ -52,8 +52,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="aafd6ee3704a28d98d9c79abe06b5c7e"
-PEDIDO_MD5="d59307c15a112b7cf1e9156535724531"
+SUITE_MD5="707a2fc87c8ae34642c661608e14cd15"
+PEDIDO_MD5="de0c2acf09683c9537b0853889c3e898"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -174,7 +174,7 @@ vigia_laco(){
   _v=0
   while :; do
     if [ -f "$PEDIDO_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
-      sh "$SUITE/suite-pedido.sh" n "$PEDIDO_DIR" pedir-verificacao
+      sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao
     fi
     _v=$(( _v + 1 ))
     [ "$VIGIA_VOLTAS" != "0" ] && [ "$_v" -ge "$VIGIA_VOLTAS" ] && break
@@ -195,14 +195,15 @@ ligar_vigia(){
   # criacao: e tratado agora, uma vez
   if [ -f "$PEDIDO_DIR/pedir-verificacao" ]; then
     LOG "pedido pendente de antes do vigia: tratando agora"
-    sh "$SUITE/suite-pedido.sh" n "$PEDIDO_DIR" pedir-verificacao >>"$SUITE/vigia.log" 2>&1 </dev/null
+    sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  # inotifyd executa o suite-pedido.sh a cada evento: n = criado, y = movido para dentro.
-  # O toybox do aparelho NAO entrega "w" (escrita fechada) de arquivo DENTRO da pasta
-  # (visto em 2026-10-30: so n, m e y). O suite-pedido.sh fica na pasta so do root,
-  # conferida acima.
+  # inotifyd executa o suite-pedido.sh a cada evento: w = escrita fechada (o app terminou
+  # de gravar), y = movido para dentro. O inotifyd do toybox do aparelho IGNORA a 1a letra
+  # da mascara (visto em 2026-10-30: ":wy" vigiava so "y"; ":n" dava Invalid argument;
+  # ":nwy" entregava "w"). Por isso ":wwy": com ou sem o defeito, a mascara e w + y.
+  # O suite-pedido.sh fica na pasta so do root, conferida acima.
   if command -v inotifyd >/dev/null 2>&1; then
-    inotifyd "$SUITE/suite-pedido.sh" "$PEDIDO_DIR:ny" >>"$SUITE/vigia.log" 2>&1 </dev/null &
+    inotifyd "$SUITE/suite-pedido.sh" "$PEDIDO_DIR:wwy" >>"$SUITE/vigia.log" 2>&1 </dev/null &
     _tipo=inotifyd
   else
     vigia_laco >>"$SUITE/vigia.log" 2>&1 </dev/null &
