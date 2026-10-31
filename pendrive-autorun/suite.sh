@@ -1184,6 +1184,7 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     kill "$_vp" 2>/dev/null && LOG "vigia (pid $_vp) encerrado"
   fi
   rm -f "$VIGIA_PID"
+  [ -L "$LOCK" ] || rmdir "$LOCK" 2>/dev/null
   # o ctl.stop mata o grupo do servico com SIGKILL (sem trap), inclusive uma suite que
   # estivesse no meio da rampa: o override de temperatura nao pode ficar para tras
   if [ -n "$(getprop "$PROP_OVERRIDE" 2>/dev/null)" ]; then
@@ -1271,7 +1272,7 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done
   # a pasta do app e dele: so o pedido pendente sai (num link, nada e seguido)
-  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" 2>/dev/null
+  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" "$PEDIDO_DIR/descanso-inicio" "$PEDIDO_DIR/descanso-fim" 2>/dev/null
   [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"

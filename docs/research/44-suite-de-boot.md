@@ -245,7 +245,8 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
   vigia; limpa o override de temperatura se a suíte morreu no meio da rampa; remove o `.rc` (com remount), a
   pasta da suíte, a pasta das telas e os pedidos pendentes (`pedir-verificacao` e o `luz` da home); a linha
   `vendor.newlink.launcher.package` sai do `build.prop` (a home de fábrica volta no boot seguinte); e o kit roda
-  só a fase de cor, como antes do bloco 9.
+  só a fase de cor, como antes do bloco 9. Desde o bloco 21 saem também os sinais `descanso-inicio`/`descanso-fim`
+  da pasta do Verificar e a trava `/dev/pfl7560-suite.lock` que uma suíte morta pelo `ctl.stop` deixaria até o reboot.
 - **Só o gatilho da tomada:** `adb shell 'echo nunca > /data/vendor/pfl7560-suite/gatilho'` (root). O pedido
   pelo ícone e o pendrive continuam.
 - **O descanso de tela volta ao do fabricante** no mesmo `--desinstalar` (§14): se `screensaver_components` ou

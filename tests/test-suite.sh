@@ -1082,6 +1082,7 @@ c_desinstalar(){
   sh -c 'sleep 30; :' pfl7560-vigia-teste & local vp=$!
   echo "$vp" > "$R/dev/pfl7560-suite.vigia"
   mkdir -p "$R/sdcard/pfl7560-suite" "$PED"; : > "$PED/pedir-verificacao"; : > "$PED/do-app"
+  : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"; mkdir -p "$R/dev/pfl7560-suite.lock"
   printf '%s\n' "persist.sys.boot.reason=pfl7560,ligado" >> "$T/props"
   printf 'secure screensaver_components=com.pfl7560.verificar/.Descanso\nsecure screensaver_default_component=com.pfl7560.verificar/.Descanso\n' > "$T/settings.db"
   : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
@@ -1092,6 +1093,8 @@ c_desinstalar(){
   afirma '[ ! -e "$R/vendor/etc/init/pfl7560-suite.rc" ]' "o .rc ficou"
   afirma '[ ! -e "$S" ] && [ ! -e "$PED/pedir-verificacao" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, o pedido ou a pasta das telas ficou"
   afirma '[ -f "$PED/do-app" ]' "desinstalar apagou arquivo do app (a pasta e dele)"
+  afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ]' "os sinais do descanso ficaram na pasta do app"
+  afirma '[ ! -e "$R/dev/pfl7560-suite.lock" ]' "a trava de uma suite morta pelo ctl.stop ficou"
   afirma '[ "$vrc" = 143 ]' "o vigia nao foi encerrado com TERM (wait=$vrc)"
   afirma '[ ! -e "$R/dev/pfl7560-suite.vigia" ]' "pid do vigia ficou"
   afirma 'tem_chamada "setprop ctl.stop pfl7560_suite"' "nao parou o servico"
