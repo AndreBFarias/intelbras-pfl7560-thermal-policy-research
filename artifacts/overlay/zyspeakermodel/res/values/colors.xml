@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     So o MyDialog usa estas duas cores, e so com rgtp_ui.style=1 (MyDialog$Builder.initView e
+     MyDialog.changeBgByFocus). Os textos do aviso sao fixos: titulo color/black e mensagem #333333
+     no layout; botao parado #000000 e em foco #ffffff no codigo. -->
+<resources>
+    <!-- botao em foco do aviso (sair do modo caixa de som). De fabrica #FF00B26B -> comentario
+         (texto branco fixo 4,7:1) -->
+    <color name="pt_green">#FF6272A4</color>
+    <!-- painel do aviso e botao parado. De fabrica #FFE1EFE9 (claro) -> texto: o texto preto fixo
+         exige painel claro (preto sobre texto 19,5:1) -->
+    <color name="pt_grey_white">#FFF8F8F2</color>
+</resources>

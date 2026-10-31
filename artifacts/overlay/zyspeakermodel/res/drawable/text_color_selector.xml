@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Cor do texto dos dois botoes (no alvo e uma lista de cores guardada em drawable/;
+     aqui tambem, mesmo nome e mesmo tipo). De fabrica: em foco branco, parado preto. Agora em foco
+     fundo (sobre rosa), parado texto (sobre linha). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF282A36" />
+    <item android:state_focused="false" android:color="#FFF8F8F2" />
+</selector>

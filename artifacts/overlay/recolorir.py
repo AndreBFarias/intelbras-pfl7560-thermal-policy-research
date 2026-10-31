@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # artifacts/overlay/recolorir.py - troca as cores das imagens do fabricante pela paleta Dracula,
-# sem mudar o desenho (blocos 13A e 16A).
+# sem mudar o desenho (blocos 13A, 16A e 17A).
 #
 #   python3 -I artifacts/overlay/recolorir.py <app desmontado pelo apktool> <res da sobreposicao> [tabela]
 #
-#   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery. Ex.:
+#   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery, zyspeakermodel. Ex.:
 #   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado> artifacts/overlay/zysetting/res
 #   python3 -I artifacts/overlay/recolorir.py <ZYBluetooth desmontado> artifacts/overlay/zybluetooth/res zybluetooth
 #
@@ -18,6 +18,8 @@
 # (ex.: o fundo teal e o branco do icone, com o antisserrilhado entre elas) e reescrito com a
 # mesma mistura das cores Dracula correspondentes. O alfa e mantido (ou multiplicado, quando a
 # tabela pede). Num .9.png a borda de 1 px (marcacao de estica e de margem) fica intacta.
+# O destino de uma ancora e um token da paleta ou, desde o 17A, uma cor literal '#RRGGBB'
+# (ex.: o preto do desenho continua preto).
 import os, sys, glob
 from PIL import Image
 
@@ -94,8 +96,22 @@ HIGALLERY = {
     'gallery_selected': ({'#FFFFFF': 'rosa', '#2EA0FF': 'rosa', '#000000': 'fundo'}, 1),
 }
 
+# Bloco 17A. Modo caixa de som Bluetooth (com.zhiying.bluetoothmodelservice), rgtp_ui=1
+ZYSPEAKERMODEL = {
+    # fundo da tela (primeira imagem do FlyBanner com isPTStyle): teal -> fundo, desenho branco ->
+    # texto, o corpo preto do celular continua preto
+    'pt_bg': ({'#163134': 'fundo', '#FFFFFF': 'texto', '#000000': '#000000'}, 1),
+    # botoes de tocar/pausar/voltar/avancar/bloquear em foco: circulo azul -> rosa; o icone branco
+    # -> fundo (6,0:1 sobre rosa; parados os icones sao brancos sem circulo e ficam)
+    'paly_paly_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'paly_pause_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'paly_back_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'paly_forward_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+    'lock_focus': ({'#159EFF': 'rosa', '#FFFFFF': 'fundo'}, 1),
+}
+
 TABELAS = {'zysetting': ZYSETTING, 'zybluetooth': ZYBLUETOOTH, 'zyfilemanager': ZYFILEMANAGER,
-           'higallery': HIGALLERY}
+           'higallery': HIGALLERY, 'zyspeakermodel': ZYSPEAKERMODEL}
 
 def melhor(px, ancoras):
     """(i, j, t): px ~ ancora i misturada com j na fracao t (j=None: so i)."""
@@ -117,7 +133,7 @@ def melhor(px, ancoras):
 
 def recolorir(src, dst, mapa, malfa):
     orig = [hexrgb(k) for k in mapa]
-    novo = [PAL[v] for v in mapa.values()]
+    novo = [PAL[v] if v in PAL else hexrgb(v) for v in mapa.values()]
     im = Image.open(src).convert('RGBA')
     w, h = im.size
     nove = src.endswith('.9.png')
