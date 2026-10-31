@@ -135,8 +135,8 @@ sem nenhum `.bin`, um power-hold acidental não regrava nada. Com `--com-firmwar
 
 O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/` ou aponte `PFL_FIRMWARE_DIR=<pasta>`. As
 origens são conferidas antes de copiar e de novo depois; faltou um arquivo ou o md5 não bate, nada é copiado. A
-pasta do arranjo antigo (`firmware-nosso-NAO-GRADUADO/`) sai do pendrive. Só para o aparelho **com USB-C**
-(V1.0.0.9).
+pasta do arranjo antigo (`firmware-nosso-NAO-GRADUADO/`) sai do pendrive.
+Só serve para o aparelho **com USB-C** (V1.0.0.9): no modelo sem USB-C (V1.0.0.1) não use este pendrive.
 
 O `install.sh --pendrive` recusa, sem copiar nada, um pendrive que tenha `DESINSTALAR-SUITE.txt` (plugado, ele
 desinstalaria a suíte) ou, sem `--com-firmware`, um `usb_update.bin` que ele não conferiu.
