@@ -122,9 +122,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-31471138c88433a9982da2e7d5aaeae1  suite.sh
-10bb893e5a71dbfca45eeb7c89ce7f6d  suite-boot.sh
-725662c93e2556d39e6d7ab1b8e48f02  suite-pedido.sh
+4ec528651ceb839a2a1350f9f73a9aea  suite.sh
+5ce7bb647faa447bfe02a7e6c2b906b3  suite-boot.sh
+e5f9bc20459fd2d44cc0ffbba648d9a6  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 a339b061efc6e6a8e0421dc9f1eb9e8d  pfl7560.apk
 95aa6e9ba83551e17a9300c0df136e95  pfl7560-home.apk
@@ -478,6 +478,27 @@ instalar_app(){
 }
 # os apps do kit: "nome-no-kit:Pasta"
 KIT_APPS="pfl7560.apk:PFL7560 pfl7560-home.apk:PFL7560Home"
+# Home nova (bloco 10A): o HOME do sistema e o assistente com.newlink.nlprovision (prioridade
+# 29 no filtro HOME: o set-home-activity NAO vence, visto no aparelho em 2026-10-31). Ele roda o
+# trabalho de boot e repassa a HOME ao pacote da prop vendor.newlink.launcher.package (doc 45
+# s4). A linha vai no /vendor/build.prop SO com a home instalada e conferida (nunca repassar
+# para um app ausente); o desinstalar da suite a tira.
+HOME_LINHA="vendor.newlink.launcher.package=com.pfl7560.home"
+home_prop_ok(){ grep -qx "$HOME_LINHA" "$BP" 2>/dev/null; }
+gravar_home_prop(){
+  if ! app_conforme pfl7560-home.apk PFL7560Home; then
+    LOG "[AVISO] home: a home nao esta instalada e conferida - a tela inicial continua a de fabrica."
+    return 1
+  fi
+  if cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=/d' "$BP.new" \
+     && echo "$HOME_LINHA" >> "$BP.new" && grep -qx "$HOME_LINHA" "$BP.new" && mv "$BP.new" "$BP"; then
+    LOG "[OK] home: $HOME_LINHA em ${BP#"$R"} (vale no proximo boot; volta tirando a linha ou com DESINSTALAR-SUITE.txt)"
+    return 0
+  fi
+  rm -f "$BP.new"
+  LOG "[AVISO] home: nao consegui gravar a prop da home em $BP - a tela inicial continua a de fabrica."
+  return 1
+}
 
 SUITE_INSTALAR=1
 if [ -e "$MP/DESINSTALAR-SUITE.txt" ]; then SUITE_INSTALAR=0; fi
@@ -494,6 +515,7 @@ fi
 APP_PEND=0
 if [ "$SUITE_OK" = "1" ]; then
   for _ka in $KIT_APPS; do app_conforme "${_ka%%:*}" "${_ka#*:}" || APP_PEND=1; done
+  home_prop_ok || APP_PEND=1
 fi
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
@@ -719,6 +741,11 @@ if [ "$SUITE_OK" = "1" ]; then
       instalar_app "${_ka%%:*}" "${_ka#*:}"
     fi
   done
+  if home_prop_ok; then
+    LOG "home: a prop da home ja estava no build.prop"
+  elif [ "$VENDOR_RW" = "1" ]; then
+    gravar_home_prop
+  fi
 fi
 
 sync

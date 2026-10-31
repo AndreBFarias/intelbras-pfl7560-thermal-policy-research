@@ -976,13 +976,21 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     LOG "override de temperatura ativo depois de parar o servico: limpando"
     rampa_limpar || _drc=1
   fi
-  if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then
+  # o .rc e a linha da home nova no build.prop (a tela inicial volta a de fabrica no proximo boot)
+  _hl=0; grep -q '^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$' "$BP" 2>/dev/null && _hl=1
+  if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ] || [ "$_hl" = "1" ]; then
     if mount -o rw,remount /vendor; then
       rm -f "$RC_SUITE"
+      if [ "$_hl" = "1" ]; then
+        cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$/d' "$BP.new" && mv "$BP.new" "$BP"
+        rm -f "$BP.new"
+      fi
       sync
       mount -o ro,remount /vendor 2>/dev/null
     fi
     if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then LOG "[ERRO] nao consegui remover $RC_SUITE."; _drc=1; else LOG "[OK] servico de boot removido"; fi
+    if grep -q '^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$' "$BP" 2>/dev/null; then LOG "[ERRO] nao consegui tirar a home nova do build.prop."; _drc=1
+    elif [ "$_hl" = "1" ]; then LOG "[OK] home nova desligada (a de fabrica volta no proximo boot)"; fi
   fi
   # a marca de "ligado" do suite-boot.sh nao fica para tras
   [ "$(getprop persist.sys.boot.reason 2>/dev/null)" = "pfl7560,ligado" ] && setprop persist.sys.boot.reason ""

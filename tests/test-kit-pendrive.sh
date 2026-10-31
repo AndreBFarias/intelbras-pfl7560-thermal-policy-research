@@ -207,6 +207,7 @@ rc_suite_ok(){
   cp "$KIT/pfl7560.apk" "$T/root/vendor/app/PFL7560/PFL7560.apk"; chmod 644 "$T/root/vendor/app/PFL7560/PFL7560.apk"
   mkdir -p "$T/root/vendor/app/PFL7560Home"; chmod 755 "$T/root/vendor/app/PFL7560Home"
   cp "$KIT/pfl7560-home.apk" "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk"; chmod 644 "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk"
+  grep -qx "vendor.newlink.launcher.package=com.pfl7560.home" "$T/root/vendor/build.prop" || echo "vendor.newlink.launcher.package=com.pfl7560.home" >> "$T/root/vendor/build.prop"
 }
 # aparelho com tudo aplicado (termico/wi-fi/xiri/servico da suite): so a cor fica em jogo
 aparelho_ok(){
@@ -231,6 +232,7 @@ aparelho_ok_novo(){
   cp "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini" "$r/vendor/etc/ZYCustom.ini"
   cp "$ROOT/artifacts/build.prop.NOTYPEC.STOCK" "$r/vendor/build.prop"
   sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' "$r/vendor/build.prop"
+  echo "vendor.newlink.launcher.package=com.pfl7560.home" >> "$r/vendor/build.prop"
   sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$r/vendor/etc/init/hw/init.bigfish.rc"
 }
 # linhas do ini sem o CONFIG_MODEL (para comparar o resto byte a byte)
@@ -1271,6 +1273,24 @@ c_app(){
   rm -rf "$T/root/vendor/app/PFL7560Home"
   roda nokey
   afirma 'cmp -s "$KIT/pfl7560-home.apk" "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk" && log_tudo | grep -q "\[OK\] app: pfl7560-home.apk instalado" && log_tudo | grep -q "app: pfl7560.apk ja estava"' "home: $(log_tudo | grep "app:" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "home: prop da home no build.prop so com a home instalada; desinstalar tira"; aparelho_ok
+  sed -i '/^vendor.newlink.launcher.package=/d' "$T/root/vendor/build.prop"; rm -rf "$T/root/vendor/app/PFL7560Home"
+  roda nokey
+  afirma '[ "$(grep -cx "vendor.newlink.launcher.package=com.pfl7560.home" "$T/root/vendor/build.prop")" = 1 ] && log_tudo | grep -q "\[OK\] home:"' "prop: $(grep launcher "$T/root/vendor/build.prop")"
+  afirma '[ "$(grep -c "wifi_disconnect_on_boot=0" "$T/root/vendor/build.prop")" = 1 ]' "o build.prop perdeu o fix do wi-fi"
+  : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '! grep -q "vendor.newlink.launcher.package" "$T/root/vendor/build.prop" && log_tudo | grep -q "home nova desligada"' "o desinstalar nao tirou a home: $(grep launcher "$T/root/vendor/build.prop")"
+  limpa
+
+  novo_cenario "home: o apk da home nao grava (cp falha) = a prop NAO e gravada"; aparelho_ok
+  sed -i '/^vendor.newlink.launcher.package=/d' "$T/root/vendor/build.prop"; rm -rf "$T/root/vendor/app/PFL7560Home"
+  # um diretorio no lugar do .new faz o cp do apk falhar
+  mkdir -p "$T/root/vendor/app/.PFL7560Home.apk.new/x"
+  roda nokey
+  afirma '! grep -q "vendor.newlink.launcher.package" "$T/root/vendor/build.prop" && log_tudo | grep -q "a tela inicial continua a de fabrica"' "gravou a prop sem a home instalada: $(log_tudo | grep -i home | tr '\n' '|')"
   limpa
 
   novo_cenario "app: apk antigo em /vendor/app = atualiza"; aparelho_ok
