@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Bloco 18. Cores do texto da barra de candidatos e do texto sendo composto (CandidateView,
+     ComposingView), que passam a ser escuras (linha) com o foco rosa. Os rotulos das teclas
+     (label_color, label_color_hl0) continuam brancos: sobre linha 9,2:1, sobre comentario 4,7:1.
+     O balao da tecla (balloon_color sobre key_balloon_bg branco) fica claro, como esta. -->
+<resources>
+    <!-- candidato parado. De fabrica #FF000000 -> texto (8,6:1 sobre linha) -->
+    <color name="candidate_color">#FFF8F8F2</color>
+    <!-- candidato em foco, sobre candidate_hl_bg (agora rosa). De fabrica #FF000000 -> fundo (6,0:1) -->
+    <color name="active_candidate_color">#FF282A36</color>
+    <!-- primeiro candidato (recomendado). De fabrica laranja #FFE35900 -> laranja (5,4:1 sobre linha) -->
+    <color name="recommended_candidate_color">#FFFFB86C</color>
+    <!-- numero de cada candidato. De fabrica #FF343233 -> secundario (tom derivado do bloco 10, 4,8:1) -->
+    <color name="footnote_color">#FFB4BCCF</color>
+    <!-- texto sendo composto, sobre composing_area_bg (agora linha). De fabrica #FF000000 -> texto -->
+    <color name="composing_color">#FFF8F8F2</color>
+    <!-- trecho escolhido, sobre composing_hl_bg (agora rosa). De fabrica #FFFFFFFF -> fundo (6,0:1) -->
+    <color name="composing_color_hl">#FF282A36</color>
+    <!-- texto parado. De fabrica #FF777777 -> secundario -->
+    <color name="composing_color_idle">#FFB4BCCF</color>
+</resources>

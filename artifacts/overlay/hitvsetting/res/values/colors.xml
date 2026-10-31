@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Bloco 18. Menu de imagem e som das entradas: SettingActivity (aberta pelo NLSourcePlayer com
+     com.hisilicon.android.intent.action.tvsetting), layout activity_setting e as linhas MainView,
+     MainTextView, SelectorView, ProgressView e CheckBoxView. O texto das linhas vem do array
+     text_colorchange (branco, cinza #6B6B6B desligado, amarelo #FFD800): array, fora do metodo. -->
+<resources>
+    <!-- painel do menu (activity_setting) e das janelas do app. De fabrica #FF202125 -> fundo -->
+    <color name="back_color">#FF282A36</color>
+    <!-- linha em foco (onFocusChange das linhas). De fabrica #FF3B454B -> comentario (branco 4,7:1) -->
+    <color name="selct_back_color">#FF6272A4</color>
+    <!-- trilho das barras de ajuste (seek_bar_background). De fabrica #FF606060 -> linha -->
+    <color name="seekbar_bg_color">#FF44475A</color>
+    <!-- parte cheia da barra ligada (seek_bar_enable). De fabrica branco -> rosa -->
+    <color name="seekbar_progress_fill_enable_color">#FFFF79C6</color>
+    <!-- parte cheia da barra desligada (seek_bar_unenable, seek_bar_progress_fill). De fabrica
+         #FF898989 -> comentario -->
+    <color name="seekbar_progress_fill_color">#FF6272A4</color>
+    <!-- parte cheia em foco (seek_bar_focus, seek_bar_progress_fill_focus). De fabrica amarelo
+         #FFFFD800 -> rosa -->
+    <color name="seekbar_progress_fill_focus_color">#FFFF79C6</color>
+</resources>
