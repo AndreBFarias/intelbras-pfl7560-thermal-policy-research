@@ -2,7 +2,7 @@
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
   PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
-  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_ESPERA_OK_VOLTAS
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_ESPERA_OK_VOLTAS PFL_VARRE_LIGADA
 fi
 LC_ALL=C; export LC_ALL
 R="${PFL_ROOT:-}"
@@ -101,6 +101,8 @@ MODO_AUTO=1
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_MODO_AUTO:-}" ] && MODO_AUTO="$PFL_MODO_AUTO"
 CAM_TENTATIVAS=3
 ESPERA_OK_VOLTAS=0
+VARRE_LIGADA=0
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_VARRE_LIGADA:-}" ] && VARRE_LIGADA="$PFL_VARRE_LIGADA"
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_ESPERA_OK_VOLTAS:-}" ] && ESPERA_OK_VOLTAS="$PFL_ESPERA_OK_VOLTAS"
 SINAL_INCLINACAO=1
 LED_QUENTE=66
@@ -534,7 +536,7 @@ hb_foco(){
   [ -x "$HIDEBUG" ] || return 1
   printf 'custom\n%s\nquit\n' "$1" | timeout 15 "$HIDEBUG" 2>/dev/null
 }
-foco_pos(){ hb_foco gfd | grep -ai 'focus\|distance' | grep -aoE '[0-9]+' | tail -1; }
+foco_pos(){ hb_foco gfd | grep -aiE 'focus|distance' | grep -aoE '[0-9]+' | tail -1; }
 foco_faixa(){ hb_foco gfdr | grep -a '\[' | grep -aoE '[0-9]+' | head -2 | tr '\n' ' '; }
 foco_ir(){
   hb_foco "sfd $1" >/dev/null || return 1
@@ -565,6 +567,10 @@ medir_centro(){
 }
 varredura_foco(){
   VARRE_P0=""; VARRE_PF=""; VARRE_DEPOIS=""; FOCO_MIN=""; FOCO_MAX=""
+  if [ "$VARRE_LIGADA" != "1" ]; then
+    LOG "varredura: desligada (o gfd do hidebug mede o que falta o motor andar, nao a posicao; medido em 2026-10-31)"
+    VARRE=desligada; return 1
+  fi
   if [ "$(getprop sys.newlink.auto 2>/dev/null)" = "1" ]; then
     LOG "varredura: o autofoco esta em curso, o motor fica com ele"; VARRE=pulada; return 1
   fi

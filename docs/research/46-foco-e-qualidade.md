@@ -383,7 +383,8 @@ passo 5, nitidez artificial estreita a borda e cria halo; medir os dois.
 
 ## 9. O que só o aparelho confirma (PROVISÓRIO)
 
-1. Que `echo gfd | /vendor/bin/hidebug` imprime um número e `gfdr` uma faixa coerente com 12000 passos.
+1. ~~Que `echo gfd | /vendor/bin/hidebug` imprime um número e `gfdr` uma faixa coerente com 12000 passos.~~
+   Medido em 2026-10-31 (§11): o `gfdr` dá `[0, 12000]`, mas o `gfd` **não é a posição**.
 2. Que `sfd2 0 40` move o foco visivelmente e `sfd <p0>` volta ao mesmo ponto (medido pela borda).
 3. Que `sys.nl.panel.resolution=1080P`, `persist.display.720p=false`, e que `/proc/msp/disp1` mostra
    `virtual_screen` 1920x1080 e `offset` 0.
@@ -406,3 +407,17 @@ Escolha que não estava aqui: a varredura usa só posição absoluta (`sfd`), n�
 porque o sentido de "0 frente" em relação ao número do `gfd` não é conhecido; assim tudo fica na unidade do
 `gfd`. Os itens 1, 2 e 4 da §9 continuam valendo: são eles que confirmam a varredura e o
 `pfl7560-qualidade.sh`.
+
+## 11. Medido no aparelho em 2026-10-31: o `gfd` não é a posição
+
+- Saída real: `focus distance:0` (`gfd`) e `focus distance range [min:0 max]:12000` (`gfdr`).
+- Durante um autofoco disparado pelo serviço, o `gfd` lido a cada 2 s deu 490, 10 e depois 0, e ficou em 0 com
+  `sys.newlink.auto=0`. É o quanto falta o motor andar, não onde ele está.
+- Consequência: a varredura fina da §10 (posição absoluta pelo `gfd` e volta por `sfd <p0>`) mandaria a lente
+  para 0. Ela está **desligada** (`VARRE_LIGADA=0` no `suite.sh`; o resultado sai como `foco_varredura=desligada`).
+  Nos testes do PC ela continua ligada, para o código seguir coberto.
+- Também medido: o `grep` do Android não aceita `\|` no padrão básico (`grep -ai 'focus\|distance'` não acha
+  nada; `grep -aiE 'focus|distance'` acha). O `foco_pos` usava a forma básica; corrigido, e um teste estático
+  recusa `\|` em `grep` no kit.
+- Próximo passo (bloco novo): uma varredura só com passo relativo (`sfd2`), contando os passos e voltando pelo
+  mesmo número de passos, sem depender do `gfd`; antes, medir no aparelho o sentido de `sfd2 0` e `sfd2 1`.

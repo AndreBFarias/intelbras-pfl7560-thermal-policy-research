@@ -22,7 +22,7 @@ Uma conferência completa da imagem que roda **como root, no aparelho**, sem PC:
 |---|---|
 | 0. Abertura | tela de aviso de 5 s com os 4 passos; depois espera o autofoco de boot (uma vez) |
 | 1. Cor | o `cor.sh` no modo `suite`: lê a escada de 16 cinzas pela câmera interna e, se estiver fora de ordem, troca o formato (VESA/JEIDA) com backup e journal |
-| 2. Ângulo, foco e nitidez | projeta a tela de calibração e roda `nl_camcheck faixas`, `geometria` (inclinação, trapézio, bordas, contraste) e `nitidez` (mapa 3x3). Foco ruim: refaz o autofoco, até 2 vezes, e depois a varredura fina do motor pelo `hidebug` (§16). Imagem torta: dica de nivelar. Borda larga com os 4 pontos ligados: conselho de zerá-los; cantos de um lado borrados: dica pela causa |
+| 2. Ângulo, foco e nitidez | projeta a tela de calibração e roda `nl_camcheck faixas`, `geometria` (inclinação, trapézio, bordas, contraste) e `nitidez` (mapa 3x3). Foco ruim: refaz o autofoco, até 2 vezes, e depois a varredura fina do motor pelo `hidebug` (§16; **desligada** desde 2026-10-31, doc 46 §11). Imagem torta: dica de nivelar. Borda larga com os 4 pontos ligados: conselho de zerá-los; cantos de um lado borrados: dica pela causa |
 | 3. Temperatura | só leitura: `zysys.env_temp` (LED), `zysys.light_temp` (placa), ventoinha e brilho pelo `hidebug` **sem `gtt`**, `.ini` efetivo, escada presente. LED a partir de 66 °C: atenção e dica de ventilação |
 | 4. Rampa | teste ativo, fiel ao `--vivacidade` do `pfl7560-saude.sh`: injeta 71000 mC por 40 s, a imagem escurece por cerca de 1 min e volta; limpeza em trap |
 | 5. Resumo | tela cheia com 19 itens (cor, imagem, temperatura, sistema), 20 s ou qualquer tecla |
@@ -617,6 +617,10 @@ reinicia. Os dois valores fixados foram lidos do `.sha256` publicado e do APK ba
    `org.videolan.vlc` com as `.so` de `lib/arm`; o espaço do `/vendor` para ~90 MB.
 
 ## 16. Bloco 11: mapa de nitidez 3x3 e varredura fina de foco (2026-10-31)
+
+**Desligada no aparelho (2026-10-31, `VARRE_LIGADA=0`):** o `gfd` mede o que falta o motor andar, não a posição
+([doc 46](46-foco-e-qualidade.md) §11). O resultado sai como `foco_varredura=desligada`. O texto abaixo descreve o
+código, que segue coberto pelos testes do PC.
 
 Pesquisa no [doc 46](46-foco-e-qualidade.md); tarefa em
 [bloco 11](../sprints/2026-10-31-bloco-11-qualidade-e-foco.md). Feito no PC, sem o aparelho.

@@ -147,7 +147,7 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - **Bordas medidas** (borda centro/esq/dir, px, quadros reais de 2026-10-30): 1280×720 calibração-hd-f1 (JEIDA,
   boa) 1,77/2,24/1,95; 1280×720 calibração-hd-f0 (VESA) 3,49/3,24/4,02; 640×480 calibração-f1 2,90/2,62/2,84;
   640×480 inclinada-f1 1,63/1,57/1,79.
-- **Varredura fina de foco** (doc 46 §2.1 e §7): só `gfd`, `gfdr` e `sfd <pos>` passam por `hb_foco`. Posições
+- **Varredura fina de foco** (desligada por `VARRE_LIGADA=0`, doc 46 §11; doc 46 §2.1 e §7): só `gfd`, `gfdr` e `sfd <pos>` passam por `hb_foco`. Posições
   absolutas na unidade do `gfd` (o sentido do `sfd2 0|1` não é conhecido). Chega a cada posição sempre subindo, um
   passo abaixo antes (folga de direção do motor). Sem melhora, o motor volta à posição inicial.
 - **Nitidez 3×3:** o pior canto de cada lado contra o centro dá a causa provável (centro = foco; um lado só =

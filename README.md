@@ -111,7 +111,7 @@ make check-bin   # gerador do .bin em containers sintéticos
 ## Estado
 
 Em uso no projetor do dono desde 2026-10-31. **Provisório:** tirar da tomada com o projetor ligado, a varredura
-fina de foco com o foco ruim de propósito, algumas telas que ainda faltam olhar com o controle e o modelo sem
+fina de foco (desligada até ganhar passo relativo, doc 46 §11), algumas telas que ainda faltam olhar com o controle e o modelo sem
 USB-C (só testado em simulação). A build `.bin` (`PFL7560-S4a`, os 3 fixes nos mesmos blocos do stock) passa nas
 provas do PC e **nunca foi gravada**; o `install.sh --com-firmware` a põe na raiz do pendrive, e gravá-la é o gate
 BIN-S4a ([doc 47](docs/research/47-build-completa.md)). Lista completa e atualizada: [`docs/ESTADO.md`](docs/ESTADO.md).

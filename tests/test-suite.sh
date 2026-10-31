@@ -223,7 +223,7 @@ amb(){
       PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" \
       PFL_NLCAMCHECK="$T/bin/nl_camcheck" PFL_NLCAMCHECK_MD5="$(md5 "$T/bin/nl_camcheck")" \
       PFL_NLTELA="$T/bin/nl_tela" PFL_NLTELA_MD5="${NLTELA_MD5_TESTE:-$(md5 "$T/bin/nl_tela")}" \
-      PFL_APP_UID_MIN="${APP_UID_MIN_TESTE:-0}" \
+      PFL_APP_UID_MIN="${APP_UID_MIN_TESTE:-0}" PFL_VARRE_LIGADA="${VARRE_LIGADA_TESTE:-1}" \
       PFL_MODO_AUTO="$MODO_AUTO_TESTE" PFL_VIGIA_VOLTAS=2 PFL_ESPERA_OK_VOLTAS=2 PATH="$T/bin:$PATH" "$@"
 }
 instala_suite(){
@@ -1353,6 +1353,13 @@ c_etapas_foco(){
   sed -i 's/^sys.newlink.auto=.*/sys.newlink.auto=1/' "$T/props"
   roda_suite tomada
   afirma '[ -z "$(sfds)" ] && [ "$(res foco_varredura)" = pulada ]' "mexeu: $(sfds) $(res foco_varredura)"
+  limpa
+
+  novo_cenario "foco: varredura desligada (padrao no aparelho: o gfd nao e a posicao) = o motor nao mexe"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1080 > "$T/foco-otimo"
+  VARRE_LIGADA_TESTE=0; roda_suite tomada; VARRE_LIGADA_TESTE=
+  afirma '[ -z "$(sfds)" ] && [ "$(res foco_varredura)" = desligada ] && grep -q "varredura: desligada" "$S/ultimo.log"' "mexeu: $(sfds) $(res foco_varredura)"
+  afirma '[ "$(grep -n "VARRE_LIGADA=" "$KIT/suite.sh" | head -1 | cut -d= -f2)" = 0 ] && ! grep -nE "grep[^|]*[\\\\][|]" "$KIT"/*.sh' "varredura ligada por padrao ou grep com \\| (o grep do Android nao tem alternancia no padrao basico)"
   limpa
 
   novo_cenario "foco: suite morta no meio da varredura = o trap devolve o motor"

@@ -23,8 +23,10 @@ dá 94: pula os 3 casos que copiariam 1,4 GB. O `make check` também passa. Como
 - **Suíte:**
   - roda pelo boot, pelo ícone "Verificar projetor" e pelo pendrive. O ícone foi provado em 2026-10-31,
     disparado pelo vigia do boot, depois do PATH fixo com `/system/bin`;
-  - etapas: cor, câmera, ângulo, nitidez 3x3, varredura fina de foco (só com foco ruim), temperatura, rampa e
-    resumo;
+  - etapas: cor, câmera, ângulo, nitidez 3x3, temperatura, rampa e resumo. A varredura fina de foco está
+    desligada: o `gfd` não é a posição do motor ([doc 46](research/46-foco-e-qualidade.md) §11);
+  - rodada pelo ícone em 2026-10-31 com o kit do bloco 21: câmera 16 de 16 faixas na 1ª tentativa, 19 itens, 0
+    correções; a luz guardada é reaplicada no fim da suíte;
   - avisos do sistema fechados antes da câmera: temperatura com o OK do controle (DPAD_CENTER), os outros com
     BACK.
 - **Botão Luz** na home (`sbl`, reaplicado no boot).
@@ -38,9 +40,19 @@ dá 94: pula os 3 casos que copiariam 1,4 GB. O `make check` também passa. Como
   `bootanimation.zip`.
 - **Apps:** Office, iOSCast e Espelhamento desligados; VLC 3.7.1 em `/vendor/app/VLC`.
 
+## Correções de 2026-10-31 no aparelho (depois do bloco 21)
+
+- **Tecla OK nas esperas** (câmera sem leitura, cor manual, resumo): o `getevent` ligado a um pipe guarda a saída
+  num buffer de cerca de 4 KB, e a suíte só via a tecla depois de umas 20 apertadas. Agora é `getevent -qlc 3`, que
+  sai depois de 3 eventos e entrega a saída na hora (medido no aparelho).
+- **Luz escolhida com a suíte rodando:** ficava guardada só para o próximo boot. Agora o fim da suíte a aplica.
+- **Varredura fina de foco desligada** e o `grep` com `\|` corrigido (doc 46 §11).
+- A falha da câmera na 1ª rodada depois do boot (2 a 3 faixas) não se repetiu; na 2ª, a barra do player aberta
+  pelo OK cobria a imagem. Com a imagem de calibração na tela, a câmera leu 16 de 16.
+
 ## O que o bloco 21 mudou
 
-Nada disto rodou no aparelho ainda; entra com o pendrive novo.
+Kit, home e app (versão 5) instalados no aparelho em 2026-10-31 pelo adb; o resto entra com o pendrive.
 
 - **Kit:** o descanso de tela volta ao nível de luz de antes (não mais a 100 %); abertura e resumo seguem o motivo
   do boot; o `--desinstalar` apaga os sinais do descanso e a trava da suíte; `sync` antes de cada `mv` sobre
@@ -89,8 +101,8 @@ saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram grav
    ([doc 44](research/44-suite-de-boot.md) §12, passo 7).
 2. Olhar com o controle o teclado na tela, o pareamento do controle, o menu de imagem de uma entrada HDMI, a
    contagem de desligar e a página de cartões do gerenciador.
-3. Foco ruim de propósito (girar a lente): ver a varredura fina mexer o motor e voltar. A unidade do `gfd`/`sfd`
-   e os passos estão marcados como PROVISÓRIO (doc 44 §16).
+3. Varredura fina de foco nova, só com passo relativo (`sfd2`): medir antes o sentido de `sfd2 0` e `sfd2 1`
+   com a câmera (doc 46 §11). A de hoje está desligada.
 4. `pfl7560-qualidade.sh` no aparelho: ler os ajustes de imagem e decidir com o dono o que aplicar.
 5. Tema com a luz da sala: o contraste do roxo, do rosa e do vermelho sobre o cartão (3,5 a 3,8:1) nas telas da
    suíte; se o plano de fundo for aplicado, o arco roxo de 3 px e o gradiente sem faixas
