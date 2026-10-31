@@ -9,8 +9,8 @@
 # dele (nada de dispositivo mapeado, crypt, lvm, loop); qualquer outro e RECUSADO, sem
 # perguntar; (2) mostra modelo e tamanho e pede para DIGITAR o caminho do dispositivo; (3) formata
 # FAT32 (mkfs.vfat -F 32 -n PFL7560); (4) monta, roda install.sh --pendrive <montagem>
-# --com-firmware (copia o kit, o usb_update.bin oficial e o nosso .bin sem ativar, e confere o
-# md5 de cada arquivo) e (5) desmonta. As origens do firmware (arquivos e md5) sao conferidas
+# --com-firmware (copia o kit, o nosso .bin como usb_update.bin e o oficial em resgate-oficial/,
+# e confere o md5 de cada arquivo) e (5) desmonta. As origens do firmware (arquivos e md5) sao conferidas
 # ANTES de formatar, pelo install.sh --conferir-firmware: faltou arquivo ou o md5 nao bate = nada
 # e formatado. Para escolher outra pasta de firmware:
 # PFL_FIRMWARE_DIR=<pasta>. Precisa de root (mkfs/mount): use sudo.
@@ -72,7 +72,7 @@ done
 # as origens do firmware (arquivos e md5) sao conferidas ANTES de formatar; o install.sh refaz
 # isto na copia. Sem isto um md5 errado so apareceria com o pendrive ja apagado.
 if ! bash "$ROOT/install.sh" --conferir-firmware; then
-  err "o firmware de resgate em ${PFL_FIRMWARE_DIR:-$ROOT/firmware} nao confere (ver acima). Nada foi formatado."
+  err "o firmware em ${PFL_FIRMWARE_DIR:-$ROOT/firmware} nao confere (ver acima). Nada foi formatado."
   exit 4
 fi
 
