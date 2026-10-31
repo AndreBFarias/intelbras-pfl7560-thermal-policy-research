@@ -214,8 +214,9 @@ OBSERVACOES
       PC: ./install.sh --pendrive <pasta> --com-firmware, ou
       tests/preparar-pendrive.sh <dispositivo> para formatar e preparar do zero).
       Desde 2026-10-31 (decisao do dono) o usb_update.bin da raiz e o NOSSO
-      firmware (PFL7560-COMPLETO-NAO-GRADUADO.bin: escada, wi-fi, xiri e o servico
-      da suite; nunca provado no aparelho) e o de FABRICA V1.0.0.9 fica em
+      firmware (PFL7560-S4a-NAO-GRADUADO.bin: escada, wi-fi e xiri gravados
+      nos mesmos blocos do stock; nunca provado no aparelho, gate BIN-S4a) e o
+      de FABRICA V1.0.0.9 fica em
       resgate-oficial/PFL7560.bin, com um LEIA-ME que ensina a troca.
       SO para o aparelho COM entrada USB-C (V1.0.0.9): no modelo sem USB-C
       (V1.0.0.1) estes .bin NAO servem. Cobre "liguei e a correcao sumiu"
@@ -231,7 +232,7 @@ OBSERVACOES
   - Regra pratica do arranjo (B): mantenha o pendrive DESCONECTADO no uso
     normal. Plugue so quando for usar um dos dois papeis, e tire depois.
   - usb_update.bin so pode ser um dos dois .bin que o install.sh confere: o nosso
-    (md5 em firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5) ou o DE FABRICA
+    (md5 em firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5) ou o DE FABRICA
     (Software PFL7560.zip), md5 28a2f280eee313a4b115567926b2ba4f. NUNCA outro
     .bin de correcao: o prototipo sem rotulo SELinux brica o boot, e ai o
     power-hold nao resgata - piora.

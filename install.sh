@@ -210,8 +210,8 @@ LISTA
 FW_DIR="${PFL_FIRMWARE_DIR:-$HERE/firmware}"
 FW_OFICIAL_ZIP="Software PFL7560.zip"
 FW_OFICIAL_MD5="28a2f280eee313a4b115567926b2ba4f"   # PFL7560.bin do V1.0.0.9 (firmware/README.md)
-FW_NOSSO_BIN="PFL7560-COMPLETO-NAO-GRADUADO.bin"
-FW_NOSSO_MD5="397698b97c23b64cfee9e64d55c7f9aa"
+FW_NOSSO_BIN="PFL7560-S4a-NAO-GRADUADO.bin"
+FW_NOSSO_MD5="a6e5da14cb3f53b42a457eb92bd91814"
 FW_RESGATE_PASTA="resgate-oficial"
 FW_LEGADO_PASTA="firmware-nosso-NAO-GRADUADO"
 # gancho de teste: so com PFL_TESTE=1 o harness (tests/) troca os md5 esperados, para usar

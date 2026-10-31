@@ -20,8 +20,8 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $ZipNome = 'Software PFL7560.zip'
 $OficialMd5 = '28a2f280eee313a4b115567926b2ba4f'
-$NossoBin = 'PFL7560-COMPLETO-NAO-GRADUADO.bin'
-$NossoMd5 = '397698b97c23b64cfee9e64d55c7f9aa'
+$NossoBin = 'PFL7560-S4a-NAO-GRADUADO.bin'
+$NossoMd5 = 'a6e5da14cb3f53b42a457eb92bd91814'
 $ResgatePasta = 'resgate-oficial'
 $LegadoPasta = 'firmware-nosso-NAO-GRADUADO'
 $LeiameResgate = @'

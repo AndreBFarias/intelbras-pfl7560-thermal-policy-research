@@ -16,7 +16,7 @@ md5(){ md5sum "$1" | cut -d' ' -f1; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-NOSSO_BIN="PFL7560-COMPLETO-NAO-GRADUADO.bin"
+NOSSO_BIN="PFL7560-S4a-NAO-GRADUADO.bin"
 
 # ---- firmware falso ------------------------------------------------------------------
 fw_falso(){ # $1 = pasta; cria o zip oficial falso e o nosso .bin falso; exporta os md5
