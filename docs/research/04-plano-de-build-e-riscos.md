@@ -54,7 +54,7 @@ Tier 3 (reflash) é viável e recuperável se só editarmos vendor/system e nunc
    (a) stock; (b) fans forçados 100%; (c) brilho reduzido (~70-80%). Guardar os logs em `artifacts/diagnostico/`.
    Isso calibra os limiares reais (principalmente o de desligamento) e mostra o ganho de cada alavanca.
 4. **[GATE D] Aplicar no menor tier viável.** Preferência: Tier 2 (editar `.ini`). Aplicar a proposta calibrada
-   (ver `05-ZYCustom.ini-proposto.md`), reiniciar, e **medir de novo** o mesmo teste de 15 min.
+   (ver [doc 05](../archive/05-ZYCustom.ini-proposto.md), arquivado), reiniciar, e **medir de novo** o mesmo teste de 15 min.
 5. **[GATE E] Validar e iterar.** Comparar antes/depois. Ajustar. Só considerar Tier 3 se for necessário e recuperável.
 
 ## Riscos e mitigações

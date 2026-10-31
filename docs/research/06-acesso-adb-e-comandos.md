@@ -104,7 +104,7 @@ não toca em `/vendor` e é reversível apenas apagando o arquivo:
 ```
 adb root
 adb pull /vendor/etc/ZYCustom.ini ZYCustom.backup.ini      # BACKUP primeiro
-# edite conforme 05-ZYCustom.ini-proposto.md, depois:
+# edite conforme artifacts/ZYCustom_390.ini (a correcao em uso), depois:
 adb shell mkdir -p /atv/ini
 adb push ZYCustom.ini /atv/ini/ZYCustom.ini                 # (ou /atv/ini/ZYCustom_<projectid>.ini se projectid!=0)
 adb shell sync && adb reboot

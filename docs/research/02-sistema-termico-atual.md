@@ -85,4 +85,4 @@ Além disso, o HAL tem intertravamento de segurança (strings literais):
 | `DEFAULT_PWM_DUTY` | `[CoolingFan_0/1]` | fan já forte no boot/idle | MEDIA |
 | `WARNING_VALUE` / `EMERGENCY_VALUE` | `[Thermal]` | desligar antes (rede de segurança) | ALTA (mas calibrar com dados) |
 
-Proposta concreta de valores: ver `05-ZYCustom.ini-proposto.md`.
+Proposta concreta de valores: ver [doc 05](../archive/05-ZYCustom.ini-proposto.md), arquivado.

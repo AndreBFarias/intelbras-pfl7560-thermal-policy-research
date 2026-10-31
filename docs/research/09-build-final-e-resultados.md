@@ -55,7 +55,7 @@ Arquivo da build: `artifacts/ZYCustom_390.ini` (md5 `1ad641ed2dd99e61d8a987a675e
 
 > **SUPERADO:** este deploy por override `/atv/ini` foi preterido — o método definitivo hoje é a **edição
 > direta do `/vendor`** via `pfl7560-fix.sh` (reversível), que grava na partição que sobrevive a reset de
-> fábrica; ver [doc 14](14-estado-final-aplicado.md).
+> fábrica; ver [doc 14](../archive/14-estado-final-aplicado.md).
 
 Instalado como override de precedência máxima, **sem tocar `/vendor`** nem o bootloader:
 ```

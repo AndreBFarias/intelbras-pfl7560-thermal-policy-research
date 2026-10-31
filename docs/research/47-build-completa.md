@@ -192,7 +192,7 @@ os dois stocks; a recusa do app "maior que o slot stock" deixou de existir (§10
 
 ## 7. O que fica PROVISÓRIO até o gate BIN-S4a
 
-O [doc 31](31-plano-mestre-bin-final.md) §3 já fixou a ordem: o BIN-S4a grava o **delta mínimo** (só os 3
+O [doc 31](../archive/31-plano-mestre-bin-final.md) §3 já fixou a ordem: o BIN-S4a grava o **delta mínimo** (só os 3
 fixes), para que um travamento não tenha variável confusa; a build com arquivo novo em `/vendor/etc/init` vem
 numa 2ª gravação (o antigo BIN-S4b). **Bloco 21:** a 1ª é a `PFL7560-S4a` (`a6e5da14`, nos mesmos blocos) e a 2ª
 a `PFL7560-S4b-COMPLETO` (`e6b41856`, realocada, com `.rc`, app, home e sobreposições); a `397698b9` saiu de uso.

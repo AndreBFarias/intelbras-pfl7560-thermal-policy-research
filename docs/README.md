@@ -28,14 +28,14 @@
 | [`research/02-sistema-termico-atual.md`](research/02-sistema-termico-atual.md) | Valores térmicos de fábrica |
 | [`research/03-causa-raiz-e-limites.md`](research/03-causa-raiz-e-limites.md) | Por que a óptica queima; teto do software |
 | [`research/04-plano-de-build-e-riscos.md`](research/04-plano-de-build-e-riscos.md) | Caminhos de deploy e riscos |
-| [`research/05-ZYCustom.ini-proposto.md`](research/05-ZYCustom.ini-proposto.md) | Rascunho histórico de parâmetros |
+| [`research/05-ZYCustom.ini-proposto.md`](archive/05-ZYCustom.ini-proposto.md) | Rascunho histórico de parâmetros |
 | [`research/06-acesso-adb-e-comandos.md`](research/06-acesso-adb-e-comandos.md) | Cookbook adb / hidebug |
 | [`research/07-hardware-upgrade.md`](research/07-hardware-upgrade.md) | Fans, limpeza, upgrades de hardware |
 | [`research/08-por-que-fica-cego.md`](research/08-por-que-fica-cego.md) | **Causa-raiz:** mux + sensor desacoplado |
 | [`research/09-build-final-e-resultados.md`](research/09-build-final-e-resultados.md) | Diff final + medições |
-| [`research/11-email-intelbras.md`](research/11-email-intelbras.md) | Rascunho de e-mail (legado; preferir relatório CSIRT) |
+| [`research/11-email-intelbras.md`](archive/11-email-intelbras.md) | Rascunho de e-mail (legado; preferir relatório CSIRT) |
 | [`research/13-auditoria-outros-bugs.md`](research/13-auditoria-outros-bugs.md) | Wi-Fi, xiri, postura de release |
-| [`research/14-estado-final-aplicado.md`](research/14-estado-final-aplicado.md) | O que ficou no aparelho (`/vendor`) |
+| [`research/14-estado-final-aplicado.md`](archive/14-estado-final-aplicado.md) | O que ficou no aparelho (`/vendor`) |
 | [`research/15-bin-definitivo.md`](research/15-bin-definitivo.md) | Container `.bin` (em quarentena) |
 | [`research/26-persistencia-do-fix.md`](research/26-persistencia-do-fix.md) | Persistência do fix térmico entre boots |
 | [`research/27-teardown-cabo-gnd-ntc.md`](research/27-teardown-cabo-gnd-ntc.md) | Teardown fotografado; cabo GND/NTC; mapa da placa |
@@ -65,10 +65,10 @@ Resolvido por software, sem trocar hardware.
 | Doc | Conteúdo |
 |---|---|
 | [`research/28-troca-painel-rx058b-diagnostico-cor.md`](research/28-troca-painel-rx058b-diagnostico-cor.md) | **Diagnóstico completo + solução da 1ª troca:** decompilação da lib do aparelho, `lvdsctl` (chama `SetLvdsFormat`), correção VESA→JEIDA no `panelparam` (byte `0x5c`). Tentativa-e-erro incluído; a §12.1 foi refutada pela §13 e pelo doc 40. |
-| [`research/29-roadmap-troca-lcd.md`](research/29-roadmap-troca-lcd.md) | **Roadmap e sprints (planejamento):** aplicador fácil, wizard de pareamento, auto-pareamento via câmera interna, integração no `.bin`, guia leigo, matriz de painéis, auditoria de nomenclatura de IC. |
+| [`research/29-roadmap-troca-lcd.md`](archive/29-roadmap-troca-lcd.md) | **Roadmap e sprints (planejamento):** aplicador fácil, wizard de pareamento, auto-pareamento via câmera interna, integração no `.bin`, guia leigo, matriz de painéis, auditoria de nomenclatura de IC. |
 | [`research/33-matriz-paineis.md`](research/33-matriz-paineis.md) | **Matriz de painéis compatíveis + auditoria de nomenclatura (LCD-S6/S7):** quais painéis, qual formato LVDS, e por que o nome do perfil não garante compatibilidade. |
-| [`research/30-sprint-validacao-repositorio.md`](research/30-sprint-validacao-repositorio.md) | **Sprint de higiene:** validar a reorganização `mod-termica`→`docs/artifacts` (links, integridade, política de versionamento). |
-| [`research/31-plano-mestre-bin-final.md`](research/31-plano-mestre-bin-final.md) | **Plano mestre:** caminho crítico único até o `.bin` final — ordena todas as sprints pendentes por dependência e marca os gates de hardware. Comece por aqui para entender o todo. |
+| [`research/30-sprint-validacao-repositorio.md`](archive/30-sprint-validacao-repositorio.md) | **Sprint de higiene:** validar a reorganização `mod-termica`→`docs/artifacts` (links, integridade, política de versionamento). |
+| [`research/31-plano-mestre-bin-final.md`](archive/31-plano-mestre-bin-final.md) | **Plano mestre:** caminho crítico único até o `.bin` final — ordena todas as sprints pendentes por dependência e marca os gates de hardware. Comece por aqui para entender o todo. |
 
 Artefatos da correção de cor em [`../artifacts/lcd-color-fix/`](../artifacts/lcd-color-fix/) (`lvdsctl.c` + padrões de teste).
 

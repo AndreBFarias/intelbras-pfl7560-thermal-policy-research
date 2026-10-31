@@ -383,7 +383,7 @@ O firmware novo serviu de gabarito da fabricante. O que ele ensina:
 
 1. **O bug de fábrica continua em toda a linha.** O modelo novo sai com o mesmo `HW_VIRTUAL_CHANNEL = 0`
    nos dois termistores: a correção térmica do projeto vale também para os aparelhos fabricados a partir
-   de 25/08/2026. Isso reforça o relato à Intelbras ([doc 11](11-email-intelbras.md)) e o
+   de 25/08/2026. Isso reforça o relato à Intelbras ([doc 11](../archive/11-email-intelbras.md)) e o
    [relatório CSIRT](../disclosure/relatorio-csirt.md): o defeito não foi corrigido em outubro.
 2. **O kit precisa reconhecer os dois stocks.** O `ZYCustom.ini` de fábrica do modelo novo tem md5
    `ed3f314ca89698cb057a74ef64dca38e` (o antigo, `29d8ba36…`). Hoje o kit recusaria esse aparelho.
@@ -401,5 +401,5 @@ O firmware novo serviu de gabarito da fabricante. O que ele ensina:
 Tarefas no [bloco 6](../sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md).
 
 **Estado (2026-10-30):** lições 2, 3, 4 e 6 aplicadas no bloco 6 (T6.1 a T6.4), só em software; lição 5
-aplicada no [doc 33](33-matriz-paineis.md); lição 1 registrada no [doc 11](11-email-intelbras.md) e no
+aplicada no [doc 33](33-matriz-paineis.md); lição 1 registrada no [doc 11](../archive/11-email-intelbras.md) e no
 [relatório CSIRT](../disclosure/relatorio-csirt.md) como nota datada.

@@ -425,7 +425,7 @@ E há um limite de norma envolvido: o manual especifica **operação de 0 a 40 �
 
 `PROVADO NO APARELHO (2026-09-03).` Este era o gate aberto desde julho:
 [doc 06](06-acesso-adb-e-comandos.md):144 listava como **inferido, não testado em hardware** que
-*"`sbri` abaixo de ~750 e aceito pelo LED"*, e [doc 05](05-ZYCustom.ini-proposto.md):55 exigia confirmar
+*"`sbri` abaixo de ~750 e aceito pelo LED"*, e [doc 05](../archive/05-ZYCustom.ini-proposto.md):55 exigia confirmar
 ao vivo antes de gravar. **Confirmado no git (`cd5a80f`) que nunca foi feito.**
 
 Mapeamento completo, pedido contra aplicado:

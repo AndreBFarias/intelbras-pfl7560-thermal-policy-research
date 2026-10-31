@@ -8,7 +8,7 @@ Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defe
 
 Relatório técnico preparado para o [CSIRT Intelbras](https://www.intelbras.com/pt-br/CSIRT-Intelbras). **Envio ainda pendente** (atualizar data/protocolo em [`docs/disclosure/STATUS.md`](docs/disclosure/STATUS.md) após o registro).
 
-Esta pesquisa foi conduzida de forma **independente**, com foco em **reparabilidade** e **proteção ao consumidor**. **Este repositório é privado** (backup pessoal do reparo). Uma eventual abertura pública só ocorre após a janela de divulgação coordenada (7–10 dias úteis pós-envio, ou resposta da fabricante) **e** depois de redigir os dados sensíveis das fotos e decidir sobre o firmware proprietário — ver [`docs/research/30-sprint-validacao-repositorio.md`](docs/research/30-sprint-validacao-repositorio.md) (REPO-S2).
+Esta pesquisa foi conduzida de forma **independente**, com foco em **reparabilidade** e **proteção ao consumidor**. **Este repositório é privado** (backup pessoal do reparo). Uma eventual abertura pública só ocorre após a janela de divulgação coordenada (7–10 dias úteis pós-envio, ou resposta da fabricante) **e** depois de redigir os dados sensíveis das fotos e decidir sobre o firmware proprietário — ver [`docs/research/30-sprint-validacao-repositorio.md`](docs/archive/30-sprint-validacao-repositorio.md) (REPO-S2).
 
 | Campo | Valor |
 |---|---|
@@ -166,7 +166,7 @@ Para acompanhar durante o uso real (a escada só atua acima de 66 °C):
 `PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh` — menu opção **6**. Ver o aviso sobre sondagem em
 [`INSTALL.md`](INSTALL.md#acompanhar-durante-o-uso).
 
-4. **Firmware `.bin` completo (experimental)** — um protótipo antigo **travava o boot** (metadados errados) e foi **apagado**. O builder atual (`artifacts/bin-build/`) já carimba mode/rótulo SELinux; existe uma build nova que passa offline, mas **ainda não bootou em hardware** — segue em quarentena. Use só os métodos 1–3. Caminho até um `.bin` que boota: [`docs/research/31-plano-mestre-bin-final.md`](docs/research/31-plano-mestre-bin-final.md). Recuperação: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-recuperacao-brick.md).
+4. **Firmware `.bin` completo (experimental)** — um protótipo antigo **travava o boot** (metadados errados) e foi **apagado**. O builder atual (`artifacts/bin-build/`) já carimba mode/rótulo SELinux; existe uma build nova que passa offline, mas **ainda não bootou em hardware** — segue em quarentena. Use só os métodos 1–3. Caminho até um `.bin` que boota: [`docs/research/31-plano-mestre-bin-final.md`](docs/archive/31-plano-mestre-bin-final.md). Recuperação: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-recuperacao-brick.md).
 
 ## Segurança e recuperação
 

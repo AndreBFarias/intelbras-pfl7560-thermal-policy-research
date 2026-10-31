@@ -61,9 +61,9 @@ O comportamento "se chegar em X graus, desliga" JA EXISTE: `EMERGENCY_VALUE` + `
 Só precisamos escolher o X certo — e X depende de quanto o NTC lê quando a óptica já está no limite.
 
 > **Ressalva (2026-10-29):** o NTC quente (`gtt1`) fica no bloco dissipador do LED, não na óptica, e
-> nenhum sensor mede o polarizador/LCD (OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
+> nenhum sensor mede o polarizador/LCD (OPT-S7, [doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
 > §3). O X escolhido (70/75 °C) protege o LED e a placa, não o filme
-> ([doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §3.6).
+> ([doc 39](../research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §3.6).
 
 STOCK (manter até o diagnóstico):
 ```

@@ -2,7 +2,7 @@
 
 Pesquisa de 2026-10-29 (offline: firmware oficial V1.0.0.9 extraído, binários, web), pedida pelo dono:
 *"algo automático deve existir"*, com solução **idempotente, universal e fácil para leigo**, para cor e
-térmica. Retoma a LCD-S3 do [doc 29](29-roadmap-troca-lcd.md) ("a forma inteligente").
+térmica. Retoma a LCD-S3 do [doc 29](../archive/29-roadmap-troca-lcd.md) ("a forma inteligente").
 
 **Convenção:** `CONFIRMADO` = lido no firmware ou no aparelho (caminho citado). `INFERIDO` = dedução sem
 execução. Até 2026-10-29 nada aqui tinha sido executado no aparelho; a primeira rodada no aparelho está

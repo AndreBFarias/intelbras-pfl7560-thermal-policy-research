@@ -18,9 +18,9 @@ Data desta revisão: 2026-07-12.
 >   `eae3a83d…`; stock V1.0.0.1 sem USB-C → `0d294cb3…`, **só em software**.
 > - **Bloco 21 (2026-10-31):** as builds acima saíram de uso (re-pack com chunks FILL e zeros soltos no slot). O
 >   BIN-S4a grava `PFL7560-S4a` (`a6e5da14…`, os 3 fixes nos mesmos blocos do stock) e o BIN-S4b a
->   `PFL7560-S4b-COMPLETO` (`e6b41856…`, realocada, com `.rc`, app, home e sobreposições); [doc 47](47-build-completa.md) §10.
+>   `PFL7560-S4b-COMPLETO` (`e6b41856…`, realocada, com `.rc`, app, home e sobreposições); [doc 47](../research/47-build-completa.md) §10.
 > - **Etapa 3 (vigia de tela) tem o gate de viabilidade reaberto:** o `am start ... VIEW` deu tela preta
->   neste aparelho (**OPT-S13**, [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3).
+>   neste aparelho (**OPT-S13**, [doc 39](../research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3).
 > - **A `panelparam` provavelmente vai junto no `.bin`** (ver a correção na §1).
 
 ---
@@ -42,7 +42,7 @@ pós-boot, pelo kit de pendrive ou por `pfl7560-lcd-color.sh`. Ver a decisão de
 [`29-roadmap-troca-lcd.md`](29-roadmap-troca-lcd.md) (LCD-S4).
 
 > **CORREÇÃO (2026-10-29/30):** a `panelparam` **provavelmente está** no container (record 4,
-> [doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3 e [doc 42](42-firmware-2026-10-modelo-sem-usbc.md)
+> [doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §3 e [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)
 > §5), ao contrário do que o doc 29 registrou em 2026-07-12. O `.bin` (de fábrica ou o nosso) leva então
 > o perfil 69 com `0x5c` = 0 (VESA): quem tem painel JEIDA precisa refazer o teste de cor depois de
 > gravar. A confirmação no aparelho é a etapa E1(b) do [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md).
@@ -62,7 +62,7 @@ TRILHA B — COR LCD (paralela, NÃO bloqueia o .bin térmico)
 A Trilha B é valiosa e já **funciona no aparelho do dono** (cor corrigida, persistente no reboot), mas é
 uma ferramenta pós-boot separada. Não gasta o caminho crítico do `.bin`. Detalhe: doc 29. Desde a 2ª troca
 de LCD (2026-10-29) o aparelho do dono está em **VESA**, não em JEIDA
-([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1).
+([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1).
 
 ---
 
@@ -76,7 +76,7 @@ kit de resgate; são os pontos em que o dono precisa entrar (testes ao vivo).
 | 0 | Reconciliar `VALIDATOR_BRIEF.md` + fechar higiene do repo (REPO-S1) | **[SW]** | — | doc 30 + BRIEF |
 | 1 | Gerar a build oficial e provar reprodutibilidade (BIN-S3b) — **FEITO em 2026-07-29** | **[SW]** | 0 | doc 18 · BIN-S3b |
 | 2 | **GATE:** boot real do `.bin` de delta mínimo (BIN-S4a) — *fecha o achado M7* | **[HW]** | 1 + kit resgate | doc 18 · BIN-S4a |
-| 3 | Vigia de tela: desenvolver e validar por adb (sprint 19, todas as WARN-S*) — **gate de viabilidade reaberto (OPT-S13)** | **[HW leve]** | pode ir em paralelo ao 2 | doc 19 + [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3 |
+| 3 | Vigia de tela: desenvolver e validar por adb (sprint 19, todas as WARN-S*) — **gate de viabilidade reaberto (OPT-S13)** | **[HW leve]** | pode ir em paralelo ao 2 | doc 19 + [doc 39](../research/39-sessao-2026-09-02-optica-e-balanco-termico.md) §4.3 |
 | 4 | Metadados canônicos dos arquivos novos do vigia no builder (BIN-S2b) | **[SW]** | 3 (lista de arquivos) | doc 18 · BIN-S2b |
 | 5 | **GATE de distribuição:** `.bin` com o vigia embarcado (BIN-S4b) | **[HW]** | 2 + 4 | doc 18 · BIN-S4b |
 | 6 | Graduar o `.bin` da quarentena na documentação (README, doc 15, BRIEF) | **[SW]** | 5 | — |
@@ -125,7 +125,7 @@ Checklist completo de pré-condições e recuperação: doc 18, seção "Pré-re
   e persistente; ferramenta `pfl7560-lcd-color.sh` com os 9 subcomandos (doc 28), backup/restore
   endurecidos e integrada ao menu e ao `install.bat` (LCD-S1, `a9d3fa2`), backup obrigatório antes de
   gravar (bloco 1), e o kit de pendrive com o teste da escada de 16 cinzas pela câmera (blocos 5, 7 e 8) e a suíte de verificação de
-  boot ([doc 44](44-suite-de-boot.md)) — trilha B, fora do
+  boot ([doc 44](../research/44-suite-de-boot.md)) — trilha B, fora do
   caminho crítico.
 - **A higiene do repo** — 4 dos 5 checks da REPO-S1 já passam; `make check` 6/6 (doc 30); desde
   2026-10-30, 9 OK (os 3 artefatos do modelo sem USB-C, bloco 6).

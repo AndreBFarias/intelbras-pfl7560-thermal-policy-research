@@ -48,7 +48,7 @@ resumo do estado **real** hoje:
 - **Checksum do container FOI decifrado.** Revertendo o loader on-device, provou-se que o `checksum1` do
   container "LOAD" (`@0x04`) é **CRC-32/MPEG-2 sobre o cabeçalho + tabela de partições** (cobre só os
   metadados, não os payloads), e que os CRCs por partição também são CRC-32/MPEG-2. Detalhes e prova em
-  [`15-bin-definitivo.md`](15-bin-definitivo.md).
+  [`15-bin-definitivo.md`](../research/15-bin-definitivo.md).
 - **O `.bin` foi CONSTRUÍDO e é byte-reproduzível.** A receita (`artifacts/bin-build/build_fix_bin.py`) edita
   só a partição vendor mantendo o tamanho — a tabela não muda, o `checksum1` segue válido, e recalcula-se só o
   CRC daquela partição. Rodar 2× dá o mesmo md5.
@@ -64,8 +64,8 @@ resumo do estado **real** hoje:
   idempotente; o `usb_update.bin` recupera qualquer brick. Mesmo assim, o método **`/vendor` continua sendo o
   definitivo e seguro** para o seu aparelho — não precisa de `.bin`.
 - **Auditoria e hardening.** Os scripts de entrega (autorun + `pfl7560-fix.sh`) passaram por auditoria
-  adversarial e foram endurecidos; ver [`17-auditoria-e-hardening.md`](../archive/17-auditoria-e-hardening.md). O plano
+  adversarial e foram endurecidos; ver [`17-auditoria-e-hardening.md`](17-auditoria-e-hardening.md). O plano
   para produzir um `.bin` que **boota** (corrigir os rótulos SELinux) está em
-  [`18-sprint-bin-futuro.md`](../archive/18-sprint-bin-futuro.md).
+  [`18-sprint-bin-futuro.md`](18-sprint-bin-futuro.md).
 
 Para o SEU aparelho, nada disso é necessário — o método `/vendor` já resolveu, permanente.

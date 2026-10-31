@@ -5,7 +5,7 @@ Planejamento (não-executado) para transformar a descoberta pontual da sessão d
 engenharia reversa, decompilação e a pesquisa dos agentes, e define sprints com proof-of-work.
 
 Base técnica já resolvida e documentada em
-[`28-troca-painel-rx058b-diagnostico-cor.md`](28-troca-painel-rx058b-diagnostico-cor.md).
+[`28-troca-painel-rx058b-diagnostico-cor.md`](../research/28-troca-painel-rx058b-diagnostico-cor.md).
 
 > **ESTADO DAS SPRINTS (2026-10-30)** — o status de cada sprint abaixo é este; as notas datadas dentro de
 > cada uma explicam:
@@ -14,15 +14,15 @@ Base técnica já resolvida e documentada em
 > |---|---|
 > | LCD-S1 | **IMPLEMENTADO** (`a9d3fa2`, 2026-07-12; backup obrigatório antes de qualquer gravação no bloco 1, `c7a0bbb`). Falta só a prova (c): o fluxo completo do script rodado no aparelho |
 > | LCD-S2 | **IMPLEMENTADO** (wizard v2, `a9d3fa2`). Falta a prova no aparelho forçando tela preta |
-> | LCD-S3 | **SUBSTITUÍDA** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) ([doc 41](41-auto-pareamento-camera-e-kit-universal.md)): a câmera interna lê a escada de 16 cinzas (blocos 7 e 8, provada no aparelho; o critério "duas metades" foi abandonado) e a suíte de boot a repete a cada volta da tomada ([doc 44](44-suite-de-boot.md)) |
-> | LCD-S4 | **DECIDIDA** (cor fora do `.bin` universal). A premissa da Task 1 caiu: a `panelparam` **provavelmente está** no container (record 4; [doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3, [doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §5); confirmação pendente no aparelho (bloco 5, E1) |
+> | LCD-S3 | **SUBSTITUÍDA** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md)): a câmera interna lê a escada de 16 cinzas (blocos 7 e 8, provada no aparelho; o critério "duas metades" foi abandonado) e a suíte de boot a repete a cada volta da tomada ([doc 44](../research/44-suite-de-boot.md)) |
+> | LCD-S4 | **DECIDIDA** (cor fora do `.bin` universal). A premissa da Task 1 caiu: a `panelparam` **provavelmente está** no container (record 4; [doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §3, [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md) §5); confirmação pendente no aparelho (bloco 5, E1) |
 > | LCD-S5 | **ENTREGUE** (guia 32, reescrito em 2026-10-30 para o kit de pendrive e o diagnóstico por barras puras) |
 > | LCD-S6 | **ENTREGUE** (doc 33; em 2026-10-30 ganhou o painel da 2ª troca e os perfis 83-86 do firmware de outubro) |
 > | LCD-S7 | **ENTREGUE** (doc 33 §3) |
 >
-> **Fato novo de 2026-10-29** ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1): na 2ª
+> **Fato novo de 2026-10-29** ([doc 40](../research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1): na 2ª
 > troca o painel instalado é um `FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA** (`0x5c` = 0). Na 3ª
-> troca (2026-10-30) o painel pediu **JEIDA**; o aparelho está hoje em JEIDA ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §8). O JEIDA citado abaixo vale para o `-0600` da 1ª troca. O formato não se deduz do
+> troca (2026-10-30) o painel pediu **JEIDA**; o aparelho está hoje em JEIDA ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §8). O JEIDA citado abaixo vale para o `-0600` da 1ª troca. O formato não se deduz do
 > nome: decide o teste de cinza.
 
 ---
@@ -175,10 +175,10 @@ sozinho dentro do timeout (comprovar forçando um `swap` que dê tela preta e n�
 
 ### LCD-S3 — Auto-pareamento via câmera interna (a "forma inteligente")
 > **SUBSTITUÍDA (2026-10-29)** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md), com a
-> pesquisa no [doc 41](41-auto-pareamento-camera-e-kit-universal.md): a câmera é UVC e se lê por V4L2
+> pesquisa no [doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md): a câmera é UVC e se lê por V4L2
 > (§1). O critério "duas metades" (§4) foi trocado pela escada de 16 cinzas no bloco 7, e a câmera decide sem
 > tecla desde o bloco 8 (provado no aparelho); as duas teclas ficaram só como reserva quando a câmera não
-> ajuda. A suíte de boot repete a verificação a cada volta da tomada ([doc 44](44-suite-de-boot.md)).
+> ajuda. A suíte de boot repete a verificação a cada volta da tomada ([doc 44](../research/44-suite-de-boot.md)).
 **Objetivo:** detectar e aplicar o formato certo **sem input humano**, usando a **câmera de foco/keystone
 do próprio PFL7560** para "ver" a projeção e se auto-calibrar. **Motivação:** painéis LVDS não têm
 EDID — não dá pra "perguntar" ao painel; mas o projetor pode **olhar a própria imagem**.
@@ -225,9 +225,9 @@ tem dominante de cor própria (por isso o critério é diferencial, não absolut
 > **CORREÇÃO (2026-10-29/30)** — a resposta da Task 1 abaixo está **provavelmente errada**. O record 4 do
 > container (63.876 bytes em `0x144180c`) contém `panelheader/paneldatabody` e o nome
 > `RX058B_4300_5010E_1080P_M`, igual à `panelparam` do aparelho
-> ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3); no firmware de outubro esse record cresceu
+> ([doc 41](../research/41-auto-pareamento-camera-e-kit-universal.md) §3); no firmware de outubro esse record cresceu
 > com os 4 perfis novos e o perfil 69 traz `0x5c` = 0 (VESA)
-> ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §2.2 e §5). O "nenhum payload tem ~8 MB" comparou com
+> ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md) §2.2 e §5). O "nenhum payload tem ~8 MB" comparou com
 > o tamanho do slot, não com o dado (~64 KB). Consequência: **regravar o `.bin` pode devolver o byte `0x5c`
 > ao de fábrica (VESA)** — inócuo para painel VESA, quebra a cor de painel JEIDA. A decisão de escopo
 > (JEIDA fora do `.bin` universal) continua valendo, agora por mais um motivo. Confirmação no aparelho:
@@ -281,7 +281,7 @@ wizard), e quando NÃO tem conserto por software (timing/resolução física inc
 **Proof-of-work:** um terceiro consegue replicar só com o guia. **Esforço:** baixo.
 
 ### LCD-S6 — Matriz viva de painéis compatíveis
-> **Status (2026-07-12): ENTREGUE (v1)** — [`33-matriz-paineis.md`](33-matriz-paineis.md) §1, com
+> **Status (2026-07-12): ENTREGUE (v1)** — [`33-matriz-paineis.md`](../research/33-matriz-paineis.md) §1, com
 > `RX058B-4300` (VESA) e `RX058B-0600` (JEIDA, testado OK). É catálogo vivo: adicionar novos painéis conforme testados.
 > Em 2026-10-30 ganhou a linha do painel da 2ª troca (`-4300`, VESA) e os perfis 83-86 do firmware de outubro.
 **Objetivo:** catálogo mantido de painéis testados: part number, tamanho, resolução física real,
@@ -293,7 +293,7 @@ recomendação de "melhor custo/benefício" e alertas (fake 1080p, timing incomp
 **Esforço:** contínuo.
 
 ### LCD-S7 — Auditoria da nomenclatura dos perfis (o mistério do "SC5010E")
-> **Status (2026-07-12): ENTREGUE** — [`33-matriz-paineis.md`](33-matriz-paineis.md) §3. Achado central:
+> **Status (2026-07-12): ENTREGUE** — [`33-matriz-paineis.md`](../research/33-matriz-paineis.md) §3. Achado central:
 > o campo IC do nome é o **driver on-glass** do painel, não T-CON nem backlight; o "SC5010E" é **falso-amigo**
 > do backlight Semtech SC5010 (corrige a nota do doc 28). Chave de compatibilidade real = campos do struct,
 > não o nome. Falta só (contínuo) extrair os campos elétricos por perfil dos 83 structs.
