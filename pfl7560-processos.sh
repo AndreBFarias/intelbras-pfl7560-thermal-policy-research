@@ -21,9 +21,7 @@
 # Uso:
 #   PFL_IP=<ip> ./pfl7560-processos.sh [--segundos 60] [--saida arquivo.txt]
 #   ./pfl7560-processos.sh --analisar <top.txt> [--amostras <amostras.txt>] [--saida arquivo.txt]
-#       (sem aparelho: le uma saida de top ja gravada; e o que o harness tests/test-processos.sh usa)
 set -u
-# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula e le "65.8" como 65
 export LC_ALL=C
 
 ADB="${ADB:-adb}"
@@ -33,11 +31,8 @@ SEG=60
 SAIDA=""
 TOP_ARQ=""
 AMOSTRAS_ARQ=""
-INTERVALO="${PFL_INTERVALO:-5}"   # so o harness muda (tests/test-processos.sh)
-# PROVISORIO: um processo so e CANDIDATO a desligar se usar pelo menos isto de UM nucleo na
-# media da janela (toybox top: 100 % = um nucleo) e nao for essencial (lista abaixo).
+INTERVALO="${PFL_INTERVALO:-5}"
 CANDIDATO_CPU_PCT=2.0
-# nomes (regex estendida, sobre o nome do processo) que nunca viram candidato
 ESSENCIAIS='^(init|ueventd|logd|lmkd|vold|netd|zygote|zygote64|servicemanager|hwservicemanager|vndservicemanager|surfaceflinger|system_server|adbd|top|sh|toybox|toolbox|hidebug|logcat|mediaserver|healthd|keystore|installd|android\.hardware\..*|android\.hidl\..*|vendor\..*|com\.newlink\.hisilauncher|kworker.*|ksoftirqd.*|kswapd.*|mmcqd.*|jbd2.*|migration.*|rcu_.*|irq/.*|watchdog.*|cpuhp.*|kthreadd|kblockd|dmcrypt.*|loop[0-9]*)$'
 
 X='\033[1;31m'; A='\033[1;33m'; C='\033[1;36m'; Z='\033[0m'
@@ -47,16 +42,12 @@ say(){ printf "${C}%s${Z}\n" "$*" >&2; }
 
 ajuda(){ sed -n '2,23p' "$0" | sed 's/^# \{0,1\}//'; }
 
-# ---------------------------------------------------------------- analise
-# Le o top (a ULTIMA tela) e as amostras e escreve o resumo legivel em stdout.
-# amostras: linhas "A|epoch|carga1 carga5 carga15|env|luz" e "D|pid|nome"
 analisar(){
   local top="$1" amostras="${2:-}" norm
   [ -s "$top" ] || { err "top vazio ou inexistente: $top"; return 1; }
   norm="$(mktemp)"
-  # 1) normaliza a ultima tela do top: linhas "#META chave=valor" e "P<TAB>pid<TAB>usuario<TAB>estado<TAB>cpu<TAB>nome<TAB>args"
   awk '
-    function nome_de(s,   t) {      # primeiro token do ARGS, sem caminho e sem colchetes
+    function nome_de(s,   t) {
       t = s; sub(/ .*/, "", t); sub(/^\[/, "", t); sub(/\]$/, "", t); if (t ~ /^\//) sub(/.*\//, "", t); return t
     }
     /^ *Tasks:/ { tela++; ncpu = 0; idle = ""; usr = ""; sys = ""; cab = 0; nlin = 0; tasks = $0; next }
@@ -112,7 +103,6 @@ analisar(){
   echo "CPU geral na janela (ultima tela do top): $nproc processos, $ncpu nucleo(s)."
   if [ -n "$idle" ]; then
     awk -v i="$idle" -v u="${usr:-0}" -v s="${sys:-0}" -v n="$ncpu" 'BEGIN{
-      # o toybox mostra 100 % por nucleo: idle/ncpu e a fracao ociosa do total
       oc = 100 - i / n
       printf "  ocupada: %.1f %% do total (usuario %.1f %%, sistema %.1f %%); ociosa: %.1f %%\n", oc, u / n, s / n, i / n }'
   else
@@ -149,7 +139,6 @@ analisar(){
   echo "  Candidato = usa pelo menos $CANDIDATO_CPU_PCT % de um nucleo na media e nao esta na lista de essenciais."
   echo "  Esta ferramenta NAO desliga nada: ser candidato e so um motivo para olhar com calma."
   echo
-  # estado D na ultima tela do top
   local dtop
   dtop="$(grep '^P	' "$norm" | awk -F'\t' '$4 == "D" { printf "%s(%s) ", $6, $2 }')"
   echo "Processos em estado D (esperando disco ou driver):"
@@ -205,18 +194,16 @@ analisar(){
   rm -f "$norm"
 }
 
-# ---------------------------------------------------------------- coleta
 conecta(){
   [ -n "$IP" ] || { err "defina PFL_IP=<ip do projetor>"; exit 2; }
-  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac
   timeout 15 "$ADB" connect "$DEV" >/dev/null 2>&1
   local m; m=$(timeout 15 "$ADB" -s "$DEV" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d '\r\n ')
   [ "$m" = "PFL7560" ] || { err "nao e um PFL7560 em $DEV (model='${m:-vazio}')"; exit 2; }
 }
-# uma amostra: so leitura. Linha A|epoch|carga|env|luz e uma linha D|pid|nome por processo em estado D
 amostra(){
   local saida
-  # shellcheck disable=SC2016  # o comando roda no aparelho: as expansoes sao de la
+  # shellcheck disable=SC2016
   saida="$(timeout 20 "$ADB" -s "$DEV" shell 'cat /proc/loadavg; getprop zysys.env_temp; getprop zysys.light_temp; for f in $(grep -l ") D " /proc/[0-9]*/stat 2>/dev/null); do p=${f#/proc/}; p=${p%/stat}; echo "D $p $(cat /proc/$p/comm 2>/dev/null)"; done' </dev/null 2>/dev/null | tr -d '\r')"
   [ -n "$saida" ] || return 1
   printf '%s\n' "$saida" | awk -v t="$(date +%s)" '
@@ -237,7 +224,6 @@ coleta(){
   tmp="$(mktemp -d)"
   trap 'rm -rf "$tmp"' EXIT
   say "medindo por ${SEG} s: deixe o projetor PARADO (tela inicial, sem video, sem app aberto)"
-  # top em segundo plano (a 2a tela e a media da janela) e as amostras de /proc na frente
   ( timeout $((SEG + 40)) "$ADB" -s "$DEV" shell top -b -n 2 -d "$SEG" </dev/null 2>/dev/null | tr -d '\r' > "$tmp/top.txt" ) &
   local top_pid=$!
   : > "$tmp/amostras.txt"
@@ -262,7 +248,6 @@ coleta(){
   say "salvo em $SAIDA"
 }
 
-# -------------------------------------------------------------------- main
 MODO=coleta
 while [ $# -gt 0 ]; do
   case "$1" in

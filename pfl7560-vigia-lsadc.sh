@@ -1,29 +1,5 @@
 #!/usr/bin/env bash
-# pfl7560-vigia-lsadc.sh - mede a TAXA de episodios de LSADC Error por hora de
-# uso real, sem sondar o aparelho.
-#
-# A PERGUNTA QUE ESTE INSTRUMENTO RESPONDE:
-#   "quantas vezes o LSADC Error aparece por hora de uso real, sem ninguem
-#    sondando" -- e o numero que decide entre "foi o observador" e "e um terceiro
-#    defeito de fabrica".
-#
-# POR QUE ELE NÃO PODE USAR hidebug: os comandos gtt forcam comutacao do mux dos
-# termistores e sao SUSPEITOS de serem o próprio gatilho do erro (doc 35,
-# LSADC-S2). Um instrumento que usa hidebug mede o observador, não o fenomeno.
-# Aqui so ha logcat (leitura passiva de buffer) e /proc/uptime.
-#
-# O BURACO DE COBERTURA E O INIMIGO: se o vigia ficar fora do ar durante um
-# episodio, a taxa sai viesada PARA BAIXO -- e um falso "esta tudo bem". Por isso
-# ele registra a cobertura explicitamente e o resumo desconta o que não foi
-# observado. Toda reconexao faz um backfill do buffer do logcat, que guarda
-# histórico, para recuperar o que passou enquanto estava fora.
-#
-# Uso:
-#   PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh            # vigia (roda ate Ctrl-C)
-#   PFL_IP=<ip> ./pfl7560-vigia-lsadc.sh --resumo   # calcula a taxa e sai
 set -u
-# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
-# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
 export LC_ALL=C
 
 ADB="${ADB:-adb}"
@@ -33,7 +9,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 DIR="${VIGIA_DIR:-$HERE/evidencias/lsadc}"
 EV="$DIR/eventos.tsv"
 COB="$DIR/cobertura.tsv"
-# duas ocorrencias separadas por menos que isso pertencem ao MESMO episodio
 GAP_EPISODIO="${GAP_EPISODIO:-60}"
 mkdir -p "$DIR"
 
@@ -43,22 +18,12 @@ mkdir -p "$DIR"
 V='\033[1;32m'; X='\033[1;31m'; A='\033[1;33m'; C='\033[1;36m'; Z='\033[0m'
 agora(){ date '+%Y-%m-%d %H:%M:%S'; }
 
-# Identidade do boot = instante em que o aparelho ligou (epoch do host menos o
-# uptime). Muda quando ha reboot, entao serve para separar sessões e para
-# detectar que o aparelho reiniciou entre duas janelas de cobertura.
-#
-# Seta BID e UPTIME como globais em vez de imprimir: chamada em $(...) rodaria
-# num subshell e o UPTIME não voltaria para o chamador.
 BID=""; UPTIME=""
 le_boot(){
   local up bruto; up=$(timeout 10 "$ADB" -s "$DEV" shell 'cut -d" " -f1 /proc/uptime' </dev/null 2>/dev/null | tr -d '\r')
   [ -n "$up" ] || return 1
   UPTIME="${up%%.*}"
   bruto=$(( $(date +%s) - UPTIME ))
-  # O calculo flutua +-1 s entre leituras (latencia do adb + truncamento do
-  # uptime), o que criaria um "boot novo" a cada janela e inflaria a contagem de
-  # sessões. Um reboot de verdade move isso em minutos, entao qualquer variacao
-  # menor que 60 s e a mesma sessão: mantem o primeiro valor como canônico.
   if [ -n "$BID" ] && [ $(( bruto > BID ? bruto - BID : BID - bruto )) -lt 60 ]; then
     return 0
   fi
@@ -71,14 +36,11 @@ conecta(){
   [ "$m" = "PFL7560" ]
 }
 
-# So as linhas que interessam. O erro repete a cada ~2 s durante um episodio;
-# guardamos todas e o agrupamento em episodios acontece no resumo.
 FILTRO='LSADC Error|Achieve Balance|Upset Balance|Overheat|Level Change|PWM Duty Change|bAbnormal'
 
-registra(){  # registra <BID> <origem>
+registra(){
   local bid="$1" origem="$2" linha ev
   while IFS= read -r linha; do
-    # tira as cores ANSI que o firmware injeta no log
     linha=$(printf '%s' "$linha" | sed 's/\x1b\[[0-9;]*m//g')
     case "$linha" in
       *"LSADC Error"*)     ev=LSADC_ERROR ;;
@@ -91,11 +53,6 @@ registra(){  # registra <BID> <origem>
       *) continue ;;
     esac
 
-    # ESCADA DE BRILHO ATUANDO. O firmware loga "Level Change X => Y" a cada
-    # tick, quase sempre com X == Y (nada mudou). O que interessa e a transicao
-    # de verdade: X != Y significa que a politica de backlight reagiu a
-    # temperatura -- descer e a escada protegendo a optica, subir e ela
-    # devolvendo brilho na queda. Essas nunca sao amostradas.
     if [ "$ev" = LEVEL ]; then
       local de para
       de=$(printf '%s' "$linha" | sed -n 's/.*Level Change \([0-9]\{1,\}\) => \([0-9]\{1,\}\).*/\1/p')
@@ -110,29 +67,11 @@ registra(){  # registra <BID> <origem>
       fi
     fi
 
-    # fan saindo do maximo tambem e evento raro que não pode ser amostrado
     if [ "$ev" = FAN ]; then
       case "$linha" in *"=> 1000!"*) ;; *) ev=FAN_ABAIXO_DO_MAXIMO
         printf "${X}[%s] FAN SAIU DO MAXIMO: %s${Z}\n" "$(agora)" "$linha" ;; esac
     fi
 
-    # PRECURSOR: "Upset Balance" por si so e evento NORMAL -- e o loop dizendo
-    # que a temperatura saiu do equilibrio, e o valor vem em mC plausivel
-    # (ex.: 31360 = 31,4 C). O que interessa e o valor INVÁLIDO entrando no loop.
-    #
-    # Dois casos ja observados neste aparelho, com ordens de grandeza opostas:
-    #   -1296474592  (2026-07-05, heat.logcat linha 167) -- lixo, precedeu o erro
-    #             2  (2026-08-17, sessao-diagnostico-231714.tsv 23:20:44) -- 2 mC
-    #                no meio de uma serie estavel em 63421, sete minutos antes do
-    #                episodio travado. ATENCAO: essa veio de uma SONDAGEM externa
-    #                via hidebug, não do loop do firmware. Aqui, ao contrario, o
-    #                valor sai do log do próprio firmware -- por isso este vigia
-    #                mede o fenomeno, e aquele capturador media o observador.
-    #
-    # FAIXA: os sensores deste aparelho leem 28-32 C (placa) e 55-70 C (optica).
-    # Qualquer coisa abaixo de 5 C ou acima de 120 C e leitura inválida, não
-    # temperatura. A faixa anterior (-1000 a 150000) deixava o "2 mC" passar --
-    # justamente o caso mais interessante.
     if [ "$ev" = UPSET ] || [ "$ev" = BALANCE ]; then
       local val; val=$(printf '%s' "$linha" | sed -n 's/.*Temperature:\(-\{0,1\}[0-9]\{1,\}\).*/\1/p')
       if [ -n "$val" ] && { [ "$val" -lt 5000 ] || [ "$val" -gt 120000 ]; } 2>/dev/null; then
@@ -141,9 +80,6 @@ registra(){  # registra <BID> <origem>
       fi
     fi
 
-    # os normais sao muito frequentes e so servem de contraprova de que o loop
-    # esta vivo; um a cada 20 basta e evita arquivo gigante. Os anomalos e os
-    # erros nunca sao amostrados: entram todos.
     case "$ev" in
       BALANCE|LEVEL|UPSET|FAN) N=$((${N:-0}+1)); [ $((N % 20)) -eq 0 ] || continue ;;
     esac
@@ -154,11 +90,6 @@ registra(){  # registra <BID> <origem>
 
 vigia(){
   [ -n "$IP" ] || { echo "defina PFL_IP=<ip do projetor>"; exit 2; }
-  # TRAVA CONTRA DUPLICACAO: duas instancias gravam janelas de cobertura
-  # sobrepostas no mesmo arquivo e a medicao passa a contar o mesmo tempo duas
-  # vezes (visto em 2026-08-18: 6,76 h somadas para 2,36 h reais). Como o
-  # numero de horas observadas e o criterio de decisao do estudo, isso não pode
-  # acontecer em silencio.
   LOCK="$DIR/vigia.pid"
   if [ -f "$LOCK" ]; then
     _p=$(cat "$LOCK" 2>/dev/null)
@@ -168,13 +99,6 @@ vigia(){
     fi
   fi
   echo $$ > "$LOCK"
-  # A janela de cobertura TEM de ser fechada em qualquer saida. Antes, o trap so
-  # removia o lock e o COBERTURA_FIM so era escrito depois do streaming retornar
-  # -- entao todo Ctrl-C, kill ou queda do terminal deixava a janela ABERTA, e o
-  # resumo a estendia ate "agora". Efeito medido em 2026-09-03: 386,26 h
-  # publicadas para 2,65 h reais (fator 145x), no numero que decide o LSADC-S1.
-  # O trap de INT precisa de `exit` explicito: sem ele o handler retorna e o
-  # `while :` continua -- o script ficava ininterrompivel por Ctrl-C.
   FIM_OK=""; JANELA_ABERTA=""
   fim_cobertura(){
     [ -z "${FIM_OK:-}" ] || return 0
@@ -186,7 +110,7 @@ vigia(){
   }
   trap fim_cobertura EXIT
   trap 'fim_cobertura; exit 130' INT TERM
-  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac
   printf "${C}vigia LSADC iniciado${Z}  destino: %s\n" "$DIR"
   printf "passivo: so logcat e /proc/uptime. Nenhum acesso ao hidebug.\n\n"
   local ANT_BID=""
@@ -202,12 +126,9 @@ vigia(){
     printf 'COBERTURA_INICIO\t%s\t%s\t%s\n' "$(agora)" "$BID" "$UPTIME" >> "$COB"
     JANELA_ABERTA=1
 
-    # backfill: o buffer do logcat guarda o histórico do boot, entao uma leitura
-    # unica recupera o que aconteceu enquanto o vigia estava fora do ar
     timeout 60 "$ADB" -s "$DEV" shell 'logcat -d -v time -s ZYThermalManager' </dev/null 2>/dev/null \
       | grep -aE "$FILTRO" | registra "$BID" backfill
 
-    # streaming: enquanto a conexao viver, cada linha chega na hora
     timeout 21600 "$ADB" -s "$DEV" shell 'logcat -v time -s ZYThermalManager' </dev/null 2>/dev/null \
       | grep -aE --line-buffered "$FILTRO" | registra "$BID" stream
 
@@ -222,15 +143,6 @@ vigia(){
 resumo(){
   [ -s "$COB" ] || { echo "sem dados ainda em $COB"; exit 1; }
   printf "${C}== cobertura observada ==${Z}\n"
-  # soma as janelas fechadas; uma janela aberta (sem FIM) conta ate agora
-  # UNIAO das janelas, não soma: janelas sobrepostas (duas instancias, ou
-  # reconexao rapida) contariam o mesmo tempo real duas vezes e inflariam as
-  # horas observadas, que sao o criterio de decisao do estudo.
-  # Janela orfa (sem FIM) e fechada no ÚLTIMO SINAL DE VIDA daquele boot -- nunca
-  # em "agora". Fechar em "agora" transformava uma sessão de 15 min encerrada com
-  # Ctrl-C em centenas de horas de observacao fabricada. Este awk repara tambem o
-  # histórico ja gravado, sem editar arquivo de evidencia.
-  # Ordem dos arquivos: "$EV" primeiro (o bloco FNR==NR o consome), "$COB" depois.
   awk -F'\t' '
     function seg(s){ gsub(/-/," ",s); gsub(/:/," ",s); return mktime(s) }
     FNR==NR { if(FNR>1 && $2!="") { k=$2; if($1>ult[k]) ult[k]=$1 } ; next }
@@ -297,9 +209,6 @@ resumo(){
 
   printf "\n${C}== veredito ==${Z}\n"
   local h ep
-  # MESMA regra do bloco de cobertura: janela orfa fecha no último sinal de vida
-  # daquele boot, nunca em "agora". Este e o denominador da regra dos tres --
-  # infla-lo fabrica confianca estatistica que a observacao real não sustenta.
   h=$(awk -F'\t' '
     function seg(s){ gsub(/-/," ",s); gsub(/:/," ",s); return mktime(s) }
     FNR==NR { if(FNR>1 && $2!="") { k=$2; if($1>ult[k]) ult[k]=$1 } ; next }
@@ -327,8 +236,6 @@ resumo(){
     printf "  ${X}CONCLUSAO: o erro ocorre no uso real. Nao e artefato do observador.${Z}\n"
     printf "  Consequencia: verificar de vez em quando NÃO basta -- e preciso vigiar e reiniciar.\n"
   else
-    # Regra dos tres: com zero eventos em h horas, o limite superior de 95%% para
-    # a taxa e 3/h. E o maximo que se pode afirmar a partir de "não vi nenhum".
     awk -v h="$h" 'BEGIN{
       if(h<=0){ print "  sem tempo observado ainda."; exit }
       printf "  zero episodios em %.2f h de observacao.\n", h

@@ -1,38 +1,5 @@
 #!/usr/bin/env bash
-# ============================================================================
-#  pfl7560-evidencias.sh - captura reproduzivel de evidencias (Intelbras PFL7560)
-#
-#  Qualquer pessoa com um PFL7560 roda este script e obtem o MESMO dossie de
-#  prova do defeito de politica termica: leitura dos 2 sensores NTC, curva de
-#  aquecimento, ventiladores e o comparativo ANTES (stock) x DEPOIS (corrigido).
-#  Descobre o projetor sozinho na rede Wi-Fi (adb TCP 5555) e da o veredito.
-#
-#  SUBCOMANDOS
-#    find                      descobre o projetor na rede e sai
-#    status                    diagnostico read-only + veredito STOCK/CORRIGIDO
-#    snapshot <antes|depois>   captura pontual (gtt/fans) -> evidencias/<data>/
-#    soak <antes|depois> [min] loga NTC+fans por N min (default 10) + le o termometro IR
-#    set-thermal <stock|fix>   troca SO o ZYCustom.ini (adb-safe) + reboot
-#    report                    consolida antes/depois -> relatorio higienizado
-#
-#  FLUXO TIPICO (aparelho ja corrigido -> capturar o "antes"):
-#    ./pfl7560-evidencias.sh set-thermal stock   # reintroduz o defeito (temporario)
-#    ./pfl7560-evidencias.sh soak antes 10        # tela BRANCA 100% no projetor
-#    ./pfl7560-evidencias.sh set-thermal fix      # volta ao corrigido
-#    ./pfl7560-evidencias.sh soak depois 10
-#    ./pfl7560-evidencias.sh report
-#
-#  SEGURANCA
-#   - Conexao por Wi-Fi (adb 5555, ja aberto nesta build userdebug).
-#   - Trava universal: so fala com ro.product.model == PFL7560.
-#   - set-thermal mexe SO no /vendor/etc/ZYCustom.ini (nunca no build.prop):
-#     mantem o Wi-Fi corrigido -> a conexao adb sobrevive ao reboot.
-#   - Escrita atomica (.new + confere md5 + mv). Faz backup do .ini atual antes.
-#   - NAO toca no bootloader. Reversivel: o stock e a build vivem em artifacts/.
-# ============================================================================
 set -uo pipefail
-# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
-# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
 export LC_ALL=C
 PORT=5555
 
@@ -40,20 +7,16 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ADB="$(command -v adb || true)"; [ -n "$ADB" ] || ADB="$HOME/Android/sdk/platform-tools/adb"
 [ -x "$ADB" ] || { echo "ERRO: adb nao encontrado (rode ./install.sh)" >&2; exit 1; }
 
-# caminhos no device (particao /vendor)
 INI_VENDOR="/vendor/etc/ZYCustom.ini"
 BP="/vendor/build.prop"
 
-# artefatos byte-exatos versionados no repo (fonte de troca stock<->fix)
-ART_STOCK="$HERE/artifacts/ZYCustom.ini.ORIGINAL"   # firmware de fabrica
-ART_FIX="$HERE/artifacts/ZYCustom_390.ini"          # a build corrigida
+ART_STOCK="$HERE/artifacts/ZYCustom.ini.ORIGINAL"
+ART_FIX="$HERE/artifacts/ZYCustom_390.ini"
 MD5_STOCK="29d8ba36149413e899563029df078f6d"
 MD5_FIX="252ab7a72a007a8b79b3fc86bd5c0d19"
 
-# saida do dossie (dados CRUS; gitignored). Um diretorio por dia p/ juntar antes+depois.
 OUTDIR="${PFL_OUTDIR:-$HERE/evidencias/$(date +%Y-%m-%d)}"
 
-# sub-rede a varrer: PFL_SUBNET; senao autodetecta pela interface da rota padrao
 _DEV="$(ip route show default 2>/dev/null | awk '/default/{print $5; exit}')"
 SUBNET="${PFL_SUBNET:-$(ip -o -f inet addr show dev "${_DEV:-lo}" 2>/dev/null | awk '{print $4}' | head -1)}"
 
@@ -62,13 +25,9 @@ ok(){   printf '\033[1;32m[OK] %s\033[0m\n' "$*" >&2; }
 warn(){ printf '\033[1;33m[!] %s\033[0m\n' "$*" >&2; }
 err(){  printf '\033[1;31m[ERRO] %s\033[0m\n' "$*" >&2; }
 hr(){   printf '\033[2m%s\033[0m\n' "------------------------------------------------------------" >&2; }
-# miliC -> C. A sentinela 'NA' de read_hidebug tem de SOBREVIVER: interpolada
-# como expressao awk, 'NA/1000' virava 0.0 -- indistinguivel de leitura real, e
-# entrava na media do relatorio ANTES/DEPOIS puxando-a dezenas de graus.
 c2(){   case "${1:-}" in ''|*[!0-9-]*) printf 'NA'; return ;; esac
         awk "BEGIN{printf \"%.1f\", ${1}/1000}"; }
 
-# higieniza stdin (redige IP/MAC/SSID) p/ artefatos publicaveis
 sanitize(){
   local ip="${1:-}" ssid="${2:-}"
   sed -E \
@@ -77,7 +36,6 @@ sanitize(){
     ${ssid:+-e "s/${ssid//\//\\/}/<SSID-REDIGIDO>/g"}
 }
 
-# ---- descoberta: echo do IP do projetor; !=0 se nao achar ----
 discover(){
   [ -n "${PFL_IP:-}" ] && { echo "$PFL_IP"; return 0; }
   [ -n "$SUBNET" ] || { err "nao detectei a sub-rede; informe PFL_IP=<ip>"; return 1; }
@@ -94,23 +52,19 @@ discover(){
   return 1
 }
 
-# ---- conecta + root + valida o modelo; echo "ip:port" ----
 connect(){
-  local ip dev u m; ip="$(discover)" || return 1; case "$ip" in *:*) dev="$ip" ;; *) dev="$ip:$PORT" ;; esac   # PFL_IP pode ja trazer a porta
+  local ip dev u m; ip="$(discover)" || return 1; case "$ip" in *:*) dev="$ip" ;; *) dev="$ip:$PORT" ;; esac
   "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1 || true
   u="$("$ADB" -s "$dev" shell id 2>/dev/null | grep -oE 'uid=[0-9]+')"
   [ "$u" != "uid=0" ] && { "$ADB" -s "$dev" root >/dev/null 2>&1; sleep 2; "$ADB" connect "$dev" >/dev/null 2>&1; "$ADB" -s "$dev" wait-for-device >/dev/null 2>&1 || true; }
   m="$("$ADB" -s "$dev" shell getprop ro.product.model 2>/dev/null | tr -d '\r\n ')"
   [ "$m" = "PFL7560" ] || { err "dispositivo em $ip NAO e PFL7560 (model='$m'). Abortando."; return 1; }
-  # root conferido DE VERDADE: o "adb root" pode falhar em silencio e o hidebug entao
-  # responde errno = 13. So diz "(root)" se o id reler uid=0.
   u="$("$ADB" -s "$dev" shell id 2>/dev/null|grep -oE 'uid=[0-9]+')"
   [ "$u" = "uid=0" ] || { err "sem root em $ip (id devolveu '${u:-vazio}'): hidebug e escrita em /vendor nao funcionam. Abortando."; return 1; }
   ok "conectado ao PFL7560 em $ip (root)"
   echo "$dev"
 }
 
-# ---- caminho do .ini efetivo (precedencia /atv > /vendor) ----
 effective_ini(){
   local d="$1" pid cand
   pid="$("$ADB" -s "$d" shell getprop ro.boot.projectid 2>/dev/null | tr -d '\r\n ')"
@@ -120,18 +74,15 @@ effective_ini(){
   echo "$INI_VENDOR"
 }
 
-# ---- le NTC+fans de uma vez; ecoa "gtt0 gtt1 gtt2 fan0 fan1" (miliC / 0-1000) ----
 read_hidebug(){
   local d="$1" raw; local -a t f
   raw="$("$ADB" -s "$d" shell 'printf "custom\ngtc\ngtt 0\ngtt 1\ngtt 2\ngfs 0\ngfs 1\nquit\n" | /vendor/bin/hidebug' 2>/dev/null | tr -d '\r')"
   case "$raw" in *"errno = 13"*) err "hidebug negou acesso (errno = 13): sem root no aparelho" ;; esac
   mapfile -t t < <(printf '%s\n' "$raw" | sed -n 's/.*single NTC temperature:\(-\?[0-9]\+\).*/\1/p')
   mapfile -t f < <(printf '%s\n' "$raw" | sed -n 's/.*fan speed:\([0-9]\+\).*/\1/p')
-  # sentinela NA nos ausentes: mantem 5 campos p/ o 'read' nao desalinhar coluna
   echo "${t[0]:-NA} ${t[1]:-NA} ${t[2]:-NA} ${f[0]:-NA} ${f[1]:-NA}"
 }
 
-# ---- aguarda o projetor voltar do reboot (boot_completed) e re-root ----
 wait_boot(){
   local dev="$1" i=0 bc
   say "aguardando o projetor reiniciar (ate ~150s)..."
@@ -170,9 +121,6 @@ cmd_status(){
   say "  Wi-Fi (boot) : ${wifi:-(nao lido)}"
   say "  xiriservice  : ${xiri:-(desabilitado/ausente)}"
   hr
-  # read_hidebug preenche campo ausente com a sentinela 'NA', que e NÃO-VAZIA:
-  # testar por -n deixava passar, e $(( NA - NA )) sob `set -u` e erro fatal
-  # ("NA: unbound variable") que ENCERRAVA o script antes do veredito.
   diff=0; SENT=0
   case "$g0$g1" in *NA*|'') SENT=1 ;; esac
   [ "$SENT" = "0" ] && diff=$(( g1 - g0 ))
@@ -258,9 +206,6 @@ cmd_set_thermal(){
   say "backup do .ini atual do device -> $bkp"
   "$ADB" -s "$d" pull "$ini" "$bkp" >/dev/null 2>&1 || { err "falha ao puxar $ini p/ backup - abortando"; exit 1; }
   [ -s "$bkp" ] || { err "backup veio vazio - abortando (nao vou gravar)"; exit 1; }
-  # Sem isto, qualquer abort daqui para frente deixava /vendor GRAVAVEL ate o
-  # reboot. O pfl7560-fix.sh ja fazia o relock por trap desde a sprint 23; este
-  # caminho de escrita ficou de fora.
   _RELOCK_DEV="$d"
   relock_ev(){ [ -n "${_RELOCK_DEV:-}" ] && "$ADB" -s "$_RELOCK_DEV" shell "mount -o ro,remount /vendor" >/dev/null 2>&1; return 0; }
   trap relock_ev EXIT

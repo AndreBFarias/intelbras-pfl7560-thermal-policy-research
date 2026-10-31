@@ -3,15 +3,6 @@ setlocal EnableExtensions EnableDelayedExpansion
 chcp 65001 >nul 2>&1
 title PFL7560 - setup do PC (Windows)
 
-REM ============================================================================
-REM  install.bat — prepara o PC (Windows) para a correcao PFL7560 via adb
-REM
-REM  NAO grava nada no projetor ate voce escolher "Aplicar".
-REM  Metodo sem PC (recomendado se nao quiser adb): pasta pendrive-autorun\
-REM
-REM  Uso:  clique duplo em install.bat   ou   install.bat  no cmd
-REM ============================================================================
-
 cd /d "%~dp0"
 set "HERE=%CD%"
 set "TOOLS=%HERE%\tools\platform-tools"
@@ -105,8 +96,6 @@ echo      sensores (o 1o e a optica, o 2o a placa; iguais = mux nao comutou^):
 "%ADB%" -s %DEV% shell "getprop zysys.env_temp; getprop zysys.light_temp" 2>nul
 echo.
 echo  [4] correcao de cor do painel trocado
-REM VESA ou JEIDA sao ambos validos: depende do painel que esta na optica. O que se confere aqui
-REM e se o formato em uso bate com o byte lvds_fmt gravado no perfil ativo da panelparam (exige root).
 "%ADB%" -s %DEV% shell "f=$(grep -a lvds_fmt /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^A-Za-z]//g' | tr 'A-Z' 'a-z'); i=$(grep -a cut_idx /proc/msp/panel | head -1 | sed 's/^[^:]*:\([^|]*\).*/\1/;s/[^0-9]//g'); b=; case $i in ?*) b=$(dd if=/dev/block/by-name/panelparam bs=1 skip=$((168+i*768+92)) count=1 2>/dev/null | od -An -tu1 | tr -d ' ');; esac; case $f:$b in jeida:1|vesa:0) echo COR_OK;; *) echo COR_DIVERGE;; esac" 2>nul | findstr /c:"COR_OK" >nul && (echo      OK    formato em uso bate com o byte gravado na panelparam) || (echo      ATENCAO formato em uso diverge do byte gravado, ou ilegivel ^(a leitura exige root^))
 "%ADB%" -s %DEV% shell "grep -a lvds_fmt /proc/msp/panel" 2>nul
 echo      O software nao sabe qual painel esta na optica: confira a cor na tela.
@@ -151,11 +140,6 @@ if /i not "%C%"=="s" (
   goto :menu
 )
 call :connect || goto :menu
-REM bloco 6: este .bat grava o ini e o build.prop do V1.0.0.9 (com USB-C). No modelo sem USB-C
-REM (V1.0.0.1, NOTYPEC) isso rebaixaria o CONFIG_MODEL e o revert daria USB-C fantasma e o canal
-REM de OTA errado: so segue se o CONFIG_MODEL E o ro.newlink.projectname forem os do V1.0.0.9 (um
-REM aparelho sem USB-C que ja levou este ini tem o CONFIG_MODEL rebaixado, mas nao o projectname).
-REM O pfl7560-fix.sh (Linux/WSL) trata os dois.
 "%ADB%" -s %DEV% shell "grep -aq '^CONFIG_MODEL *= *KJM_5H039_412;' /vendor/etc/ZYCustom.ini && getprop ro.newlink.projectname | grep -qx KJM_5H039_412_INTELBRAS_TP"
 if errorlevel 1 (
   echo  [ERRO] Aparelho nao reconhecido como o modelo com USB-C ^(V1.0.0.9^): nada foi alterado.
@@ -184,7 +168,6 @@ if errorlevel 1 (
 echo  [OK] termico
 
 echo  [2/3] wifi_disconnect_on_boot=0 ...
-REM atomico: edita uma copia .new, confere, e so entao mv por cima (original intacto se cair no meio)
 "%ADB%" -s %DEV% shell "cp /vendor/build.prop /vendor/build.prop.new && sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' /vendor/build.prop.new && grep -q wifi_disconnect_on_boot=0 /vendor/build.prop.new && mv /vendor/build.prop.new /vendor/build.prop || rm -f /vendor/build.prop.new"
 "%ADB%" -s %DEV% shell "grep -q wifi_disconnect_on_boot=0 /vendor/build.prop"
 if errorlevel 1 (
@@ -195,7 +178,6 @@ if errorlevel 1 (
 echo  [OK] wifi
 
 echo  [3/3] xiriservice disabled ...
-REM BOOT-CRITICO: nunca sed -i no arquivo vivo; edita .new, confere e so entao mv (senao rm do .new)
 "%ADB%" -s %DEV% shell "grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc | grep -q disabled || { cp /vendor/etc/init/hw/init.bigfish.rc /vendor/etc/init/hw/init.bigfish.rc.new && sed -i '/^service xiriservice \/system\/bin\/xiriservice/a\    disabled' /vendor/etc/init/hw/init.bigfish.rc.new && grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc.new | grep -q disabled && mv /vendor/etc/init/hw/init.bigfish.rc.new /vendor/etc/init/hw/init.bigfish.rc || rm -f /vendor/etc/init/hw/init.bigfish.rc.new; }"
 "%ADB%" -s %DEV% shell "grep -A1 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc | grep -q disabled"
 if errorlevel 1 (
@@ -232,11 +214,6 @@ if /i not "%C%"=="s" (
   goto :menu
 )
 call :connect || goto :menu
-REM bloco 6: este .bat grava o ini e o build.prop do V1.0.0.9 (com USB-C). No modelo sem USB-C
-REM (V1.0.0.1, NOTYPEC) isso rebaixaria o CONFIG_MODEL e o revert daria USB-C fantasma e o canal
-REM de OTA errado: so segue se o CONFIG_MODEL E o ro.newlink.projectname forem os do V1.0.0.9 (um
-REM aparelho sem USB-C que ja levou este ini tem o CONFIG_MODEL rebaixado, mas nao o projectname).
-REM O pfl7560-fix.sh (Linux/WSL) trata os dois.
 "%ADB%" -s %DEV% shell "grep -aq '^CONFIG_MODEL *= *KJM_5H039_412;' /vendor/etc/ZYCustom.ini && getprop ro.newlink.projectname | grep -qx KJM_5H039_412_INTELBRAS_TP"
 if errorlevel 1 (
   echo  [ERRO] Aparelho nao reconhecido como o modelo com USB-C ^(V1.0.0.9^): nada foi alterado.
@@ -247,9 +224,6 @@ if errorlevel 1 (
 )
 "%ADB%" -s %DEV% remount >nul 2>&1
 set "RVOK=1"
-REM os 3 restauros sao atomicos (.new + confere + mv); qualquer falha marca RVOK=0 e NAO reinicia
-REM SEM '|| rm': se o mv falhar (destino read-only/FS cheio) o adb shell retorna != 0
-REM e o 'if errorlevel 1' abaixo marca RVOK=0. Um .new remanescente e inofensivo (sobrescrito).
 "%ADB%" -s %DEV% push "%BK%\ZYCustom.ini.STOCK" /vendor/etc/ZYCustom.ini.new
 if errorlevel 1 set "RVOK=0"
 "%ADB%" -s %DEV% shell "[ -s /vendor/etc/ZYCustom.ini.new ] && mv /vendor/etc/ZYCustom.ini.new /vendor/etc/ZYCustom.ini"
@@ -258,7 +232,6 @@ if errorlevel 1 set "RVOK=0"
 if errorlevel 1 set "RVOK=0"
 "%ADB%" -s %DEV% shell "[ -s /vendor/build.prop.new ] && mv /vendor/build.prop.new /vendor/build.prop"
 if errorlevel 1 set "RVOK=0"
-REM init.bigfish.rc e BOOT-CRITICO: so promove o .new se tiver conteudo E a linha do xiriservice
 "%ADB%" -s %DEV% push "%BK%\init.bigfish.rc.STOCK" /vendor/etc/init/hw/init.bigfish.rc.new
 if errorlevel 1 set "RVOK=0"
 "%ADB%" -s %DEV% shell "[ -s /vendor/etc/init/hw/init.bigfish.rc.new ] && grep -q 'service xiriservice' /vendor/etc/init/hw/init.bigfish.rc.new && mv /vendor/etc/init/hw/init.bigfish.rc.new /vendor/etc/init/hw/init.bigfish.rc"
@@ -268,9 +241,6 @@ if "%RVOK%"=="0" (
   pause
   goto :menu
 )
-REM confirmacao final por CONTEUDO stock (nao so existencia): build.prop de fabrica tem wifi=1
-REM (o fix poe =0), o que prova que o build.prop reverteu; os outros 2 sao cobertos pela deteccao
-REM de falha do mv acima. Sem '!' aqui: com EnableDelayedExpansion o cmd.exe corromperia o '!'.
 "%ADB%" -s %DEV% shell "grep -q wifi_disconnect_on_boot=1 /vendor/build.prop && [ -s /vendor/etc/ZYCustom.ini ] && [ -s /vendor/etc/init/hw/init.bigfish.rc ]"
 if errorlevel 1 (
   echo  [ERRO] validacao final do revert falhou. NAO reiniciei.
@@ -371,7 +341,6 @@ set "COMFW=0"
 set "FWRESP="
 set /p "FWRESP=  Incluir o firmware no pendrive, o nosso e o oficial de resgate? [s/N]: "
 if /i "%FWRESP%"=="s" set "COMFW=1"
-REM com firmware, as origens sao conferidas ANTES de copiar o kit: nada vai pela metade
 if "%COMFW%"=="1" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%\install-firmware-pendrive.ps1" -Modo conferir -Dest "%DST%" -Firmware "%HERE%\firmware"
   if errorlevel 1 (
@@ -398,8 +367,6 @@ if "%KITFAIL%"=="1" (
 echo  copiado. Conferindo o md5 de cada arquivo depois da copia ...
 set "PFL_SRC=%SRC%"
 set "PFL_DST=%DST%"
-REM a lista (md5  nome) esta embutida no newlink_update.sh entre KIT_LISTA_INICIO e KIT_LISTA_FIM;
-REM o proprio newlink_update.sh e o LEIA-ME.txt nao estao nela e sao comparados com a origem.
 powershell -NoProfile -Command "$s=$env:PFL_SRC; $d=$env:PFL_DST; $txt=Get-Content -Raw -LiteralPath ($s+'\newlink_update.sh'); $bad=0; $n=0; foreach($m in [regex]::Matches($txt,'(?m)^(?:KIT_LISTA=\x22)?([0-9a-f]{32})  (\S+)\s*$')){ $n++; $h=$m.Groups[1].Value; $f=$m.Groups[2].Value -replace '/','\'; $g=''; if(Test-Path -LiteralPath ($d+'\'+$f)){ $g=(Get-FileHash -Algorithm MD5 -LiteralPath ($d+'\'+$f)).Hash.ToLower() }; if($g -eq $h){ Write-Host ('     OK    '+$f) } else { Write-Host ('     FALHA '+$f); $bad++ } }; foreach($f in 'newlink_update.sh','LEIA-ME.txt'){ $n++; if((Test-Path -LiteralPath ($d+'\'+$f)) -and ((Get-FileHash -LiteralPath ($s+'\'+$f)).Hash -eq (Get-FileHash -LiteralPath ($d+'\'+$f)).Hash)){ Write-Host ('     OK    '+$f) } else { Write-Host ('     FALHA '+$f); $bad++ } }; if($n -lt 14){ Write-Host '     FALHA lista de md5 nao encontrada'; $bad++ }; if($bad -gt 0){ exit 1 }"
 if errorlevel 1 (
   echo.
@@ -421,19 +388,13 @@ echo  [OK] kit v2 completo e conferido em %DST%\ . Desligue o projetor, plugue o
 pause
 goto :menu
 
-REM ---- helpers ----
-
 :backup_panelparam
-REM backup do panelparam ANTES de gravar (a lvdsctl grava o byte na particao). Um por dia: o do
-REM 1o uso do dia guarda o estado anterior a qualquer mudanca desse dia. exit /b 1 se nao confirmar.
-REM O nome leva o serial: o backup do dia de OUTRO aparelho nao pode ser reaproveitado.
 set "HOJE="
 for /f %%D in ('powershell -NoProfile -Command "Get-Date -Format yyyyMMdd" 2^>nul') do set "HOJE=%%D"
 if not defined HOJE set "HOJE=semdata"
 set "PPSN="
 for /f "delims=" %%S in ('"%ADB%" -s %DEV% shell getprop ro.serialno 2^>nul') do set "PPSN=%%S"
 if defined PPSN set "PPSN=%PPSN: =%"
-REM serial ilegivel = nome unico, entao nunca reaproveita (sempre faz backup novo)
 if not defined PPSN set "PPSN=semserial-%RANDOM%"
 if not exist "%HERE%\backups-projetor" mkdir "%HERE%\backups-projetor"
 set "PPBK=%HERE%\backups-projetor\panelparam.backup-%PPSN%-%HOJE%.img"
@@ -445,7 +406,6 @@ echo  backup do panelparam antes de gravar ...
 "%ADB%" -s %DEV% exec-out "dd if=/dev/block/by-name/panelparam 2>/dev/null" > "%PPBK%.tmp"
 set "PPSZ="
 for %%F in ("%PPBK%.tmp") do set "PPSZ=%%~zF"
-REM a particao panelparam tem 8 MiB; tamanho diferente = dd truncado ou sem root
 if not "%PPSZ%"=="8388608" (
   del "%PPBK%.tmp" >nul 2>&1
   echo  [ERRO] backup do panelparam invalido ^(%PPSZ% bytes, esperado 8388608^) - NAO vou gravar.
@@ -456,13 +416,11 @@ echo  [OK] backup do panelparam salvo em %PPBK%
 exit /b 0
 
 :ask_ip
-REM herda PFL_IP do ambiente se ja estiver definido (set PFL_IP=x.x.x.x)
 if not defined PFL_IP set /p "PFL_IP=  IP do projetor (ex 192.168.0.50): "
 if "%PFL_IP%"=="" (
   echo  [ERRO] IP vazio. Dica: set PFL_IP=x.x.x.x antes de rodar, ou digite agora.
   exit /b 1
 )
-REM aceita IP puro (acrescenta a porta padrao) ou IP:porta (usa como veio)
 if not "%PFL_IP::=%"=="%PFL_IP%" (
   set "DEV=%PFL_IP%"
 ) else (
@@ -484,7 +442,6 @@ if /i not "%MODEL%"=="PFL7560" (
   echo  [ERRO] Dispositivo em %PFL_IP% nao e PFL7560 ^(model='%MODEL%'^). Abortado.
   exit /b 1
 )
-REM 'adb root' falha em silencio: confere o id de verdade antes de dizer root
 "%ADB%" -s %DEV% shell id 2>nul | findstr /c:"uid=0(" >nul
 if errorlevel 1 (
   echo  [OK] PFL7560 em %PFL_IP% ^(ATENCAO: SEM root - o id nao e uid=0; gravar e ler particoes pode falhar^)
@@ -537,7 +494,6 @@ if exist "%USERPROFILE%\AppData\Local\Android\Sdk\platform-tools\adb.exe" (
 goto :eof
 
 :install_adb
-REM 1) winget
 where winget >nul 2>&1
 if not errorlevel 1 (
   echo  tentando winget install Google.PlatformTools ...
@@ -546,7 +502,6 @@ if not errorlevel 1 (
   if defined ADB goto :eof
 )
 
-REM 2) chocolatey
 where choco >nul 2>&1
 if not errorlevel 1 (
   echo  tentando choco install adb ...
@@ -555,7 +510,6 @@ if not errorlevel 1 (
   if defined ADB goto :eof
 )
 
-REM 3) download zip oficial Google
 echo  baixando platform-tools oficiais (Google)...
 set "ZIP=%TEMP%\platform-tools-pfl7560.zip"
 set "URL=https://dl.google.com/android/repository/platform-tools-latest-windows.zip"

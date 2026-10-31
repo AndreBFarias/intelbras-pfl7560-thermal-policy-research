@@ -1,17 +1,4 @@
 #!/usr/bin/env bash
-# pfl7560-monitor-termico.sh - registra a curva termica durante uso REAL.
-#
-# Motivacao (doc 34): o patamar de repouso e ~61-63 C, mas o evento de 2026-07-29
-# chegou a 70 C em uso real. Nenhuma medicao de tela estatica reproduz o pior caso.
-# Este script registra gtt0/gtt1, rotacao comandada e brilho durante um filme, e
-# marca quando a escada de brilho atua e quando o WARNING/EMERGENCY sao cruzados.
-#
-# Uso:
-#   PFL_IP=<ip-do-projetor> ./pfl7560-monitor-termico.sh            # 4 h, 30 s
-#   PFL_IP=<ip> INTERVALO=15 HORAS=2 ./pfl7560-monitor-termico.sh
-#
-# Não grava nada no aparelho, mas cada gtt avança o anel do termistor: gtt 0 e gtt 1 sempre
-# em par, uso pontual e supervisionado, nunca como serviço (doc 37 §9). Ctrl+C encerra.
 set -u
 
 ADB="${ADB:-adb}"
@@ -19,10 +6,9 @@ IP="${PFL_IP:-}"
 INTERVALO="${INTERVALO:-30}"
 HORAS="${HORAS:-4}"
 
-# limiares da build atual (ZYCustom_390.ini) - so para rotular a saida
 WARN_MC=70000
 EMERG_MC=75000
-ESCADA_MC=66000   # 1o limiar da escada de brilho
+ESCADA_MC=66000
 
 [ -n "$IP" ] || { echo "erro: defina PFL_IP=<ip-do-projetor>" >&2; exit 1; }
 case "$IP" in *:*) DEV="$IP";; *) DEV="$IP:5555";; esac
@@ -34,8 +20,6 @@ TSV="$OUT/curva-termica-$(date +%H%M%S).tsv"
 $ADB connect "$DEV" >/dev/null 2>&1
 mdl=$($ADB -s "$DEV" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d '\r')
 [ "$mdl" = "PFL7560" ] || { echo "erro: '$mdl' não e PFL7560 em $DEV" >&2; exit 1; }
-# hidebug vive em /vendor/bin e exige root; o adbd sobe como uid=2000(shell) e o
-# hidebug responde errno = 13 em silencio. Mesma escalada do teste-brilho.
 sh_id(){ timeout 15 "$ADB" -s "$DEV" shell id </dev/null 2>/dev/null | tr -d '\r'; }
 case "$(sh_id)" in *"uid=0"*) ;; *)
   timeout 15 "$ADB" -s "$DEV" root >/dev/null 2>&1; sleep 3

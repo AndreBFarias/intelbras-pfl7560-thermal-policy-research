@@ -73,7 +73,6 @@ detect_os(){
   esac
 }
 
-# Localiza adb (PATH ou SDK comum)
 find_adb(){
   if have adb; then command -v adb; return 0; fi
   local c
@@ -127,22 +126,9 @@ chmod_scripts(){
     "$HERE/install.sh" \
     "$HERE/pendrive-autorun/newlink_update.sh" \
     2>/dev/null || true
-  # .desktop: marcar executavel se existir
   [ -f "$HERE/PFL7560-Corrigir.desktop" ] && chmod +x "$HERE/PFL7560-Corrigir.desktop" || true
 }
 
-# ---- kit v2 no pendrive ------------------------------------------------------
-# Copia o kit COMPLETO para a RAIZ do pendrive e confere, depois da copia, o md5 de cada
-# arquivo contra a lista embutida no proprio newlink_update.sh (a mesma que o
-# aparelho confere antes de escrever). O kit inteiro e o que a lista traz:
-#   newlink_update.sh  cor.sh  lvdsctl  nl_camcheck  ZYCustom.ini  LEIA-ME.txt
-#   suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc   (suite de verificacao, bloco 9B)
-#   nl_tela  fontes/*                                              (telas geradas, bloco 9A)
-#   pfl7560.apk                                                    (app "PFL7560", bloco 9C)
-#   overlay/*.apk  marca/*                                         (tema Dracula e marca de boot, bloco 14)
-#   kit/*.png
-# O newlink_update.sh nao esta na lista (nao pode conter o proprio md5) e o LEIA-ME.txt
-# tambem nao: os dois sao comparados byte a byte com a origem. NAO grava nada no projetor.
 md5_de(){
   if have md5sum; then md5sum "$1" | cut -d' ' -f1
   elif have md5; then md5 -q "$1"
@@ -199,23 +185,13 @@ LISTA
   return 1
 }
 
-
-# ---- firmware no pendrive (--com-firmware; layout do bloco 21, decisao do dono) ----------
-# O NOSSO .bin vai na raiz como usb_update.bin; o OFICIAL do modelo COM USB-C (V1.0.0.9,
-# Software PFL7560.zip) vai em resgate-oficial/PFL7560.bin, com um LEIA-ME, para o resgate.
-# NUNCA o "Firmware PFL7560.zip" (modelo sem USB-C, doc 42). Tudo e conferido ANTES de copiar
-# qualquer coisa (fw_conferir) e de novo depois (fw_copiar): faltou um arquivo ou o md5 nao e
-# o esperado = erro claro e nada vai para o pendrive. A pasta do arranjo antigo
-# (firmware-nosso-NAO-GRADUADO/) sai do pendrive.
 FW_DIR="${PFL_FIRMWARE_DIR:-$HERE/firmware}"
 FW_OFICIAL_ZIP="Software PFL7560.zip"
-FW_OFICIAL_MD5="28a2f280eee313a4b115567926b2ba4f"   # PFL7560.bin do V1.0.0.9 (firmware/README.md)
+FW_OFICIAL_MD5="28a2f280eee313a4b115567926b2ba4f"
 FW_NOSSO_BIN="PFL7560-S4a-NAO-GRADUADO.bin"
 FW_NOSSO_MD5="a6e5da14cb3f53b42a457eb92bd91814"
 FW_RESGATE_PASTA="resgate-oficial"
 FW_LEGADO_PASTA="firmware-nosso-NAO-GRADUADO"
-# gancho de teste: so com PFL_TESTE=1 o harness (tests/) troca os md5 esperados, para usar
-# .bin falsos pequenos. Fora disso as variaveis saem do ambiente.
 if [ "${PFL_TESTE:-}" = "1" ]; then
   FW_OFICIAL_MD5="${PFL_FW_OFICIAL_MD5:-$FW_OFICIAL_MD5}"
   FW_NOSSO_MD5="${PFL_FW_NOSSO_MD5:-$FW_NOSSO_MD5}"
@@ -224,7 +200,6 @@ else
 fi
 FW_MEMBRO=""
 
-# $1 = destino (ponto de montagem); vazio = so as origens, sem a pasta nem o espaco (--conferir-firmware)
 fw_conferir(){
   local dest="$1" zip="$FW_DIR/$FW_OFICIAL_ZIP" nosso="$FW_DIR/$FW_NOSSO_BIN" m n tam livre
   if [ -n "$dest" ] && [ ! -d "$dest" ]; then
@@ -398,13 +373,11 @@ print_next(){
 EOF
 }
 
-# --- main ---
 if [ "$CONFERIR_FW" = "1" ]; then
   fw_conferir ""
   exit $?
 fi
 if [ -n "$PENDRIVE_DIR" ]; then
-  # com firmware, as origens sao conferidas ANTES de copiar o kit: nada vai pela metade
   if [ "$COM_FIRMWARE" = "1" ]; then fw_conferir "$PENDRIVE_DIR" || exit 1; fi
   copiar_pendrive "$PENDRIVE_DIR" || exit 1
   if [ "$COM_FIRMWARE" = "1" ]; then fw_copiar "$PENDRIVE_DIR" || exit 1; fi
@@ -432,7 +405,6 @@ if [ -z "$ADB_NOW" ]; then
   esac
 else
   ok "adb ja disponivel — pulando instalacao de pacotes"
-  # ainda tenta nmap se faltar e houver gerenciador (nao fatal)
   if ! have nmap && [ "$OS" = "linux" ] && [ "${PFL_INSTALL_NMAP:-1}" = "1" ]; then
     say "nmap opcional ausente — tentando instalar (pode pedir sudo)..."
     if have apt-get; then

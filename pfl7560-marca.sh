@@ -34,9 +34,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BK="${PFL_BACKUPS:-$HERE/backups-projetor/logo}"
 PART=/dev/block/by-name/logo
 TMPDEV=/data/local/tmp
-TAM_PART=41943040          # 40 MiB, o tamanho da particao "logo" lida em 2026-10-31
-JPEG_OFF=8192              # onde o fabricante poe o JPEG
-KEYLEN_OFF=120             # 0x78: LOGO_KEY_LEN (LE32) = tamanho do JPEG
+TAM_PART=41943040
+JPEG_OFF=8192
+KEYLEN_OFF=120
 MODO=gravar
 BACKUP_ARQ=""
 SIM="${PFL_SIM:-}"
@@ -57,8 +57,8 @@ while [ $# -gt 0 ]; do
 done
 
 TMP="$(mktemp -d)"
-D=""            # serial do adb, depois de conectar
-LIMPAR_DEV=""   # arquivos temporarios no aparelho, apagados na saida
+D=""
+LIMPAR_DEV=""
 limpa_dev(){ [ -n "$D" ] && [ -n "$LIMPAR_DEV" ] && "$ADB" -s "$D" shell "rm -f $LIMPAR_DEV" >/dev/null 2>&1; return 0; }
 trap 'limpa_dev; rm -rf "$TMP"' EXIT
 
@@ -93,7 +93,6 @@ confirma(){
   [ "$r" = "GRAVAR" ] || { err "cancelado, nada foi feito"; exit 2; }
 }
 
-# confere o cabecalho LOGO_TABLE de uma imagem inteira da particao ($1); imprime o tamanho do JPEG atual
 cabecalho_ok(){
   python3 -I - "$1" "$TAM_PART" "$JPEG_OFF" "$KEYLEN_OFF" <<'PY'
 import struct, sys
@@ -156,7 +155,6 @@ gravar(){
   backup_particao "$bk_arq"
   cabecalho_ok "$bk_arq" >"$TMP/jpeg_atual" 2>"$TMP/cab.err" || { err "$(cat "$TMP/cab.err") - nada foi gravado"; exit 1; }
 
-  # a imagem esperada da particao inteira: o backup com o JPEG novo no byte 8192 e LOGO_KEY_LEN novo
   novo="$TMP/logo-novo.img"
   python3 -I - "$bk_arq" "$saida/logo-boot.jpg" "$novo" "$JPEG_OFF" "$KEYLEN_OFF" "$TMP/keylen.bin" <<'PY' || { err "nao consegui montar a imagem nova"; exit 1; }
 import struct, sys
@@ -179,7 +177,6 @@ PY
 
   confirma "Vou gravar o JPEG novo ($jpeg_n bytes, no byte $JPEG_OFF) e o LOGO_KEY_LEN (byte $KEYLEN_OFF) na particao $PART do $D. Backup em $bk_arq."
 
-  # os dois arquivos vao para o aparelho e so seguem se o md5 de la bater
   LIMPAR_DEV="$TMPDEV/pfl-logo-boot.jpg $TMPDEV/pfl-logo-keylen.bin"
   "$ADB" -s "$D" push "$saida/logo-boot.jpg" "$TMPDEV/pfl-logo-boot.jpg" >/dev/null 2>&1
   "$ADB" -s "$D" push "$TMP/keylen.bin" "$TMPDEV/pfl-logo-keylen.bin" >/dev/null 2>&1
@@ -187,7 +184,6 @@ PY
     || { err "o JPEG no aparelho nao confere (md5) - nada foi gravado"; exit 1; }
   [ "$(sh_dev "md5sum $TMPDEV/pfl-logo-keylen.bin" | cut -d' ' -f1)" = "$(md5_local "$TMP/keylen.bin")" ] \
     || { err "o LOGO_KEY_LEN no aparelho nao confere (md5) - nada foi gravado"; exit 1; }
-  # a particao ainda e a do backup (ninguem a mexeu entre o backup e agora)
   [ "$(md5_part)" = "$BACKUP_MD5" ] || { err "a particao mudou depois do backup - nada foi gravado"; exit 1; }
 
   say "gravando (dd na particao logo)"

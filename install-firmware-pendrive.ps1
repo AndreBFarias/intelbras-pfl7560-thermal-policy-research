@@ -1,15 +1,3 @@
-# install-firmware-pendrive.ps1 - firmware de resgate no pendrive (bloco 9C).
-# E o equivalente, no Windows, do "install.sh --pendrive DIR --com-firmware". Chamado pelo
-# install.bat (opcao 5); nao precisa ser aberto a mao.
-#
-#   -Modo conferir : confere as origens em firmware\ (nada e copiado)
-#   -Modo copiar   : copia o NOSSO .bin como usb_update.bin na raiz e o OFICIAL (V1.0.0.9)
-#                    em resgate-oficial\PFL7560.bin, com um LEIA-ME, e confere o md5 depois
-#
-# Regras (as mesmas do install.sh): o oficial sai so do "Software PFL7560.zip" (modelo COM
-# USB-C), conferido pelo md5 do .bin dentro do zip; NUNCA o "Firmware PFL7560.zip" (modelo
-# sem USB-C). Faltou arquivo ou o md5 nao bate = mensagem clara e nada e copiado; falha no
-# meio da copia remove o firmware do pendrive. Sai 0 ok, 1 erro.
 param(
   [Parameter(Mandatory = $true)][ValidateSet('conferir', 'copiar')][string]$Modo,
   [Parameter(Mandatory = $true)][string]$Dest,
@@ -89,7 +77,6 @@ if ($Modo -eq 'conferir') {
   exit 0
 }
 
-# -Modo copiar
 function Limpar {
   foreach ($c in @("$dest" + 'usb_update.bin', "$dest" + 'usb_update.bin.copiando')) { Remove-Item -LiteralPath $c -Force -ErrorAction SilentlyContinue }
   foreach ($c in @($ResgatePasta, $LegadoPasta)) { Remove-Item -LiteralPath ($dest + $c) -Recurse -Force -ErrorAction SilentlyContinue }

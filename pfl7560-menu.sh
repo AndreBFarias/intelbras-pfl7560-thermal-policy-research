@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# ============================================================================
-#  Menu amigavel da correcao PFL7560 (duplo-clique / terminal).
-#  Chama o pfl7560-fix.sh que esta na mesma pasta.
-# ============================================================================
 HERE="$(cd "$(dirname "$0")" && pwd)"
 FIX="$HERE/pfl7560-fix.sh"
 LCD="$HERE/pfl7560-lcd-color.sh"

@@ -31,11 +31,8 @@ CACHE="${PFL_CACHE:-$HERE/backups-projetor/vlc}"
 VERSAO=3.7.1
 ARQ="VLC-Android-$VERSAO-armeabi-v7a.apk"
 URL_BASE="https://get.videolan.org/vlc-android/$VERSAO"
-# fixados: o sha256 do APK armeabi-v7a 3.7.1 (47073346 bytes) e o SHA-256 do certificado do VideoLAN
-# (CN=Jean-Baptiste Kempf, O=VideoLAN Mobile, L=Paris, C=FR), lidos em 2026-10-31
 VLC_SHA256="a6a7f940e4bd190c9a70f3f0dc97c1c402c10200af20edac7a1d452b24abd8a0"
 VLC_CERT_SHA256="c8768d2cea0c4b622e419b4b4715981946821e4ebc035fb41776cad395a7f68e"
-# so o harness (tests/test-pc-marca-vlc.sh) muda a origem e os fixados, e so com PFL_TESTE=1
 if [ "${PFL_TESTE:-}" = "1" ]; then
   URL_BASE="${PFL_VLC_URL_BASE:-$URL_BASE}"
   VLC_SHA256="${PFL_VLC_SHA256:-$VLC_SHA256}"
@@ -95,13 +92,11 @@ conecta(){
 abre_vendor(){
   sh_dev "mount -o rw,remount /vendor" >/dev/null
   RELOCK=1
-  # o remount "funciona" em silencio se nao gravou: prova de escrita
   if [ "$(sh_dev "touch /vendor/app/.pfl-teste-rw && echo sim; rm -f /vendor/app/.pfl-teste-rw")" != "sim" ]; then
     err "nao consegui abrir o /vendor para escrita - nada foi gravado"; exit 1
   fi
 }
 
-# ---------------------------------------------------------------- instalar
 baixa_e_confere(){
   mkdir -p "$CACHE" || { err "nao consegui criar $CACHE"; exit 1; }
   local pub
@@ -125,7 +120,7 @@ baixa_e_confere(){
 confere_assinatura(){
   local cert="" ap
   ap="$(command -v apksigner || true)"
-  # shellcheck disable=SC2012  # nomes sem espaco; o ls so acha o apksigner do SDK local
+  # shellcheck disable=SC2012
   [ -n "$ap" ] || ap="$(ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/apksigner 2>/dev/null | tail -1)"
   if [ -n "$ap" ]; then
     "$ap" verify --print-certs "$CACHE/$ARQ" >"$TMP/assin.txt" 2>&1 \
@@ -145,13 +140,12 @@ confere_assinatura(){
 extrai_libs(){
   mkdir -p "$TMP/x"
   unzip -o -q "$CACHE/$ARQ" 'lib/armeabi-v7a/*.so' -d "$TMP/x" 2>/dev/null
-  # shellcheck disable=SC2012  # nomes de .so sem espaco
+  # shellcheck disable=SC2012
   LIBS="$(cd "$TMP/x/lib/armeabi-v7a" 2>/dev/null && ls ./*.so 2>/dev/null | sed 's|^\./||')"
   [ -n "$LIBS" ] || { err "o APK nao traz lib/armeabi-v7a/*.so - nada foi instalado"; exit 1; }
   ok "bibliotecas armeabi-v7a no APK: $(echo "$LIBS" | wc -l | tr -d ' ') ($(echo "$LIBS" | tr '\n' ' '))"
 }
 
-# 0 = tudo la e igual
 ja_instalado(){
   [ "$(md5_dev "$DEST/VLC.apk")" = "$(md5_local "$CACHE/$ARQ")" ] || return 1
   local l
@@ -165,7 +159,7 @@ confere_espaco(){
   local precisa=0 l livre
   precisa=$(( $(wc -c < "$CACHE/$ARQ") ))
   for l in $LIBS; do precisa=$(( precisa + $(wc -c < "$TMP/x/lib/armeabi-v7a/$l") )); done
-  livre="$(sh_dev "df -k /vendor | tail -1" | awk '{ for (i = NF; i > 0; i--) if ($i ~ /^[0-9]+$/) { print $i; exit } }')"   # a ultima coluna numerica e a "Available""
+  livre="$(sh_dev "df -k /vendor | tail -1" | awk '{ for (i = NF; i > 0; i--) if ($i ~ /^[0-9]+$/) { print $i; exit } }')"
   if [ -z "$livre" ]; then say "[AVISO] nao consegui ler o espaco livre do /vendor (df) - sigo; a conferencia por md5 pega uma gravacao truncada"; return 0; fi
   if [ $(( livre * 1024 )) -lt $(( precisa + precisa / 10 )) ]; then
     err "o /vendor tem $livre KB livres e a instalacao pede cerca de $(( precisa / 1024 )) KB - nada foi gravado"; exit 1
@@ -173,7 +167,7 @@ confere_espaco(){
   ok "espaco no /vendor: $livre KB livres para cerca de $(( precisa / 1024 )) KB"
 }
 
-grava_arquivo(){ # $1 = origem local, $2 = destino no aparelho
+grava_arquivo(){
   local m
   m="$(md5_local "$1")"
   "$ADB" -s "$D" push "$1" "$2.new" >/dev/null 2>&1

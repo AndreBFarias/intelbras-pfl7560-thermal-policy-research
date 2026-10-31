@@ -1,27 +1,5 @@
 #!/usr/bin/env bash
-# pfl7560-saude.sh - verificacao READ-ONLY do estado da correcao no aparelho.
-#
-# Responde a UMA pergunta: a correcao esta ativa e a protecao termica esta
-# enxergando NESTE boot? Sai com 0 se tudo passa, 1 se algo falha.
-#
-# POR QUE NÃO USA hidebug: os comandos gtt do hidebug forcam comutacao do mux
-# dos termistores, e ha suspeita (doc 35, LSADC-S2) de que sondagem repetida por
-# esse caminho dispare o "LSADC Error" que cega a protecao. Este verificador le
-# apenas props, arquivos e o logcat -- nada que toque o mux. Rodar em loop e
-# seguro.
-#
-# IDEMPOTENTE POR CONSTRUCAO no modo padrão: não escreve nada no aparelho nem no
-# repo, entao rodar N vezes seguidas produz o mesmo resultado.
-# EXCECAO: --vivacidade escreve uma propriedade de override de temperatura, faz o
-# brilho cair e voltar, e grava um log em evidencias/vivacidade/. Ele limpa o que
-# escreveu (trap), mas não e read-only -- por isso e opt-in.
-#
-# Uso:  PFL_IP=<ip> ./pfl7560-saude.sh                 # 12 checagens passivas
-#       PFL_IP=<ip> ./pfl7560-saude.sh --idempotencia  # roda 2x e compara
-#       PFL_IP=<ip> ./pfl7560-saude.sh --vivacidade    # prova ATIVA (~65 s, mexe na tela)
 set -u
-# Locale fixo: o awk (mawk) segue LC_NUMERIC e em pt_BR imprime virgula, le "65.8" como 65
-# e compara "2,65" como texto -- o mesmo TSV dava 7,45 C em pt_BR e 8,17 C em C.
 export LC_ALL=C
 
 ADB="${ADB:-adb}"
@@ -31,10 +9,7 @@ INI=/vendor/etc/ZYCustom.ini
 BP=/vendor/build.prop
 RC=/vendor/etc/init/hw/init.bigfish.rc
 
-# md5 do config de correcao (invariante 9 do VALIDATOR_BRIEF: as 3 copias do
-# repo tem de bater com este mesmo valor -- `make check` cobre o lado do repo)
 INI_FIX_MD5=252ab7a72a007a8b79b3fc86bd5c0d19
-# limiares da build atual, para conferir que o .ini ativo e mesmo o com escada
 ESCADA='66000, 67500, 69000, 70000, 71500, 73000'
 DEGRAUS='1000,  950,  900,  850,  850,  850'
 
@@ -50,12 +25,10 @@ sh_(){ timeout 20 "$ADB" -s "$DEV" shell "$@" </dev/null 2>/dev/null | tr -d '\r
 
 conecta(){
   [ -n "$IP" ] || { echo "defina PFL_IP=<ip do projetor>"; exit 2; }
-  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac   # PFL_IP pode ja trazer a porta
+  case "$IP" in *:*) DEV="$IP" ;; *) DEV="$IP:$PORTA" ;; esac
   timeout 15 "$ADB" connect "$DEV" >/dev/null 2>&1
   local m; m=$(sh_ getprop ro.product.model)
   [ "$m" = "PFL7560" ] || { echo "não e um PFL7560 em $DEV (getprop devolveu '${m:-vazio}')"; exit 2; }
-  # build.prop e 0600 e a particao panelparam exige root; sem root o verificador
-  # degrada para avisos em vez de falhar
   local u; u=$(sh_ id)
   case "$u" in *"uid=0"*) ROOT=1 ;; *)
     timeout 15 "$ADB" -s "$DEV" root >/dev/null 2>&1; sleep 3
@@ -64,10 +37,6 @@ conecta(){
   esac
 }
 
-# .ini EFETIVO: o /atv/ini/ZYCustom_<projectid>.ini vence o /atv/ini/ZYCustom.ini,
-# que vence o /vendor/etc (docs 04, 06, 09). Ler so o do /vendor atestava um
-# arquivo que o firmware pode nem estar usando. Mesma ordem do effective_ini do
-# pfl7560-evidencias.sh.
 ini_efetivo(){
   local pid cand
   pid=$(sh_ getprop ro.boot.projectid | tr -d ' ')
@@ -103,7 +72,6 @@ verifica(){
   [ "${ch:-0}" -ge 1 ] && pass "HW_VIRTUAL_CHANNEL = 1 presente" "mux pode comutar" \
                        || fail "mux TRAVADO no canal 0" "protecao volta a ser cega"
 
-  # /atv/ini tem precedencia sobre /vendor/etc: um ZYCustom.ini la anula o fix
   local atv; atv=$(sh_ 'ls /atv/ini/ZYCustom.ini 2>/dev/null')
   [ -z "$atv" ] && pass "sem ZYCustom.ini em /atv/ini" "sem disputa de precedencia" \
                 || fail "EXISTE /atv/ini/ZYCustom.ini" "ele VENCE o de /vendor"
@@ -116,23 +84,14 @@ verifica(){
     *) warn "degraus de brilho inesperados" "$(echo "$d" | tr -s ' ')" ;; esac
 
   sec "3. a protecao esta ENXERGANDO neste boot?"
-  # este e o teste que o doc 35 mostrou ser o que realmente importa: a config
-  # pode estar perfeita e a protecao estar cega mesmo assim
   local lsadc bal
   lsadc=$(sh_ 'logcat -d' | grep -ac 'LSADC Error')
   bal=$(sh_ 'logcat -d' | grep -ac 'Achieve Balance')
-  # ASSIMETRIA DELIBERADA: a presenca do erro PROVA que a protecao cegou, mas a
-  # ausencia NÃO prova que ela esta viva -- o erro so aparece em 2 de cada 10
-  # iteracoes do loop e o ring do logcat dura 60-150 s (doc 37). Por isso o lado
-  # negativo e FALHA e o lado positivo e apenas ausencia de sinal ruim, com o
-  # ponteiro para o único teste positivo que existe.
   [ "${lsadc:-0}" -eq 0 ] && pass "sem LSADC Error no buffer" "não prova vivacidade -- use --vivacidade" \
                           || fail "LSADC Error x${lsadc} - PROTECAO CEGA" "WARNING/EMERGENCY não disparam; REINICIE"
   [ "${bal:-0}" -ge 1 ] && pass "loop termico vivo" "Achieve Balance x${bal}" \
                         || warn "nenhum Achieve Balance ainda" "normal nos primeiros ~60s de boot"
 
-  # env_temp = sensor QUENTE da optica (gtt1); light_temp = frio da placa (gtt0).
-  # Os nomes vem invertidos de fabrica. Se os dois lerem igual, o mux não comutou.
   local q f; q=$(sh_ getprop zysys.env_temp | tr -d '℃ '); f=$(sh_ getprop zysys.light_temp | tr -d '℃ ')
   if [ -n "$q" ] && [ -n "$f" ]; then
     if awk -v a="$q" -v b="$f" 'BEGIN{exit !(a-b>5 || b-a>5)}'; then
@@ -146,11 +105,6 @@ verifica(){
   fi
 
   sec "4. formato de cor do painel (LVDS)"
-  # VESA=0, JEIDA=1 (doc 28 sec. 12). Quem decide o certo e o painel instalado,
-  # nao este script: o -4300 de fabrica e VESA, o -0600 e JEIDA e o VESA novo do
-  # doc 40 tambem. Por isso o criterio e o formato EM USO bater com o byte 0x5c
-  # GRAVADO no panelparam (senao o boot volta a outro formato); PFL_LVDS_ESPERADO
-  # (vesa|jeida) e opcional e exige tambem que o formato em uso seja esse.
   local fmt; fmt=$(sh_ 'cat /proc/msp/panel' | grep -a lvds_fmt | head -1 | awk -F'[: ]+' '{print tolower($2)}')
   local esp; esp=$(printf '%s' "${PFL_LVDS_ESPERADO:-}" | tr '[:upper:]' '[:lower:]')
   if [ -z "$fmt" ]; then
@@ -179,39 +133,15 @@ verifica(){
   [ "$FALHA" -eq 0 ]
 }
 
-# TESTE ATIVO DE VIVACIDADE.
-#
-# Por que ele existe: contar "LSADC Error" no logcat e um detector FRACO. O erro
-# so aparece em 2 de cada 10 iteracoes do loop termico, entao a ausencia dele num
-# buffer curto não prova que a protecao esta viva -- prova apenas que voce não
-# olhou tempo suficiente.
-#
-# Este teste pergunta direto ao firmware: injeta uma temperatura acima do
-# WARNING pela propriedade de override e ve se a politica REAGE. Se reagir, a
-# protecao esta viva agora, sem margem para duvida.
-#
-# SEGURANCA:
-#  - 71000 mC fica ACIMA do WARNING (70000) e ABAIXO do EMERGENCY (75000).
-#    O valor e fixo no codigo de proposito: DEFAULT_PROTECT = 2 significa
-#    "desligamento imediato", entao injetar 76000 desligaria o aparelho na hora.
-#    Nunca torne este valor configuravel.
-#  - A limpeza do override esta num trap EXIT/INT/TERM: sai como sair, limpa.
-#  - Efeito visivel: o brilho cai ate 850 e volta sozinho em rampa, e o aviso de
-#    temperatura aparece na tela. Dura cerca de 40 s.
 PROP_OVERRIDE=vendor.zy.power.tm.temp
 INJETADO=71000
 
 vivacidade(){
   local w e ini; ini=$(ini_efetivo)
-  # head -1: se o grep casar mais de uma linha, o valor vem MULTILINHA e o
-  # `[ 71000 -le "$w" ]` emite "integer expression expected" e retorna FALSO --
-  # a cadeia de || não dispara e o fluxo cai no ramo que INJETA. Falha ABERTA.
   w=$(sh_ "grep -a WARNING_VALUE $ini" | grep -ao '[0-9]\{4,\}' | head -1)
   e=$(sh_ "grep -a EMERGENCY_VALUE $ini" | grep -ao '[0-9]\{4,\}' | head -1)
   case "$w" in ''|*[!0-9]*) fail "WARNING_VALUE ilegivel" "não vou injetar"; return 1 ;; esac
   case "$e" in ''|*[!0-9]*) fail "EMERGENCY_VALUE ilegivel" "não vou injetar"; return 1 ;; esac
-  # trava dura: so injeta se o valor ficar mesmo entre os dois limiares do
-  # aparelho, lidos AGORA. Se o .ini tiver outros limiares, aborta.
   if [ -z "$w" ] || [ -z "$e" ] || [ "$INJETADO" -le "$w" ] || [ "$INJETADO" -ge "$e" ]; then
     fail "não vou injetar" "WARNING=${w:-?} EMERGENCY=${e:-?}; $INJETADO precisa ficar entre os dois"
     return 1
@@ -221,9 +151,6 @@ vivacidade(){
   printf "  ${A}na tela: o aviso de temperatura aparece e o brilho cai ate 850, voltando sozinho.${Z}\n"
   printf "  dura ~40 s. O override e limpo ao final aconteca o que acontecer.\n\n"
 
-  # Roda no trap, entao e a última linha de defesa: se ela falhar em silencio o
-  # aparelho fica com 71 C ficticios alimentando a politica ate o reboot -- e com
-  # o EMERGENCY inalcancavel. Tenta 3x e CONFIRMA lendo de volta.
   limpa_override(){
     local i
     for i in 1 2 3; do
@@ -239,11 +166,6 @@ vivacidade(){
     printf "    adb connect %s && adb -s %s shell setprop %s ''\n" "$DEV" "$DEV" "$PROP_OVERRIDE"
     return 1
   }
-  # INT/TERM precisam de `exit` explicito: sem ele o handler retorna e o script
-  # segue (um Ctrl-C no --vivacidade ainda injetava os 71000). O `exit 130` dispara
-  # o trap EXIT, que e quem limpa o override. Dentro da limpeza INT/TERM ficam
-  # ignorados: um 2o Ctrl-C ali rodaria o `exit 130` DENTRO do trap EXIT e
-  # abortaria a limpeza no meio, deixando os 71000 injetados.
   trap 'trap "" INT TERM; limpa_override' EXIT
   trap 'exit 130' INT TERM
 
@@ -262,11 +184,6 @@ vivacidade(){
 
   local n_warn desce sobe
   n_warn=$(grep -ac 'Overheat Warning' "$tmp")
-  # Excluir o no-op "X => X": num boot em regime o firmware loga
-  # "Level Change 1000 => 1000!" continuamente (299 ocorrencias so na vigilia
-  # passiva), entao contar '=> 1000!' cru marcava "o brilho voltou sozinho"
-  # SEMPRE, inclusive sem escada nenhuma ter atuado. Mesmo erro de metodo que o
-  # doc 37 denuncia no `grep -c 'LSADC Error'`: detector que não pode falhar.
   desce=$(grep -a 'Level Change' "$tmp" | grep -a '=> 850!'  | grep -avc '850 => 850!')
   sobe=$(grep -a 'Level Change' "$tmp"  | grep -a '=> 1000!' | grep -avc '1000 => 1000!')
 
@@ -278,10 +195,6 @@ vivacidade(){
   [ "${sobe:-0}" -ge 1 ] && pass "o brilho voltou sozinho" "alvo de volta em 1000" \
                          || warn "recuperação não capturada" "confira com: adb shell logcat -d | grep 'Level Change'"
 
-  # sh_() manda stderr para /dev/null e descarta o exit code: com o aparelho
-  # offline o getprop volta VAZIO, indistinguivel de "override limpo". O canario
-  # separa os dois casos -- sem ele isto era um falso [OK] no único check que
-  # existe para provar que o aparelho ficou seguro.
   local resto canario
   canario=$(sh_ "getprop ro.product.model")
   resto=$(sh_ "getprop $PROP_OVERRIDE")
@@ -301,9 +214,6 @@ vivacidade(){
   [ "${n_warn:-0}" -ge 1 ] && [ "${desce:-0}" -ge 1 ]
 }
 
-# Prova de idempotencia: duas passagens seguidas tem de dar exatamente o mesmo
-# veredito. Se diferirem, ou o aparelho mudou de estado sozinho (achado!) ou
-# este verificador tem efeito colateral (bug dele).
 idempotencia(){
   local a b
   a=$(verifica | sed 's/\x1b\[[0-9;]*m//g' | grep -E '^\[(OK|FALHA|AVISO)\]' | awk '{print $1, $2, $3}')
@@ -323,11 +233,6 @@ conecta
 case "${1:-}" in
   --idempotencia) idempotencia ;;
   --vivacidade)
-    # `verifica` checa, entre outras coisas, se existe /atv/ini/ZYCustom.ini --
-    # que tem PRECEDENCIA sobre /vendor. Com o .ini de fabrica ativo em /atv
-    # (EMERGENCY_VALUE = 45000), injetar 71000 e >= EMERGENCY e DEFAULT_PROTECT=2
-    # significa DESLIGAMENTO IMEDIATO. Antes, o `echo` no meio destruia o $? e a
-    # FALHA impressa segundos antes não impedia nada.
     verifica; rc=$?
     if [ "$rc" -ne 0 ]; then
       printf "\n${X}[ABORTADO]${Z} as checagens passivas reprovaram; não vou injetar temperatura.\n"

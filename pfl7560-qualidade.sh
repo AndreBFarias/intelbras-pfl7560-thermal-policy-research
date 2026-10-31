@@ -32,7 +32,6 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 BK="${PFL_BACKUPS:-$HERE/backups-projetor/qualidade}"
 HIDEBUG=/vendor/bin/hidebug
 
-# nome|ler|mudar|aceitos (o maximo)|sugerido (o que o --aplicar poe)|o que e (doc 46 s3.1 e s3.2)
 AJUSTES='modo|gpicm|spicm|0 3|0|modo de imagem (0 padrao, 1 dinamico, 2 suave, 3 usuario, 4 vivido, 5 natural, 6 esporte)
 nitidez|gshr|sshr|50|50|nitidez 0-100 (acima de 50 estreita a borda com halo, sem detalhe novo)
 nr|gnr|snr|0|0|reducao de ruido (0 desligada ... 3 alta, 4 automatica)
@@ -90,7 +89,6 @@ conecta(){
   ok "conectado ao PFL7560 em $D (root)"
 }
 
-# uma leitura so (um adb shell): "@@ <cmd>" e a resposta do hidebug de cada ajuste, depois a saida
 LEITURA=""
 ler_tudo(){
   local cmds c
@@ -102,7 +100,6 @@ ler_tudo(){
   case "$LEITURA" in *"errno = 13"*) err "o hidebug negou acesso (errno = 13): sem root"; exit 1 ;; esac
 }
 secao(){ printf '%s\n' "$LEITURA" | awk -v s="@@ $1" '$0 == s { d = 1; next } /^@@ / { d = 0 } d'; }
-# PROVISORIO: o ultimo numero da resposta do hidebug (o formato nao foi visto no aparelho)
 valor(){ secao "$1" | grep -aoE '[0-9]+' | tail -1; }
 dentro(){ case " $2 " in *" $1 "*) return 0 ;; esac; return 1; }
 
@@ -138,7 +135,6 @@ confirma(){
   read -r -p "Digite MUDAR para continuar: " r || true
   [ "$r" = "MUDAR" ] || { err "cancelado, nada foi mudado"; exit 2; }
 }
-# muda $1 (o ajuste) para $2 e confere relendo
 mudar(){
   local g s v
   g="$(campo_de "$1" 2)"; s="$(campo_de "$1" 3)"

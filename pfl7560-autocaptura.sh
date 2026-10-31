@@ -1,48 +1,27 @@
 #!/usr/bin/env bash
-# pfl7560-autocaptura.sh - supervisor: detecta o projetor na rede e captura a
-# curva termica sozinho, sempre que ele estiver ligado.
-#
-# POR QUE NÃO udev: udev reage a eventos de kernel de dispositivos LOCAIS (USB,
-# block). O PFL7560 fala adb por TCP/Wi-Fi e o USB-C dele não expoe adb (doc 06),
-# entao não existe evento de udev para disparar. O equivalente correto pela rede e
-# polling supervisionado -- e o que este script faz, rodando como servico de
-# usuário do systemd (Restart=always + linger: sobrevive a logout e a reboot).
-#
-# Não grava nada no aparelho, mas cada gtt avança o anel do termistor (doc 37): o
-# serviço fica DESABILITADO desde 2026-08-18; rode só pontual e supervisionado.
-#
-# Uso manual:  ./pfl7560-autocaptura.sh
-# Como servico: systemctl --user {start,stop,status} pfl7560-autocaptura
 set -u
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ADB="${ADB:-adb}"
-INTERVALO="${INTERVALO:-30}"      # amostragem com o projetor ligado
-BACKOFF="${BACKOFF:-60}"          # espera com o projetor desligado
+INTERVALO="${INTERVALO:-30}"
+BACKOFF="${BACKOFF:-60}"
 PORTA=5555
 
-# limiares da build atual (ZYCustom_390.ini), so para rotular a saida
 ESCADA_MC=66000; WARN_MC=70000; EMERG_MC=75000
 
-DATA_DIR="$HERE/evidencias"       # gitignored
+DATA_DIR="$HERE/evidencias"
 ESTADO="$DATA_DIR/.autocaptura-ip"
 LOG="$DATA_DIR/autocaptura.log"
 mkdir -p "$DATA_DIR"
 
 log(){ printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$LOG"; }
 
-# confirma que o IP e realmente o projetor (trava de modelo: o celular do dono
-# tambem aparece no adb, e um no de rede vizinho com 5555 aberta pendura o adb)
 eh_projetor(){
   local dev="$1" m
   m=$(timeout 8 $ADB -s "$dev" shell getprop ro.product.model </dev/null 2>/dev/null | tr -d '\r')
   [ "$m" = "PFL7560" ]
 }
 
-# hidebug vive em /vendor/bin e exige root. O adbd do aparelho sobe como
-# uid=2000(shell), entao sem esta escalada toda amostragem falha em silencio --
-# foi a causa dos 8253 TSVs so-cabecalho entre 2026-07-30 e 2026-08-17
-# (8257 sessões abertas no autocaptura.log, das quais so 4 chegaram a amostrar).
 garante_root(){
   local dev="$1" u
   u=$(timeout 10 $ADB -s "$dev" shell id </dev/null 2>/dev/null | tr -d '\r')
@@ -58,12 +37,10 @@ tenta_ip(){
   timeout 4 bash -c "cat < /dev/null > /dev/tcp/$ip/$PORTA" 2>/dev/null || return 1
   timeout 8 $ADB connect "$dev" >/dev/null 2>&1
   if eh_projetor "$dev"; then garante_root "$dev"; echo "$dev"; return 0; fi
-  timeout 5 $ADB disconnect "$dev" >/dev/null 2>&1   # não envenenar o daemon
+  timeout 5 $ADB disconnect "$dev" >/dev/null 2>&1
   return 1
 }
 
-# varre a /24 local por porta 5555 (connect scan: não precisa de root e, sendo a
-# sub-rede on-link, não gera trafego roteado para fora da LAN)
 descobre(){
   local cache dev
   cache=$(cat "$ESTADO" 2>/dev/null || true)
@@ -96,7 +73,7 @@ descobre(){
   return 1
 }
 
-amostra(){  # $1 = dev ; imprime "t0 t1 f0 f1 bri up" ou falha
+amostra(){
   local dev="$1" raw up t t0 t1 f f0 f1 b
   raw=$(timeout 25 $ADB -s "$dev" shell \
         "printf 'custom\ngtt 0\ngtt 1\ngfs 0\ngfs 1\ngbri 0\nquit\n' | /vendor/bin/hidebug" \
@@ -113,9 +90,6 @@ amostra(){  # $1 = dev ; imprime "t0 t1 f0 f1 bri up" ou falha
 
 log "supervisor iniciado (intervalo=${INTERVALO}s backoff=${BACKOFF}s)"
 DEV=""; PICO=0; SESSAO=""
-# por que a sessão terminou. Sem isso o log carimba "projetor offline" tambem
-# quando o aparelho respondeu e foi so a amostragem que falhou -- foi esse
-# rotulo errado que escondeu o bug do root por 18 dias.
 MOTIVO="projetor offline"
 
 while :; do
@@ -130,8 +104,6 @@ while :; do
   fi
 
   if out=$(amostra "$DEV"); then
-    # o arquivo so nasce quando ha dado de verdade: sessão que nunca amostrou
-    # não deixa TSV so-cabecalho para tras
     if [ -z "$SESSAO" ]; then
       SESSAO="$DATA_DIR/$(date +%Y-%m-%d)/autocaptura-$(date +%H%M%S).tsv"
       mkdir -p "$(dirname "$SESSAO")"
@@ -140,11 +112,6 @@ while :; do
     fi
     read -r t0 t1 f0 f1 b up <<< "$out"
     ev="-"
-    # LEITURA INVÁLIDA do LSADC. Em 2026-08-17 23:20:44 este mesmo caminho de
-    # sondagem devolveu 2 mC no meio de uma serie estavel em 63421, e sete
-    # minutos depois a protecao travou em "LSADC Error". Como cada gtt forca
-    # comutacao do mux, uma leitura assim provavelmente e do próprio sondador --
-    # razao a mais para marcar, e para nunca contaminar o PICO ou os limiares.
     if [ "$t1" -lt 5000 ] 2>/dev/null || [ "$t1" -gt 120000 ] 2>/dev/null; then
       ev="LEITURA INVÁLIDA do LSADC (gtt1=$t1 mC)"
       log "$ev - precursor de protecao cega"
@@ -155,18 +122,12 @@ while :; do
       elif [ "$t1" -ge "$ESCADA_MC" ] 2>/dev/null; then ev="escada de brilho atuando"
       fi
     fi
-    # ATENÇÃO: `gbri 0` devolve o PWM real, não o nivel logico. Com brilho maximo
-    # ele le 996, não 1000 -- comparar com "1000" marcava TODA amostra como
-    # anomala e afogava a coluna de evento. Os degraus validos vem do `gbll`:
-    # 750, 800, 850, 900, 950, 1000. So abaixo de 950 houve queda de verdade.
     [ "$b" != "NA" ] && [ "$b" -lt 950 ] 2>/dev/null && ev="$ev; brilho caiu para $b"
     printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
       "$(date +%H:%M:%S)" "$up" "$t0" "$t1" "$f0" "$f1" "$b" "$ev" >> "$SESSAO"
     [ "$ev" != "-" ] && log "$ev (gtt1=$((t1 / 1000)) C brilho=$b)"
     sleep "$INTERVALO"
   else
-    # falha de amostragem NÃO e o mesmo que projetor desligado: o aparelho pode
-    # ter respondido ao getprop e o hidebug ter falhado (tipicamente sem root)
     log "amostragem falhou em $DEV (hidebug sem resposta); redescobrindo"
     DEV=""
     sleep 5
