@@ -53,13 +53,7 @@ final class Leitor {
             } catch (RuntimeException e) {
                 Guarda.anotar(c, "rotulo " + a.packageName, e);
             }
-            Object icone = null;
-            try {
-                icone = ri.loadIcon(pm);
-            } catch (RuntimeException e) {
-                Guarda.anotar(c, "icone " + a.packageName, e);
-            }
-            r.add(Item.app(rotulo, a.packageName, a.name, icone));
+            r.add(Item.app(rotulo, a.packageName, a.name));
         }
         final Collator col = Collator.getInstance(new Locale("pt", "BR"));
         col.setStrength(Collator.PRIMARY);

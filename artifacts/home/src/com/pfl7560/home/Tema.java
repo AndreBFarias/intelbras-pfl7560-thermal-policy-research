@@ -25,8 +25,6 @@ public final class Tema {
     public static final int CARTAO = misturar(LINHA, FUNDO, 0.62f);
     /** Base do gradiente do fundo (um terco do caminho de fundo para linha). */
     public static final int FUNDO_BASE = misturar(LINHA, FUNDO, 0.34f);
-    /** Disco do monograma quando o app nao tem icone. */
-    public static final int DISCO = misturar(COMENTARIO, LINHA, 0.45f);
 
     private Tema() {
     }
