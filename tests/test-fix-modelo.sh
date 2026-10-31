@@ -7,6 +7,7 @@
 # copiados para uma pasta temporaria: o backups-projetor/ do teste nao toca o do repo.
 #
 #   bash tests/test-fix-modelo.sh
+# shellcheck disable=SC2034
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FALHAS=0
@@ -217,9 +218,20 @@ c_install_bat_recusa_outro_modelo(){
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF"
 }
 
+c_busca_por_mac(){
+  novo_cenario antigo "PFL_MAC: o nmap acha o IP sem arquivo temporario de nome fixo"
+  printf '#!/bin/sh\nexec "$@"\n' > "$T/bin/sudo"
+  printf '#!/bin/sh\necho "Nmap scan report for 192.168.7.42"\necho "Host is up (0.0040s latency)."\necho "MAC Address: AA:BB:CC:DD:EE:FF (Newlink)"\n' > "$T/bin/nmap"
+  chmod +x "$T/bin/sudo" "$T/bin/nmap"
+  ( cd "$T/repo" && env -u PFL_IP PFL_MAC=aa:bb:cc:dd:ee:ff PFL_SUBNET=192.168.7.0/24 PATH="$T/bin:$PATH" bash ./pfl7560-fix.sh status ) > "$T/out.log" 2>&1
+  afirma 'grep -q "adb connect 192.168.7.42:5555" "$T/adb.log"' "nao conectou no IP do nmap: $(head -3 "$T/adb.log" | tr '\n' '|')"
+  afirma '! grep -q "/tmp/pfl\." "$ROOT/pfl7560-fix.sh"' "o pfl7560-fix.sh ainda grava a saida do nmap em /tmp/pfl.<pid>"
+  limpa
+}
+
 echo "== pfl7560-fix.sh por modelo (adb de mentira) =="
 for c in c_antigo_apply_revert c_novo_apply_revert c_novo_revert_com_backup_do_antigo \
-         c_revert_backup_de_outro_modelo c_modelo_desconhecido c_novo_apply_idempotente c_install_bat_recusa_outro_modelo; do
+         c_revert_backup_de_outro_modelo c_modelo_desconhecido c_novo_apply_idempotente c_install_bat_recusa_outro_modelo c_busca_por_mac; do
   echo "  $c"
   "$c"
 done
