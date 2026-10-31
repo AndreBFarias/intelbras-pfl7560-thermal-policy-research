@@ -376,6 +376,30 @@ static int hex(int c) {
   return -1;
 }
 
+/* minuscula (ASCII ou Latin-1) para maiuscula; o resto fica como esta */
+static uint32_t maiuscula(uint32_t c) {
+  if (c >= 'a' && c <= 'z') return c - 32;
+  if (c >= 0xE0 && c <= 0xFE && c != 0xF7) return c - 0x20;
+  return c;
+}
+
+/* pedido do dono: nenhuma frase nem rotulo comeca com minuscula. Sobe a 1a letra do
+ * texto e a 1a depois de quebra de linha, de ". ", "! ", "? " e de " \u00b7 " (o
+ * separador das telas). So a 1a letra: "0,4\u00b0 (nivelado)" fica como esta. */
+static void maiusculas_iniciais(struct txt *t) {
+  int ini = 1;
+  for (int i = 0; i < t->n; i++) {
+    uint32_t c = t->c[i];
+    if (ini) {
+      if (c == ' ') continue;
+      t->c[i] = maiuscula(c);
+      ini = 0;
+    }
+    if (c == '\n') ini = 1;
+    else if ((c == '.' || c == '!' || c == '?' || c == 0xB7) && i + 1 < t->n && t->c[i + 1] == ' ') ini = 1;
+  }
+}
+
 /* decodifica s[0..n) em t: \uXXXX (BMP; substituto ou zero viram "?"), \n, \\; outra
  * sequencia com barra fica como esta. Byte nao ASCII cru vira "?" (com aviso). */
 static void decodificar(const char *s, int n, struct txt *t) {
@@ -398,6 +422,7 @@ static void decodificar(const char *s, int n, struct txt *t) {
     t->c[t->n++] = cp;
   }
   if (cru) fprintf(stderr, "nl_tela: aviso: linha %d tem byte nao ASCII cru (use \\uXXXX); trocado por ?\n", nlinha);
+  maiusculas_iniciais(t);
 }
 
 /* divide v em ate max partes por '|'; devolve quantas */
@@ -586,7 +611,7 @@ static void tela_aviso(void) {
       else if (fase == F_AGORA) { pal = "agora"; cor = C_TEXTO; }
       else if (res == S_NADA) { pal = "feito"; cor = C_OK; }
       else {
-        static const char *const pr[] = { "ok", "corrigido", "aten\\u00e7\\u00e3o", "", "pendente" };
+        static const char *const pr[] = { "OK", "corrigido", "aten\\u00e7\\u00e3o", "", "pendente" };
         pal = pr[res]; cor = cor_estado(res); anel = res == S_PEND;
       }
       struct txt te = fixo(pal);

@@ -46,7 +46,7 @@ amb(){
   env PFL_TESTE=1 PFL_DONO="${DONO_TESTE:-$(id -u)}" PFL_RAPIDO=1 PFL_ROOT="$T/root" \
       PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" \
       PFL_NLCAMCHECK="$T/bin/nl_camcheck" PFL_NLCAMCHECK_MD5="$(md5 "$T/bin/nl_camcheck")" \
-      PFL_MODO_AUTO="${MODO_AUTO_TESTE:-0}" PATH="$T/bin:$PATH" "$@"
+      PFL_MODO_AUTO="${MODO_AUTO_TESTE:-0}" PFL_ESPERA_OK_VOLTAS=2 PATH="$T/bin:$PATH" "$@"
 }
 pp_md5(){ md5 "$T/root/dev/block/by-name/panelparam"; }
 pp_byte(){ dd if="$T/root/dev/block/by-name/panelparam" bs=1 skip="$OFF" count=1 2>/dev/null | od -An -tu1 | tr -dc '0-9'; }
@@ -126,11 +126,13 @@ case "$1" in
     [ -f "$T/cam-indeciso" ] && saida "$JEIDA" "inv_cresc=1 inv_decresc=4"
     if [ -f "$T/cam-nao-resolve" ] || [ "$byte" != "$(cat "$T/cam-certo")" ]; then saida "$VESA" "inv_cresc=9 inv_decresc=3"; fi
     saida "$JEIDA" "inv_cresc=10 inv_decresc=0" ;;
+  geometria)
+    printf "inclinacao_graus=0.4\ntrapezio_pct=1.0\nborda_centro_px=1.80\nborda_esq_px=1.90\nborda_dir_px=1.90\ncontraste_centro=0.93\nquadro=1280x720\n"; exit 0 ;;
 esac
 exit 2'
   stub reboot 'echo "reboot" >> "$T/calls.log"'
   stub sleep 'echo "sleep $*" >> "$T/calls.log"'
-  stub mount 'echo "mount $*" >> "$T/calls.log"; exit 0'
+  stub mount 'echo "mount $*" >> "$T/calls.log"; [ -f "$T/mount-falha" ] && exit 1; exit 0'
   # hidebug: registra os argumentos E o que entrou pela entrada (o gtt chegaria por ela)
   stub hidebug 'echo "HIDEBUG $* $(cat 2>/dev/null | tr "\n" " ")" >> "$T/calls.log"'
   cp "$b/hidebug" "$r/vendor/bin/hidebug"
@@ -198,7 +200,12 @@ exit 0'
 stub(){ printf '#!/bin/sh\n%s\n' "$2" > "$T/bin/$1"; chmod +x "$T/bin/$1"; }
 
 # o servico de boot da suite (bloco 9B) ja instalado, como o kit deixa
-rc_suite_ok(){ cp "$KIT/pfl7560-suite.rc" "$T/root/vendor/etc/init/pfl7560-suite.rc"; chmod 644 "$T/root/vendor/etc/init/pfl7560-suite.rc"; }
+rc_suite_ok(){
+  cp "$KIT/pfl7560-suite.rc" "$T/root/vendor/etc/init/pfl7560-suite.rc"; chmod 644 "$T/root/vendor/etc/init/pfl7560-suite.rc"
+  # o app ja no /vendor/app (bloco 9C): o aparelho "com tudo" nao abre o /vendor por ele
+  mkdir -p "$T/root/vendor/app/PFL7560"; chmod 755 "$T/root/vendor/app/PFL7560"
+  cp "$KIT/pfl7560.apk" "$T/root/vendor/app/PFL7560/PFL7560.apk"; chmod 644 "$T/root/vendor/app/PFL7560/PFL7560.apk"
+}
 # aparelho com tudo aplicado (termico/wi-fi/xiri/servico da suite): so a cor fica em jogo
 aparelho_ok(){
   local r="$T/root"
@@ -787,8 +794,8 @@ c_auto_certo(){
   afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "mexeu na panelparam com a escada em ordem"
   afirma '[ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ] && [ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "backup, journal ou gancho criados"
   afirma '[ "$(chamadas getevent)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "pediu tecla ou reiniciou"
-  afirma '[ "$(nl_chamadas faixas)" = 2 ] && [ "$(nl_chamadas niveis)" = 1 ]' "esperava 2 faixas (cor e geometria da suite) e 1 niveis: $(grep '^nl_camcheck' "$T/calls.log" | tr '\n' '|')"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 calibracao pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(nl_chamadas faixas)" = 3 ] && [ "$(nl_chamadas niveis)" = 1 ]' "esperava 3 faixas (leitura da suite antes do cor, cor e geometria) e 1 niveis: $(grep '^nl_camcheck' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 calibracao pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "escada em ordem com lvds_fmt=0: formato certo, nada foi escrito"' "log sem a decisao"
   afirma 'log_tudo | grep -q "niveis= 235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63 inv_cresc=10 inv_decresc=0 amplitude=172"' "log sem os 16 valores e as inversoes"
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
@@ -818,7 +825,7 @@ c_auto_errado(){
   afirma 'cmp -s "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup nao guarda o original"
   afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
   afirma '[ "$(chamadas getevent)" = 1 ] && [ "$(nl_chamadas niveis)" = 2 ]' "esperava 1 espera de tecla e 2 medicoes"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 corrigida calibracao pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 escada-1 corrigida calibracao pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "escada FORA de ordem (3 inversoes)"' "log sem a medicao antes"
   afirma 'log_tudo | grep -q "lvds_fmt=1 mantido, relido e a particao confere"' "log sem a confirmacao"
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
@@ -835,7 +842,7 @@ c_auto_errado(){
   afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(pp_byte)" = 0 ]' "a particao nao voltou ao original"
   afirma 'tem_chamada "lvdsctl fmt 1" && tem_chamada "lvdsctl fmt 0"' "esperava fmt 1 (troca) e fmt 0 (desfazer)"
   afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 corrigida calibracao pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 escada-1 corrigida calibracao pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "quer desfazer a correcao automatica"' "log sem o desfazer"
   limpa
 
@@ -846,7 +853,7 @@ c_auto_errado(){
   afirma 'tem_chamada "lvdsctl fmt 1" && tem_chamada "lvdsctl fmt 0"' "esperava fmt 1 e a reversao fmt 0"
   afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
   afirma '[ "$(chamadas getevent)" = 1 ]' "o fluxo manual deveria pedir a 1a tecla"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 escada-1 calibracao pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 escada-1 escada-1 calibracao pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "a troca nao deixou a escada em ordem" && log_tudo | grep -q "fluxo manual"' "log sem a queda para o manual"
   limpa
 
@@ -854,7 +861,7 @@ c_auto_errado(){
   auto_on 1; : > "$T/cam-nao-resolve"
   roda key key
   afirma '[ "$(pp_byte)" = 1 ] && [ "$(chamadas getevent)" = 2 ]' "o fluxo manual nao gravou com as duas teclas"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 escada-1 escada-1 escada-1 escada-2 calibracao pronto " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 escada-1 escada-1 escada-1 escada-2 calibracao pronto " ]' "telas: '$(telas)'"
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start"
   limpa
 
@@ -878,7 +885,7 @@ c_auto_errado(){
   auto_on 1; : > "$T/lvds-falha"
   roda
   afirma '[ "$(pp_md5)" = "$PP0" ] && [ ! -e "$(W)/journal" ]' "panelparam mudou ou journal sobrou"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 calibracao erro " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 calibracao erro " ]' "telas: '$(telas)'"
   limpa
 }
 
@@ -897,12 +904,18 @@ c_auto_duvida(){
     roda nokey
     afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "escreveu na panelparam"
     afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ] && [ ! -e "$T/root/data/local/nlsu" ]' "backup/journal/gancho"
-    afirma '[ "$(chamadas getevent)" = 1 ]' "o fluxo manual deveria pedir a 1a tecla"
+    if [ "$caso" = "faixas 15" ]; then
+      # a camera nao le: a suite chama a pessoa (2 voltas de espera no harness) antes do cor.sh
+      # e de novo na geometria; o manual pede a 1a tecla
+      afirma '[ "$(chamadas getevent)" = 5 ] && [ "$(grep -c "camera sem leitura" "$T/root/data/vendor/pfl7560-suite/ultimo.log")" = 2 ]' "esperas: getevent=$(chamadas getevent)"
+    else
+      afirma '[ "$(chamadas getevent)" = 1 ]' "o fluxo manual deveria pedir a 1a tecla"
+    fi
     afirma 'log_tudo | grep -q "fluxo manual"' "log sem a queda para o manual"
     case "$caso" in
-      "faixas 15") arq='[ "$(nl_chamadas niveis)" = 0 ] && [ "$(telas)" = "aguarde calibracao escada-1 calibracao pronto " ]' ;;
+      "faixas 15") arq='[ "$(nl_chamadas niveis)" = 0 ] && [ "$(nl_chamadas faixas)" = 7 ] && telas | grep -q "^aguarde calibracao .*escada-1 .*pronto $"' ;;
       sem-camera) arq='[ "$(chamadas nl_camcheck)" = 0 ] && [ "$(telas)" = "aguarde escada-1 pronto " ]' ;;
-      *) arq='[ "$(telas)" = "aguarde calibracao escada-1 escada-1 calibracao pronto " ]' ;;
+      *) arq='[ "$(telas)" = "aguarde calibracao calibracao escada-1 escada-1 calibracao pronto " ]' ;;
     esac
     afirma "$arq" "telas/chamadas ($caso): '$(telas)'"
     limpa
@@ -1231,62 +1244,56 @@ c_sem_suite_legado(){
   limpa
 }
 
-# bloco 9C: o kit instala o app (pm install -r) antes de lancar a suite; falha nao para o kit
+# bloco 9C: o kit poe o app em /vendor/app/PFL7560 (app do sistema; o pm install do firmware
+# recusa apps de fora) na janela rw do /vendor; falha nao para o kit
+APPV(){ echo "$T/root/vendor/app/PFL7560"; }
 c_app(){
-  novo_cenario "app: ausente = instala da copia do root, antes da suite; 2a vez nao reinstala"; aparelho_ok
+  novo_cenario "app: ausente = vai para /vendor/app como app do sistema, antes da suite; 2a vez nao regrava"; aparelho_ok
+  rm -rf "$(APPV)"
   roda nokey
-  afirma '[ "$(chamadas "pm install")" = 1 ] && tem_chamada "^pm install -r $(W)/pfl7560.apk\$"' "pm install: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
-  afirma '! grep -q "^pm install.*media_rw" "$T/calls.log"' "instalou direto do pendrive"
-  afirma '[ "$(grep -n "^pm install" "$T/calls.log" | head -1 | cut -d: -f1)" -lt "$(grep -n "^am start" "$T/calls.log" | head -1 | cut -d: -f1)" ]' "o app nao foi instalado antes da primeira tela da suite"
-  afirma 'log_tudo | grep -q "\[OK\] app: com.pfl7560.verificar instalado" && log_tudo | grep -q "boot SEGUINTE"' "log sem a instalacao ou sem o aviso do boot seguinte"
-  afirma '[ "$(cat "$T/apk-instalado-md5")" = "$(md5 "$KIT/pfl7560.apk")" ] && [ ! -e "$T/root/data/vendor/pfl7560-suite/pfl7560.apk" ]' "o pm nao leu o apk do kit ou o apk foi parar na pasta da suite"
+  afirma 'cmp -s "$KIT/pfl7560.apk" "$(APPV)/PFL7560.apk" && ls -l "$(APPV)/PFL7560.apk" | grep -q "^-rw-r--r--"' "apk ausente, diferente ou fora de 0644 em vendor/app: $(ls -l "$(APPV)" 2>&1 | tr '\n' '|')"
+  afirma 'ls -ld "$(APPV)" | grep -q "^drwxr-xr-x"' "pasta do app sem 0755"
+  afirma 'tem_chamada "^chcon u:object_r:vendor_app_file:s0 .*vendor/app/.PFL7560.apk.new\$" && tem_chamada "^chcon u:object_r:vendor_app_file:s0 $(APPV)\$"' "sem chcon vendor_app_file: $(grep '^chcon' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(chamadas "pm ")" = 0 ]' "usou o pm (recusado pelo firmware)"
+  afirma '[ ! -e "$T/root/vendor/app/.PFL7560.apk.new" ] && [ ! -e "$T/root/data/vendor/pfl7560-suite/pfl7560.apk" ]' "sobrou .new ou o apk foi para a pasta da suite"
+  afirma 'tem_chamada "^mount -o rw,remount /vendor" && tem_chamada "^mount -o ro,remount /vendor"' "gravou no /vendor sem o remount rw/ro"
+  afirma '[ "$(grep -n "vendor_app_file" "$T/calls.log" | head -1 | cut -d: -f1)" -lt "$(grep -n "^am start" "$T/calls.log" | head -1 | cut -d: -f1)" ]' "o app nao entrou antes da primeira tela da suite"
+  afirma 'log_tudo | grep -q "\[OK\] app: com.pfl7560.verificar instalado como app do sistema" && log_tudo | grep -q "PROXIMO boot"' "log sem a instalacao ou sem o aviso do proximo boot"
   afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "o app mudou o fluxo do kit: telas '$(telas)'"
+  : > "$T/calls.log"
   roda nokey
-  afirma '[ "$(chamadas "pm install")" = 1 ] && log_tudo | grep -q "ja estava instalado"' "2a execucao reinstalou: $(chamadas "pm install") install(s)"
+  afirma '! tem_chamada "^mount -o rw,remount /vendor" && log_tudo | grep -q "app: ja estava em /vendor/app/PFL7560"' "2a execucao abriu o /vendor ou regravou"
   limpa
 
-  novo_cenario "app: mesma versao instalada = nao instala"; aparelho_ok
-  echo "$APP_VC" > "$T/app-versao"
+  novo_cenario "app: apk antigo em /vendor/app = atualiza"; aparelho_ok
+  mkdir -p "$(APPV)"; echo velho > "$(APPV)/PFL7560.apk"
   roda nokey
-  afirma '[ "$(chamadas "pm install")" = 0 ] && log_tudo | grep -q "ja estava instalado"' "reinstalou a mesma versao"
+  afirma 'cmp -s "$KIT/pfl7560.apk" "$(APPV)/PFL7560.apk" && log_tudo | grep -q "\[OK\] app:"' "nao atualizou"
   limpa
 
-  novo_cenario "app: versao diferente = atualiza"; aparelho_ok
-  echo 0 > "$T/app-versao"
+  novo_cenario "app: pasta do app e LINK = o link sai, o alvo fica intacto"; aparelho_ok
+  rm -rf "$(APPV)"; mkdir -p "$T/alvo-app"; ln -s "$T/alvo-app" "$(APPV)"
   roda nokey
-  afirma '[ "$(chamadas "pm install")" = 1 ] && log_tudo | grep -q "versao instalada 0, a do kit e $APP_VC - atualizando"' "nao atualizou"
-  afirma '[ "$(cat "$T/app-versao")" = "$APP_VC" ]' "versao final: $(cat "$T/app-versao")"
+  afirma '[ -z "$(ls -A "$T/alvo-app")" ] && [ -d "$(APPV)" ] && [ ! -L "$(APPV)" ] && cmp -s "$KIT/pfl7560.apk" "$(APPV)/PFL7560.apk"' "seguiu o link ou nao instalou"
   limpa
 
-  novo_cenario "app: pm list sem versionCode cai no dumpsys"; aparelho_ok
-  echo "$APP_VC" > "$T/app-versao"; : > "$T/pm-sem-versioncode"
+  novo_cenario "app: remount do /vendor falha = o kit segue (cor, suite e telas como sempre)"; aparelho_ok
+  rm -rf "$(APPV)"; : > "$T/mount-falha"
   roda nokey
-  afirma 'tem_chamada "^dumpsys package com.pfl7560.verificar" && [ "$(chamadas "pm install")" = 0 ]' "nao usou o dumpsys ou reinstalou"
+  afirma '[ "$RC" = 0 ] && [ ! -e "$(APPV)/PFL7560.apk" ] && log_tudo | grep -q "servico de boot e app da suite NAO instalados"' "rc=$RC; sem o aviso"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "a falha mudou o fluxo: telas '$(telas)'"
   limpa
 
-  novo_cenario "app: pm install falha = o kit segue (cor, suite e telas como sempre)"; aparelho_ok
-  : > "$T/pm-falha"
+  novo_cenario "app: DESINSTALAR-SUITE = nao mexe no app"; aparelho_ok
+  rm -rf "$(APPV)"; : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
   roda nokey
-  afirma '[ "$RC" = 0 ] && log_tudo | grep -q "\[AVISO\] app: pm install falhou" && log_tudo | grep -q "o resto do kit segue"' "rc=$RC; sem aviso de falha do app"
-  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "a falha do app mudou o fluxo: telas '$(telas)'"
-  limpa
-
-  novo_cenario "app: sem o comando pm = o kit segue"; aparelho_ok
-  rm -f "$T/bin/pm"
-  roda nokey
-  afirma '[ "$RC" = 0 ] && log_tudo | grep -q "sem o comando pm" && [ "$(telas)" = "aguarde escada-1 calibracao pronto " ]' "rc=$RC; telas '$(telas)'"
-  limpa
-
-  novo_cenario "app: DESINSTALAR-SUITE = nao instala o app"; aparelho_ok
-  : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
-  roda nokey
-  afirma '[ "$(chamadas "pm ")" = 0 ]' "mexeu no app ao desinstalar a suite: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ ! -e "$(APPV)" ] && ! grep -q "vendor_app_file" "$T/calls.log"' "mexeu no app ao desinstalar a suite"
   limpa
 
   novo_cenario "app: apk adulterado no pendrive = o kit aborta antes de instalar"; aparelho_ok
-  printf 'X' >> "$T/root/mnt/media_rw/USB1/pfl7560.apk"
+  rm -rf "$(APPV)"; printf 'X' >> "$T/root/mnt/media_rw/USB1/pfl7560.apk"
   roda nokey
-  afirma '[ "$RC" != 0 ] && [ "$(chamadas "pm ")" = 0 ] && log_tudo | grep -q "pfl7560.apk.*md5 diferente"' "rc=$RC; instalou apk adulterado"
+  afirma '[ "$RC" != 0 ] && [ ! -e "$(APPV)" ] && log_tudo | grep -q "pfl7560.apk.*md5 diferente"' "rc=$RC; instalou apk adulterado"
   limpa
 }
 

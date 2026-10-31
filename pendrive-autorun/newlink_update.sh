@@ -23,9 +23,9 @@
 #  cor.sh direto. Com DESINSTALAR-SUITE.txt na raiz do pendrive, remove a suite e
 #  roda so a fase de cor, como antes. Sem a suite instalada, idem.
 #
-#  APP (bloco 9C): antes de lancar a suite, o kit instala o pfl7560.apk (pm install -r, da copia
-#  conferida em /data/vendor/pfl7560-kit) se o app nao estiver instalado ou se a versao for outra.
-#  Falha de instalacao nunca para o kit. O app grava o pedido de verificacao na pasta privada dele
+#  APP (bloco 9C): antes de lancar a suite, o kit poe o pfl7560.apk (da copia conferida em
+#  /data/vendor/pfl7560-kit) em /vendor/app/PFL7560 como app do sistema, se faltar ou diferir
+#  (o pm install deste firmware recusa apps de fora). Falha de instalacao nunca para o kit. O app grava o pedido de verificacao na pasta privada dele
 #  e o vigia do pedido (suite-boot.sh) so liga no boot: o icone passa a valer no boot SEGUINTE.
 #
 #  Coloque na RAIZ do pendrive (FAT32) tudo o que esta na pasta pendrive-autorun:
@@ -115,13 +115,13 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-38f1faab293edb68c33ef0369ad5f25d  cor.sh
+a8859bfde8c210907811e91d14ae584b  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
-428b7c26fe3afbe67e83fd18d1a88d37  nl_tela
-fce57d8b09d1ff2c9f614bfa0960ca37  suite.sh
-c534ebfbbb8defa8c9c38631ec3e3645  suite-boot.sh
-f0cbed4ee20ee3d1920d955ae07ae7b0  suite-pedido.sh
+a5a6751858ad3ff528a3aa04b29da746  nl_tela
+aafd6ee3704a28d98d9c79abe06b5c7e  suite.sh
+4ef85f19377e4c6eb3a3b9b346549b2d  suite-boot.sh
+c1d49bd0c401c11daf1e81127147aa96  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 5e177ab534186fc7b0b2b68f6fba1b2c  pfl7560.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
@@ -422,45 +422,52 @@ instalar_rc(){
 suite_pronta(){ suite_dir_ok && conferir_em "$SUITE" suite.sh; }
 
 # ---- app "PFL7560" (bloco 9C) ---------------------------------------------------------
-# O APK ja passou pelo md5 da lista e esta em $WORK (pasta so do root): o pm le DE LA, nunca do
-# pendrive. versionCode instalado: pm list packages --show-versioncode; sem ele, dumpsys package.
-app_versao_instalada(){
-  _av=$(pm list packages --show-versioncode "$APP_PKG" 2>/dev/null | sed -n "s/^package:$APP_PKG versionCode:\([0-9][0-9]*\).*/\1/p" | head -1)
-  if [ -z "$_av" ]; then
-    _av=$(dumpsys package "$APP_PKG" 2>/dev/null | sed -n 's/^ *versionCode=\([0-9][0-9]*\).*/\1/p' | head -1)
-  fi
-  echo "$_av"
+# O pm install deste firmware recusa QUALQUER app de fora (INSTALL_FAILED_INVALID_INSTALL_LOCATION,
+# visto no aparelho em 2026-10-30, com /data/app vazio). O app entra como app do sistema em
+# /vendor/app/PFL7560/ (o PackageManager varre o /vendor/app no boot, como faz com o
+# KeymasterProvisionDemo de fabrica): 0755/0644, root, rotulo vendor_app_file, dentro da
+# MESMA janela rw do /vendor do .rc da suite. Vale no proximo boot. O APK vem de $WORK (ja
+# conferido pelo md5 da lista), nunca do pendrive.
+APP_DIR="$R/vendor/app/PFL7560"
+APP_APK="$APP_DIR/PFL7560.apk"
+APP_NOVO="$R/vendor/app/.PFL7560.apk.new"
+ROTULO_APP="u:object_r:vendor_app_file:s0"
+app_conforme(){
+  [ -d "$APP_DIR" ] && [ ! -L "$APP_DIR" ] || return 1
+  [ -f "$APP_APK" ] && [ ! -L "$APP_APK" ] && cmp -s "$WORK/pfl7560.apk" "$APP_APK" || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ln "$APP_APK" 2>/dev/null)
+  case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
+  [ "$3" = "$DONO_UID" ] || return 1
+  _al=$(rotulo_de "$APP_APK")
+  [ -z "$_al" ] || [ "$_al" = "$ROTULO_APP" ]
 }
-# instala (pm install -r) quando ausente ou com versao diferente; falha so avisa (devolve !=0)
+# so com o /vendor ja aberto rw. Falha so avisa (devolve !=0): o resto do kit segue.
 instalar_app(){
-  if ! command -v pm >/dev/null 2>&1; then
-    LOG "[AVISO] app: sem o comando pm - o app NAO foi instalado (o resto do kit segue)."
-    return 1
-  fi
   if ! trabalho_ok || ! trabalho_conferir pfl7560.apk; then
     LOG "[AVISO] app: pfl7560.apk em $WORK nao confere - o app NAO foi instalado (o resto do kit segue)."
     return 1
   fi
-  _ai=$(app_versao_instalada)
-  if [ "$_ai" = "$APP_VERSION_CODE" ]; then
-    LOG "app: $APP_PKG versao $_ai ja estava instalado"
-    return 0
+  # um link no lugar da pasta e apagado, nunca seguido
+  [ -L "$APP_DIR" ] && rm -f "$APP_DIR"
+  if ! { mkdir -p "$APP_DIR" && chmod 755 "$APP_DIR" && chown root:root "$APP_DIR"; }; then
+    LOG "[AVISO] app: nao consegui preparar $APP_DIR - o app NAO foi instalado (o resto do kit segue)."
+    return 1
   fi
-  if [ -n "$_ai" ]; then
-    LOG "app: versao instalada $_ai, a do kit e $APP_VERSION_CODE - atualizando"
-  else
-    LOG "app: $APP_PKG ausente - instalando"
+  chcon "$ROTULO_APP" "$APP_DIR" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou na pasta do app."
+  rm -f "$APP_NOVO"
+  if cp "$WORK/pfl7560.apk" "$APP_NOVO" && chmod 644 "$APP_NOVO" && chown root:root "$APP_NOVO" \
+     && cmp -s "$WORK/pfl7560.apk" "$APP_NOVO"; then
+    chcon "$ROTULO_APP" "$APP_NOVO" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou no apk."
+    if mv -f "$APP_NOVO" "$APP_APK" && app_conforme; then
+      _alf=$(rotulo_de "$APP_APK"); [ -n "$_alf" ] || _alf="(ls -Z nao respondeu; pedido $ROTULO_APP)"
+      LOG "[OK] app: $APP_PKG instalado como app do sistema em ${APP_DIR#"$R"} (versao $APP_VERSION_CODE, 0644 root, rotulo $_alf). Os icones Verificar projetor e Wi-Fi aparecem depois do PROXIMO boot."
+      return 0
+    fi
+    rm -f "$APP_APK"
   fi
-  if command -v timeout >/dev/null 2>&1; then
-    _ao=$(timeout 120 pm install -r "$WORK/pfl7560.apk" 2>&1); _arc=$?
-  else
-    _ao=$(pm install -r "$WORK/pfl7560.apk" 2>&1); _arc=$?
-  fi
-  if [ "$_arc" = "0" ] && echo "$_ao" | grep -q Success; then
-    LOG "[OK] app: $APP_PKG instalado (versao $APP_VERSION_CODE). O icone Verificar projetor so passa a valer no boot SEGUINTE (o vigia do pedido liga no boot)."
-    return 0
-  fi
-  LOG "[AVISO] app: pm install falhou (rc=$_arc: $(echo "$_ao" | tail -1)) - o app NAO foi instalado (o resto do kit segue)."
+  rm -f "$APP_NOVO"
+  LOG "[AVISO] app: nao consegui gravar o apk em $APP_DIR - o app NAO foi instalado (o resto do kit segue)."
   return 1
 }
 
@@ -474,9 +481,10 @@ if [ "$SUITE_INSTALAR" = "1" ]; then
     LOG "[ERRO] suite NAO instalada: o kit roda so a fase de cor, como antes."
   fi
 fi
-# o app entra ANTES de lancar a suite (e antes do reboot da fase termica: o vigia do pedido
-# liga no boot, entao o proximo boot ja o encontra). So com a suite instalada: o app so serve a ela.
-if [ "$SUITE_OK" = "1" ]; then instalar_app; fi
+# o app entra na janela rw do /vendor, abaixo (antes de lancar a suite e do reboot da fase
+# termica). So com a suite instalada: o app so serve a ela.
+APP_PEND=0
+if [ "$SUITE_OK" = "1" ] && ! app_conforme; then APP_PEND=1; fi
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
 # termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior
@@ -611,12 +619,12 @@ if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok; then
     exit 1
   fi
   VENDOR_RW=1
-elif [ "$SUITE_RC_PEND" = "1" ]; then
-  LOG "servico de boot da suite ausente/diferente -> abrindo o /vendor so para ele ..."
+elif [ "$SUITE_RC_PEND" = "1" ] || [ "$APP_PEND" = "1" ]; then
+  LOG "servico de boot ou app da suite ausente/diferente -> abrindo o /vendor so para eles ..."
   if mount -o rw,remount /vendor; then
     VENDOR_RW=1
   else
-    LOG "[ERRO] nao consegui remontar /vendor rw: servico de boot da suite NAO instalado (o resto do kit segue; retentar no proximo boot)."
+    LOG "[ERRO] nao consegui remontar /vendor rw: servico de boot e app da suite NAO instalados (o resto do kit segue; retentar no proximo boot)."
   fi
 fi
 
@@ -693,6 +701,11 @@ if [ "$SUITE_OK" = "1" ]; then
     LOG "suite: servico de boot ja estava instalado"
   elif [ "$VENDOR_RW" = "1" ]; then
     instalar_rc
+  fi
+  if [ "$APP_PEND" = "0" ]; then
+    LOG "app: ja estava em ${APP_DIR#"$R"} (igual ao do kit)"
+  elif [ "$VENDOR_RW" = "1" ]; then
+    instalar_app
   fi
 fi
 

@@ -114,6 +114,9 @@ saida(){ for v in $1; do echo $v; done; echo "$2"; exit 0; }
 case "$1" in
   faixas)
     [ -f "$T/cam-faixas-rc" ] && { echo "faixas achadas: 15 (esperadas 16)"; exit 3; }
+    if [ -f "$T/cam-faixas-falhas" ]; then
+      f=$(cat "$T/cam-faixas-falhas"); if [ "$f" -gt 0 ]; then echo $((f-1)) > "$T/cam-faixas-falhas"; echo "faixas achadas: 8 (esperadas 16)"; exit 3; fi
+    fi
     i=0; : > "$4"; while [ $i -lt 16 ]; do echo "$((100+i*20)) $((114+i*20))" >> "$4"; i=$((i+1)); done
     echo "faixas achadas: 16 (esperadas 16)"; exit 0 ;;
   niveis)
@@ -144,6 +147,9 @@ exit 0'
 if [ -f "$T/mata-no-sleep" ] && [ "$1" = "$(cat "$T/mata-no-sleep")" ]; then rm -f "$T/mata-no-sleep"; kill -TERM "$PPID"; fi
 exit 0'
   stub input 'echo "input $*" >> "$T/calls.log"'
+  # alerta de sistema do firmware: "$T/alerta" = quantas consultas ainda o mostram focado
+  stub dumpsys 'n=$(cat "$T/alerta" 2>/dev/null || echo 0)
+if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 com.newlink.nlprovision}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
   stub wm 'echo "Physical size: 1920x1080"'
   stub dmesg '[ -f "$T/dmesg" ] && cat "$T/dmesg"; exit 0'
   stub inotifyd 'echo "inotifyd $*" >> "$T/calls.log"; exit 0'
@@ -168,7 +174,7 @@ amb(){
       PFL_NLCAMCHECK="$T/bin/nl_camcheck" PFL_NLCAMCHECK_MD5="$(md5 "$T/bin/nl_camcheck")" \
       PFL_NLTELA="$T/bin/nl_tela" PFL_NLTELA_MD5="${NLTELA_MD5_TESTE:-$(md5 "$T/bin/nl_tela")}" \
       PFL_APP_UID_MIN="${APP_UID_MIN_TESTE:-0}" \
-      PFL_MODO_AUTO="$MODO_AUTO_TESTE" PFL_VIGIA_VOLTAS=2 PATH="$T/bin:$PATH" "$@"
+      PFL_MODO_AUTO="$MODO_AUTO_TESTE" PFL_VIGIA_VOLTAS=2 PFL_ESPERA_OK_VOLTAS=2 PATH="$T/bin:$PATH" "$@"
 }
 # a pasta da suite como o newlink_update.sh deixa (so do root, os arquivos do kit)
 instala_suite(){
@@ -693,7 +699,8 @@ c_etapas_geometria(){
   afirma '[ "$(grep -c "^am startservice -n com.zhiying.autofocus/.AutoFocusService -a com.zhiying.AUTO_FOCUS_SERVICE --ei auto_focus_keystone 0$" "$T/calls.log")" = 2 ]' "esperava 2 autofocos (so foco): $(grep startservice "$T/calls.log" | tr '\n' '|')"
   afirma '[ "$(res foco_tentativas)" = 2 ] && [ "$(item_de Foco)" = "Foco|refeito (2x)|corrigido" ]' "foco: $(res foco_tentativas) $(item_de Foco)"
   afirma '[ "$(grep -c "^nl_camcheck geometria" "$T/calls.log")" = 3 ]' "esperava 3 medicoes"
-  afirma '[ "$(grep -c "^am start.*pfl7560-suite/calibracao.png" "$T/calls.log")" = 3 ]' "a calibracao deveria voltar a cada medicao"
+  # 1 da leitura antes do cor.sh + 3 medicoes da geometria
+  afirma '[ "$(grep -c "^am start.*pfl7560-suite/calibracao.png" "$T/calls.log")" = 4 ]' "a calibracao deveria voltar a cada medicao"
   limpa
 
   novo_cenario "geometria: foco ruim que nao melhora = 2 autofocos e atencao"
@@ -719,6 +726,31 @@ c_etapas_geometria(){
     afirma '[ "$(res camera)" = falhou ] && [ "$(res rampa)" = reagiu ] && [ "$(res itens)" = 19 ]' "a suite nao seguiu: camera=$(res camera) rampa=$(res rampa)"
     limpa
   done
+
+  novo_cenario "camera: alerta do sistema na tela = fechado com ENTER antes de mostrar"
+  etapa_feliz; echo 1 > "$T/alerta"
+  roda_suite tomada
+  afirma 'tem_chamada "input keyevent KEYCODE_ENTER" && grep -q "alerta do sistema (nlprovision)" "$S/ultimo.log"' "o alerta nao foi fechado"
+  afirma '[ "$(res camera)" = ok ]' "camera: $(res camera)"
+  limpa
+
+  novo_cenario "camera: falha 2x e le na 3a = sem chamar a pessoa, autofoco entre as tentativas"
+  etapa_feliz; echo 2 > "$T/cam-faixas-falhas"
+  roda_suite tomada
+  afirma '! grep -q "camera sem leitura" "$S/ultimo.log" && grep -q "tentativa 3" "$S/ultimo.log"' "log: $(grep -a camera "$S/ultimo.log" | tr '\n' '|')"
+  afirma '[ "$(grep -c "disparando o autofoco" "$S/ultimo.log")" -ge 2 ]' "o autofoco nao foi refeito entre as tentativas"
+  afirma '[ "$(res cor_resultado)" = ordem ]' "cor: $(res cor_resultado)"
+  limpa
+
+  novo_cenario "camera: falha 3x antes do cor.sh = tela da camera e espera de tecla SEM prazo; depois o cor.sh"
+  etapa_feliz; echo 3 > "$T/cam-faixas-falhas"
+  roda_suite tomada
+  afirma 'grep -q "camera sem leitura: esperando uma tecla do controle, sem prazo" "$S/ultimo.log"' "nao chamou a pessoa"
+  afirma '[ -n "$(campos aviso camera)" ] && grep -q "^tom=alerta" "$(campos aviso camera)" && ! grep -qi pendrive "$(campos aviso camera)"' "tela da camera: $(tr '\n' '|' < "$(campos aviso camera)" 2>/dev/null)"
+  afirma '! grep -q "^campo rodape\|^rodape=" "$(campos aviso camera)"' "tela da camera com rodape"
+  afirma 'grep -q "^tela: camera" "$S/ultimo.log" || grep -q "tela: camera-" "$S/ultimo.log"' "a tela da camera nao foi mostrada"
+  afirma 'grep -q "cor: rodando cor.sh no modo suite" "$S/ultimo.log"' "a cor nao seguiu depois da tecla"
+  limpa
 
   novo_cenario "geometria: sem /dev/video0 = camera ausente, sem nl_camcheck"
   etapa_feliz; MODO_AUTO_TESTE=0; echo nokey > "$T/keys"; rm -f "$R/dev/video0"
@@ -863,7 +895,7 @@ c_telas(){
     afirma '[ "$(grep -E "^(grupo|item)=" "$(campos resumo resumo)" | sed "s/|.*//" | tr "\n" ";")" = "grupo=COR;item=Formato do painel;item=C\u00e2mera;item=Painel;grupo=IMAGEM;item=Resolu\u00e7\u00e3o;item=\u00c2ngulo;item=Foco;item=Nitidez;item=4 pontos;item=Modo de proje\u00e7\u00e3o;grupo=TEMPERATURA;item=LED;item=Placa;item=Brilho;item=Ventoinha;item=Rampa t\u00e9rmica;grupo=SISTEMA;item=Firmware;item=Corre\u00e7\u00e3o t\u00e9rmica;item=Wi-Fi;item=Motivo do boot;item=Data e hora;" ]' "ordem dos itens: $(grep -E "^(grupo|item)=" "$(campos resumo resumo)" | sed "s/|.*//" | tr "\n" ";")"
     afirma '! grep -q "^item=.*|.*|.*|" "$(campos resumo resumo)" && ! grep -qv "^item=.*|\(ok\|corrigido\|atencao\|info\|pendente\)$" <(grep "^item=" "$(campos resumo resumo)")' "item com estado fora do contrato"
     afirma '[ -z "$(LC_ALL=C grep -nP "[^\x20-\x7E]" "$T"/campos-*.txt)" ]' "campos.txt com byte fora de ASCII imprimivel"
-    afirma '[ "$(telas)" = "abertura calibracao escada-1 calibracao etapa3 etapa4 resumo " ]' "telas: '$(telas)'"
+    afirma '[ "$(telas)" = "abertura calibracao calibracao escada-1 calibracao etapa3 etapa4 resumo " ]' "telas: '$(telas)'"
     afirma '[ "$(chamadas getevent)" = 1 ] && tem_chamada "input keyevent KEYCODE_HOME"' "resumo sem a espera de tecla ou sem voltar ao inicio"
     afirma '[ "$(tail -2 "$T/calls.log" | head -1)" = "am force-stop com.hisilicon.higallery" ]' "a galeria nao foi fechada antes do HOME"
     afirma '[ -z "$(grep "^am start" "$T/calls.log" | grep -v "file:///sdcard/pfl7560-")" ] && ! grep -q AM_ARQUIVO_AUSENTE "$T/calls.log"' "tela fora de /sdcard ou ausente"
@@ -883,7 +915,7 @@ c_telas(){
   novo_cenario "modo pendrive: a ultima tela pede para tirar o pendrive; log no pendrive"
   etapa_feliz; pendrive
   roda_suite pendrive "$MP"
-  afirma '[ "$(telas)" = "abertura calibracao escada-1 calibracao etapa3 etapa4 resumo final " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "abertura calibracao calibracao escada-1 calibracao etapa3 etapa4 resumo final " ]' "telas: '$(telas)'"
   afirma 'grep -qx "titulo=Pode tirar o pendrive." "$(campos aviso final)"' "tela final"
   afirma 'grep -qxF "titulo=Pendrive do kit encontrado.\nConferindo o projetor." "$(campos aviso abertura)"' "abertura do pendrive"
   afirma '[ -s "$MP/newlink_suite.log" ] && [ -s "$MP/newlink_cor.log" ]' "logs nao foram para o pendrive"
@@ -893,7 +925,7 @@ c_telas(){
   novo_cenario "modo pendrive com termica-falhou e sem nl_tela = final estatica de erro"
   etapa_feliz; pendrive; : > "$T/nltela-falha"
   roda_suite pendrive "$MP" termica-falhou
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 calibracao erro " ]' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 calibracao erro " ]' "telas: '$(telas)'"
   limpa
 
   novo_cenario "sem nl_tela (md5 errado) no modo tomada: telas estaticas so sem pendrive"
@@ -901,7 +933,7 @@ c_telas(){
   roda_suite tomada
   unset NLTELA_MD5_TESTE
   afirma '[ "$(chamadas nl_tela)" = 0 ]' "executou o nl_tela com md5 errado"
-  afirma '[ "$(telas)" = "aguarde calibracao escada-1 calibracao " ] && tem_chamada "input keyevent KEYCODE_HOME"' "telas: '$(telas)'"
+  afirma '[ "$(telas)" = "aguarde calibracao calibracao escada-1 calibracao " ] && tem_chamada "input keyevent KEYCODE_HOME"' "telas: '$(telas)'"
   afirma '[ "$(res itens)" = 19 ]' "resultados sem os 19 itens"
   limpa
 
@@ -976,7 +1008,7 @@ c_conferente(){
   roda_kit
   afirma '[ "$RC" = 0 ]' "o kit abortou por causa do .rc (rc=$RC): $(tail -3 "$T/kit.out")"
   afirma '[ ! -e "$rc" ] && [ ! -e "$R/vendor/etc/pfl7560-suite.rc.new" ]' "gravou o .rc sem o /vendor rw"
-  afirma 'grep -q "servico de boot da suite NAO instalado" "$T/kit.out"' "log sem o aviso do .rc"
+  afirma 'grep -q "servico de boot e app da suite NAO instalados" "$T/kit.out"' "log sem o aviso do .rc"
   afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "a suite nao foi lancada: $(grep setsid "$T/calls.log")"
   limpa
 
@@ -1136,6 +1168,8 @@ c_estaticos(){
   afirma '[ "$(grep -c "HIDEBUG" "$KIT/suite.sh")" -ge 1 ] && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qiE "gtt"' "suite.sh cita gtt fora de comentario"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "hidebug|gtt"' "boot/pedido citam hidebug/gtt"
   # os 4 pontos e o modo de projecao: so leitura
+  # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa
+  afirma '! grep -n "exit !" "$KIT"/*.sh' "script do kit com exit !(...) no awk: $(grep -n "exit !" "$KIT"/*.sh | head -3)"
   # (a unica prop persist que a suite toca e a marca do gatilho, so no desinstalar)
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -v "setprop persist.sys.boot.reason \"\"" | grep -qE "setprop (persist|\"?persist)|ProjectionService|nlhotkey|FourPointActivity"' "a suite escreve 4 pontos/modo ou abre telas do sistema"
   # o .rc: 0644 no git tambem nao importa (o kit faz chmod); conteudo do servico

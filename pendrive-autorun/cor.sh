@@ -212,6 +212,14 @@ mostrar(){
   case "$_pk" in
     ''|android|*[!A-Za-z0-9._]*) _pk="com.hisilicon.higallery" ;;
   esac
+  # alerta de sistema do firmware por cima (o "Temperatura anormal" do nlprovision cobre
+  # o meio da tela, onde a camera le): ENTER no alerta focado o fecha (aparelho, 2026-10-30)
+  _fa=0
+  while [ "$_fa" -lt 3 ] && dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | grep -aq 'com.newlink.nlprovision'; do
+    LOG "alerta do sistema (nlprovision) na tela: fechando com ENTER"
+    input keyevent KEYCODE_ENTER >/dev/null 2>&1
+    sleep 1; _fa=$(( _fa + 1 ))
+  done
   am force-stop "$_pk" >/dev/null 2>&1
   am start -a android.intent.action.VIEW -d "file://${_f#"$R"}" -t image/png >/dev/null 2>&1
   sleep "$TEMPO_TELA"

@@ -34,7 +34,7 @@
 # So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
 # do ambiente, para que nenhuma seja porta de entrada em producao.
 if [ "${PFL_TESTE:-}" != "1" ]; then
-  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_ESPERA_OK_VOLTAS
 fi
 # locale fixo: o awk segue LC_NUMERIC e em pt_BR imprime "3,50", que outro awk le como 3
 # (o mesmo cuidado do pfl7560-saude.sh)
@@ -71,10 +71,10 @@ DONO_UID=0
 # Gerado por tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO
 # editar a mao. nl_tela e fontes/ entram quando existirem no kit (bloco 9A).
 # SUITE_LISTA_INICIO
-SUITE_LISTA="38f1faab293edb68c33ef0369ad5f25d  cor.sh
+SUITE_LISTA="a8859bfde8c210907811e91d14ae584b  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
-428b7c26fe3afbe67e83fd18d1a88d37  nl_tela
+a5a6751858ad3ff528a3aa04b29da746  nl_tela
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -143,6 +143,12 @@ RAZAO_BORDA=1.6       # borda de um lado > 1.6 x a do centro = foco ruim
 INCLINACAO_MAX=1.5    # graus
 TRAPEZIO_MAX=3        # %
 FOCO_TENTATIVAS=2
+# modo automatico da camera como no cor.sh: ligado; PFL_TESTE=1 PFL_MODO_AUTO=0 o desliga
+MODO_AUTO=1
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_MODO_AUTO:-}" ] && MODO_AUTO="$PFL_MODO_AUTO"
+CAM_TENTATIVAS=3      # leituras da calibracao antes de pedir a pessoa (autofoco entre elas)
+ESPERA_OK_VOLTAS=0    # 0 = espera a tecla sem fim (producao); o harness limita
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_ESPERA_OK_VOLTAS:-}" ] && ESPERA_OK_VOLTAS="$PFL_ESPERA_OK_VOLTAS"
 # PROVISORIO (teste no aparelho, bloco 9 item 4: inclinar de proposito). C-geo: graus > 0
 # = as faixas descem para a direita no quadro como ele chega; o quadro vem espelhado de
 # cima para baixo, entao na parede elas SOBEM para a direita = o lado direito esta mais
@@ -204,7 +210,8 @@ limpo(){ printf '%s' "$1" | tr '\n\r\t' '   ' | tr -d '|\\' | tr -cd ' -~' | cut
 virgula(){ echo "$1" | sed 's/\./,/'; }
 um_dec(){ awk -v v="$1" 'BEGIN{printf "%.1f", v}'; }
 numero(){ case "$1" in ''|*[!0-9.-]*|*.*.*|?*-*) return 1 ;; esac; [ "$1" != "-" ] && [ "$1" != "." ]; }
-maior(){ awk -v a="$1" -v b="$2" 'BEGIN{exit !(a+0 > b+0)}'; }
+# o awk do Android 9 (BWK) recusa a negacao no exit ("illegal arithmetic operator"): use if/exit
+maior(){ awk -v a="$1" -v b="$2" 'BEGIN{if (a+0 > b+0) exit 0; exit 1}'; }
 abs(){ awk -v a="$1" 'BEGIN{if (a<0) a=-a; print a}'; }
 
 # ---- resultados (C-res) ------------------------------------------------------
@@ -310,7 +317,23 @@ gerar_tela(){
 }
 # mostra um PNG: fecha a galeria a forca e abre de novo (bloco 7: a 2a imagem para a
 # galeria aberta nao troca); o pacote vem do resolvedor de VIEW de PNG
+# alerta de sistema do firmware por cima de tudo (o "Temperatura anormal" que a rampa
+# provoca, do com.newlink.nlprovision): ele cobre o meio da tela, onde a camera le as
+# faixas, e so sai com OK. Visto no aparelho em 2026-10-30: com ele, 8 de 16 faixas;
+# sem ele, 16 de 16. ENTER no alerta focado o fecha.
+fechar_alertas(){
+  _fa=0
+  while [ "$_fa" -lt 3 ]; do
+    dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | grep -aq 'com.newlink.nlprovision' || return 0
+    LOG "alerta do sistema (nlprovision) na tela: fechando com ENTER"
+    input keyevent KEYCODE_ENTER >/dev/null 2>&1
+    sleep 1; _fa=$(( _fa + 1 ))
+  done
+  LOG "[AVISO] o alerta do sistema nao fechou depois de 3 ENTER"
+  return 1
+}
 mostrar_arq(){
+  fechar_alertas
   LOG "tela: ${1##*/}"
   _pk=$(cmd package resolve-activity --brief -a android.intent.action.VIEW -d "file://${1#"$R"}" -t image/png 2>/dev/null | tail -1)
   _pk="${_pk%%/*}"
@@ -396,7 +419,6 @@ etapa_abertura(){
       campo texto "O projetor confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
   esac
   passos_fila fila fila fila fila
-  campo rodape "n\u00e3o precisa apertar nada"
   campo tom normal
   tela aviso abertura "$CAMPOS" aguarde
   sleep "$TEMPO_ABERTURA"
@@ -447,6 +469,12 @@ etapa_cor(){
   elif ! { dir_seguro "$WORK" && confere "$WORK/cor.sh" cor.sh; }; then
     LOG "[ERRO] cor: cor.sh nao conferiu na hora de executar - NAO executado."
   else
+    # a camera tem de ler antes do cor.sh: sem leitura, a pessoa e chamada (OK sem prazo)
+    # e a conferencia segue com ela presente (o cor.sh cai no fluxo manual)
+    if [ "$MODO_AUTO" = "1" ] && [ -e "$VIDEO" ] && nlcam_ok && ! ler_faixas_tentando "$SUITE/faixas-cor.txt"; then
+      esperar_ok_camera 1
+    fi
+    fechar_alertas
     LOG "cor: rodando cor.sh no modo suite"
     : > "$SUITE/cor.log"
     sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" suite >>"$SUITE/cor.log" 2>&1 </dev/null
@@ -486,13 +514,46 @@ nlcam_ok(){
 }
 nlcam_exec(){ nlcam_ok || return 1; timeout 30 "$NLCAM" "$@" </dev/null; }
 geo_valor(){ echo "$GEO_SAIDA" | sed -n "s/^$1=\\(-\\{0,1\\}[0-9][0-9]*\\(\\.[0-9]*\\)\\{0,1\\}\\)\$/\\1/p" | head -1; }
+# le as faixas da calibracao em $1 com ate CAM_TENTATIVAS tentativas. Cada uma mostra a
+# calibracao de novo (o mostrar fecha alertas do sistema); entre elas, o autofoco e
+# refeito. 0 = achou as FAIXAS_N faixas.
+ler_faixas_tentando(){
+  _ct=1
+  while :; do
+    rm -f "$1"
+    mostrar_estatica calibracao || return 1
+    _o=$(nlcam_exec faixas "$VIDEO" "$FAIXAS_N" "$1" "$CAM_DESCARTE"); _rc=$?
+    if [ "$_rc" = "0" ]; then LOG "camera: $(limpo "$_o") (tentativa $_ct)"; return 0; fi
+    LOG "[AVISO] camera: faixas falhou na tentativa $_ct de $CAM_TENTATIVAS (rc=$_rc: $(limpo "$_o"))"
+    [ "$_ct" -ge "$CAM_TENTATIVAS" ] && return 1
+    disparar_autofoco
+    _ct=$(( _ct + 1 ))
+  done
+}
+# a camera nao leu nem com as tentativas: a etapa nao segue sozinha (pedido do dono,
+# 2026-10-30). Tela de alerta e uma tecla do controle, SEM prazo. $1 = passo atual (1|2)
+esperar_ok_camera(){
+  novos_campos camera
+  campo titulo "A c\u00e2mera n\u00e3o conseguiu ler a tela."
+  campo texto "Confira se nada est\u00e1 na frente da lente da c\u00e2mera ou da imagem e aperte OK no controle para continuar."
+  if [ "$1" = "1" ]; then passos_fila agora fila fila fila; else passos_fila "feito|$P_COR" agora fila fila; fi
+  campo tom alerta
+  tela aviso camera "$CAMPOS"
+  LOG "camera sem leitura: esperando uma tecla do controle, sem prazo"
+  _eo=0
+  until getevent -ql 2>/dev/null | grep -q 'EV_KEY.*DOWN'; do
+    _eo=$(( _eo + 1 ))
+    if [ "$ESPERA_OK_VOLTAS" != "0" ] && [ "$_eo" -ge "$ESPERA_OK_VOLTAS" ]; then LOG "(teste) espera encerrada"; return 1; fi
+    sleep 1
+  done
+  LOG "tecla recebida: seguindo"
+  return 0
+}
 # mostra a calibracao, acha as faixas e mede a geometria (C-geo). Preenche G_*.
 medir_geo(){
   G_OK=0
-  mostrar_estatica calibracao || return 1
-  _ff="$SUITE/faixas.txt"; rm -f "$_ff"
-  _o=$(nlcam_exec faixas "$VIDEO" "$FAIXAS_N" "$_ff" "$CAM_DESCARTE"); _rc=$?
-  if [ "$_rc" != "0" ]; then LOG "[AVISO] geometria: faixas falhou (rc=$_rc: $(limpo "$_o"))"; return 1; fi
+  _ff="$SUITE/faixas.txt"
+  ler_faixas_tentando "$_ff" || return 1
   GEO_SAIDA=$(nlcam_exec geometria "$VIDEO" "$_ff" "$CAM_DESCARTE"); _rc=$?
   LOG "geometria (rc=$_rc): $(echo "$GEO_SAIDA" | tr '\n' ' ')"
   [ "$_rc" = "0" ] || return 1
@@ -508,7 +569,7 @@ medir_geo(){
 }
 foco_ruim(){
   awk -v c="$G_BC" -v e="$G_BE" -v d="$G_BD" -v r="$RAZAO_BORDA" -v l="$G_LIMIAR" \
-    'BEGIN{exit !(e > r*c || d > r*c || c > l || e > l || d > l)}'
+    'BEGIN{if (e > r*c || d > r*c || c > l || e > l || d > l) exit 0; exit 1}'
 }
 ler_quatro_pontos(){
   if [ "$(getprop persist.display.720p 2>/dev/null)" = "true" ]; then _z="0,720 1280,720 0,0 1280,0"; else _z="0,1080 1920,1080 0,0 1920,0"; fi
@@ -554,7 +615,7 @@ etapa_geometria(){
   if [ ! -e "$VIDEO" ]; then
     LOG "[AVISO] $VIDEO nao existe: angulo, foco e nitidez sem leitura."
     res camera ausente
-  elif nlcam_ok && medir_geo; then
+  elif nlcam_ok && { medir_geo || { esperar_ok_camera 2 && medir_geo; }; }; then
     while foco_ruim && [ "$FOCO_N" -lt "$FOCO_TENTATIVAS" ]; do
       FOCO_N=$(( FOCO_N + 1 ))
       LOG "foco ruim (bordas centro/esq/dir $G_BC/$G_BE/$G_BD px, limiar $G_LIMIAR): refazendo o autofoco ($FOCO_N de $FOCO_TENTATIVAS)"
@@ -602,7 +663,7 @@ etapa_geometria(){
     if maior "$_ga" "$INCLINACAO_MAX"; then
       I_ANGULO="$_gtxt|atencao"; P_GEO=atencao
       if [ "$QP" != "ligada" ]; then
-        if awk -v g="$G_INC" -v s="$SINAL_INCLINACAO" 'BEGIN{exit !(g*s > 0)}'; then _lado=direito; else _lado=esquerdo; fi
+        if awk -v g="$G_INC" -v s="$SINAL_INCLINACAO" 'BEGIN{if (g*s > 0) exit 0; exit 1}'; then _lado=direito; else _lado=esquerdo; fi
         dica "Imagem inclinada $_gtxt: abaixe o lado $_lado do projetor."
       fi
     else
@@ -636,7 +697,6 @@ etapa_temperatura(){
   campo titulo "Temperatura"
   campo texto "Lendo os sensores do LED e da placa, a ventoinha e o brilho. Nada \u00e9 alterado."
   passos_fila "feito|$P_COR" "feito|$P_GEO" agora fila
-  campo rodape "n\u00e3o precisa apertar nada"
   campo tom normal
   tela aviso etapa3 "$CAMPOS"
 
@@ -719,9 +779,8 @@ etapa_rampa(){
   novos_campos etapa4
   campo etapa "Etapa 4 de 4 \u00b7 prote\u00e7\u00e3o t\u00e9rmica"
   campo titulo "A imagem vai escurecer\npor cerca de 1 minuto."
-  campo texto "\u00c9 o teste de que a prote\u00e7\u00e3o contra calor est\u00e1 funcionando: o projetor finge estar quente, baixa o brilho e volta sozinho. Pode aparecer um aviso de temperatura: faz parte do teste."
+  campo texto "\u00c9 o teste de que a prote\u00e7\u00e3o contra calor est\u00e1 funcionando: o projetor finge estar quente, baixa o brilho e volta sozinho. Pode aparecer um aviso de temperatura: faz parte do teste e ele fecha sozinho."
   passos_fila "feito|$P_COR" "feito|$P_GEO" "feito|$P_TEMP" agora
-  campo rodape "n\u00e3o precisa apertar nada"
   campo tom alerta
   tela aviso etapa4 "$CAMPOS"
 
@@ -737,6 +796,7 @@ etapa_rampa(){
   sleep "$RAMPA_INJETADO"
   if rampa_limpar; then _limpo=ok; else _limpo=falhou; fi
   sleep "$RAMPA_DEPOIS"
+  fechar_alertas
   parar_logcat
   _nw=$(grep -ac 'Overheat Warning' "$_lc" 2>/dev/null)
   _desce=$(grep -a 'Level Change' "$_lc" 2>/dev/null | grep -a '=> 850!' | grep -avc '850 => 850!')
