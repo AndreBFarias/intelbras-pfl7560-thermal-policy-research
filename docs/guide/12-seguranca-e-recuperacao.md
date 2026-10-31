@@ -22,7 +22,7 @@ ligar, e tudo é reversível.
 | `backups-projetor/*.STOCK` (gerado no 1º `apply`; no modelo sem USB-C, em `backups-projetor/notypec/`) | os 3 arquivos de fábrica que o `apply` puxou do aparelho | fonte do `revert` (só restaura backup do mesmo modelo) |
 | `artifacts/ZYCustom.ini.ORIGINAL` / `artifacts/ZYCustom.ini.NOTYPEC.STOCK` | `.ini` de fábrica versionado do modelo com USB-C (md5 `29d8ba36…`) e do sem USB-C (`ed3f314c…`) | stock de referência p/ backup/revert |
 | `backups-projetor/panelparam.backup-<serial>-<data>.img` (só se você gravou cor) | backup da partição de cor feito antes de cada gravação | `./pfl7560-lcd-color.sh restore <arquivo>` |
-| `pendrive-autorun/` (kit v2 completo: `newlink_update.sh`, `cor.sh`, `lvdsctl`, `ZYCustom.ini`, `kit/*.png`) | autorun por pendrive | aplicar sem PC |
+| `pendrive-autorun/` (kit v2 completo: `newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png`, a suíte `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`, `nl_tela`, `fontes/*` e o app `pfl7560.apk`; lista completa em [`INSTALL.md`](../../INSTALL.md)) | autorun por pendrive | aplicar sem PC |
 | `Software PFL7560.zip` | **firmware de fábrica completo** | recuperação máxima (reflash oficial) |
 | `docs/*.md` (01–20) | toda a pesquisa | conhecimento |
 
