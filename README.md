@@ -64,7 +64,7 @@ A correção essencial é **mínima** (essencialmente um caractere no canal virt
 térmica, a cor do painel, uma suíte que confere a imagem sozinha, uma tela inicial nova, o tema Drácula em todo o
 sistema e a marca MeowCast no boot. Não troca o firmware, não toca no bootloader e não apaga o `/data`: o
 Android do fabricante continua lá, e o que o kit põe sai com um arquivo no pendrive (abaixo). Estado do
-conjunto: [`docs/sprints/ESTADO-2026-10-31.md`](docs/sprints/ESTADO-2026-10-31.md).
+conjunto: [`docs/ESTADO.md`](docs/ESTADO.md).
 
 | Parte | O que faz | Onde fica | Doc |
 |---|---|---|---|

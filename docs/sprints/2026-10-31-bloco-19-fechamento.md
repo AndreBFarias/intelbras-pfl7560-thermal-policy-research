@@ -1,7 +1,7 @@
 # Bloco 19 - Fechar o que está em aberto (2026-10-31)
 
 Pedido do dono: "Conclua tudo em aberto, dispara workflow pra aumentar na velocidade, commita e pusha tudo". A
-lista vem de `docs/sprints/ESTADO-2026-10-31.md`. Três frentes em paralelo, com arquivos separados. O
+lista vem de `docs/ESTADO.md`. Três frentes em paralelo, com arquivos separados. O
 coordenador integra, regenera as listas de md5 (`bash tests/atualizar-md5-kit.sh`) e prova no aparelho.
 
 Regras comuns:
@@ -85,4 +85,4 @@ laço sem falha nenhuma.
 
 19A, 19B e 19C integrados (merges `c8c13e9`, `5894761` e `26db6c1`). 19C: a causa estava no harness, não no
 script (`7bc8b31`: a queda de energia simulada matava pelo nome o `cor.sh` de outra rodada do harness na mesma
-máquina). Estado final em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).
+máquina). Estado final em [ESTADO.md](../ESTADO.md).

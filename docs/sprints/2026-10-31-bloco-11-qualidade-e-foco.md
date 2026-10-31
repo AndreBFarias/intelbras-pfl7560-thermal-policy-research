@@ -95,4 +95,4 @@ zerar os 4 pontos e rodar a suíte de novo, comparando os dois mapas.
 ## Atualização (bloco 20, 2026-10-31)
 
 Integrado no merge `c8c13e9`. A varredura fina de foco ainda não foi vista no aparelho: é o item 3 de "Só com
-o dono no projetor" em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).
+o dono no projetor" em [ESTADO.md](../ESTADO.md).

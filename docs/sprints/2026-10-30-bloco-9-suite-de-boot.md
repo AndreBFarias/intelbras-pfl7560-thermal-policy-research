@@ -183,7 +183,7 @@ O que falta, tudo no aparelho: a seção 12 do doc 44 inteira, em especial o gat
 
 ## Atualização (bloco 20, 2026-10-31)
 
-A suíte saiu da simulação: roda no projetor do dono pelo boot, pelo ícone e pelo pendrive ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)). O que
+A suíte saiu da simulação: roda no projetor do dono pelo boot, pelo ícone e pelo pendrive ([ESTADO.md](../ESTADO.md)). O que
 mudou desde o texto acima, com o porquê no doc 44:
 
 - o gatilho da tomada é a marca `pfl7560,ligado` em `persist.sys.boot.reason` (o aparelho não tem RTC e o motivo

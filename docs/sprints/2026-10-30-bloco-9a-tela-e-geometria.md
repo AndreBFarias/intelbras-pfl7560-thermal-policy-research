@@ -105,5 +105,5 @@ a câmera ocupada pelo `AutoFocusService` (a suíte espera o autofoco antes; pas
 
 ## Atualização (bloco 20, 2026-10-31)
 
-O `nl_tela` e a `geometria` rodam no aparelho com a suíte ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)). O sinal de `inclinacao_graus` com uma
+O `nl_tela` e a `geometria` rodam no aparelho com a suíte ([ESTADO.md](../ESTADO.md)). O sinal de `inclinacao_graus` com uma
 inclinação proposital e os limiares de borda continuam PROVISÓRIO (doc 44 §11).

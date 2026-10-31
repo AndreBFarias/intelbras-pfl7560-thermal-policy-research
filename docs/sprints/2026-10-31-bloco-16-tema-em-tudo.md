@@ -80,4 +80,4 @@ desvios, pendente.
 
 16A e 16B integrados (merges `a48ab07` e `3d352a2`). O descanso MeowCast está em uso no aparelho e, desde
 `76b6f5b`, baixa a luz a 10% enquanto está na tela (doc 44 §14.1). A home (`versionCode` 4) está sem Espelhamento.
-Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).
+Estado em [ESTADO.md](../ESTADO.md).

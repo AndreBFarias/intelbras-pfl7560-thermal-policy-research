@@ -92,7 +92,7 @@ avisa. Antes de mexer na cor, faz backup da `panelparam` conferido com `cmp` e g
 energia cair no meio do teste, o formato original volta no boot seguinte. No aparelho do dono (V1.0.0.9): a
 cor automática foi provada com o kit rodado por adb e reboot ([bloco 8](docs/sprints/2026-10-30-bloco-8-camera-robusta.md)),
 e a suíte, a home, o tema e a marca estão em uso desde 2026-10-31
-([estado](docs/sprints/ESTADO-2026-10-31.md)). Seguem abertos: a bancada completa do pendrive (etapa E4 do
+([estado](docs/ESTADO.md)). Seguem abertos: a bancada completa do pendrive (etapa E4 do
 [bloco 5](docs/sprints/2026-10-29-bloco-5-kit-universal.md)), o modelo sem USB-C e a prova com um leigo.
 
 **Atenção:** o recomendado é **não** colocar `usb_update.bin` no mesmo pendrive do autorun: o pendrive de **resgate** (firmware de fábrica) fica **separado** e desconectado no dia a dia. O `LEIA-ME.txt` descreve também um "kit de emergência" pessoal com os dois juntos (arranjo B), aceitável só para quem conhece o risco: ligar segurando o power com ele plugado reflasha o aparelho.

@@ -30,4 +30,4 @@ pendente.
 ## Estado (bloco 20, 2026-10-31)
 
 Integrado (merge `05d70f1`); ligadas no aparelho. Falta olhar com o controle o teclado na tela, o pareamento do
-controle, o menu de imagem de uma entrada HDMI e a contagem de desligar (item 2 de "Só com o dono" em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)).
+controle, o menu de imagem de uma entrada HDMI e a contagem de desligar (item 2 de "Só com o dono" em [ESTADO.md](../ESTADO.md)).

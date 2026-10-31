@@ -2,7 +2,7 @@
 
 **Estado em 2026-10-31: em uso no projetor do dono.** As 20 sobreposições estão ligadas pelo boot (o
 `suite-boot.sh` liga as desligadas, a do `android`, v4 com imagens, por último), com os layouts só de cor do bloco
-19B; estado do conjunto em [`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md). Falta olhar com o controle
+19B; estado do conjunto em [`docs/ESTADO.md`](../ESTADO.md). Falta olhar com o controle
 o teclado na tela, o pareamento do controle, o menu de imagem de uma entrada HDMI, a contagem de desligar e a
 página de cartões do gerenciador. As seções abaixo foram escritas antes do aparelho: o que elas marcam
 **PROVISÓRIO** (seção 8, bloco 13A, e §10.7, bloco 16A) é do plano e fica como registro.

@@ -203,4 +203,4 @@ Fica para o aparelho, além do que já estava acima: se o `pm install` aceita le
 O `pm install -r` desta seção não vale: o firmware recusa apps de fora (`INSTALL_FAILED_INVALID_INSTALL_LOCATION`,
 visto em 2026-10-30) e o kit grava o APK em `/vendor/app/PFL7560/` como app do sistema (doc 44 §2). O app está no
 `versionCode` 4 (descanso de tela com a luz a 10%). O ícone disparou a suíte pelo vigia do boot em 2026-10-31
-([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)).
+([ESTADO.md](../ESTADO.md)).

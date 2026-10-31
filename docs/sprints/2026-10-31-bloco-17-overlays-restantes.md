@@ -25,4 +25,4 @@ depois em `artifacts/overlay/previa/`. Nada no aparelho.
 ## Estado (bloco 20, 2026-10-31)
 
 Integrado (merge `1638bb8`); as seis sobreposições estão ligadas no aparelho com as outras (20 ao todo; doc 48
-§11). Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).
+§11). Estado em [ESTADO.md](../ESTADO.md).

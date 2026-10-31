@@ -255,7 +255,7 @@ doc 44, e o caso "dono do arquivo diferente do dono da pasta" (passo 6 do roteir
 
 ## Atualização (bloco 20, 2026-10-31)
 
-Rodou no aparelho ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)). Depois desta seção: o gatilho da tomada passou à marca `pfl7560,ligado`; os quatro
+Rodou no aparelho ([ESTADO.md](../ESTADO.md)). Depois desta seção: o gatilho da tomada passou à marca `pfl7560,ligado`; os quatro
 scripts fixam o PATH com `/system/bin` (o serviço de boot sobe com o PATH do `/vendor`); o ícone sempre roda (os
 10 min ficam só no boot); o vigia olha a pasta da home também (luz) e trata o descanso de tela; o laço sem
 `inotifyd` passou a tratar o descanso também (bloco 20, com teste). Doc 44 §3, §9 e §13.

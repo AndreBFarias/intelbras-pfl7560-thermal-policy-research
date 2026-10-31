@@ -40,4 +40,4 @@ certificado) foram lidos do `.sha256` publicado e do APK baixado.
 
 No aparelho: as 20 sobreposições ligadas pelo `suite-boot.sh`, a do `android` por último; Office, iOSCast e
 Espelhamento desligados; a marca MeowCast no carregador, no `logo.jpg` e no `bootanimation.zip`; VLC 3.7.1 em
-`/vendor/app/VLC` ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)).
+`/vendor/app/VLC` ([ESTADO.md](../ESTADO.md)).

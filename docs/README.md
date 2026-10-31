@@ -100,7 +100,7 @@ Os blocos de correção abertos a partir da sessão do doc 40, cada um com a se�
 | [`sprints/2026-10-31-bloco-17-overlays-restantes.md`](sprints/2026-10-31-bloco-17-overlays-restantes.md) | Seis sobreposições a mais (foco, caixa de som, avisos, players) |
 | [`sprints/2026-10-31-bloco-18-overlays-finais.md`](sprints/2026-10-31-bloco-18-overlays-finais.md) | As últimas telas: teclado, atalhos, pareamento, menu de imagem, instalador e a do `android` v3 |
 | [`sprints/2026-10-31-bloco-19-fechamento.md`](sprints/2026-10-31-bloco-19-fechamento.md) | Fechamento: foco pela câmera (19A), layouts só de cor e imagens do framework (19B), o teste intermitente (19C) |
-| [`sprints/ESTADO-2026-10-31.md`](sprints/ESTADO-2026-10-31.md) | **O estado do conjunto:** o que está no projetor do dono, no pendrive e na build, e o que falta fazer com o dono |
+| [`ESTADO.md`](ESTADO.md) | **O estado do conjunto:** o que está no projetor do dono, no pendrive e na build, e o que falta fazer com o dono |
 
 ## Arquivo interno (histórico de auditorias)
 

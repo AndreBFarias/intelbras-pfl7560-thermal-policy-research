@@ -3,7 +3,7 @@
 **Estado em 2026-10-31: em uso no projetor do dono.** A suíte rodou no aparelho pelo boot, pelo ícone
 "Verificar projetor" e pelo pendrive; a luz da home (§13), o descanso de tela (§14 e §14.1) e o que o kit leva
 do bloco 14 (§15) também foram provados lá. O estado do conjunto está em
-[`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md). Falta no aparelho: tirar da tomada **com o projetor
+[`docs/ESTADO.md`](../ESTADO.md). Falta no aparelho: tirar da tomada **com o projetor
 ligado** com o cabo de verdade (a marca foi provada com `sysrq b`, passo 7), a varredura fina de foco com o foco
 ruim de propósito (§16) e o que segue marcado **PROVISÓRIO** ao longo do texto (reunido na seção 11). A seção
 12 é o roteiro do teste, escrito antes dele.
@@ -450,7 +450,7 @@ eventos errados, trava, `gbl` que não confirma, links plantados no app, `hidebu
 e a verificação seguindo normal.
 
 **Provado no aparelho em 2026-10-31:** o botão Luz da home aplica o nível e o boot o reaplica (estado em
-[`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md)). **PROVISÓRIO:** se o `gbl` logo depois do `sbl` já
+[`docs/ESTADO.md`](../ESTADO.md)). **PROVISÓRIO:** se o `gbl` logo depois do `sbl` já
 devolve sempre o valor novo (senão o log avisa e a prop guarda o valor lido); a janela de 4 s do app para reler a
 prop.
 **Não feito:** aplicar o nível guardado no fim da suíte (o `suite.sh` não foi tocado); com a rampa rodando, o

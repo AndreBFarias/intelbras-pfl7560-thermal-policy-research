@@ -13,7 +13,7 @@ pesquisa, no aparelho:
   da primeira versão saiu na revisão de segurança (doc 44 §13).
 
 O que segue marcado **PROVISÓRIO** é do plano original (seção 9, roteiro na seção 10); o estado do conjunto está
-em [`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md).
+em [`docs/ESTADO.md`](../ESTADO.md).
 
 Origem: o pedido do dono de 2026-10-31 ("uma nova home e um novo tema [...] gosto da paleta drácula") e o
 [bloco 10](../sprints/2026-10-31-bloco-10-home-e-tema-dracula.md), parte 10A. O app fica em

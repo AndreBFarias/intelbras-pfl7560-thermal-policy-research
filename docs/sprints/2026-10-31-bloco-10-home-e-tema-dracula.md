@@ -138,4 +138,4 @@ estáticas do kit, se forem regeradas por script: ache o gerador; se não houver
 
 10A e 10B integrados (merges `9f3eeba` e `67619ed`). A home MeowCast (`versionCode` 4) é a tela inicial do
 projetor do dono pela linha `vendor.newlink.launcher.package` no `/vendor/build.prop`, que o kit grava: o
-`set-home-activity` previsto aqui não vence o `nlprovision` (prioridade 29 no HOME; doc 45). Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).
+`set-home-activity` previsto aqui não vence o `nlprovision` (prioridade 29 no HOME; doc 45). Estado em [ESTADO.md](../ESTADO.md).
