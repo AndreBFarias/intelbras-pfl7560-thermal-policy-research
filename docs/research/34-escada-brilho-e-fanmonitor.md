@@ -429,7 +429,7 @@ Os ramos de `WARNING` (`Overheat Warning`) e `EMERGENCY` ficam **a jusante** des
 envenenada, **não existe avaliação de WARNING nem de EMERGENCY** — a proteção térmica fica cega de novo,
 por um caminho diferente do bug do mux.
 
-**Sequência observada:** após um agente sondar os canais do LSADC direto (`0` a `9`, com `4`-`9`
+**Sequência observada:** após uma sondagem dos canais do LSADC direto (`0` a `9`, com `4`-`9`
 retornando erro), o log passou a acumular `Thermistor_0/1 LSADC Error!` a cada ~2 s, **ininterruptamente**,
 com **zero** linhas de `Achieve Balance`. O serviço Android confirmava (`onThermalErrorLsadc`). Duração:
 todo o restante daquele boot.

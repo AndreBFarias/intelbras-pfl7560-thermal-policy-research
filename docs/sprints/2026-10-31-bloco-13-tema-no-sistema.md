@@ -90,8 +90,8 @@ Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-13b`, branch `bloco
 ## Comum
 
 - Nenhum agente fala com o projetor. Nada de `git add -A`, `.` ou `--all`; commits pequenos sem linha de
-  atribuição; push do branch no fim. Docs em pt-BR com acento; zero emoji. Use a skill `hallmark` no que for
-  desenho, mas a paleta do bloco 10 manda.
+  atribuição; push do branch no fim. Docs em pt-BR com acento; zero emoji. No desenho, a paleta do
+  bloco 10 manda.
 - Relatório no schema: feito, provas, commits, provisorio, desvios, pendente.
 
 ## Estado (bloco 20, 2026-10-31)

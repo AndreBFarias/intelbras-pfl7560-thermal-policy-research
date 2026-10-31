@@ -2,7 +2,7 @@
 
 Planejamento (não-executado) para transformar a descoberta pontual da sessão de 2026-07-10 —
 **correção de cor após troca de micro-painel LCD** — em recurso replicável do projeto. Consolida
-engenharia reversa, decompilação e a pesquisa dos agentes, e define sprints com proof-of-work.
+engenharia reversa, decompilação e a pesquisa, e define sprints com proof-of-work.
 
 Base técnica já resolvida e documentada em
 [`28-troca-painel-rx058b-diagnostico-cor.md`](../research/28-troca-painel-rx058b-diagnostico-cor.md).
@@ -62,13 +62,13 @@ projetor**. Este documento organiza tudo em 7 sprints.
   e **grava no `panelparam`** (persiste). Fonte em `artifacts/lcd-color-fix/lvdsctl.c`.
 - Reverter: `lvdsctl fmt 0`. Testar outros eixos: `swap <0-5>`, `bit <0-1>`, `map`.
 
-### 1.3 Achados dos agentes (workflows)
+### 1.3 Achados da pesquisa
 - **VESA↔JEIDA** é a única diferença que corrige "primárias OK, meios-tons embaralhados" mantendo o
   timing (prova matemática das tabelas do kernel; confirmado empiricamente).
 - Registradores do VDP (`LVDS_CTRL/SWAP0`) existem mas a base é do SDK STB, não do HiDPT v350 →
   via registrador travou; via API (decompilação) venceu.
 - Painéis RX058B são variantes elétricas do mesmo 5.8"/60-pin; o sufixo NÃO garante o formato — deve
-  ser verificado (confirmado em 2026-10-29: o `-4300` da 2ª troca pediu VESA, doc 40 §1). Não há datasheet público do `-0600` (resolução física a confirmar; workflow em curso).
+  ser verificado (confirmado em 2026-10-29: o `-4300` da 2ª troca pediu VESA, doc 40 §1). Não há datasheet público do `-0600` (resolução física a confirmar; pesquisa em curso).
 - Projetores irmãos que usam o `-0600`: Thundeal TD96, Vivibright F40 (Amlogic), AAO YG620, Rigal RD826
   — plataformas mistas (HiSilicon/Amlogic/MStar), então firmware não é portável; só o **modo LVDS** é.
 
@@ -298,7 +298,7 @@ recomendação de "melhor custo/benefício" e alertas (fake 1080p, timing incomp
 > do backlight Semtech SC5010 (corrige a nota do doc 28). Chave de compatibilidade real = campos do struct,
 > não o nome. Falta só (contínuo) extrair os campos elétricos por perfil dos 83 structs.
 **Objetivo:** decifrar a convenção de nome dos 83 perfis e mapear os "driver ICs" citados vs os chips
-REAIS. **Motivação (achado dos agentes):** o perfil `RX058B_4300_5010E_1080P_M` embute "5010E" como se
+REAIS. **Motivação (achado da pesquisa):** o perfil `RX058B_4300_5010E_1080P_M` embute "5010E" como se
 fosse o timing controller — mas o único **SC5010E** documentado é um **driver de backlight LED da
 Semtech** (gestão de energia, 8 canais), não um T-CON nem source/gate driver. Ou seja, a Newlink/Zhiying
 rotula os perfis com códigos de conveniência que **podem não corresponder ao chip de imagem** — o que

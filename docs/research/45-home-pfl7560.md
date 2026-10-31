@@ -199,8 +199,8 @@ Os campos se atualizam a cada minuto (`TIME_TICK`) e quando a rede muda.
 
 ## 7. Desenho
 
-A direção veio da skill `hallmark`, com a paleta e as fontes do contrato do bloco 10 por cima de qualquer
-escolha dela. Gênero: utilitário e calmo, um painel de instrumento. O D-pad manda no layout.
+A direção de design foi própria, com a paleta e as fontes do contrato do bloco 10 por cima de qualquer
+outra escolha. Gênero: utilitário e calmo, um painel de instrumento. O D-pad manda no layout.
 
 - **Estrutura:** relógio grande (IBM Plex Mono SemiBold 176 px; os dois pontos em `roxo`, o único detalhe
   de marca) e a data por extenso abaixo, à esquerda; **Entradas** no alto à direita, alinhadas pelo topo

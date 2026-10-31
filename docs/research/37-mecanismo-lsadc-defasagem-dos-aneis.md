@@ -238,7 +238,7 @@ Dois vizinhos, registrados por completude:
 
 ## 5. Pistas encerradas — não reabrir
 
-Seis alegações de relatórios anteriores (agentes A e C) foram **derrubadas** por verificação direta no
+Seis alegações de relatórios anteriores (pesquisas A e C) foram **derrubadas** por verificação direta no
 binário. Ficam registradas aqui para que ninguém gaste tempo nelas de novo.
 
 | # | Alegação | Veredito | Código |

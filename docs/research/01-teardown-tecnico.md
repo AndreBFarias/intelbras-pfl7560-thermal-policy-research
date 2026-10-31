@@ -33,7 +33,7 @@ Container proprietário big-endian com magic `LOAD` em `0x00`. Em `0x10` fica o 
 | 15/16/17/18 | ... | log / cache / securestore / userdata | |
 
 Integridade do container: há campos tipo-CRC no footer da tabela (ex.: `d321 18cd` / `3e18 00ea` ~`0x2b0`).
-Se são CRC32 simples ou assinatura criptográfica está sendo determinado na pesquisa de viabilidade (workflow em curso).
+Se são CRC32 simples ou assinatura criptográfica está sendo determinado na pesquisa de viabilidade (pesquisa em curso; resolvido no doc 04).
 **Isso decide se dá para reempacotar uma imagem modificada.**
 
 ## Como o firmware foi aberto (trilha de RE)

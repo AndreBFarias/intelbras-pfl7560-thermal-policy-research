@@ -20,7 +20,7 @@ O sistema novo se chama **MeowCast**. A marca está em `artifacts/tema/gerar-mar
 - VLC 3.7.1 em `/vendor/app/VLC`.
 - Marca MeowCast no logo de boot (partição `logo`), em `/atv/bootvideo/logo.jpg` e no `bootanimation.zip`.
 
-## 16A - Sobreposições para tudo o que falta (agente Opus)
+## 16A - Sobreposições para tudo o que falta
 
 Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-16a`, branch `bloco-16a/overlays`. Arquivos:
 `artifacts/overlay/**` e `docs/research/48-tema-no-sistema.md`. Mesmo método do 13A: `recolorir.py`,
@@ -42,7 +42,7 @@ Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-16a`, branch `bloco
 5. **Provas:** `conferir.py` "TUDO OK" contra o APK alvo de cada um; `apksigner verify`; prévia antes e depois
    das telas novas em `artifacts/overlay/previa/`. Nada no aparelho.
 
-## 16B - Descanso de tela MeowCast e home sem Espelhamento (agente Sonnet)
+## 16B - Descanso de tela MeowCast e home sem Espelhamento
 
 Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-16b`, branch `bloco-16b/descanso-home`. Arquivos:
 `artifacts/app/**`, `artifacts/home/**`, `pendrive-autorun/suite-boot.sh`, `pendrive-autorun/newlink_update.sh`

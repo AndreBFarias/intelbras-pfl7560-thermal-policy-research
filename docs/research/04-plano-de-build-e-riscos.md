@@ -25,7 +25,7 @@ Reempacotar o `PFL7560.bin` com a `vendor` modificada e gravar via "Atualizaçã
 - **Brick real** se o container tiver checagem que não soubermos reproduzir, ou se o updater exigir assinatura.
 - Só faz sentido se Tier 2 não for viável, e SOMENTE com caminho de recuperação confirmado.
 
-## Viabilidade RESOLVIDA (workflow wq31yy1uy) - todos os gates verdes
+## Viabilidade RESOLVIDA - todos os gates verdes
 
 1. **adb root: SIM, trivial, sem reflash.** Build `userdebug`, `ro.debuggable=1`, `persist.sys.usb.config=adb`,
    `ro.adb.secure` ausente (sem prompt RSA). adb-over-rede na **TCP 5555** (Ethernet prioritária).

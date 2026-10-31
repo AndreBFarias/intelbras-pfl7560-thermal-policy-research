@@ -26,8 +26,8 @@ Branch `bloco-9a/tela-e-geometria`, worktree `/home/andrefarias/Desenvolvimento/
   reticências por largura medida, quebra de parágrafo no `texto` por largura, fontes com reserva, saída PNG
   1920x1080 RGB. Antisserrilhado da `stb_truetype` com mistura de cor correta (gamma simples basta).
   Valide entradas como o `nl_camcheck` faz (tamanho de arquivo, número de grupos/itens, linhas longas).
-- Visual: siga o C-tela e as telas do canvas (https://claude.ai/artifact/5Tn6dpqHX2d9kiFVMQDpKT,
-  quadros `Main`, `Temperatura`, `Resumo`), mais limpo: o dono pediu "bonita, agradável, organizada e limpa".
+- Visual: siga o C-tela e as telas do esboço privado (quadros `Main`,
+  `Temperatura`, `Resumo`), mais limpo: o dono pediu "bonita, agradável, organizada e limpa".
   Ritmo vertical consistente, colunas com a mesma linha de base, nada encostado em borda, nada cortado.
 - Compila no PC (`cc -O2 -Wall -Wextra -lm`) e no NDK r27c (`armv7a-linux-androideabi24-clang -O2 -Wall
   -static-libstdc++` se precisar; sem dependências dinâmicas além da libc/libm do Android). Binário ARM em

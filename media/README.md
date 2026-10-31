@@ -15,7 +15,7 @@ Coloque aqui fotos **sem dados pessoais** (sem rosto, sem SSID/IP na tela, sem n
 
 ## Guias ilustrados de manutenção — 2026-10-29
 
-Fotos do aparelho aberto com anotações, feitas com IA para o dono durante a troca de pasta térmica e do
+Fotos do aparelho aberto com anotações, geradas para o dono durante a troca de pasta térmica e do
 LCD. **São guias de bancada, não evidência:** os rótulos não foram conferidos peça a peça. Duas imagens
 existem em duas versões (`-a`/`-b`) que discordam num rótulo; as duas ficam até a peça ser verificada.
 

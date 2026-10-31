@@ -1,8 +1,7 @@
 # Bloco 10 - Home nova e tema Drácula (2026-10-31)
 
-Pedido do dono: "disparar dois opus pra criar uma nova home e um novo tema pra background e layout pra tudo.
-Gosto da paleta drácula theme". São dois agentes Opus em paralelo, com arquivos disjuntos e este contrato em
-comum. O coordenador integra ao kit (md5, instalação) e testa no aparelho com o dono.
+Pedido do dono: criar uma home nova e um tema novo para fundo e layout de tudo, com a paleta Drácula. São
+duas frentes em paralelo, com arquivos disjuntos e este contrato em comum. O coordenador integra ao kit (md5, instalação) e testa no aparelho com o dono.
 
 ## Contrato comum: a paleta Drácula (oficial, draculatheme.com/contribute)
 
@@ -43,10 +42,8 @@ copia os mesmos valores para o `colors.xml` dela. Os dois conferem que os valore
   (`com.zhiying.settings`; Wi-Fi em `com.zhiying.settings/.network.WifiSettingActivity`, ver
   `artifacts/app/`).
 - O firmware oficial V1.0.0.9 está em `firmware/Software PFL7560.zip` (Git LFS). Os scripts que a pesquisa P
-  usou para extrair e desmontar APKs estão em
-  `/tmp/claude-1000/-home-andrefarias-Desenvolvimento-intelbras-pfl7560-thermal-policy-research/a20b0f13-e9aa-4144-beb6-53924ad7357d/scratchpad/pesquisa-scripts/`
-  (`extrai.py`, `Desmonta.java`, `dis.py`), com notas em `.../scratchpad/pesquisa/`. Extraia para uma pasta
-  nova dentro do scratchpad e apague os brutos no fim.
+  usou para extrair e desmontar APKs (`extrai.py`, `Desmonta.java`, `dis.py`) ficaram numa pasta temporária
+  do PC, fora do repositório. Extraia para uma pasta temporária nova e apague os brutos no fim.
 
 ## 10A - Home nova (`com.pfl7560.home`)
 
@@ -65,7 +62,7 @@ Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-10a`, branch `bloco
    estável, minSdk 28 e targetSdk 28, sem permissões perigosas.
    - Atividade `HOME` + `DEFAULT` + `LAUNCHER` (`android:launchMode="singleTask"`, `stateNotNeeded`).
    - 1920x1080, só D-pad: foco visível em rosa, nada que dependa de toque.
-3. **Layout**, decidido com a skill `hallmark` (o CLAUDE.md manda; o dono pediu "bonita, organizada e limpa").
+3. **Layout**, com direção de design própria (o dono pediu "bonita, organizada e limpa").
    Precisa ter:
    - relógio e data grandes;
    - uma fileira de **Entradas** (HDMI 1, HDMI 2, USB-C);

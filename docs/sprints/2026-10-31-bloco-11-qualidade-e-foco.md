@@ -52,8 +52,8 @@ validarmos isso?"
 Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-11p`, branch `bloco-11p/pesquisa`. Entrega só
 `docs/research/46-foco-e-qualidade.md`, no formato do doc 43: tabela com comando, fonte (arquivo, classe ou
 offset, linha) e confiança, e uma seção "o que não se achou". Firmware em `firmware/Software PFL7560.zip`. Os
-scripts da pesquisa P estão em `/tmp/claude-1000/-home-andrefarias-Desenvolvimento-intelbras-pfl7560-thermal-policy-research/a20b0f13-e9aa-4144-beb6-53924ad7357d/scratchpad/pesquisa-scripts/`.
-Extraia numa pasta nova do scratchpad e apague os brutos no fim.
+scripts da pesquisa P ficaram numa pasta temporária do PC, fora do repositório. Extraia numa pasta temporária
+nova e apague os brutos no fim.
 
 Perguntas:
 1. **Foco:**

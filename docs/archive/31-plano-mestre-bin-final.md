@@ -3,7 +3,7 @@
 Documento de orientação (não-executado). Junta todas as sprints pendentes num **único caminho crítico**
 até o objetivo final do projeto: um firmware `.bin` distribuível, que **boota**, traz a correção térmica
 por padrão e avisa o usuário se a proteção não estiver ativa. Escrito para ser seguido por qualquer
-executor, humano ou LLM — cada etapa aponta a spec detalhada e diz o que a bloqueia.
+executor, humano ou ferramenta — cada etapa aponta a spec detalhada e diz o que a bloqueia.
 
 Data desta revisão: 2026-07-12.
 

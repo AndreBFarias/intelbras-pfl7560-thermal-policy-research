@@ -1,6 +1,6 @@
 # Bloco 19 - Fechar o que está em aberto (2026-10-31)
 
-Pedido do dono: "Conclua tudo em aberto, dispara workflow pra aumentar na velocidade, commita e pusha tudo". A
+Pedido do dono: concluir tudo o que estava em aberto, em paralelo para ganhar velocidade, com commit e push de tudo. A
 lista vem de `docs/ESTADO.md`. Três frentes em paralelo, com arquivos separados. O
 coordenador integra, regenera as listas de md5 (`bash tests/atualizar-md5-kit.sh`) e prova no aparelho.
 

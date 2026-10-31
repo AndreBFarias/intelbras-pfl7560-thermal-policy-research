@@ -21,7 +21,7 @@ avançamos. Sessão conduzida via adb ao vivo no aparelho (`94.140.14.52:5555`, 
 - A config do painel vive na **partição `panelparam` (`mmcblk0p6`)** — tabela de **83 perfis** de painel.
   O firmware está usando o perfil do painel **antigo** (índice 69 = `RX058B_4300_5010E`).
 - **Status:** correção ainda não fechada. Testes de campo (link map, bit-depth, flags) descartados.
-  Falta localizar o parâmetro exato de formato LVDS (VESA/JEIDA) — pesquisa por agentes em curso.
+  Falta localizar o parâmetro exato de formato LVDS (VESA/JEIDA) — pesquisa em curso.
 
 > **CORREÇÃO (2026-10-29)** — este TL;DR é o retrato do começo da investigação. O que vale hoje:
 > - **Resolvido em 2026-07-10** (§13): o `-0600` pedia **JEIDA**; o byte é o `0x5c` do perfil.
@@ -188,9 +188,9 @@ nos primeiros pares LVDS e os que vão no par extra (típico de **VESA vs JEIDA*
 
 ---
 
-## 7. Estudos dos agentes (pesquisas disparadas)
+## 7. Estudos de pesquisa
 
-Três workflows multi-agente (fan-out web + verificação adversarial + síntese):
+Três pesquisas (busca na web + verificação independente + síntese):
 
 1. **`pfl7560-lcd-cor-vendor`** (concluído) — arquitetura de vídeo do Hi3751/bigfish; confirmou que a
    config de painel vive em partição de "screen-param" dedicada, lida cedo no boot; ferramenta Windows
@@ -232,7 +232,7 @@ sessão ficou com boa margem. Ver política térmica em [`02-sistema-termico-atu
 permanente foi alterado; todos os slots de teste estão em posições descartáveis; o 69 está intacto.
 
 **Próximos passos (em ordem de probabilidade):**
-1. Do resultado dos agentes: localizar o **byte de `lvds_fmt`** no struct **ou** o **registrador do
+1. Do resultado das pesquisas: localizar o **byte de `lvds_fmt`** no struct **ou** o **registrador do
    LVDS-TX** do Hi3751 -> testar **VESA<->JEIDA** (a hipótese ainda não testada, e a mais forte).
 2. Decodificar completamente o mapa de bits (padrão com todos os bits) e casar com um formato padrão.
 3. Se não for corrigível por config: **HiTool/HiPanel** (Windows) para gerar um perfil com os
@@ -283,14 +283,14 @@ adb shell "getprop zysys.env_temp zysys.light_temp"
 
 ## 12. Atualização — decodificação de bits e vias de baixo nível
 
-### 12.1. Prova de que NÃO é VESA/JEIDA (workflow `pfl7560-lvds-bitmap-conversao`) — REFUTADA
+### 12.1. Prova de que NÃO é VESA/JEIDA (pesquisa `pfl7560-lvds-bitmap-conversao`) — REFUTADA
 
 > **REFUTADA (2026-07-10, §13; mecanismo no [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md)
 > §1):** trocar para JEIDA corrigiu 100%. A matemática da rotação está certa; a premissa "cinza na tela =
 > R=G=B no sinal" é que falha, porque o DCI levanta o preto de forma diferente por canal e a rotação
 > amplifica essa diferença. Mantida abaixo só como registro.
 
-Os agentes derivaram das tabelas do kernel (`panel-lvds.txt`) um resultado **matematicamente
+A pesquisa derivou das tabelas do kernel (`panel-lvds.txt`) um resultado **matematicamente
 confirmado**: trocar VESA<->JEIDA em 8-bit é um "rotate de 2 bits" aplicado **igual e independente**
 a R, G e B — **sem cruzar canais**. Consequência: cinza neutro (R=G=B) **permanece neutro** sob
 VESA/JEIDA. Como nós observamos **cinza virar cor** (turquesa/verde), o defeito **cruza canais** e,
@@ -312,7 +312,7 @@ para o canal errado.** Por isso primárias puras (só bits altos) ficam certas e
 ### 12.3. Via registrador (himm) — travada
 
 - Chip real: **`Hi3751(0x43)_v350`**, SDK **`HiDPTAndroidV600R001C00SPC070`** (não o SDK STB de onde
-  os agentes tiraram os offsets `0xd400`).
+  a pesquisa tirou os offsets `0xd400`).
 - `himm` **lê hardware** (validado: `0xf8a22000 = 0x12555555`), mas os blocos de vídeo candidatos
   (via `/proc/vmallocinfo`: `f8840000` 528KB, blocos de 1MB em `ff000000`/`ff080000`/`ff1a0000`/`f8b20000`)
   leem zero nos offsets testados. O bloco do VDP/LVDS **não foi isolado** de forma confiável, e o SDK
@@ -320,7 +320,7 @@ para o canal errado.** Por isso primárias puras (só bits altos) ficam certas e
 
 ### 12.4. Direção atual
 
-- **Via A (perfil do TD96):** workflow `pfl7560-td96-perfil-0600` em curso — buscar o firmware do
+- **Via A (perfil do TD96):** pesquisa `pfl7560-td96-perfil-0600` em curso — buscar o firmware do
   Thundeal TD96 (usa o -0600 nativamente) e extrair o perfil de painel correto para **copiar na
   partição `panelparam`** (temos root). É a via mais limpa.
 - **Via B (HiTool/HiPanel Windows):** gerar um perfil com o mapeamento do -0600, se conseguirmos o SDK.
@@ -383,7 +383,7 @@ texto sem franja — confirmado por foto do padrão de gamma).
 - **Refresh (hertz):** painel a **60,00 Hz estáveis** (clk 134.4MHz / HT2000 / VT1120 = 60.0;
   `expect_info: PANEL/60000`; PLL travado). Sem dessincronização; o "piscar" inicial era artefato do
   VESA/JEIDA.
-- **Resolução nativa: 1920×1080 FÍSICO REAL (confiança alta)** — workflow `pfl7560-rx058b-0600-resolucao-fisica`
+- **Resolução nativa: 1920×1080 FÍSICO REAL (confiança alta)** — pesquisa `pfl7560-rx058b-0600-resolucao-fisica`
   cruzou 4 frentes: teste de linha de 1px numa review do Thundeal TD96 (linhas separadas → FHD real);
   a família RX058B tem aspect ratios distintos (16:10 vs 16:9 → resolução é do vidro, não de scaler);
   LVDS dual-link 60-pin = classe 1080p (single-link satura em ~85MHz); painel "burro" sem scaler

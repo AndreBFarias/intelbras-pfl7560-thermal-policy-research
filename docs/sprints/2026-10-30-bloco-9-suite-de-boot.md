@@ -5,8 +5,7 @@ sem energia, o projetor roda a suíte de correção (câmera, cor, ângulo, foco
 numa tela de resumo em tela cheia, "bonita, agradável, organizada e limpa", estilo MangoHUD. O mesmo ao
 inserir o pendrive. "Conclua tudo, deixe tudo pronto; os testes no aparelho ficam para o fim."
 
-Telas propostas (canvas): https://claude.ai/artifact/5Tn6dpqHX2d9kiFVMQDpKT
-Escolhas do dono (salvas): https://claude.ai/artifact/YPCCxNyvVYVhKZZo4xvjMz (`escolhas/atual`, 22:40Z)
+Telas propostas e escolhas do dono: num esboço privado, fora do repositório; o resultado está no doc 44.
 
 ## Decisões do dono
 

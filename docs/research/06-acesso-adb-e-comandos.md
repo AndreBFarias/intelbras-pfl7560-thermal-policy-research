@@ -1,6 +1,6 @@
 # 06 - Acesso adb e comandos de runtime (cookbook)
 
-Resultado da pesquisa de viabilidade (workflow wq31yy1uy). Tudo abaixo é de baixo risco:
+Resultado da pesquisa de viabilidade. Tudo abaixo é de baixo risco:
 os comandos de runtime (Tier 1) NAO gravam nada e não bricam; reboot volta ao stock.
 
 ## Obter adb root (sem reflash)
