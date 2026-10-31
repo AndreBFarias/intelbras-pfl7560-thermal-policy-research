@@ -9,6 +9,6 @@
          vermelho (texto branco fixo 3,1:1, como o Desligar do menu de energia) -->
     <color name="red">#FFFF5555</color>
     <!-- painel do my_dialog (atualizacao do MCU, atualizacao concluida). De fabrica roxo #FF574FB0
-         -> linha (texto branco fixo 8,6:1) -->
+         -> linha (texto branco fixo 9,2:1) -->
     <color name="dialog_bg">#FF44475A</color>
 </resources>

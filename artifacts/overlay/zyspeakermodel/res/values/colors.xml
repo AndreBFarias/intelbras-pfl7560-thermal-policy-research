@@ -8,6 +8,6 @@
          (texto branco fixo 4,7:1) -->
     <color name="pt_green">#FF6272A4</color>
     <!-- painel do aviso e botao parado. De fabrica #FFE1EFE9 (claro) -> texto: o texto preto fixo
-         exige painel claro (preto sobre texto 19,5:1) -->
+         exige painel claro (preto sobre texto 19,7:1) -->
     <color name="pt_grey_white">#FFF8F8F2</color>
 </resources>
