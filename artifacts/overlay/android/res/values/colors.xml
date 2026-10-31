@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- SO cores. Nada de dimensao, layout, estilo ou imagem do framework.
+<!-- SO cores (e, no bloco 16A, a forma do Toast em drawable/toast_frame.xml). Nada de dimensao,
+     layout, estilo ou imagem do framework.
      O aparelho e de modo TV (config_defaultUiModeType=4), entao o AlertDialog de um app com o tema
      @android:style/Theme (o "Temperatura anormal" do nlprovision) cai no
      Theme.Leanback.Light.Dialog.Alert. Estas tres cores so aparecem nele e no
@@ -11,4 +12,15 @@
     <color name="primary_text_leanback_light">#FFF8F8F2</color>
     <!-- de fabrica #99222222 -> secundario (tom derivado do bloco 10) -->
     <color name="secondary_text_leanback_light">#FFB4BCCF</color>
+
+    <!-- Bloco 16A: os dialogos ESCUROS do Leanback. No modo TV o Theme.Material.Dialog.Alert vira
+         Theme.Leanback.Dialog.Alert (AlertDialog de app com tema Material escuro). Estas tres cores
+         so sao citadas por Theme.Leanback.Dialog, .Dialog.Alert, .Light.Dialog e .Settings.Dialog
+         e pelo layout-television/user_switching_dialog.xml (conferido no framework-res.apk). -->
+    <!-- de fabrica #FF324248 (cinza-petroleo) -> fundo -->
+    <color name="background_leanback_dark">#FF282A36</color>
+    <!-- de fabrica #CCEEEEEE -> texto -->
+    <color name="primary_text_leanback_dark">#FFF8F8F2</color>
+    <!-- de fabrica #99EEEEEE -> secundario (tom derivado do bloco 10) -->
+    <color name="secondary_text_leanback_dark">#FFB4BCCF</color>
 </resources>

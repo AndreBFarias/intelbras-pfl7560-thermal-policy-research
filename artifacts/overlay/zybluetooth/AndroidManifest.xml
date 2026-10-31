@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula da tela de Bluetooth do fabricante (bloco 16A). So recursos, sem
+     codigo. O cartao Bluetooth das Configuracoes abre com.example.bluetoothsetting/.MainActivity
+     (MainPTActivity$3). Nao estatica: cmd overlay enable com.pfl7560.tema.zybluetooth (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.zybluetooth">
+    <overlay android:targetPackage="com.example.bluetoothsetting" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

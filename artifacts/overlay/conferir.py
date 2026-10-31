@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# artifacts/overlay/conferir.py - confere cada sobreposicao (RRO) contra o APK do alvo (bloco 13A).
+# artifacts/overlay/conferir.py - confere cada sobreposicao (RRO) contra o APK do alvo (blocos 13A e 16A).
 #
 #   python3 -I artifacts/overlay/conferir.py <pasta com os APKs alvo extraidos do firmware>
 #
-# A pasta precisa ter (em qualquer subpasta) o ZYSetting.apk, o NLProvision.apk e o
-# framework-res.apk do firmware (doc 48, secao Metodo). O alvo de cada sobreposicao e achado
-# pelo nome do pacote, nao pelo nome do arquivo.
+# A pasta precisa ter (em qualquer subpasta) o APK de cada alvo, extraido do firmware (doc 48,
+# secao Metodo): ZYSetting, NLProvision, framework-res, ZYBluetooth, ZYFileManager, TvSettings,
+# HiGalleryL, NLSourcePlayer e PowerService. O alvo de cada sobreposicao e achado pelo nome do
+# pacote, nao pelo nome do arquivo.
 #
 # Para cada APK de artifacts/overlay/apk/ confere, com `aapt2 dump`:
 #  1. o <overlay android:targetPackage> e o pacote de um APK alvo da pasta, e nao ha classes.dex;
@@ -14,14 +15,16 @@
 #     (senao, na configuracao que falta, o recurso do alvo ganha e a troca nao aparece);
 #  4. nenhum valor da sobreposicao referencia recurso (@0x...): no Android 9 o id de um recurso
 #     so da sobreposicao cairia no espaco do alvo;
-#  5. nada de dimen, layout, style, integer, bool ou string (so cor e forma).
+#  5. nada de dimen, layout, style, integer, bool ou string (so cor, forma e imagem: color,
+#     drawable e, desde o 16A, mipmap, que e imagem como drawable; o gerenciador de arquivos
+#     guarda os icones da lista em mipmap).
 # Sai com 1 se qualquer item falhar. Imprime a tabela recurso / tipo / configs / valor alvo -> novo.
 import os, re, subprocess, sys, zipfile
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 SDK = os.environ.get('ANDROID_SDK', os.path.expanduser('~/Android/sdk'))
 AAPT2 = os.path.join(SDK, 'build-tools', os.environ.get('BUILD_TOOLS', '35.0.0'), 'aapt2')
-TIPOS_OK = {'color', 'drawable'}
+TIPOS_OK = {'color', 'drawable', 'mipmap'}
 
 def aapt2(*args):
     return subprocess.run([AAPT2, *args], check=True, capture_output=True, text=True).stdout

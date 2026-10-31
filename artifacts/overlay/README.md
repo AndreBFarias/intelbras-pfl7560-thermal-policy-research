@@ -1,4 +1,4 @@
-# Sobreposições Drácula do sistema do fabricante (bloco 13A)
+# Sobreposições Drácula do sistema do fabricante (blocos 13A e 16A)
 
 Pedido do dono (2026-10-31): "Dentro das configs segue o tema antigo". As telas do fabricante passam
 para a paleta do bloco 10 (`artifacts/tema/dracula.txt`) por **sobreposição de recursos em tempo
@@ -10,18 +10,25 @@ o Android as troca na hora de desenhar. Mapa completo, limites e saída de emerg
 | --- | --- | --- | --- |
 | `PFL7560TemaZYSetting.apk` | `com.pfl7560.tema.zysetting` | `com.zhiying.settings` | fundo verde das Configurações e do Wi-Fi, os 4 cartões, a moldura de foco (rosa), a chave Ligado/Desligado, a janela de senha do Wi-Fi e o aviso "Deseja abrir HDMI1?" |
 | `PFL7560TemaNLProvision.apk` | `com.pfl7560.tema.nlprovision` | `com.newlink.nlprovision` | os avisos próprios dele (painel, botão OK, toast) |
-| `PFL7560TemaAndroid.apk` | `com.pfl7560.tema.android` | `android` | **só 3 cores** do diálogo claro do Leanback, onde cai o "Temperatura anormal". Instalar por último |
+| `PFL7560TemaZYBluetooth.apk` | `com.pfl7560.tema.zybluetooth` | `com.example.bluetoothsetting` | a tela de Bluetooth: fundo, fio, moldura de foco rosa, chave Ligado/Desligado (16A) |
+| `PFL7560TemaZYFileManager.apk` | `com.pfl7560.tema.zyfilemanager` | `com.newlink.filemanager` | gerenciador de arquivos: fundo, foco rosa, ícones da lista, carregando, janelas de operação, aviso de USB. Os 9 cartões da página inicial têm cor fixa no layout e ficam (doc 48 §10.5) (16A) |
+| `PFL7560TemaTvSettings.apk` | `com.pfl7560.tema.tvsettings` | `com.android.tv.settings` | pedido de pareamento Bluetooth, aviso de disco USB novo, fundo e acento (16A) |
+| `PFL7560TemaHiGallery.apk` | `com.pfl7560.tema.higallery` | `com.hisilicon.higallery` | botões em foco do menu da galeria e miniatura escolhida (16A) |
+| `PFL7560TemaNLSource.apk` | `com.pfl7560.tema.nlsource` | `com.newlink.nlsource` | tela "sem sinal" das entradas HDMI/USB-C e o aviso `MyDialog` (16A) |
+| `PFL7560TemaPowerService.apk` | `com.pfl7560.tema.powerservice` | `com.zhiying.powerservice` | menu de energia: círculos parados, em foco (rosa) e Desligar (vermelho) (16A) |
+| `PFL7560TemaAndroid.apk` | `com.pfl7560.tema.android` | `android` | **só 6 cores e 1 forma**: diálogos claros e escuros do Leanback ("Temperatura anormal") e o fundo do Toast. Instalar por último |
 
 | Arquivo | O que é |
 | --- | --- |
-| `build.sh` | gera os três APKs do zero (`aapt2 compile/link`, `zipalign`, `apksigner`); reprodutível (mesmo md5) |
-| `conferir.py` | confere cada APK contra o APK do alvo extraído do firmware: mesmo nome e **mesmo tipo**, todas as configurações do alvo cobertas, nenhum valor com referência, só `color` e `drawable` |
-| `recolorir.py` | gera as imagens recoloridas de `zysetting/res/` a partir do app desmontado (roda uma vez por firmware) |
-| `gerar-previa.py` | desenha `previa/antes-depois.png`, as cinco telas antes e depois, com os valores |
+| `build.sh` | gera os nove APKs do zero (`aapt2 compile/link`, `zipalign`, `apksigner`); reprodutível (mesmo md5); minSdk por sobreposição quando o alvo tem `v21`/`hdpi-v4` |
+| `conferir.py` | confere cada APK contra o APK do alvo extraído do firmware: mesmo nome e **mesmo tipo**, todas as configurações do alvo cobertas, nenhum valor com referência, só `color`, `drawable` e `mipmap` |
+| `recolorir.py` | gera as imagens recoloridas a partir do app desmontado, uma tabela por app (`zysetting`, `zybluetooth`, `zyfilemanager`, `higallery`; roda uma vez por firmware) |
+| `gerar-previa.py` | desenha `previa/antes-depois.png`, as cinco telas do 13A antes e depois, com os valores |
+| `gerar-previa-16a.py` | desenha `previa/antes-depois-16a.png`, as oito telas do 16A antes e depois |
 | `assinatura.keystore` | chave própria e estável (alias `pfl7560tema`, senha no `build.sh`; não é segredo) |
 
     bash artifacts/overlay/build.sh
-    python3 -I artifacts/overlay/conferir.py <pasta com ZYSetting.apk, NLProvision.apk e framework-res.apk do firmware>
+    python3 -I artifacts/overlay/conferir.py <pasta com os 9 APKs alvo do firmware (doc 48 §10.1)>
 
 Instalação (não feita; o coordenador integra ao kit): `/vendor/overlay/<Nome>/<Nome>.apk`, pasta
 0755 e arquivo 0644 de root, rótulo `vendor_overlay_file`, reboot, depois `cmd overlay enable

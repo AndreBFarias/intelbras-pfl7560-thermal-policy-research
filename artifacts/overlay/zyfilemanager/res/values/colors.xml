@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48). -->
+<resources>
+    <!-- fundo de todas as telas com vendor.newlink.rgtp_ui.style=1: MyConstraintLayout,
+         MyFrameLayout, MyLinearLayout, MyRecyclerView e MyCardView fazem setBackgroundResource
+         nesta cor no init(). De fabrica #FF00B26B, o verde antigo -> fundo -->
+    <color name="pt_green">#FF282A36</color>
+    <!-- botao em foco das janelas de operacao (copiar, colar, renomear, apagar; texto branco do
+         seletor file_oper_shape_text_selected) e o fio do campo de nome em foco.
+         De fabrica #FFD09C5A (caramelo) -> comentario (branco 4,7:1) -->
+    <color name="color10">#FF6272A4</color>
+    <!-- painel das janelas de operacao e da barra de progresso da copia; o texto e preto fixo
+         no layout (@android:color/black), entao o painel continua claro.
+         De fabrica #FFC7DDDA (verde-agua palido) -> texto (preto 19,7:1) -->
+    <color name="color11">#FFF8F8F2</color>
+    <!-- botao em foco do aviso de seguranca de USB (MyDialog e FloatingWindowmanager; texto em
+         foco @color/bg_while, branco). Os fundos dos layouts com esta cor sao todos My*, que o
+         init() troca por pt_green. De fabrica #FF389FD6 (azul) -> comentario (branco 4,7:1) -->
+    <color name="color7">#FF6272A4</color>
+</resources>

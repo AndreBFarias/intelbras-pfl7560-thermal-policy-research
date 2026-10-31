@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     As quatro cores so sao citadas por estilos do proprio app (res/values/styles.xml). -->
+<resources>
+    <!-- janela do pedido de pareamento Bluetooth (Theme.BtPairReqeustDialog, windowBackground).
+         De fabrica #EE000000 -> fundo com o mesmo alfa (texto branco por cima) -->
+    <color name="bt_pair_dialog_window_background">#EE282A36</color>
+    <!-- fundo das telas do TvSettings (Theme.Settings, windowBackground).
+         De fabrica #FF1F292E (verde-petroleo escuro) -> fundo -->
+    <color name="settings_background">#FF282A36</color>
+    <!-- acento do Theme.Settings (android:colorAccent): titulos de grupo, chaves e marcas.
+         De fabrica #FF51AAFF (azul) -> roxo, o acento dos titulos de grupo do tema (5,9:1 no fundo) -->
+    <color name="settings_category_text_color">#FFBD93F9</color>
+    <!-- painel das opcoes dos passos guiados (Theme.Leanback.GuidedStep, guidedActionsBackground):
+         aviso de disco USB novo, formatar, ejetar. De fabrica #FF111111 -> fundo -->
+    <color name="lb_guidedactions_background">#FF282A36</color>
+</resources>
