@@ -144,14 +144,20 @@ f7c622dca16e1da365a328894f74cbac  fontes/IBMPlexSansCondensed-Bold.ttf
 c90afb82696a6873464b6cc8f315f0eb  fontes/IBMPlexSansCondensed-Regular.ttf
 9f4dbd7c74436d0d895ccc3689c42490  fontes/IBMPlexSansCondensed-SemiBold.ttf
 160cec49299e5d622c5150977bfe188c  fontes/OFL.txt
+a540d2378b44e4bbbb696ebe8f914ecc  overlay/PFL7560TemaAutoFocus.apk
 bcab5041f46f52cb81fd3360ab178dba  overlay/PFL7560TemaHiGallery.apk
+39159a14ba858f499ec7bfd62a51d37f  overlay/PFL7560TemaHiMusic.apk
+fc5c16a64417dd1f0adb5cce032453f2  overlay/PFL7560TemaHiVideoPlayer.apk
+df73fabe626debddcbe69f0de3f0239a  overlay/PFL7560TemaIjkPlayer.apk
 6d36a5f471a2ff85d4719f21a6dc5cd0  overlay/PFL7560TemaNLProvision.apk
 5a60ac5f7d7b68ef47dd04ffb9f39455  overlay/PFL7560TemaNLSource.apk
+352aefd8b6fcaec64da980f47f1b8fb6  overlay/PFL7560TemaNewLinkService.apk
 6294e2b1a285e8c9e9e4b398f2fb3923  overlay/PFL7560TemaPowerService.apk
 1afda9aa85fd24f80827dadf16a8d675  overlay/PFL7560TemaTvSettings.apk
 1f102f9136010b5bd76dabb726e2aef0  overlay/PFL7560TemaZYBluetooth.apk
 82e79f714626a0f2bb07424da0c83ba6  overlay/PFL7560TemaZYFileManager.apk
 111b7d8d35df708aaac554945064ab83  overlay/PFL7560TemaZYSetting.apk
+93fa43136f60237a758fcd5e2bad433a  overlay/PFL7560TemaZYSpeakerModel.apk
 60ecbfd22513c2b9b94d7816e56c4af1  overlay/PFL7560TemaAndroid.apk
 3f33a5898aaaff385d9e6cf42762677a  marca/logo.jpg
 85256535f156d25e65af2752de3fb90d  marca/bootanimation.zip
@@ -507,14 +513,20 @@ KIT_APPS="pfl7560.apk:PFL7560 pfl7560-home.apk:PFL7560Home"
 # entra em todo processo: so depois das dos apps). A lista sai de artifacts/overlay/apk/ pelo
 # tests/atualizar-md5-kit.sh; NAO editar a mao.
 # KIT_OVERLAYS_INICIO
-KIT_OVERLAYS="overlay/PFL7560TemaHiGallery.apk:PFL7560TemaHiGallery
+KIT_OVERLAYS="overlay/PFL7560TemaAutoFocus.apk:PFL7560TemaAutoFocus
+overlay/PFL7560TemaHiGallery.apk:PFL7560TemaHiGallery
+overlay/PFL7560TemaHiMusic.apk:PFL7560TemaHiMusic
+overlay/PFL7560TemaHiVideoPlayer.apk:PFL7560TemaHiVideoPlayer
+overlay/PFL7560TemaIjkPlayer.apk:PFL7560TemaIjkPlayer
 overlay/PFL7560TemaNLProvision.apk:PFL7560TemaNLProvision
 overlay/PFL7560TemaNLSource.apk:PFL7560TemaNLSource
+overlay/PFL7560TemaNewLinkService.apk:PFL7560TemaNewLinkService
 overlay/PFL7560TemaPowerService.apk:PFL7560TemaPowerService
 overlay/PFL7560TemaTvSettings.apk:PFL7560TemaTvSettings
 overlay/PFL7560TemaZYBluetooth.apk:PFL7560TemaZYBluetooth
 overlay/PFL7560TemaZYFileManager.apk:PFL7560TemaZYFileManager
 overlay/PFL7560TemaZYSetting.apk:PFL7560TemaZYSetting
+overlay/PFL7560TemaZYSpeakerModel.apk:PFL7560TemaZYSpeakerModel
 overlay/PFL7560TemaAndroid.apk:PFL7560TemaAndroid
 "
 # KIT_OVERLAYS_FIM
