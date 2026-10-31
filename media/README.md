@@ -59,7 +59,7 @@ fora do Git, só para o destino jurídico/CDC.
 | `teardown-02-interior-forca-led.jpg` | REVISAR | Recortar/desfocar o terço direito: perna nua + mão + relógio de uma pessoa (a área técnica está nos círculos verdes à esquerda). |
 | `teardown-03-olhal-solto-blowers.jpg` | **PUBLICÁVEL** | Só uma mão e componentes; sem serial/rosto/tela. |
 | `teardown-04-blower-removido.jpg` | **PUBLICÁVEL** | Só mão + etiqueta do ventilador (dado de componente). |
-| `teardown-05-blowers-dfh8025s.jpg` (o nome do arquivo ficou com o modelo antigo; a etiqueta diz `DFH8030S`, doc 40 §4) | REVISAR | Desfocar/recortar o topo: possível **reflexo de pessoa** no painel escuro ao fundo + bancada com objetos. |
+| `teardown-05-sopradores-dfh8030s.jpg` | REVISAR | Desfocar/recortar o topo: possível **reflexo de pessoa** no painel escuro ao fundo + bancada com objetos. |
 | `placa-header-gnd-ntc.jpg` | REVISAR | Desfocar o **data-matrix (código 2D)** do módulo Wi-Fi/BT (canto sup. direito) — pode codificar MAC/serial. |
 | `mapa-placa-original-topo.jpg` | REVISAR | Desfocar a **etiqueta da placa** (anotação 19): data-matrix + código alfanumérico (possível serial da placa). |
 | `mapa-placa-original-visao-geral.jpg` | REVISAR | Recortar a borda inferior (perna nua) + desfocar o pequeno data-matrix da etiqueta da placa. |

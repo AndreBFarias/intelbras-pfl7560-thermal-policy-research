@@ -106,7 +106,7 @@ O [doc 07](07-hardware-upgrade.md#sopradoresventiladores-troca) afirma que o ven
 
 **As fotos do próprio repositório mostram um soprador centrífugo**, sem margem: rotor tipo gaiola de
 esquilo com dezenas de pás curtas, carcaça em voluta e **saída tangencial** lateral
-(`media/teardown-04-blower-removido.jpg`, `teardown-05-blowers-dfh8025s.jpg`).
+(`media/teardown-04-blower-removido.jpg`, `teardown-05-sopradores-dfh8030s.jpg`).
 
 **Custo evitado:** 2 ventiladores axiais que não montam (R$ 90–180) mais uma abertura de chassi inútil.
 
@@ -115,7 +115,7 @@ realmente centrífuga"*. **A ressalva estava certa e a recomendação principal,
 
 ### 2.2. O modelo é `DFH8030S`, não `DFH8025S` (`PROVADO` em foto)
 
-Etiqueta lida em `media/teardown-05-blowers-dfh8025s.jpg`, ampliada e girada:
+Etiqueta lida em `media/teardown-05-sopradores-dfh8030s.jpg`, ampliada e girada:
 **`D-FAN` / `DC BRUSHLESS FAN` / `MODEL:DFH8030S` / `DC 12V --- 0,45A` / `Dongguan Xingdong`.**
 
 Duas correções ao registro anterior: o dígito é **30**, não 25 (**80x80x30 mm**), e a marca é **`D-FAN`**

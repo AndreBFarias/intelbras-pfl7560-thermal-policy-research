@@ -41,7 +41,7 @@ Se são CRC32 simples ou assinatura criptográfica está sendo determinado na pe
 Ferramentas presentes: `debugfs`, `unsquashfs`, `7z`, `xz`, `gzip`, `cpio`, `python3`, `objdump`, `readelf`, `strings`.
 Ausentes (contornados): `binwalk`, `dtc`, `simg2img`, `lz4`.
 
-1. **DTB**: carve em `0x01f793b8` (14.688 B) -> parser FDT próprio em Python -> `artifacts/full_dts.txt`.
+1. **DTB**: carve em `0x01f793b8` (14.688 B) -> parser FDT próprio em Python -> `artifacts/firmware-extraido/full_dts.txt`.
    Resultado: o DTB NAO tem framework thermal (zero `thermal-zones`, `pwm-fan`, `tsadc`, `cooling-maps`).
 2. **Kernel**: boot images `ANDROID!` -> payload uImage (`27051956`) -> zImage -> `vmlinux` gzip -> `strings`.
    Kernel 4.9.127; driver de throttling de CPU `hi3751-cpufreq` (mexe em tensão/clock por temperatura da CPU);

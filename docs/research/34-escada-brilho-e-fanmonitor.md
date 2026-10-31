@@ -200,7 +200,7 @@ responder 0 — para observação isso atrapalha, e o gate não é necessário p
 
 ### Tentativa de observação: NÃO funcionou (resultado negativo, registrado)
 
-Foram feitos **dois boots** com a seção presente (`artifacts/ZYCustom_390.OBSERVACAO-FANMONITOR.ini`),
+Foram feitos **dois boots** com a seção presente (`artifacts/historico/ZYCustom_390.OBSERVACAO-FANMONITOR.ini`),
 `MONITOR_MODE = 1`, `PROTECT_OVERDUE = 0`, primeiro com `BACKLIGHT_POWERED = 1` e depois com `0`.
 Em nenhum dos dois as props `zysys.main_speed` / `zysys.sub_speed` foram publicadas, e não houve
 **nenhuma** linha de log do monitor. A seção estava comprovadamente no arquivo ativo e o serviço
@@ -280,7 +280,7 @@ fan voltou na primeira checagem. Nada amostrado. Cadeia integralmente explicada.
 Com impl NULL, `CoolingFan::getSenseSpeed` (`0x20a7a8`) devolve **`FULL_VALUE + 1`** — sentinela sintética
 "saudável", deliberadamente acima do teto de sanidade. É o no-op projetado para placas sem tacômetro.
 
-**E o hardware não tem o sinal:** ampliando `media/teardown-05-blowers-dfh8025s.jpg`, os sopradores têm
+**E o hardware não tem o sinal:** ampliando `media/teardown-05-sopradores-dfh8030s.jpg`, os sopradores têm
 cabo de **2 condutores** (vermelho/preto). Um brushless de 2 fios não tem saída FG. Não existe `/sys/class/pwm`,
 `hwmon` nem `thermal`; o DTS tem zero nós de pwm/fan/tach; `/proc/interrupts` não tem linha de GPIO e todas
 as linhas que crescem estão explicadas (arch_timer, áudio, GPU, VO, VICAP/VPSS a 60 fps, ehci, mmc).

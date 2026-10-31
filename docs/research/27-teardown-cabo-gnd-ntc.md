@@ -52,7 +52,7 @@ dá para confirmar via adb: ler `gtt 0/1` antes e depois de reconectar — a exp
 
 ## Refrigeração — 2 sopradores DFH8025S (corrigido: 3 ventiladores, ver abaixo)
 
-![Os dois sopradores DFH8025S montados](../../media/teardown-05-blowers-dfh8025s.jpg)
+![Os dois sopradores DFH8025S montados](../../media/teardown-05-sopradores-dfh8030s.jpg)
 
 Dois blowers COFN **DFH8025S** (DC 12 V), exatamente o que a config térmica declara
 (`[CoolingFan] SERIAL_NUM = 2`). **Não há Peltier/TEC nem terceiro ventilador** — a refrigeração é

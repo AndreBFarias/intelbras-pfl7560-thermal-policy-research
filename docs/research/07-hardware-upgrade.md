@@ -9,7 +9,7 @@
 >
 > **Esta seção inteira parte de uma premissa ERRADA: que o ventilador de fábrica é AXIAL.** Ele é um
 > **soprador CENTRÍFUGO (blower)**, verificado nas fotos do próprio repositório
-> (`media/teardown-04-blower-removido.jpg` e `teardown-05-blowers-dfh8025s.jpg`): rotor tipo **gaiola de
+> (`media/teardown-04-blower-removido.jpg` e `teardown-05-sopradores-dfh8030s.jpg`): rotor tipo **gaiola de
 > esquilo** com dezenas de pás curtas, **carcaça em voluta** (espiral) e **saída tangencial** lateral. Não
 > há hélice axial nem moldura quadrada de 80×80.
 >

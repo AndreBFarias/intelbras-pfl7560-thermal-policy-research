@@ -68,7 +68,7 @@ Reverter (volta 100% ao stock):
 ```
 adb root && adb shell rm /atv/ini/ZYCustom_390.ini && adb reboot
 ```
-Backups do `.ini` stock: `artifacts/ZYCustom.ini.ORIGINAL` e `ZYCustom.ini.DEVICE-2026-07-05`.
+Backups do `.ini` stock: `artifacts/ZYCustom.ini.ORIGINAL` e `artifacts/historico/ZYCustom.ini.DEVICE-2026-07-05`.
 
 ## Bugs colaterais achados (para o relatório Intelbras)
 
