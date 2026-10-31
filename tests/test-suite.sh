@@ -947,6 +947,29 @@ exec '"$(command -v ls)"' "$@"'
   afirma 'tem_chamada "mount -o ro,remount /vendor"' "o /vendor ficou rw"
   afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "a suite deveria seguir"
   limpa
+
+  novo_cenario "conferente: pedido que nao se apaga (pasta) = ignorado, sem lancar"
+  instala_suite; mkdir -p "$PED/pedir-verificacao/x"
+  roda_pedido w "$PED" pedir-verificacao
+  afirma '[ "$(chamadas setsid)" = 0 ]' "lancou um pedido que nao foi apagado"
+  afirma 'grep -q "nao consegui apagar o pedido" "$S/vigia.log"' "log sem o aviso"
+  limpa
+
+  if ! command -v inotifyd >/dev/null 2>&1; then
+    novo_cenario "conferente: laco do vigia ignora uma pasta com o nome do pedido"
+    instala_suite; rm -f "$T/bin/inotifyd"; mkdir -p "$PED/pedir-verificacao/x"
+    roda_boot
+    afirma '[ "$(chamadas setsid)" = 0 ] && ! grep -q "pedido de verificacao recebido" "$S/vigia.log" 2>/dev/null' "o laco tratou a pasta como pedido"
+    limpa
+  fi
+
+  novo_cenario "conferente: historico guarda a barra invertida do motivo (printf, nao echo)"
+  instala_suite
+  awk '!/^sys.boot.reason=/' "$T/props" > "$T/p" && printf '%s\n' 'sys.boot.reason=a\cb' >> "$T/p" && mv "$T/p" "$T/props"
+  roda_boot
+  afirma 'ult_hist | grep -qF "boot_reason=a\cb; "' "historico: '$(ult_hist)'"
+  afirma 'ult_hist | grep -q "motivo=desligamento_nao_limpo$"' "a linha foi cortada: '$(ult_hist)'"
+  limpa
 }
 
 # ---------------------------------------------------------------------------

@@ -50,7 +50,7 @@ DONO_UID=0
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
 SUITE_MD5="ea698598b4b0d5a45e92f73f414179f9"
-PEDIDO_MD5="a5ffa5af43c3b245e7f47a0e88411245"
+PEDIDO_MD5="762c34410ecf54b0c672d8c04ab7ef2e"
 # SUITE_MD5_FIM
 
 # PROVISORIO (teste final no aparelho, bloco 9 item 2): os dois criterios do gatilho
@@ -143,7 +143,8 @@ decidir(){
 
 registrar(){
   _l="$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null); boot_reason=$(limpo "$S_BR"); persist_boot_reason=$(limpo "$S_PBR"); ro_bootreason=$(limpo "$S_RBR"); relogio_boot=$(limpo "$S_RELOGIO"); ano_boot=$S_ANO; rtc_epoch=$S_RTC; pm=$(limpo "$S_PM" 160); gatilho=$GATILHO; decisao=$DECISAO; motivo=$MOTIVO"
-  { tail -n $(( HIST_MAX - 1 )) "$HIST" 2>/dev/null; echo "$_l"; } > "$HIST.new" && mv -f "$HIST.new" "$HIST"
+  # printf, nao echo: o echo do sh do aparelho interpreta barra invertida (um \c cortaria a linha)
+  { tail -n $(( HIST_MAX - 1 )) "$HIST" 2>/dev/null; printf '%s\n' "$_l"; } > "$HIST.new" && mv -f "$HIST.new" "$HIST"
 }
 
 # ---- vigia do pedido do app --------------------------------------------------
@@ -155,7 +156,7 @@ vigia_vivo(){
 vigia_laco(){
   _v=0
   while :; do
-    if [ -e "$PEDIDO_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
+    if [ -f "$PEDIDO_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao
     fi
     _v=$(( _v + 1 ))

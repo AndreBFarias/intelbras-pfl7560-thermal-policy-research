@@ -68,6 +68,11 @@ if ! dir_seguro "$SUITE"; then
 fi
 exec >>"$SUITE/vigia.log" 2>&1 </dev/null
 LOG "pedido de verificacao recebido ($(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null))"
+# um pedido que nao se apaga (uma pasta com o nome, por exemplo) nao vira laco de suites
+if [ -e "$PEDIDO_DIR/pedir-verificacao" ] || [ -L "$PEDIDO_DIR/pedir-verificacao" ]; then
+  LOG "[AVISO] nao consegui apagar o pedido $PEDIDO_DIR/pedir-verificacao - pedido ignorado."
+  exit 0
+fi
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi
 if terminou_ha_pouco; then LOG "a suite terminou ha menos de 10 min - pedido ignorado."; exit 0; fi
 # ULTIMA conferencia antes de executar
