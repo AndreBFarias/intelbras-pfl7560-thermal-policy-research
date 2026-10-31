@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 # artifacts/overlay/recolorir.py - troca as cores das imagens do fabricante pela paleta Dracula,
-# sem mudar o desenho (bloco 13A).
+# sem mudar o desenho (blocos 13A e 16A).
 #
-#   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado pelo apktool> artifacts/overlay/zysetting/res
+#   python3 -I artifacts/overlay/recolorir.py <app desmontado pelo apktool> <res da sobreposicao> [tabela]
+#
+#   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery. Ex.:
+#   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado> artifacts/overlay/zysetting/res
+#   python3 -I artifacts/overlay/recolorir.py <ZYBluetooth desmontado> artifacts/overlay/zybluetooth/res zybluetooth
 #
 # Roda UMA vez por firmware, sobre o app desmontado (apktool d, que devolve os 9-patch com a
 # borda de marcacao). A saida vai para o res/ da sobreposicao e entra no git: o build.sh nao
@@ -29,7 +33,7 @@ def hexrgb(s):
     return tuple(int(s[i:i + 2], 16) for i in (1, 3, 5))
 
 # recurso -> (ancoras {cor de fabrica: token Dracula}, multiplicador de alfa)
-TABELA = {
+ZYSETTING = {
     # moldura de foco das listas (estilo rgtp_ui=1) e a do outro estilo: branco -> rosa
     'item_focus_white': ({'#FFFFFF': 'rosa'}, 1),
     'item_focus': ({'#FFFFFF': 'rosa', '#0FC4C2': 'rosa'}, 1),
@@ -54,7 +58,44 @@ TABELA = {
     # em foco branco -> rosa (o texto em foco vem do color/button_text, que vira fundo)
     'button_bg_normal': ({'#000000': 'fundo', '#FFFFFF': 'comentario'}, 1),
     'button_bg_press': ({'#FFFFFF': 'rosa'}, 1),
+    # bloco 16A. Modo de imagem e de brilho (Outras configuracoes): o item escolhido tem um
+    # circulo branco com o miolo laranja -> miolo rosa
+    'selected_image': ({'#FFFFFF': 'texto', '#E97445': 'rosa'}, 1),
+    # janela de atualizacao automatica (systemupdate_tip): botoes em foco azuis -> comentario
+    # (o texto em foco e branco: 4,7:1)
+    'update': ({'#0A59F7': 'comentario'}, 1),
+    'cancel': ({'#0A59F7': 'comentario'}, 1),
 }
+
+# Bluetooth (com.example.bluetoothsetting): a mesma moldura, a mesma chave do ZYSetting
+CHAVE = {
+    'open_check_pt': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
+    'open_check_en': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
+    'open_check_es': ({'#00B26B': 'verde', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
+    'close_check_pt': ({'#153134': 'linha', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
+    'close_check_en': ({'#153134': 'linha', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
+    'close_check_es': ({'#153134': 'linha', '#FFFFFF': 'texto', '#000000': 'fundo'}, 1),
+}
+ZYBLUETOOTH = dict(CHAVE, item_focus=({'#FFFFFF': 'rosa'}, 1))
+
+# Gerenciador de arquivos (com.newlink.filemanager), estilo rgtp_ui=1
+ZYFILEMANAGER = {
+    # icones da lista (pasta, musica, audio, video): teal escuro -> comentario (3,0:1 no fundo)
+    'pt_list_folder_icon': ({'#163134': 'comentario'}, 1),
+    'pt_list_audio_icon': ({'#163134': 'comentario'}, 1),
+    'pt_list_music_icon': ({'#163134': 'comentario'}, 1),
+    'pt_list_video_icon': ({'#163134': 'comentario'}, 1),
+    # "carregando" verde -> rosa (o rosa marca o que esta em andamento)
+    'loading_pt': ({'#00B26B': 'rosa'}, 1),
+}
+
+# Galeria (com.hisilicon.higallery): miniatura escolhida, moldura branca com brilho azul -> rosa
+HIGALLERY = {
+    'gallery_selected': ({'#FFFFFF': 'rosa', '#2EA0FF': 'rosa', '#000000': 'fundo'}, 1),
+}
+
+TABELAS = {'zysetting': ZYSETTING, 'zybluetooth': ZYBLUETOOTH, 'zyfilemanager': ZYFILEMANAGER,
+           'higallery': HIGALLERY}
 
 def melhor(px, ancoras):
     """(i, j, t): px ~ ancora i misturada com j na fracao t (j=None: so i)."""
@@ -103,10 +144,11 @@ def recolorir(src, dst, mapa, malfa):
 
 def main():
     alvo, saida = sys.argv[1], sys.argv[2]
+    tabela = TABELAS[sys.argv[3] if len(sys.argv) > 3 else 'zysetting']
     n = 0
-    for nome, (mapa, malfa) in sorted(TABELA.items()):
-        fontes = sorted(glob.glob(os.path.join(alvo, 'res', 'drawable*', nome + '.png')) +
-                        glob.glob(os.path.join(alvo, 'res', 'drawable*', nome + '.9.png')))
+    for nome, (mapa, malfa) in sorted(tabela.items()):
+        fontes = sorted(f for pasta in ('drawable*', 'mipmap*') for ext in ('.png', '.9.png')
+                        for f in glob.glob(os.path.join(alvo, 'res', pasta, nome + ext)))
         if not fontes:
             raise SystemExit(f'FALTA no alvo: {nome}')
         for f in fontes:

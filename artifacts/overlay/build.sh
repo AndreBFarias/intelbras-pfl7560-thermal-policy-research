@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula do bloco 13A, do zero, sem Gradle.
+# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A e 16A, do zero, sem Gradle.
 #
 #   bash artifacts/overlay/build.sh
 #
 # Uma sobreposicao por pacote alvo, so recursos (sem classes.dex):
-#   zysetting   -> com.zhiying.settings     PFL7560TemaZYSetting.apk
-#   nlprovision -> com.newlink.nlprovision  PFL7560TemaNLProvision.apk
-#   android     -> android (framework)      PFL7560TemaAndroid.apk   (por ultimo; ver doc 48)
+#   zysetting     -> com.zhiying.settings          PFL7560TemaZYSetting.apk
+#   nlprovision   -> com.newlink.nlprovision       PFL7560TemaNLProvision.apk
+#   zybluetooth   -> com.example.bluetoothsetting  PFL7560TemaZYBluetooth.apk     (16A)
+#   zyfilemanager -> com.newlink.filemanager       PFL7560TemaZYFileManager.apk   (16A)
+#   tvsettings    -> com.android.tv.settings       PFL7560TemaTvSettings.apk      (16A)
+#   higallery     -> com.hisilicon.higallery       PFL7560TemaHiGallery.apk       (16A)
+#   nlsource      -> com.newlink.nlsource          PFL7560TemaNLSource.apk        (16A)
+#   powerservice  -> com.zhiying.powerservice      PFL7560TemaPowerService.apk    (16A)
+#   android       -> android (framework)           PFL7560TemaAndroid.apk   (por ultimo; ver doc 48)
 # Passos de cada uma: aapt2 compile + link (-I android.jar) -> zipalign -> apksigner sign ->
 # apksigner verify. Saida em artifacts/overlay/apk/. NAO copia para o kit (pendrive-autorun/):
 # a integracao e do coordenador.
@@ -29,8 +35,8 @@ BT="$SDK/build-tools/${BUILD_TOOLS:-35.0.0}"
 JAR="$SDK/platforms/${PLATAFORMA:-android-34}/android.jar"
 APKSIGNER="${APKSIGNER:-$(command -v apksigner || echo "$BT/apksigner")}"
 
-VERSAO_CODIGO=1          # inteiro; sobe a cada APK novo
-VERSAO_NOME="1.0"
+VERSAO_CODIGO=2          # inteiro; sobe a cada APK novo (2: bloco 16A)
+VERSAO_NOME="1.1"
 MIN_SDK=28
 TARGET_SDK=28
 KS="$AQUI/assinatura.keystore"
@@ -38,8 +44,15 @@ KS_ALIAS="pfl7560tema"
 KS_SENHA="pfl7560tema"   # nao e segredo (ver acima)
 SAIDA="$AQUI/apk"
 
-# pasta -> nome do APK (o mesmo nome vira a pasta em /vendor/overlay/<Nome>/<Nome>.apk)
-SOBREPOSICOES="zysetting:PFL7560TemaZYSetting nlprovision:PFL7560TemaNLProvision android:PFL7560TemaAndroid"
+# pasta -> nome do APK (o mesmo nome vira a pasta em /vendor/overlay/<Nome>/<Nome>.apk)[:minSdk].
+# O minSdk opcional existe por causa da galeria: com --min-sdk-version 28 o aapt2 funde as
+# configuracoes com versao <= 28 na padrao (drawable-v21 -> drawable, hdpi-v4 -> hdpi), e o alvo
+# (compilado com aapt antigo) tem justamente hdpi-v4 e v21. A sobreposicao precisa da MESMA
+# configuracao do alvo, senao a do alvo ganha (conferir.py, item 3). minSdk 1 desliga a fusao.
+SOBREPOSICOES="zysetting:PFL7560TemaZYSetting nlprovision:PFL7560TemaNLProvision
+  zybluetooth:PFL7560TemaZYBluetooth zyfilemanager:PFL7560TemaZYFileManager tvsettings:PFL7560TemaTvSettings
+  higallery:PFL7560TemaHiGallery:1 nlsource:PFL7560TemaNLSource powerservice:PFL7560TemaPowerService
+  android:PFL7560TemaAndroid"
 
 for f in "$BT/aapt2" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER"; do
   [ -e "$f" ] || { echo "FALTA: $f" >&2; exit 1; }
@@ -50,7 +63,8 @@ trap 'rm -rf "$B"' EXIT
 mkdir -p "$SAIDA"
 
 for par in $SOBREPOSICOES; do
-  dir="${par%%:*}"; nome="${par##*:}"
+  IFS=: read -r dir nome min <<< "$par"
+  min="${min:-$MIN_SDK}"
   echo ">> $nome ($dir)"
   # nenhuma referencia a recurso dentro da sobreposicao (ver o cabecalho)
   if grep -rEn '"@(\+?id|color|drawable|style|dimen|string|layout|mipmap|android:)' "$AQUI/$dir/res"; then
@@ -58,7 +72,7 @@ for par in $SOBREPOSICOES; do
   fi
   "$BT/aapt2" compile --dir "$AQUI/$dir/res" -o "$B/$dir.zip"
   "$BT/aapt2" link -o "$B/$dir.apk" -I "$JAR" --manifest "$AQUI/$dir/AndroidManifest.xml" \
-    --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
+    --min-sdk-version "$min" --target-sdk-version "$TARGET_SDK" \
     --version-code "$VERSAO_CODIGO" --version-name "$VERSAO_NOME" \
     --no-auto-version "$B/$dir.zip"
   "$BT/zipalign" -f -p 4 "$B/$dir.apk" "$B/$dir-alinhado.apk"
