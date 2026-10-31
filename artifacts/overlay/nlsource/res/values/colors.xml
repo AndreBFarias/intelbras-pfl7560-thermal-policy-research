@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Os mesmos valores do PFL7560TemaZYSetting para as mesmas cores. -->
+<resources>
+    <!-- fundo da tela "sem sinal" da entrada (MainActivity$1$1 com isPTStyle, o estilo
+         rgtp_ui=1; cabo e texto brancos por cima) e botao em foco do MyDialog.
+         De fabrica #FF00B26B, o verde antigo -> fundo -->
+    <color name="pt_green">#FF282A36</color>
+    <!-- painel do MyDialog (MyDialog$Builder, estilo rgtp_ui=1; texto branco fixo).
+         De fabrica #FF163134 -> comentario (branco 4,7:1; o botao em foco, fundo, 3,0:1 sobre ele) -->
+    <color name="pt_green_black">#FF6272A4</color>
+</resources>

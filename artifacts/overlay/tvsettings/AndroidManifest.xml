@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do TvSettings do Android (com.android.tv.settings, bloco 16A). Daqui o
+     dono ve o pedido de pareamento Bluetooth (BluetoothPairingDialog) e o aviso de disco USB novo
+     (NewStorageActivity, aberto pelo DiskReceiver). So cores. Nao estatica:
+     cmd overlay enable com.pfl7560.tema.tvsettings (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.tvsettings">
+    <overlay android:targetPackage="com.android.tv.settings" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>
