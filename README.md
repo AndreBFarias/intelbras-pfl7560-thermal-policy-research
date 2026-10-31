@@ -2,7 +2,7 @@
 
 Pesquisa independente de **engenharia reversa e reparabilidade** sobre um **defeito de configuração de fábrica** no projetor **Intelbras PFL7560** (firmware V1.0.0.9; o mesmo defeito segue no V1.0.0.1 de outubro de 2026, [doc 42](docs/research/42-firmware-2026-10-modelo-sem-usbc.md)) que torna a proteção térmica ineficaz e contribui para **falha prematura** da óptica (polarizador/LCD).
 
-> **Aviso.** Projeto **sem vínculo com a Intelbras**. Os métodos 1–3 editam apenas a partição `/vendor`, por sua conta e risco. **São reversíveis, não tocam no bootloader e o aparelho permanece recuperável.** O firmware `.bin` completo experimental está em **quarentena** (não use).
+> **Aviso.** Projeto **sem vínculo com a Intelbras**. Os métodos 1–3 editam a partição `/vendor` (o kit do pendrive mexe também na cor da `panelparam`, com backup, em `/data/vendor` e no logo de boot em `/atv/bootvideo`, guardando o de fábrica), por sua conta e risco. **São reversíveis, não tocam no bootloader e o aparelho permanece recuperável.** O firmware `.bin` completo experimental está em **quarentena** (não use).
 
 ## Status da divulgação responsável
 
@@ -58,6 +58,48 @@ controla e 1 axial no exaustor do dissipador do LED, sem controle por software (
 
 A correção essencial é **mínima** (essencialmente um caractere no canal virtual do 2º termistor, mais curvas e limiares coerentes). Três arquivos em `/vendor`; não é necessário reflash de bootloader.
 
+## MeowCast: o sistema que o kit deixa no projetor (2026-10)
+
+**MeowCast** é o nome do conjunto que o kit de pendrive instala por cima do Android de fábrica: a correção
+térmica, a cor do painel, uma suíte que confere a imagem sozinha, uma tela inicial nova, o tema Drácula em todo o
+sistema e a marca MeowCast no boot. Não troca o firmware, não toca no bootloader e não apaga o `/data`: o
+Android do fabricante continua lá, e o que o kit põe sai com um arquivo no pendrive (abaixo). Estado do
+conjunto: [`docs/sprints/ESTADO-2026-10-31.md`](docs/sprints/ESTADO-2026-10-31.md).
+
+| Parte | O que faz | Onde fica | Doc |
+|---|---|---|---|
+| Térmica | o 2º sensor lido, ventiladores a 100%, escada de brilho, Wi-Fi que reconecta, sem o spam do `xiriservice` | `/vendor/etc/ZYCustom.ini`, `build.prop`, `init.bigfish.rc` | [34](docs/research/34-escada-brilho-e-fanmonitor.md) |
+| Cor | confere a escada de 16 cinzas pela câmera interna e troca VESA/JEIDA se ela sair fora de ordem | 1 byte da `panelparam`, com backup e journal | [41](docs/research/41-auto-pareamento-camera-e-kit-universal.md) |
+| Suíte de verificação | cor, ângulo, foco e nitidez pela câmera, temperatura, teste da proteção térmica e um resumo em tela cheia; roda ao voltar da tomada, pelo pendrive e pelo ícone "Verificar projetor" | `/data/vendor/pfl7560-suite` e o serviço `/vendor/etc/init/pfl7560-suite.rc` | [44](docs/research/44-suite-de-boot.md) |
+| Home MeowCast | tela inicial nova (entradas, atalhos, apps), com o botão **Luz** (o nível escolhido volta a cada boot) | `/vendor/app/PFL7560Home` e a prop `vendor.newlink.launcher.package` | [45](docs/research/45-home-pfl7560.md) |
+| App Verificar | os ícones "Verificar projetor" e "Wi-Fi" e o descanso de tela MeowCast, que baixa a luz a 10% enquanto está na tela | `/vendor/app/PFL7560` | [44](docs/research/44-suite-de-boot.md) §7 e §14 |
+| Tema Drácula | 20 sobreposições (só cor, forma, imagens e layouts só de cor) ligadas no boot; Office, iOSCast e Espelhamento desligados; gerenciador de arquivos direto na lista | `/vendor/overlay/PFL7560Tema*` | [48](docs/research/48-tema-no-sistema.md) |
+| Marca | logo e animação de boot MeowCast | `/atv/bootvideo` (o de fábrica guardado na pasta da suíte) | [44](docs/research/44-suite-de-boot.md) §15 |
+
+Fora do pendrive, pelo PC: `pfl7560-marca.sh` (a imagem do carregador, na partição `logo`, que depende dos 4
+cantos de cada aparelho) e `pfl7560-vlc.sh` (VLC 3.7.1 como app do sistema).
+
+**Instalar.** `./install.sh --pendrive <ponto de montagem>` (Windows: `install.bat`, opção 5) copia o kit e
+confere o md5 de cada arquivo. Com o projetor **desligado**, plugue e ligue. A térmica e a cor valem na hora (a
+térmica reinicia uma vez); a home, o tema, o ícone e o descanso valem a partir do **boot seguinte**. Passo a
+passo no [`INSTALL.md`](INSTALL.md), método 1.
+
+**Desfazer.** Um arquivo vazio `DESINSTALAR-SUITE.txt` na raiz do pendrive, e ligar com ele plugado: sai o
+serviço, a pasta da suíte, a home como tela inicial, as sobreposições e a prop do gerenciador; os três apps do
+fabricante voltam; o logo e a animação de fábrica são restaurados; o descanso volta ao do fabricante. A térmica
+fica (desfaz com `./pfl7560-fix.sh revert` pelo PC), a cor fica no formato que o painel pede, e os dois apps
+ficam instalados sem efeito (são apps do sistema; o `adb uninstall` não os tira). Resgate total: o firmware de
+fábrica por power-hold ([guia 16](docs/guide/16-recuperacao-brick.md)), que apaga o `/data`.
+
+**Provado no projetor do dono (V1.0.0.9, 2026-10-30 e 2026-10-31):** a suíte pelo boot, pelo ícone e pelo
+pendrive; a marca de "ligado" que detecta a queda de energia, com um reset sem desligamento (`sysrq b`); o botão
+Luz e o descanso a 10%; a home como tela inicial; as 20 sobreposições; a marca no boot. **PROVISÓRIO:** tirar da
+tomada **com o projetor ligado** com o cabo de verdade; a varredura fina de foco com o foco ruim de propósito (a
+unidade do `gfd`/`sfd` e os passos não foram vistos no aparelho); olhar com o controle o teclado na tela, o
+pareamento do controle, o menu de imagem de uma entrada HDMI e a contagem de desligar; o modelo sem USB-C
+(V1.0.0.1), só em simulação; a bancada completa do pendrive (etapa E4 do bloco 5) e a prova com um leigo. A build
+`.bin` completa existe, mas **não foi gravada** (método 4).
+
 ## Impacto no consumidor
 
 Em condições normais de uso, o defeito de configuração térmica favorece **superaquecimento da óptica** e degradação/substituição recorrente de polarizador e LCD (no equipamento de origem desta pesquisa: **duas trocas em 18 meses**).
@@ -87,7 +129,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png`, a suíte: `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`, as telas dela: `nl_tela` e `fontes/*`, e o app `pfl7560.apk`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Depois roda a **suíte de verificação** (ângulo, foco, nitidez, temperatura, teste da proteção térmica e um resumo em tela cheia), instala o app dos ícones **Verificar projetor** e **Wi-Fi** e deixa um serviço de boot: dali em diante a suíte roda sozinha quando o projetor volta da tomada e a pedido pelo ícone (que só vale a partir do boot seguinte). Sem serial, sem arquivo para editar, idempotente; `DESINSTALAR-SUITE.txt` no pendrive desliga a suíte. Com `--com-firmware` o pendrive leva também o firmware de resgate (`tests/preparar-pendrive.sh` prepara um do zero). Provado só em simulação; bancada no aparelho pendente: [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md) (seção "Teste no aparelho").
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png`, a suíte: `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`, as telas dela: `nl_tela` e `fontes/*`, o app `pfl7560.apk`, a home `pfl7560-home.apk`, `overlay/*.apk` e `marca/*`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Depois roda a **suíte de verificação** (ângulo, foco, nitidez, temperatura, teste da proteção térmica e um resumo em tela cheia), instala o app dos ícones **Verificar projetor** e **Wi-Fi** e deixa um serviço de boot: dali em diante a suíte roda sozinha quando o projetor volta da tomada e a pedido pelo ícone (que só vale a partir do boot seguinte). Sem serial, sem arquivo para editar, idempotente; `DESINSTALAR-SUITE.txt` no pendrive desliga a suíte. Com `--com-firmware` o pendrive leva também o firmware de resgate (`tests/preparar-pendrive.sh` prepara um do zero). O mesmo pendrive instala o sistema MeowCast (seção acima). Em uso no projetor do dono desde 2026-10-31; o que falta provar está na seção MeowCast e em [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md).
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash
@@ -196,7 +238,7 @@ refaça o teste de cor.
 ├── pfl7560-lcd-color.sh            # correção de cor pós-troca de painel (VESA/JEIDA)
 ├── pfl7560-menu.sh · pfl7560-evidencias.sh · PFL7560-Corrigir.desktop
 ├── INSTALL.md · LICENSE (GPLv3)
-├── pendrive-autorun/               # método sem PC: kit + suíte de verificação + app (pfl7560.apk)
+├── pendrive-autorun/               # método sem PC: kit + suíte + apps (pfl7560.apk, pfl7560-home.apk) + overlay/ + marca/
 ├── docs/
 │   ├── dossie-teardown.html        # dossiê visual do teardown (fotos + achados)
 │   ├── research/                   # teardown, causa-raiz, build, LCD, plano mestre (31),
@@ -210,7 +252,10 @@ refaça o teste de cor.
 │   ├── bin-build/                  # builder do .bin (com metadados/SELinux)
 │   ├── lcd-color-fix/              # lvdsctl + padrões de teste de cor
 │   ├── camcheck/ · tela/           # nl_camcheck (câmera) e nl_tela (telas da suíte), ARM
-│   ├── app/                        # app "PFL7560" (Verificar projetor, Wi-Fi): fonte, build.sh sem Gradle, chave
+│   ├── app/                        # app "PFL7560" (Verificar projetor, Wi-Fi, descanso de tela): fonte, build.sh sem Gradle, chave
+│   ├── home/                       # home MeowCast (com.pfl7560.home): fonte, build.sh, prévias
+│   ├── overlay/                    # as 20 sobreposições do tema Drácula (RRO) e o conferir.py
+│   ├── tema/                       # paleta, fundo e marca MeowCast (gerar-marca.py)
 │   └── (ZYCustom stock/fix, históricos)
 ├── media/                          # fotos do teardown + evidências
 ├── tests/                          # make check (md5) · check-kit · check-bin · check-fix (simulação, sem aparelho)
