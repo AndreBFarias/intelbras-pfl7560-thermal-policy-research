@@ -913,6 +913,43 @@ c_ambiente(){
 }
 
 # ---------------------------------------------------------------------------
+# achados do conferente (bloco 9B)
+# ---------------------------------------------------------------------------
+c_conferente(){
+  local rc
+
+  novo_cenario "conferente: so o .rc pendente e o remount falha = o kit segue (suite lancada), sem .rc"
+  pendrive; rc="$R/vendor/etc/init/pfl7560-suite.rc"
+  stub mount 'echo "mount $*" >> "$T/calls.log"; case "$*" in *rw,remount*) exit 1 ;; esac; exit 0'
+  roda_kit
+  afirma '[ "$RC" = 0 ]' "o kit abortou por causa do .rc (rc=$RC): $(tail -3 "$T/kit.out")"
+  afirma '[ ! -e "$rc" ] && [ ! -e "$R/vendor/etc/pfl7560-suite.rc.new" ]' "gravou o .rc sem o /vendor rw"
+  afirma 'grep -q "servico de boot da suite NAO instalado" "$T/kit.out"' "log sem o aviso do .rc"
+  afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "a suite nao foi lancada: $(grep setsid "$T/calls.log")"
+  limpa
+
+  novo_cenario "conferente: fix do /vendor pendente e o remount falha = aborta como antes"
+  pendrive; cp "$ROOT/artifacts/build.prop.STOCK" "$R/vendor/build.prop"
+  stub mount 'echo "mount $*" >> "$T/calls.log"; case "$*" in *rw,remount*) exit 1 ;; esac; exit 0'
+  roda_kit
+  afirma '[ "$RC" = 1 ] && [ "$(chamadas setsid)" = 0 ]' "deveria abortar como antes (rc=$RC)"
+  limpa
+
+  novo_cenario "conferente: rotulo do .rc preparado fora do padrao = nao entra em /vendor/etc/init"
+  pendrive; rc="$R/vendor/etc/init/pfl7560-suite.rc"
+  # ls -Z de mentira: o init.bigfish.rc tem o rotulo de fabrica; o resto, um rotulo errado
+  # (o chcon nao pegou)
+  stub ls 'if [ "$1" = "-Z" ]; then case "$2" in *init.bigfish.rc) echo "u:object_r:vendor_configs_file:s0 $2" ;; *) echo "u:object_r:vendor_file:s0 $2" ;; esac; exit 0; fi
+exec '"$(command -v ls)"' "$@"'
+  roda_kit
+  afirma '[ "$RC" = 0 ] && [ ! -e "$rc" ] && [ ! -e "$R/vendor/etc/pfl7560-suite.rc.new" ]' "o .rc fora do padrao entrou ou sobrou (rc=$RC)"
+  afirma 'grep -q "rc preparado ficou fora do padrao" "$T/kit.out"' "log sem a recusa do rotulo"
+  afirma 'tem_chamada "mount -o ro,remount /vendor"' "o /vendor ficou rw"
+  afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "a suite deveria seguir"
+  limpa
+}
+
+# ---------------------------------------------------------------------------
 # estaticos
 # ---------------------------------------------------------------------------
 c_estaticos(){
@@ -963,7 +1000,7 @@ echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
 for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_pedido c_instalacao c_desinstalar \
-         c_etapas_cor c_etapas_geometria c_etapas_temperatura c_etapas_rampa c_telas c_ambiente}; do
+         c_etapas_cor c_etapas_geometria c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente}; do
   echo "  $c"
   "$c"
 done

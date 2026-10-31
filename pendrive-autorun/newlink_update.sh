@@ -373,16 +373,22 @@ preparar_pedido(){
 # shellcheck disable=SC2012  # o ls -Z e o unico leitor de rotulo SELinux do toybox
 rotulo_de(){ ls -Z "$1" 2>/dev/null | tr ' ' '\n' | grep '^u:object_r:[a-z0-9_]*:s0$' | head -1; }
 rotulo_alvo(){ _ra=$(rotulo_de "$RC"); if [ -n "$_ra" ]; then echo "$_ra"; else echo "$ROTULO_PADRAO"; fi; }
-suite_rc_ok(){
-  [ -f "$RC_SUITE" ] && [ ! -L "$RC_SUITE" ] && cmp -s "$WORK/pfl7560-suite.rc" "$RC_SUITE" || return 1
+# $1 e o .rc do kit: regular (nao link), igual ao conferido, 0644, do root e com o
+# rotulo alvo (quando o ls -Z responde)
+rc_conforme(){
+  _rcf="$1"
+  [ -f "$_rcf" ] && [ ! -L "$_rcf" ] && cmp -s "$WORK/pfl7560-suite.rc" "$_rcf" || return 1
   # shellcheck disable=SC2046  # divisao em campos de proposito
-  set -- $(ls -ln "$RC_SUITE" 2>/dev/null)
+  set -- $(ls -ln "$_rcf" 2>/dev/null)
   case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
   [ "$3" = "$DONO_UID" ] || return 1
-  _rl=$(rotulo_de "$RC_SUITE")
+  _rl=$(rotulo_de "$_rcf")
   [ -z "$_rl" ] || [ "$_rl" = "$(rotulo_alvo)" ]
 }
-# so com o /vendor ja aberto rw (dentro do bloco dos fixes)
+suite_rc_ok(){ rc_conforme "$RC_SUITE"; }
+# so com o /vendor ja aberto rw (dentro do bloco dos fixes). O .new so entra na pasta
+# do init se ja estiver conforme (modo, dono, rotulo); um .rc que mesmo assim fique
+# fora do padrao depois do mv e removido: nunca fica um .rc nosso fora do padrao la.
 instalar_rc(){
   trabalho_conferir pfl7560-suite.rc || return 1
   _alvo=$(rotulo_alvo)
@@ -390,10 +396,15 @@ instalar_rc(){
   if cp "$WORK/pfl7560-suite.rc" "$RC_SUITE_NOVO" && chmod 644 "$RC_SUITE_NOVO" \
      && chown root:root "$RC_SUITE_NOVO" && cmp -s "$WORK/pfl7560-suite.rc" "$RC_SUITE_NOVO"; then
     chcon "$_alvo" "$RC_SUITE_NOVO" 2>/dev/null || LOG "[AVISO] chcon $_alvo falhou no .rc da suite."
-    if mv -f "$RC_SUITE_NOVO" "$RC_SUITE" && suite_rc_ok; then
+    if ! rc_conforme "$RC_SUITE_NOVO"; then
+      LOG "[ERRO] suite: o .rc preparado ficou fora do padrao (modo, dono ou rotulo '$(rotulo_de "$RC_SUITE_NOVO")', pedido $_alvo) - NAO instalado."
+    elif mv -f "$RC_SUITE_NOVO" "$RC_SUITE" && suite_rc_ok; then
       _rf=$(rotulo_de "$RC_SUITE"); [ -n "$_rf" ] || _rf="(ls -Z nao respondeu; pedido $_alvo)"
       LOG "[OK] suite: servico de boot instalado em $RC_SUITE (0644 root:root, rotulo $_rf); vale no proximo boot"
       return 0
+    elif [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then
+      rm -f "$RC_SUITE"
+      LOG "[ERRO] suite: o .rc instalado nao conferiu (modo, dono ou rotulo) - removido."
     fi
   fi
   rm -f "$RC_SUITE_NOVO"
@@ -535,14 +546,25 @@ else
 fi
 
 # O /vendor so e aberto rw se algum dos 3 fixes DE /vendor (ou o .rc da suite) estiver pendente.
+# Se so o .rc da suite estiver pendente e o remount falhar, o kit segue sem ele (a suite
+# roda pelo pendrive; o servico de boot fica para a proxima vez): o .rc nunca impede a cor.
 VENDOR_RW=0
-if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok || { [ "$SUITE_OK" = "1" ] && ! suite_rc_ok; }; then
+SUITE_RC_PEND=0
+if [ "$SUITE_OK" = "1" ] && ! suite_rc_ok; then SUITE_RC_PEND=1; fi
+if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok; then
   LOG "correcao ausente/incompleta -> aplicando o que faltar no /vendor ..."
   if ! mount -o rw,remount /vendor; then
     LOG "[ERRO] nao consegui remontar /vendor rw (dm-verity/particao ocupada?) - retentar no proximo boot."
     exit 1
   fi
   VENDOR_RW=1
+elif [ "$SUITE_RC_PEND" = "1" ]; then
+  LOG "servico de boot da suite ausente/diferente -> abrindo o /vendor so para ele ..."
+  if mount -o rw,remount /vendor; then
+    VENDOR_RW=1
+  else
+    LOG "[ERRO] nao consegui remontar /vendor rw: servico de boot da suite NAO instalado (o resto do kit segue; retentar no proximo boot)."
+  fi
 fi
 
 # ---- FIX 1: termico (secoes termicas sobre o .ini do aparelho) ----
@@ -614,9 +636,9 @@ fi
 
 # ---- servico de boot da suite (nao exige reboot: vale no proximo boot) ----
 if [ "$SUITE_OK" = "1" ]; then
-  if suite_rc_ok; then
+  if [ "$SUITE_RC_PEND" = "0" ]; then
     LOG "suite: servico de boot ja estava instalado"
-  else
+  elif [ "$VENDOR_RW" = "1" ]; then
     instalar_rc
   fi
 fi
