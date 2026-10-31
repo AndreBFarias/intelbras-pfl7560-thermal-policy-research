@@ -1,7 +1,11 @@
 # 48 - Tema Drácula no sistema do fabricante: sobreposições (RRO) (2026-10-31)
 
-**Estado: pronto em código, gerado e conferido no PC. Nada disto rodou no aparelho.** O que só o aparelho
-confirma está marcado **PROVISÓRIO** e reunido na seção 8 (bloco 13A) e na §10.7 (bloco 16A).
+**Estado em 2026-10-31: em uso no projetor do dono.** As 20 sobreposições estão ligadas pelo boot (o
+`suite-boot.sh` liga as desligadas, a do `android`, v4 com imagens, por último), com os layouts só de cor do bloco
+19B; estado do conjunto em [`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md). Falta olhar com o controle
+o teclado na tela, o pareamento do controle, o menu de imagem de uma entrada HDMI, a contagem de desligar e a
+página de cartões do gerenciador. As seções abaixo foram escritas antes do aparelho: o que elas marcam
+**PROVISÓRIO** (seção 8, bloco 13A, e §10.7, bloco 16A) é do plano e fica como registro.
 
 **Bloco 16A (2026-10-31):** seis sobreposições novas (Bluetooth, gerenciador de arquivos, TvSettings, galeria,
 entradas HDMI, menu de energia), o ZYSetting sem o laranja das telas de modo, e a do `android` com os diálogos

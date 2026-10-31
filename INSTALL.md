@@ -40,6 +40,7 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    - `pendrive-autorun/suite.sh`, `suite-boot.sh`, `suite-pedido.sh` e `pfl7560-suite.rc` (a suíte de verificação, bloco 9B)
    - `pendrive-autorun/nl_tela` (gera as telas da suíte) e `pendrive-autorun/fontes/*` (as fontes dela, na subpasta `fontes/` do pendrive)
    - `pendrive-autorun/pfl7560.apk` (o app dos ícones "Verificar projetor" e "Wi-Fi", bloco 9C)
+   - `pendrive-autorun/pfl7560-home.apk` (a home MeowCast, a tela inicial nova, bloco 10A)
    - `pendrive-autorun/overlay/*.apk` (as sobreposições do tema Drácula do sistema, uma por tela do fabricante, na subpasta `overlay/` do pendrive; bloco 14)
    - `pendrive-autorun/marca/` (`logo.jpg` e `bootanimation.zip`, a marca MeowCast do boot, na subpasta `marca/` do pendrive; bloco 14)
    - `pendrive-autorun/kit/*.png` (oito imagens, na subpasta `kit/` do pendrive)
@@ -60,11 +61,12 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    proposital), e termina num **resumo** em tela cheia (20 s; qualquer tecla fecha) e na tela "Pode tirar o
    pendrive". Tire o pendrive. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive ficam
    `newlink_update.log` (procure `CORRECAO APLICADA COM SUCESSO`), `newlink_cor.log` e `newlink_suite.log`.
-   O mesmo pendrive instala o app `pfl7560.apk` (como app do sistema em `/vendor/app`, antes da suíte; uma falha só avisa no log) e o
-   serviço de boot da suíte. **Daí em diante a suíte roda sozinha, sem pendrive,** quando o projetor volta da
+   O mesmo pendrive instala o app `pfl7560.apk` e a home `pfl7560-home.apk` (como apps do sistema em
+   `/vendor/app`, antes da suíte; uma falha só avisa no log; a home vira a tela inicial pela linha
+   `vendor.newlink.launcher.package` no `build.prop`, doc 45) e o serviço de boot da suíte. **Daí em diante a suíte roda sozinha, sem pendrive,** quando o projetor volta da
    tomada, e a pedido pelo ícone **"Verificar projetor"** (o app também tem o ícone "Wi-Fi"). O ícone só passa a
-   valer no **boot seguinte** à instalação (o vigia do pedido liga no boot): desligue e ligue uma vez. Um pedido
-   até 10 minutos depois do fim de outra suíte é ignorado. Detalhes, arquivos e limites:
+   valer no **boot seguinte** à instalação (o vigia do pedido liga no boot): desligue e ligue uma vez. O ícone
+   sempre roda; só um pedido feito com uma suíte já rodando é ignorado. Detalhes, arquivos e limites:
    [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md).
    **Tema e marca (bloco 14).** Na mesma passada o kit grava as sobreposições Drácula em `/vendor/overlay`
    (a do `android`, que mexe no sistema inteiro, por último), a linha que faz o gerenciador de arquivos abrir
@@ -79,15 +81,19 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    plugado: remove o serviço, a pasta da suíte e o pedido, leva a cópia do backup da cor para o pendrive
    (`suite-panelparam-backup-<serial>.img`) e roda só a fase de cor. Também desliga e remove as sobreposições de tema,
    tira a linha do gerenciador de arquivos, religa o Office/iOSCast/Espelhamento e restaura a marca de fábrica.
-   O app fica instalado, sem efeito; para tirá-lo, `adb uninstall com.pfl7560.verificar`.
+   A linha da home nova sai do `build.prop` (a tela inicial de fábrica volta no boot seguinte). Os apps
+   (Verificar e home) ficam instalados, sem efeito: são apps do sistema em `/vendor/app`, e o `adb uninstall` não
+   os tira (doc 44 §8).
 
 É **idempotente** (rodar de novo não muda nada nem reinicia) e só age se o modelo for `PFL7560`. A parte
 térmica reconhece o `.ini` de fábrica **dos dois modelos** (e as versões anteriores nossas) e troca **só as
 seções térmicas** do `.ini` do próprio aparelho, mantendo o `CONFIG_MODEL`; `.ini` desconhecido = recusa e
 avisa. Antes de mexer na cor, faz backup da `panelparam` conferido com `cmp` e grava um journal: se a
-energia cair no meio do teste, o formato original volta no boot seguinte. O kit v2 foi provado **só em
-simulação** (`make check-kit`); a bancada no aparelho ainda não foi feita (etapa E4 do
-[bloco 5](docs/sprints/2026-10-29-bloco-5-kit-universal.md)).
+energia cair no meio do teste, o formato original volta no boot seguinte. No aparelho do dono (V1.0.0.9): a
+cor automática foi provada com o kit rodado por adb e reboot ([bloco 8](docs/sprints/2026-10-30-bloco-8-camera-robusta.md)),
+e a suíte, a home, o tema e a marca estão em uso desde 2026-10-31
+([estado](docs/sprints/ESTADO-2026-10-31.md)). Seguem abertos: a bancada completa do pendrive (etapa E4 do
+[bloco 5](docs/sprints/2026-10-29-bloco-5-kit-universal.md)), o modelo sem USB-C e a prova com um leigo.
 
 **Atenção:** o recomendado é **não** colocar `usb_update.bin` no mesmo pendrive do autorun: o pendrive de **resgate** (firmware de fábrica) fica **separado** e desconectado no dia a dia. O `LEIA-ME.txt` descreve também um "kit de emergência" pessoal com os dois juntos (arranjo B), aceitável só para quem conhece o risco: ligar segurando o power com ele plugado reflasha o aparelho.
 
