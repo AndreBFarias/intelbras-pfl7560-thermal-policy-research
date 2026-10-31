@@ -444,3 +444,9 @@ Mapa 3x3 (`nl_camcheck nitidez`, borda 10-90 % em px da câmera 1280x720, menor 
   comparam em valor absoluto entre os estados: com cantos zerados a imagem é maior e as regiões caem mais para
   fora do campo da lente.
 - O aviso "Deseja abrir HDMI1?" apareceu de novo cerca de 1 minuto depois do boot, por cima da tela oficial.
+- Decisão do dono, aplicada em 2026-10-31 pela tela oficial (`com.zhiying.settings/.projection.KeystoneSettingsActivity`):
+  "Ajuste de Keystone" **desligado**. Isso grava `persist.newlink.autokeystone_enabled=0` e também
+  `autokeystonecrop_enable=0` e `autokeystoneframe_enable=0`. "Corrigir Keystone na inicialização" já estava
+  desligado. Os cantos ficam em `0,1080 / 1920,1080 / 0,0 / 1920,0`. Para voltar: a mesma tela, seta para a
+  direita. A `AutoKeystoneActivity` (`com.newlink.hisetting`) **não** é a chave: é a calibração de fábrica do
+  keystone automático ("确认" grava a referência), e não foi tocada.
