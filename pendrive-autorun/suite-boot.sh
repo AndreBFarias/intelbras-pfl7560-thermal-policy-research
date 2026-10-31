@@ -15,6 +15,8 @@
 #      "setting system clock to" (ano do relogio no boot), o RTC, /proc/msp/pm e a
 #      decisao. E o que o teste final usa para calibrar o gatilho.
 #   2. Decide se a suite roda (arquivo gatilho: auto, sempre ou nunca).
+#   2b. Reaplica o nivel de luz que o dono escolheu no atalho Luz da home (arquivo luz,
+#      bloco 15), com qualquer gatilho: e escolha do dono, nao da suite. Sem o arquivo, nao mexe.
 #   3. Liga o vigia do pedido do app (inotifyd; sem ele, um laco de 30 s).
 #   4. Lanca suite.sh tomada destacado, com o md5 dele conferido NA HORA contra o
 #      embutido aqui.
@@ -53,7 +55,7 @@ DONO_UID=0
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
 SUITE_MD5="4ec528651ceb839a2a1350f9f73a9aea"
-PEDIDO_MD5="e5f9bc20459fd2d44cc0ffbba648d9a6"
+PEDIDO_MD5="c58ce0e8a5abd2b5a8600db2d5da58a5"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -164,6 +166,19 @@ registrar(){
   { tail -n $(( HIST_MAX - 1 )) "$HIST" 2>/dev/null; printf '%s\n' "$_l"; } > "$HIST.new" && mv -f "$HIST.new" "$HIST"
 }
 
+# ---- luz (bloco 15) ------------------------------------------------------------
+# o suite-pedido.sh (md5 conferido) faz tudo: valida o arquivo, aplica pelo hidebug, confere
+# com gbl e devolve o valor ao app. A gravacao do sbl pelo fabricante e atrasada e nao
+# confiavel (um reboot logo depois perde o valor), por isso a reaplicacao em todo boot.
+reaplicar_luz(){
+  [ -e "$SUITE/luz" ] || return 0
+  if confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
+    sh "$SUITE/suite-pedido.sh" aplicar-luz
+  else
+    LOG "[ERRO] suite-pedido.sh ausente, link, de outro dono ou com md5 diferente - luz NAO reaplicada."
+  fi
+}
+
 # ---- vigia do pedido do app --------------------------------------------------
 vigia_vivo(){
   _p=$(head -n 1 "$VIGIA_PID" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
@@ -175,6 +190,9 @@ vigia_laco(){
   while :; do
     if [ -f "$PEDIDO_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao
+    fi
+    if [ -f "$PEDIDO_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
+      sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" luz
     fi
     _v=$(( _v + 1 ))
     [ "$VIGIA_VOLTAS" != "0" ] && [ "$_v" -ge "$VIGIA_VOLTAS" ] && break
@@ -196,6 +214,10 @@ ligar_vigia(){
   if [ -f "$PEDIDO_DIR/pedir-verificacao" ]; then
     LOG "pedido pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao >>"$SUITE/vigia.log" 2>&1 </dev/null
+  fi
+  if [ -f "$PEDIDO_DIR/luz" ]; then
+    LOG "pedido de luz pendente de antes do vigia: tratando agora"
+    sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
   # inotifyd executa o suite-pedido.sh a cada evento: w = escrita fechada (o app terminou
   # de gravar), y = movido para dentro. O inotifyd do toybox do aparelho IGNORA a 1a letra
@@ -236,6 +258,7 @@ if [ "$GATILHO" != "nunca" ]; then
 fi
 LOG "sys.boot.reason='$S_BR' ano_boot='$S_ANO' gatilho=$GATILHO decisao=$DECISAO motivo=$MOTIVO"
 
+reaplicar_luz
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then
