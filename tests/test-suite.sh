@@ -862,7 +862,7 @@ c_luz(){
 
   # ---- descanso de tela: luz a 10% e volta ----
   novo_cenario "descanso: inicio = luz a 10% sem mexer no nivel guardado; fim = volta ao guardado"
-  instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"; : > "$PED/descanso-inicio"
+  instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"; echo 60 > "$T/bl"; : > "$PED/descanso-inicio"
   roda_pedido w "$PED" descanso-inicio
   afirma 'tem_chamada "HIDEBUG  picture sbl 10 quit " && [ "$(cat "$S/luz")" = 60 ] && [ ! -e "$PED/descanso-inicio" ]' "inicio: $(grep HIDEBUG "$T/calls.log")"
   : > "$PED/descanso-fim"
@@ -870,10 +870,42 @@ c_luz(){
   afirma 'tem_chamada "HIDEBUG  picture sbl 60 quit " && grep -q "luz de volta a 60%" "$S/vigia.log"' "fim nao voltou a 60"
   limpa
 
-  novo_cenario "descanso: fim sem nivel guardado = volta a 100%"
+  novo_cenario "descanso: sem nivel guardado = o fim volta ao nivel de antes do descanso (gbl), nao a 100%"
+  instala_suite; echo 70 > "$T/bl"; : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  afirma '[ "$(cat "$S/luz-antes-descanso" 2>/dev/null)" = 70 ] && [ "$(stat -c %a "$S/luz-antes-descanso" 2>/dev/null)" = 600 ]' "inicio nao guardou o nivel de antes (0600): '$(cat "$S/luz-antes-descanso" 2>/dev/null)'"
+  : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 70 quit " && ! tem_chamada "sbl 100 quit" && grep -q "luz de volta a 70%" "$S/vigia.log"' "fim nao voltou a 70: $(grep HIDEBUG "$T/calls.log" | tr '\n' '|')"
+  afirma '[ ! -e "$S/luz-antes-descanso" ]' "o nivel de antes do descanso sobrou depois do fim"
+  limpa
+
+  novo_cenario "descanso: dois inicio seguidos e depois fim = volta ao primeiro nivel (nao a 10%)"
+  instala_suite; echo 70 > "$T/bl"; : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma '[ "$(grep "sbl" "$T/calls.log" | tail -1)" = "HIDEBUG  picture sbl 70 quit " ]' "o segundo inicio guardou 10: $(grep sbl "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso: fim sem inicio = volta ao nivel guardado"
+  instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"; : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 40 quit "' "nao voltou ao guardado: $(grep sbl "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso: fim sem inicio e sem nada guardado = 100%"
   instala_suite; : > "$PED/descanso-fim"
   roda_pedido w "$PED" descanso-fim
-  afirma 'tem_chamada "HIDEBUG  picture sbl 100 quit "' "nao voltou a 100"
+  afirma 'tem_chamada "HIDEBUG  picture sbl 100 quit "' "sem nada guardado nao voltou a 100"
+  limpa
+
+  novo_cenario "descanso: nivel de antes plantado como link = ignorado, volta ao guardado"
+  instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"; echo 90 > "$T/alvo-l"; ln -s "$T/alvo-l" "$S/luz-antes-descanso"; : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 40 quit " && ! tem_chamada "sbl 90 quit"' "seguiu o link: $(grep sbl "$T/calls.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "descanso: com a suite rodando (trava) = nao mexe na luz"
@@ -891,9 +923,10 @@ c_luz(){
   limpa
 
   novo_cenario "descanso: sinais velhos no boot sao apagados (o boot reaplica o nivel)"
-  instala_suite; : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"
+  instala_suite; : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"; echo 70 > "$S/luz-antes-descanso"
   roda_boot
   afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ] && ! grep -q "sbl 10" "$T/calls.log"' "sinal velho do descanso sobrou ou foi aplicado"
+  afirma '[ ! -e "$S/luz-antes-descanso" ]' "o nivel de antes de um descanso velho sobrou no boot"
   limpa
 
   # ---- boot ----

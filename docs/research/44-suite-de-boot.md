@@ -500,10 +500,14 @@ ao começar e `descanso-fim` ao terminar, com qualquer tecla ou com um aviso que
 | Pedido | O que o vigia faz |
 |---|---|
 | `descanso-inicio` | `sbl 10` |
-| `descanso-fim` | reaplica o nível que o dono escolheu no botão Luz (`/data/vendor/pfl7560-suite/luz`), ou 100 sem escolha |
+| `descanso-fim` | volta ao nível que o `gbl` leu antes do descanso; sem ele, ao nível que o dono escolheu no botão Luz (`/data/vendor/pfl7560-suite/luz`), e 100 só sem os dois |
 
 O nível guardado e a prop `vendor.pfl7560.luz` não mudam. Com a suíte rodando (trava), o vigia não mexe na luz.
 Sinais velhos na pasta são apagados no boot, que já reaplica o nível do dono.
+
+O `descanso-inicio` guarda o nível lido pelo `gbl` em `/data/vendor/pfl7560-suite/luz-antes-descanso` (root, 0600) só
+se o arquivo ainda não existe, para um segundo início não guardar 10; o `descanso-fim` usa e apaga esse arquivo, e o
+boot o apaga junto com os sinais velhos (bloco 21).
 
 Provado no aparelho em 2026-10-31 (`service call dreams 1`; o `Somnambulator` não existe neste firmware): início
 → 10%, e um aviso da HDMI acordou o descanso → de volta a 25%, o nível guardado.
