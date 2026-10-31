@@ -5,7 +5,8 @@ check:
 
 # kit universal de pendrive (blocos 5 e 7): padroes, nl_camcheck do host sobre quadros reais,
 # md5 embutido e harness com stubs; a suite de verificacao (bloco 9B) no test-suite.sh;
-# pendrive com firmware de resgate e preparar-pendrive.sh (bloco 9C) com lsblk/mkfs de mentira
+# pendrive com firmware de resgate e preparar-pendrive.sh (bloco 9C) com lsblk/mkfs de mentira;
+# pfl7560-processos.sh (bloco 9C) com uma saida de top gravada e um adb de mentira
 check-kit:
 	python3 -I tests/simula-padroes-kit.py
 	bash tests/test-camcheck.sh
@@ -14,6 +15,7 @@ check-kit:
 	bash tests/test-kit-pendrive.sh
 	bash tests/test-suite.sh
 	bash tests/test-preparar-pendrive.sh
+	bash tests/test-processos.sh
 
 # builder do .bin (bloco 6): offset do vendor lido da tabela, em containers sinteticos.
 # Com PFL_STOCK_ANTIGO=<PFL7560.bin V1.0.0.9> e PFL_STOCK_NOVO=<PFL7560.bin V1.0.0.1> roda

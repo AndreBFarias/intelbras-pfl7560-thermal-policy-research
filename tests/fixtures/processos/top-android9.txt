@@ -1,0 +1,29 @@
+Tasks: 411 total,   1 running, 409 sleeping,   0 stopped,   1 zombie
+  Mem:  1827760K total,  1759836K used,    67924K free,    14816K buffers
+ Swap:        0K total,        0K used,        0K free,   770648K cached
+400%cpu  31%user   0%nice  40%sys 325%idle   0%iow   2%irq   0%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+ 1203 system       18  -2 1.6G 189M 120M S  19.0  10.6  25:31.20 system_server
+  881 system       18  -2 108M  20M  15M S  12.0   1.1  12:04.11 /system/bin/surfaceflinger
+ 2231 u0_a19       20   0 1.1G  98M  54M S   9.5   5.4   8:02.03 com.zhiying.autofocus
+ 5120 shell        20   0 9.4M 3.0M 2.4M R   0.5   0.1   0:00.05 top -b -n 2 -d 60
+
+Tasks: 412 total,   1 running, 410 sleeping,   0 stopped,   1 zombie
+  Mem:  1827760K total,  1759836K used,    67924K free,    14816K buffers
+ Swap:        0K total,        0K used,        0K free,   770648K cached
+400%cpu   9%user   0%nice  11%sys 378%idle   0%iow   2%irq   0%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+ 1203 system       18  -2 1.6G 189M 120M S   6.0  10.6  25:35.02 system_server
+  881 system       18  -2 108M  20M  15M S   4.7   1.1  12:06.90 /system/bin/surfaceflinger
+ 2231 u0_a19       20   0 1.1G  98M  54M S   3.3   5.4   8:04.01 com.zhiying.autofocus
+ 1544 system       20   0 912M  41M  30M S   2.4   2.3   3:10.77 /system/bin/xiriservice
+  390 root         20   0    0    0    0 D   2.0   0.0   0:41.20 [kworker/u8:3]
+ 1022 shell        20   0  15M 4.1M 3.2M S   1.7   0.2   1:12.00 /system/bin/adbd --root_seclabel=u:r:su:s0
+ 2410 u0_a31       20   0 1.3G 120M  61M S   1.0   6.6   2:55.43 com.newlink.hisetting
+ 5201 shell        20   0 9.4M 3.1M 2.4M R   0.9   0.1   0:00.55 top -b -n 2 -d 60
+  612 logd         30  10  46M 7.6M 3.4M S   0.7   0.4   0:50.11 /system/bin/logd
+ 2780 u0_a22       20   0 1.0G  88M  47M S   0.3   4.8   0:30.30 com.hisilicon.miracast
+   77 root         20   0    0    0    0 S   0.3   0.0   0:05.00 [mmcqd/0]
+ 3011 u0_a40       20   0 930M  62M  40M S   0.0   3.4   0:10.10 com.newlink.hotkeysservices
+    2 root         20   0    0    0    0 S   0.0   0.0   0:00.00 [kthreadd]
+   95 root         20   0    0    0    0 D   0.0   0.0   0:00.10 [jbd2/mmcblk0p13-]

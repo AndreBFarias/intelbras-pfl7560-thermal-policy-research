@@ -238,6 +238,7 @@ LINHA_DEV="$L_USB" MONTAGENS=$'/media/usuario/PENDRIVE\n' CONFIRMA=/dev/sdb prep
 afirma '[ "$RC" = 0 ] && grep -qx "umount /media/usuario/PENDRIVE" "$TMP/p/calls.log" && [ "$(grep -n "^umount /media" "$TMP/p/calls.log" | cut -d: -f1)" -lt "$(grep -n "^mkfs" "$TMP/p/calls.log" | cut -d: -f1)" ]' "rc=$RC: $(cut -d' ' -f1-2 "$TMP/p/calls.log" | tr '\n' '|')"
 
 CASO="install.bat e install-firmware-pendrive.ps1 (texto: nao ha Windows aqui)"
+# shellcheck disable=SC2034  # usadas nas strings do afirma (eval)
 BAT="$ROOT/install.bat"; PS1="$ROOT/install-firmware-pendrive.ps1"
 afirma '[ -f "$PS1" ] && [ -z "$(LC_ALL=C grep -nP "[^\x00-\x7F]" "$PS1")" ] && [ "$(grep -c $'"'"'\r'"'"' "$PS1")" = 0 ]' "o .ps1 falta, tem byte fora de ASCII ou CRLF"
 afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$BAT" | grep -q "install-firmware-pendrive.ps1.*-Modo conferir" && sed -n "/^:do_pendrive/,/^goto :menu/p" "$BAT" | grep -q "install-firmware-pendrive.ps1.*-Modo copiar"' "install.bat nao chama o .ps1 nos dois modos"
