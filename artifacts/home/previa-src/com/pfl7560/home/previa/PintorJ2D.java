@@ -17,7 +17,6 @@ import java.awt.geom.Rectangle2D;
 import java.awt.geom.RoundRectangle2D;
 import java.io.File;
 
-/** Pintor sobre Java2D, so para as previas no PC. Mesmas fontes do kit (pendrive-autorun/fontes). */
 final class PintorJ2D implements Pintor {
     private final Graphics2D g;
     private final Font[] fontes = new Font[5];
@@ -89,7 +88,6 @@ final class PintorJ2D implements Pintor {
     public void arco(float cx, float cy, float r, float inicio, float varredura, float esp, int cor) {
         g.setPaint(c(cor));
         g.setStroke(traco(esp));
-        // Java2D conta no sentido anti-horario; o contrato e o do Android (horario)
         g.draw(new Arc2D.Float(cx - r, cy - r, 2 * r, 2 * r, -inicio, -varredura, Arc2D.OPEN));
     }
 

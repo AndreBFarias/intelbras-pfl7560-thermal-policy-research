@@ -3,55 +3,38 @@ package com.pfl7560.home;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * O desenho da home num quadro de 1920x1080. O mesmo codigo pinta no aparelho (PintorCanvas) e
- * nas previas do PC (PintorJ2D).
- *
- * Direcao (skill hallmark, contrato Dracula do bloco 10): painel de instrumento, utilitario e
- * calmo. Relogio grande a esquerda e as Entradas, a acao principal de um projetor, no alto a
- * direita, alinhadas pelo topo do relogio; Atalhos e Apps embaixo, numa grade de 24 px de vao e
- * margens de 112 px. Uma cor de destaque so: rosa no foco (anel de 5 px, icone rosa, cartao
- * cheio). Roxo so nos titulos de grupo e nos dois pontos do relogio. Sem sombra, sem gradiente
- * nos cartoes, sem animacao: o foco aparece na hora. Unica excecao ao "uma cor so": o monograma do
- * app sem desenho proprio usa um dos 5 acentos do tema, estavel pelo pacote (bloco 13B).
- */
 public final class Desenho {
     public static final float LARGURA = 1920f;
     public static final float ALTURA = 1080f;
 
-    static final float MX = 112f;                 // margem lateral
-    static final float DIREITA = LARGURA - MX;    // 1808
-    static final float CONTEUDO = DIREITA - MX;   // 1696
+    static final float MX = 112f;
+    static final float DIREITA = LARGURA - MX;
+    static final float CONTEUDO = DIREITA - MX;
     static final float VAO = 24f;
     static final float RAIO = 18f;
 
-    // relogio e data
-    static final float RELOGIO_BASE = 259f;       // topo das maiusculas da Plex Mono (0,698 em) em y = 136
+    static final float RELOGIO_BASE = 259f;
     static final float RELOGIO_TAM = 176f;
     static final float DATA_BASE = 325f;
     static final float DATA_TAM = 44f;
 
-    // Entradas, no alto a direita
     static final float ENT_TITULO = 112f;
     static final float ENT_Y = 136f;
     static final float ENT_W = 296f;
     static final float ENT_H = 200f;
-    static final float ENT_X0 = DIREITA - (3 * ENT_W + 2 * VAO);   // 872
+    static final float ENT_X0 = DIREITA - (3 * ENT_W + 2 * VAO);
 
-    // Atalhos
     static final float ATA_TITULO = 432f;
     static final float ATA_Y = 456f;
     static final float ATA_H = 172f;
     static final float ATA_W = (CONTEUDO - 6 * VAO) / 7f;
 
-    // Apps
     public static final int APPS_VISIVEIS = 7;
     static final float APP_TITULO = 724f;
     static final float APP_Y = 748f;
     static final float APP_H = 190f;
     static final float APP_W = (CONTEUDO - (APPS_VISIVEIS - 1) * VAO) / APPS_VISIVEIS;
 
-    // linha de estado
     static final float ESTADO_BASE = 1000f;
 
     static final float TITULO_TAM = 30f;
@@ -118,7 +101,6 @@ public final class Desenho {
             int cf = f ? Tema.LINHA : Tema.CARTAO;
             Icones.desenhar(p, m.atalhos[i].icone, x + 22, ATA_Y + 20, 56, f ? Tema.ROSA : Tema.TEXTO_2, cf);
             if (Acoes.LUZ.equals(m.atalhos[i].acao)) {
-                // o nome e, por baixo, o valor atual
                 p.texto(m.atalhos[i].rotulo, x + 20, ATA_Y + ATA_H - 24 - 34, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
                 p.texto(m.luz + "%", x + 20, ATA_Y + ATA_H - 24, Pintor.MONO, 28, Tema.TEXTO_2, Pintor.ESQ);
             } else {
@@ -185,7 +167,6 @@ public final class Desenho {
         }
     }
 
-    /** O painel "Luz do projetor": tela cheia no tema, cinco niveis, foco em rosa. */
     private static void painelLuz(Pintor p, Modelo m) {
         p.gradiente(0, 0, LARGURA, ALTURA, Tema.FUNDO, Tema.FUNDO_BASE);
         titulo(p, "Luz do projetor", MX, ENT_TITULO);
@@ -202,7 +183,6 @@ public final class Desenho {
             boolean f = m.luzSel == i;
             cartao(p, x, y, w, h, f);
             p.texto(nivel + "%", x + 30, y + 112, Pintor.MONO_SEMI, 64, Tema.TEXTO, Pintor.ESQ);
-            // a barra mostra o quanto da luz fica ligado
             float bw = w - 60;
             p.retangulo(x + 30, y + 148, bw, 14, 7, f ? Tema.FUNDO : Tema.LINHA);
             p.retangulo(x + 30, y + 148, bw * nivel / 100f, 14, 7, f ? Tema.ROSA : Tema.TEXTO_2);
@@ -232,7 +212,6 @@ public final class Desenho {
         }
     }
 
-    /** Rotulo em ate duas linhas, quebrando nos espacos; `base` e a linha de base da ULTIMA linha. */
     static void rotulo(Pintor p, String s, float x, float base, float maxW, int fonte, float tam, float entre, int alin) {
         List<String> linhas = quebrar(p, s, fonte, tam, maxW, 2);
         float y = base - (linhas.size() - 1) * entre;

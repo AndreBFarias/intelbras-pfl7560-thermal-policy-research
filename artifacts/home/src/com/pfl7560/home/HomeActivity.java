@@ -15,21 +15,8 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Home do PFL7560 (bloco 10A). HOME + DEFAULT + LAUNCHER, singleTask, stateNotNeeded.
- *
- * Nunca trava o boot: o onCreate so monta a View; lista de apps, rede e temperatura sao lidas
- * numa thread a parte. Excecao vira fileira vazia ou campo omitido, nunca crash; e se mesmo assim
- * o processo cair duas vezes em 2 minutos, a Guarda entrega a tela ao launcher de fabrica.
- *
- * So vira a home padrao com
- *   cmd package set-home-activity com.pfl7560.home/.HomeActivity
- * e volta com
- *   cmd package set-home-activity com.newlink.nlprovision/.MainActivity
- */
 public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static final long AVISO_MS = 5000L;
-    /** Tempo para o root aplicar a luz e publicar a prop vendor.pfl7560.luz antes de reler. */
     private static final long LUZ_RELER_MS = 4000L;
 
     private final Handler principal = new Handler(Looper.getMainLooper());
@@ -151,17 +138,15 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         super.onDestroy();
     }
 
-    /** HOME apertado com a home ja na frente: volta o foco ao comeco. */
     @Override
     protected void onNewIntent(Intent i) {
         super.onNewIntent(i);
         if (modelo == null) return;
-        modelo.inicio();   // fecha tambem o painel de luz
+        modelo.inicio();
         modelo.aviso = null;
         vista.invalidate();
     }
 
-    /** BACK fecha o painel de luz; na home em si nao faz nada (nao ha para onde voltar). */
     @Override
     public void onBackPressed() {
         if (modelo != null && modelo.luzAberta) {
@@ -171,12 +156,11 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         }
     }
 
-    /** OK no painel de luz: grava o pedido (fora da thread da interface) e mostra o nivel pedido. */
     @Override
     public void aplicarLuz(final int nivel) {
         final Context app = getApplicationContext();
         modelo.luz = nivel;
-        modelo.aviso = null;   // sem aviso no OK: o nivel marcado no painel ja mostra (pedido do dono)
+        modelo.aviso = null;
         vista.invalidate();
         Thread t = new Thread(new Runnable() {
             @Override
@@ -194,7 +178,6 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                         vista.invalidate();
                         principal.removeCallbacks(apagarAviso);
                         principal.postDelayed(apagarAviso, AVISO_MS);
-                        // o que vale e o que o root publicou em vendor.pfl7560.luz
                         principal.removeCallbacks(reler);
                         principal.postDelayed(reler, LUZ_RELER_MS);
                     }

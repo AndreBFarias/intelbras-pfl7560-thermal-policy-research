@@ -4,11 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
 
-/**
- * Trava contra crash em laco. Cada queda do processo fica anotada (hora) antes de o Android
- * matar o app. Se a home abre com duas quedas nos ultimos 2 minutos, ela nao tenta de novo:
- * entrega a tela para o launcher de fabrica (Abridor.homeDeFabrica) e sai.
- */
 final class Guarda {
     static final String TAG = "pfl7560.home";
     private static final String PREFS = "guarda";
@@ -30,7 +25,6 @@ final class Guarda {
                 try {
                     anotarQueda(app);
                 } catch (Throwable ignorada) {
-                    // anotar e o melhor esforco; a queda segue para o tratador original
                 }
                 if (antes != null) antes.uncaughtException(t, e);
             }
@@ -52,7 +46,7 @@ final class Guarda {
             }
         }
         sb.append(agora);
-        prefs(c).edit().putString(CHAVE, sb.toString()).commit();   // commit: o processo vai morrer
+        prefs(c).edit().putString(CHAVE, sb.toString()).commit();
     }
 
     static boolean emLaco(Context c) {

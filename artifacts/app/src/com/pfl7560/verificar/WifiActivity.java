@@ -6,10 +6,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
 
-/**
- * "Wi-Fi": abre a tela de Wi-Fi do sistema; se nao resolver, a tela escondida do fabricante
- * (com.zhiying.settings, aberta na parede em 2026-10-30); se nada abrir, mostra a mensagem.
- */
 public class WifiActivity extends Activity {
     @Override
     protected void onCreate(Bundle b) {
@@ -27,7 +23,7 @@ public class WifiActivity extends Activity {
         try {
             startActivity(i);
             return true;
-        } catch (RuntimeException e) {   // ActivityNotFoundException, SecurityException
+        } catch (RuntimeException e) {
             return false;
         }
     }

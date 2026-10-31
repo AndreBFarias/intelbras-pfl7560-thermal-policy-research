@@ -7,11 +7,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-/**
- * "Verificar projetor": grava o arquivo pedir-verificacao na pasta privada do app e fecha em 3 s.
- * Um vigia root (suite-boot.sh, ligado no boot) confere que o dono do arquivo e o dono desta
- * pasta e dispara a suite. Sem permissao nenhuma: so este app grava aqui.
- */
 public class VerificarActivity extends Activity {
     static final String ARQUIVO = "pedir-verificacao";
 

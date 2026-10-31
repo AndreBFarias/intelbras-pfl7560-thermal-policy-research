@@ -18,17 +18,6 @@ import java.util.TimeZone;
 
 import javax.imageio.ImageIO;
 
-/**
- * Gera as previas 1920x1080 da home no PC com o MESMO codigo de desenho do app (Desenho, Icones,
- * Modelo, Tema). Uso: java -cp <classes> com.pfl7560.home.previa.Previa <dir fontes> <dir saida>
- *
- * Dados: a hora e a data sao fixas; os apps sao os que o firmware V1.0.0.9 lista com MAIN+LAUNCHER
- * (aapt2 dump badging, rotulo em pt quando existe), menos os da lista de exclusao (doc 45). Os
- * icones de app sao desenhados no codigo (Icones), os mesmos do aparelho. "MinhaRede" e um nome de
- * exemplo; os apps "(exemplo)" tambem: existem so para encher a fileira e mostrar cada desenho.
- * 59 °C e a media medida do sensor do LED em regime (doc 40). A previa de rolagem usa "Exemplo N",
- * marcado como exemplo, so para provar o contador e que nada sai cortado.
- */
 public final class Previa {
     private Previa() {
     }
@@ -44,24 +33,20 @@ public final class Previa {
         firmware.add(Item.app("iOSCast", "com.newlink.cast", ""));
         firmware.add(Item.app("VideoPlayer", "com.hisilicon.android.videoplayer", ""));
 
-        // 1. foco no comeco (HDMI 1), com rede e temperatura
         Modelo m = base();
         m.definirApps(firmware);
         m.wifi = "MinhaRede";
         m.temperatura = "59";
         salvar(m, fontes, new File(saida, "home-foco-entrada.png"));
 
-        // 2. foco em um atalho de rotulo longo (duas linhas)
         m.fileira = Modelo.ATALHOS;
         m.coluna = 0;
         salvar(m, fontes, new File(saida, "home-foco-atalho.png"));
 
-        // 2b. o atalho Luz em foco (nome e valor por baixo)
         m.coluna = 4;
         salvar(m, fontes, new File(saida, "home-foco-luz.png"));
         m.coluna = 0;
 
-        // 2c. o painel de luz aberto: atual 100 %, foco em 60 %
         Modelo l = base();
         l.definirApps(firmware);
         l.wifi = "MinhaRede";
@@ -71,13 +56,11 @@ public final class Previa {
         l.moverLuz(1);
         salvar(l, fontes, new File(saida, "home-painel-luz.png"));
 
-        // 2d. o painel com a luz em 25 % (Economico atual) e o aviso do pedido
         l.luz = 25;
         l.abrirLuz();
         l.aviso = "Luz 25%: pedido enviado";
         salvar(l, fontes, new File(saida, "home-painel-luz-economico.png"));
 
-        // 3. foco num app, sem rede, sem temperatura legivel, com um aviso
         m.mover(0, 1);
         m.mover(1, 0);
         m.wifi = "Sem rede";
@@ -85,7 +68,6 @@ public final class Previa {
         m.aviso = "Não abriu: Bluetooth";
         salvar(m, fontes, new File(saida, "home-foco-app-sem-rede.png"));
 
-        // 4. rolagem da fileira de apps (exemplo com 12 apps) e foco no ultimo visivel + 2
         Modelo r = base();
         List<Item> muitos = completo(firmware);
         r.definirApps(muitos);
@@ -96,7 +78,6 @@ public final class Previa {
         for (int i = 0; i < muitos.size() - 1; i++) r.mover(1, 0);
         salvar(r, fontes, new File(saida, "home-rolagem-exemplo.png"));
 
-        // 4b. fileira de apps cheia (7 visiveis), foco num app de desenho proprio
         Modelo f = base();
         f.definirApps(muitos);
         f.wifi = "MinhaRede";
@@ -107,17 +88,14 @@ public final class Previa {
         for (int i = 0; i < 4; i++) f.mover(1, 0);
         salvar(f, fontes, new File(saida, "home-apps-cheia.png"));
 
-        // 4c. folha com todos os desenhos de app, em repouso e em foco
         folha(fontes, new File(saida, "home-icones-apps.png"));
 
-        // 5. a lista de apps ainda carregando (o que aparece no primeiro quadro do boot)
         Modelo c = base();
         salvar(c, fontes, new File(saida, "home-carregando.png"));
 
         checarNavegacao(firmware);
     }
 
-    /** 4 do firmware + um exemplo de cada desenho + monogramas de letras e cores diferentes. */
     private static List<Item> completo(List<Item> firmware) {
         List<Item> l = new ArrayList<Item>(firmware);
         l.add(Item.app("Office (oculto)", "com.mobisystems.editor.office_registered", ""));
@@ -144,7 +122,6 @@ public final class Previa {
     private static final int[] COR = {Tema.ROXO, Tema.ROSA, Tema.CIANO, Tema.VERDE, Tema.LARANJA};
     private static final String[] NOME_COR = {"roxo", "rosa", "ciano", "verde", "laranja"};
 
-    /** Folha de conferencia (nao e tela do app): cada desenho em repouso e em foco, e os 5 monogramas. */
     private static void folha(File fontes, File png) throws Exception {
         BufferedImage img = new BufferedImage(1920, 1080, BufferedImage.TYPE_INT_RGB);
         Graphics2D g = img.createGraphics();
@@ -163,7 +140,6 @@ public final class Previa {
                 p.texto(NOMES[i], x + w / 2, y + h - 22, Pintor.SANS_SEMI, 24, Tema.TEXTO, Pintor.CENTRO);
             }
         }
-        // monogramas: um pacote para cada uma das 5 cores do sorteio estavel
         String[] letras = {"A", "B", "K", "Z", "M"};
         for (int l = 0; l < 2; l++) {
             boolean foco = l == 1;
@@ -200,7 +176,6 @@ public final class Previa {
         System.out.println("previa: " + png);
     }
 
-    /** Confere a navegacao do D-pad (o mesmo Modelo do aparelho). Falha = excecao. */
     private static void checarNavegacao(List<Item> apps) {
         Modelo m = base();
         m.definirApps(apps);

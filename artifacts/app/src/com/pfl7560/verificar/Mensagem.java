@@ -8,7 +8,6 @@ import android.view.Gravity;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-/** Tela de mensagem de 3 s no estilo das telas da suite (fundo escuro, traco claro). */
 final class Mensagem {
     private static final long MS = 3000;
 

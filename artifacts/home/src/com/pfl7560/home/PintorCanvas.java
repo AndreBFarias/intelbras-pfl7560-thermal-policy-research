@@ -9,7 +9,6 @@ import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 
-/** Pintor sobre o Canvas do Android. As fontes IBM Plex vem de assets/ (o build.sh copia do kit). */
 final class PintorCanvas implements Pintor {
     private final Typeface[] fontes = new Typeface[5];
     private final Paint cheio = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -28,7 +27,7 @@ final class PintorCanvas implements Pintor {
             Typeface t;
             try {
                 t = Typeface.createFromAsset(assets, "fontes/" + nomes[i]);
-            } catch (RuntimeException e) {   // fonte faltando: cai na do sistema, nunca quebra
+            } catch (RuntimeException e) {
                 t = i >= 3 ? Typeface.MONOSPACE : Typeface.SANS_SERIF;
             }
             fontes[i] = t;

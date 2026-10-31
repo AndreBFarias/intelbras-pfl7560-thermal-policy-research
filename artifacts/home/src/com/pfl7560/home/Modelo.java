@@ -6,10 +6,6 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * Estado da home e a navegacao com o D-pad. Java puro: o mesmo codigo roda no aparelho e no
- * gerador de previas do PC. Mexer so na thread da interface.
- */
 public final class Modelo {
     public static final int ENTRADAS = 0;
     public static final int ATALHOS = 1;
@@ -18,11 +14,6 @@ public final class Modelo {
     public static final int APPS_CARREGANDO = 0;
     public static final int APPS_PRONTOS = 1;
 
-    /**
-     * Apps que o dono mandou desligar (pm disable-user, 2026-10-31): Office, iOSCast e Espelhamento.
-     * O PackageManager ja nao os lista; a lista aqui garante a fileira Apps sem eles mesmo que um
-     * volte a ligar (atualizacao de firmware, redefinicao).
-     */
     public static final List<String> OCULTOS = Collections.unmodifiableList(Arrays.asList(
             "com.mobisystems.editor.office_registered", "com.newlink.cast", "com.hisilicon.miracast"));
 
@@ -33,21 +24,15 @@ public final class Modelo {
 
     public String hora = "";
     public String data = "";
-    /** Nome da rede, "Sem rede", ou null enquanto nao se leu. */
     public String wifi;
-    /** Temperatura do LED em graus inteiros ("59"; o desenho poe o "°C"), ou null se nao der para ler sem root. */
     public String temperatura;
-    /** Aviso curto (ex.: um atalho que nao abriu), ou null. */
     public String aviso;
 
-    /** Os cinco niveis do painel de luz (percentual do hidebug sbl; o ultimo e o "Economico"). */
     public static final int[] LUZ_NIVEIS = {100, 80, 60, 40, 25};
     public static final int LUZ_ECONOMICO = 25;
 
-    /** Luz atual em %, como o root publicou em vendor.pfl7560.luz; 100 enquanto nao houver. */
     public int luz = 100;
     public boolean luzAberta;
-    /** Indice em LUZ_NIVEIS do nivel sob o foco no painel. */
     public int luzSel;
 
     public int fileira = ENTRADAS;
@@ -63,7 +48,6 @@ public final class Modelo {
         return padrao(true);
     }
 
-    /** comUsbC false = modelo sem a entrada USB-C (V1.0.0.1 NOTYPEC, doc 42): so as duas HDMI. */
     public static Modelo padrao(boolean comUsbC) {
         Item hdmi1 = new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1);
         Item hdmi2 = new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2);
@@ -92,7 +76,6 @@ public final class Modelo {
         return coluna < apps.size() ? apps.get(coluna) : null;
     }
 
-    /** Abre o painel de luz com o foco no nivel mais perto do atual. */
     public void abrirLuz() {
         luzAberta = true;
         luzSel = 0;
@@ -110,7 +93,6 @@ public final class Modelo {
         luzAberta = false;
     }
 
-    /** Move o foco entre os niveis (-1 esquerda, 1 direita). Devolve true se mudou. */
     public boolean moverLuz(int dx) {
         int n = luzSel + dx;
         if (n < 0 || n >= LUZ_NIVEIS.length) return false;
@@ -122,7 +104,6 @@ public final class Modelo {
         return LUZ_NIVEIS[luzSel];
     }
 
-    /** Volta ao comeco (HOME apertado com a home ja aberta). */
     public void inicio() {
         luzAberta = false;
         fileira = ENTRADAS;
@@ -153,7 +134,6 @@ public final class Modelo {
         rolarAteFoco();
     }
 
-    /** dx/dy em -1, 0, 1. Devolve true se o foco mudou. */
     public boolean mover(int dx, int dy) {
         if (dx != 0) {
             int nc = coluna + dx;
@@ -201,7 +181,6 @@ public final class Modelo {
         "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
     };
 
-    /** Preenche hora ("21:47", 24 h) e data ("Sábado, 31 de outubro") em português, sem depender do idioma do aparelho. */
     public void relogio(Calendar c) {
         int h = c.get(Calendar.HOUR_OF_DAY);
         int m = c.get(Calendar.MINUTE);

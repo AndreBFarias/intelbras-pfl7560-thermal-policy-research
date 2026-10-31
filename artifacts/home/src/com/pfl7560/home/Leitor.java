@@ -24,13 +24,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-/** Leituras feitas fora da thread da interface: lista de apps, rede e temperatura. Sem root. */
 final class Leitor {
-    /**
-     * Fora da fileira de Apps. Os 4 primeiros e o proprio launcher sao a lista negra do launcher de
-     * fabrica (RGTPLauncher, AppUtils.<clinit>, doc 43 secao 6); depois os nossos. Os apps que o dono
-     * mandou desligar (Office, iOSCast, Espelhamento) ficam em Modelo.OCULTOS.
-     */
     static final Set<String> FORA = new HashSet<String>(Arrays.asList(
             "com.qiyivideo.sibichi", "com.jrm.localmm", "com.gitvvideo.shanghaishijiu", "org.mozilla.tv.firefox",
             "com.newlink.hisilauncher",
@@ -39,7 +33,6 @@ final class Leitor {
     private Leitor() {
     }
 
-    /** MAIN+LAUNCHER, como o launcher de fabrica, menos FORA, ordenado pelo nome. */
     static List<Item> apps(Context c) {
         PackageManager pm = c.getPackageManager();
         Intent i = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
@@ -69,7 +62,6 @@ final class Leitor {
         return r;
     }
 
-    /** Nome da rede Wi-Fi, "Sem rede", "Cabo de rede" ou "Wi-Fi conectado" (quando o nome vem escondido). */
     static String rede(Context c) {
         ConnectivityManager cm = (ConnectivityManager) c.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo ni = cm == null ? null : cm.getActiveNetworkInfo();
@@ -84,7 +76,6 @@ final class Leitor {
         } catch (RuntimeException e) {
             Guarda.anotar(c, "wifi", e);
         }
-        // Android 9 esconde o SSID do WifiInfo sem permissao de localizacao; o extraInfo da rede ativa ainda o traz
         if (nome == null) nome = ssid(ni.getExtraInfo());
         return nome != null ? nome : "Wi-Fi conectado";
     }
@@ -97,10 +88,6 @@ final class Leitor {
         return s;
     }
 
-    /**
-     * Temperatura do LED (zysys.env_temp, o sensor gtt1 no bloco do LED; doc 40 secao 3) em graus
-     * inteiros, ou null se a prop nao for legivel por um app comum (SELinux) ou vier sem numero.
-     */
     static String temperatura() {
         String v = prop("zysys.env_temp");
         StringBuilder num = new StringBuilder();
@@ -114,11 +101,6 @@ final class Leitor {
         }
     }
 
-    /**
-     * Luz atual em %: o numero que o root publica na prop vendor.pfl7560.luz (ver suite-pedido.sh),
-     * lido com getprop; 100 se a prop nao existe, esta vazia ou fora de 10..100. O root nao escreve
-     * na pasta do app (revisao de seguranca).
-     */
     static int luzAtual(Context c) {
         Process p = null;
         try {
@@ -135,10 +117,6 @@ final class Leitor {
         }
     }
 
-    /**
-     * Pede a luz: grava so os digitos no arquivo luz da pasta do app. Quem aplica e o vigia root
-     * (suite-pedido.sh); o app nao tem como falar com o hidebug. Devolve false se nao gravou.
-     */
     static boolean pedirLuz(Context c, int nivel) {
         try (FileOutputStream out = new FileOutputStream(new File(c.getDataDir(), "luz"))) {
             out.write(String.valueOf(nivel).getBytes("US-ASCII"));
@@ -149,18 +127,15 @@ final class Leitor {
         }
     }
 
-    /** O aparelho tem entrada USB-C: zysys.typec_count > 0 ou zysys.source.typec1 definida (o V1.0.0.1 nao tem nenhuma das duas). */
     static boolean temUsbC() {
         String n = prop("zysys.typec_count").trim();
         try {
             if (!n.isEmpty()) return Integer.parseInt(n) > 0;
         } catch (NumberFormatException e) {
-            // valor estranho: decide pela fonte
         }
         return !prop("zysys.source.typec1").trim().isEmpty();
     }
 
-    /** android.os.SystemProperties.get por reflexao (API escondida, liberada para targetSdk 28). "" se falhar. */
     static String prop(String nome) {
         try {
             Class<?> k = Class.forName("android.os.SystemProperties");

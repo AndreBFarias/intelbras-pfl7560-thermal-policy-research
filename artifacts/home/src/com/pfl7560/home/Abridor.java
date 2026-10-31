@@ -5,10 +5,6 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.provider.Settings;
 
-/**
- * Abre o que cada cartao pede, com os mesmos intents do firmware oficial V1.0.0.9 (doc 45, com a
- * fonte de cada um). Nunca lanca excecao: devolve false se nada abriu.
- */
 final class Abridor {
     private static final String ZY = "com.zhiying.settings";
 
@@ -32,7 +28,6 @@ final class Abridor {
             case Acoes.BLUETOOTH:
                 return iniciar(a, acao(Settings.ACTION_BLUETOOTH_SETTINGS));
             case Acoes.IMAGEM:
-                // o item "Projecao" das Configuracoes de fabrica neste aparelho (NLPEntryUtils, doc 45)
                 return iniciar(a, acao("android.settings.projection.cra.6d.sen_new"))
                         || iniciar(a, componente(ZY, ZY + ".pictureSetting.pictureModeActivity"))
                         || iniciar(a, acao(Settings.ACTION_SETTINGS));
@@ -43,10 +38,6 @@ final class Abridor {
         }
     }
 
-    /**
-     * Entrada de video como o launcher de fabrica faz (MainActivityBx.selectHSSource): NLSourcePlayer
-     * com o extra int SourceName = numero da fonte, lido da prop (padrao = valor do build.prop do aparelho).
-     */
     private static boolean entrada(Activity a, String prop, int padrao) {
         int id = padrao;
         try {
@@ -73,7 +64,6 @@ final class Abridor {
         return iniciar(a, i);
     }
 
-    /** Saida de emergencia da Guarda: o launcher de fabrica (WizardAciticity tem HOME, logo e exportada). */
     static boolean homeDeFabrica(Activity a) {
         return iniciar(a, componente("com.newlink.hisilauncher", "com.newlink.hisilauncher.WizardAciticity"));
     }
@@ -91,7 +81,7 @@ final class Abridor {
         try {
             a.startActivity(i);
             return true;
-        } catch (RuntimeException e) {   // ActivityNotFoundException, SecurityException
+        } catch (RuntimeException e) {
             Guarda.anotar(a, "abrir " + i, e);
             return false;
         }

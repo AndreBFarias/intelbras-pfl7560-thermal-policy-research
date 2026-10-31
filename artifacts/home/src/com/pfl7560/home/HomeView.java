@@ -5,10 +5,6 @@ import android.graphics.Canvas;
 import android.view.KeyEvent;
 import android.view.View;
 
-/**
- * A home inteira numa View so, desenhada pelo Desenho (o mesmo das previas) num quadro de
- * 1920x1080 escalado para a tela. Foco proprio, so D-pad: nada depende de toque.
- */
 final class HomeView extends View {
     interface Ouvinte {
         void abrir(Item item);
@@ -41,7 +37,6 @@ final class HomeView extends View {
             pintor.usar(canvas);
             Desenho.desenhar(pintor, modelo);
         } catch (RuntimeException e) {
-            // um desenho que falha nao derruba a home: fica o fundo, e o proximo quadro tenta de novo
             Guarda.anotar(getContext(), "desenho", e);
         } finally {
             canvas.restoreToCount(salvo);
@@ -83,7 +78,6 @@ final class HomeView extends View {
         return true;
     }
 
-    /** Com o painel de luz aberto: setas escolhem, OK aplica, BACK fecha (o BACK e da Activity). */
     private boolean teclaLuz(int codigo, KeyEvent ev) {
         switch (codigo) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
