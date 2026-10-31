@@ -123,7 +123,7 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 d8d9ae43e2be088a8eb23dd5b50f917f  suite.sh
-968d742a1bd43d2d9c1cc71a16afb832  suite-boot.sh
+edd046a464a7b69017afd47196dffa5f  suite-boot.sh
 78f10901d50b579849d15d98aba65e50  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 06349058b023bef8992c86b6b67277d0  pfl7560.apk

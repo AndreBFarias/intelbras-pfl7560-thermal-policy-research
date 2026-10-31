@@ -195,11 +195,22 @@ descanso_existe(){
     | grep -q 'com\.pfl7560\.verificar/.*Descanso' && return 0
   timeout 15 dumpsys package com.pfl7560.verificar 2>/dev/null | grep -q 'com\.pfl7560\.verificar/[.a-z0-9]*Descanso'
 }
+# no 1o boot depois de trocar o app o PackageManager ainda processa o APK quando o boot
+# termina (visto no aparelho em 2026-10-31: "nao existe" no boot, listado 1 min depois).
+# Ate DESCANSO_TENTATIVAS consultas, DESCANSO_ESPERA s entre elas; roda em segundo plano.
+DESCANSO_TENTATIVAS=6
+DESCANSO_ESPERA=10
+[ -n "${PFL_RAPIDO:-}" ] && DESCANSO_ESPERA=0
 ligar_descanso(){
-  if ! descanso_existe; then
-    LOG "descanso: o servico $DESCANSO nao existe neste boot (app nao instalado?) - nada mexido."
-    return 0
-  fi
+  _dt=1
+  until descanso_existe; do
+    if [ "$_dt" -ge "$DESCANSO_TENTATIVAS" ]; then
+      LOG "descanso: o servico $DESCANSO nao apareceu em $_dt consultas (app nao instalado?) - nada mexido. query-services: '$(timeout 15 cmd package query-services --components -a android.service.dreams.DreamService 2>&1 | tr '\n' ' ' | cut -c1-160)'"
+      return 0
+    fi
+    _dt=$(( _dt + 1 ))
+    sleep "$DESCANSO_ESPERA"
+  done
   for _k in screensaver_components screensaver_default_component; do
     _v=$(timeout 10 settings get secure "$_k" 2>/dev/null | tr -d '\r')
     if [ "$_v" = "$DESCANSO" ]; then
@@ -299,7 +310,7 @@ fi
 LOG "sys.boot.reason='$S_BR' ano_boot='$S_ANO' gatilho=$GATILHO decisao=$DECISAO motivo=$MOTIVO"
 
 reaplicar_luz
-ligar_descanso
+ligar_descanso &
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then

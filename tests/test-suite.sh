@@ -493,7 +493,7 @@ c_descanso(){
   printf 'secure screensaver_components=%s\n' "$FAB" > "$T/settings.db"
   roda_boot
   afirma '[ "$(chamadas "settings put")" = 0 ] && [ "$(sdb screensaver_components)" = "$FAB" ]' "mexeu sem o servico: $(cat "$T/settings.db")"
-  afirma 'grep -q "descanso: o servico $D nao existe" "$S/boot.log"' "log sem o aviso"
+  afirma 'grep -q "descanso: o servico $D nao apareceu em 6 consultas" "$S/boot.log"' "log sem o aviso"
   limpa
 
   novo_cenario "descanso: o cmd nao responde mas o dumpsys package ve o servico = aponta"
