@@ -10,7 +10,8 @@
 #   PFL_IP=<ip-do-projetor> ./pfl7560-monitor-termico.sh            # 4 h, 30 s
 #   PFL_IP=<ip> INTERVALO=15 HORAS=2 ./pfl7560-monitor-termico.sh
 #
-# Não altera NADA no aparelho: so le (gtt/gfs/gbri via hidebug). Ctrl+C encerra.
+# Não grava nada no aparelho, mas cada gtt avança o anel do termistor: gtt 0 e gtt 1 sempre
+# em par, uso pontual e supervisionado, nunca como serviço (doc 37 §9). Ctrl+C encerra.
 set -u
 
 ADB="${ADB:-adb}"
@@ -44,7 +45,7 @@ esac
 
 printf 'ts\tuptime_s\tgtt0_mC\tgtt1_mC\tfan0\tfan1\tbrilho\tevento\n' > "$TSV"
 echo "monitorando $DEV a cada ${INTERVALO}s por ${HORAS}h -> $TSV"
-echo "(não altera nada no aparelho; Ctrl+C encerra)"
+echo "(não grava nada, mas sonda o sensor por gtt 0 e gtt 1 em par: use só supervisionado, doc 37; Ctrl+C encerra)"
 
 N=$(( HORAS * 3600 / INTERVALO ))
 pico=0
