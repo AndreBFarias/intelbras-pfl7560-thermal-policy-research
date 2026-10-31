@@ -430,7 +430,7 @@ resolução está no máximo. Os 4 pontos manuais estavam em 0; a correção vin
 
 Mapa 3x3 (`nl_camcheck nitidez`, borda 10-90 % em px da câmera 1280x720, menor é melhor):
 
-| Estado | Inclinação | Trapézio | Linha de cima (E/C/D) | Meio | Baixo |
+| Estado | Inclinação | Trapézio | `r1`, embaixo na parede (E/C/D) | `r2` | `r3`, em cima |
 |---|---|---|---|---|---|
 | Correção automática (`lt=95,905 rt=1710,1010 lb=35,20 rb=1760,25`) | 2,58° | 11,9 % | 3,51 / 2,33 / 1,99 | 2,97 / 1,58 / 1,82 | 2,39 / 1,69 / 2,05 |
 | Cantos zerados (tela oficial, "Restaurar padrão") | 0,62° | 2,1 % | 4,08 / 3,46 / 3,35 | 4,11 / 1,42 / 1,98 | 3,83 / 1,45 / 1,71 |
@@ -438,7 +438,8 @@ Mapa 3x3 (`nl_camcheck nitidez`, borda 10-90 % em px da câmera 1280x720, menor 
 
 - **O projetor já está quase de frente para a parede.** Com os cantos zerados, a câmera vê 2,1 % de trapézio; o
   keystone automático levava a 11,9 %. A correção automática entortava a imagem.
-- **O borrão da esquerda e de cima é ótico.** Ele continua sem reamostragem (cantos zerados) e o autofoco não o
+- **O borrão da esquerda e de baixo** (o quadro da câmera vem espelhado de cima para baixo: `r1` é a linha de
+  baixo na parede) **parecia ótico.** Ele continua sem reamostragem (cantos zerados) e o autofoco não o
   muda. Com a imagem quase reta, distância à parede também não explica. Suspeitos, para o próximo bloco: o
   assento do LCD depois das trocas (painel fora de paralelo), a Fresnel 2 empenada, a lente. As linhas não se
   comparam em valor absoluto entre os estados: com cantos zerados a imagem é maior e as regiões caem mais para
@@ -453,3 +454,17 @@ Mapa 3x3 (`nl_camcheck nitidez`, borda 10-90 % em px da câmera 1280x720, menor 
 - O dono confirma que o LCD é novo e está assentado reto: sai da lista. Sobram, nesta ordem: a própria câmera
   (fora do eixo, `Camera_DiffX=130`; conferir a olho se a esquerda também parece pior), a Fresnel 2 empenada
   (luz rasante), o espelho de 45° e a lente.
+
+### 12.1 Varredura com `sfd2`, mesmo dia (inconclusiva)
+
+- `sfd2 0 160` duas vezes levou o `gfd` a 160 e 320; `sfd2 1` levou de volta a 0 e **parou em 0** (com -160 e
+  -320 o `gfd` continuou 0). O `gfd` se comporta como um contador do serviço preso em 0, não como posição.
+- Com +-320 passos o mapa 3x3 **não mudou** (variação de até 0,2 px). Ou o `sfd2` não mexe o motor, ou 320
+  passos ficam dentro da profundidade de foco. Não se sabe qual.
+- No mesmo intervalo o mapa inteiro subiu para 4,1 a 4,5 px, centro incluído (antes 1,4 a 1,8), com
+  `contraste_centro` 0,84 contra 0,92. Mudou a luz do ambiente ou a exposição da câmera: a medida em px da
+  câmera **não é estável entre momentos**. Só vale comparar medidas tiradas em sequência, na mesma luz.
+- A foto da câmera mostra a superfície: a imagem cai num **tecido com dobras**, e a faixa da direita passa da
+  borda do tecido para a parede. Uma superfície que não é plana, com uma borda no meio da imagem, explica
+  diferença de nitidez por região sem culpa da ótica. Fica antes da Fresnel na lista: esticar o tecido (ou
+  projetar na parede lisa) e medir de novo.
