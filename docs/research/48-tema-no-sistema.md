@@ -14,6 +14,11 @@ escuros do Leanback e a forma do Toast. A varredura de todo app com tela do firm
 controle e lista de entradas, menu de imagem das entradas, instalador) e a do `android` com mais 2 cores (o título
 vermelho da contagem de desligar e o `background_light`), versionCode 3, §12. Vinte ao todo.
 
+**Bloco 19B (2026-10-31):** sobreposição de **layout**, numa regra estrita (cópia do layout do alvo, só as cores
+trocadas, provada pelo `conferir.py`): os cartões do gerenciador de arquivos, o fio do Wi-Fi, o painel de informação
+do player de vídeo e o fundo da lista de entradas. A do `android` ganhou 4 **imagens** (listas e botão tocar do
+player de música), versionCode 4. O branco global fica. §13. As vinte mantêm nome e pacote.
+
 Origem: o pedido do dono de 2026-10-31 ("Dentro das configs segue o tema antigo"; "Esse sim e não tão fora
 do tema", sobre o aviso de HDMI) e o [bloco 13](../sprints/2026-10-31-bloco-13-tema-no-sistema.md), parte 13A.
 Os APKs ficam em [`artifacts/overlay/`](../../artifacts/overlay/README.md). Paleta e tons derivados:
@@ -396,6 +401,7 @@ Android abre é o do TvSettings (§10.6).
   **layout** trocaria, e layout está fora do método (precisa referenciar ids do alvo). O fundo em volta e a
   moldura de foco ficam no tema; os cartões continuam coloridos. Caminhos: trocar o app ou abrir a lista de
   arquivos direto (`UsbCountActivity`, que é como `vendor.nl.filemanage_file=1` faz); decisão do dono.
+  **Resolvido no 19B (§13.2):** sobreposição de layout com os ids do alvo.
 - **Barra de progresso da atualização** (`custom_progress_bar`, degradê vermelho-vinho): é `layer-list` que
   cita `@android:id/background`/`progress`; trocá-la exige referência no XML. Fica.
 - **Fios das listas** do ZYSetting: cor de `Paint` no código (`setColor(-0x777778)`, cinza), como no 13A.
@@ -746,11 +752,12 @@ Conferido contra o `framework-res.apk` (varredura de `res/` desmontado: `holo_re
 - **`ToastActivity` do `NLHotkeyService`**: fundo do tema claro do Material do framework (cor global); texto preto.
   Fica (painel claro).
 - **Botões de mídia do HiMusic** (`MediaButton.Play`/`.Pause`): `ic_media_play`/`ic_media_pause` do framework são PNG
-  (`drawable-xhdpi`), imagem; a do `android` é só cor e forma. Já são brancos, ≈ `texto`. Ficam.
+  (`drawable-xhdpi`), imagem; a do `android` é só cor e forma. Já são brancos, ≈ `texto`. Ficam. **Entraram no 19B
+  (§13.3).**
 - **Listas do HiMusic** (`FileListActivity` com `Theme.Dialog`, `ImageListAcvitity` com `Theme.Holo.Dialog`): o fundo
   da janela é 9-patch do framework (`panel_background`, `dialog_full_holo_dark`), imagem com margem; trocá-lo por
   forma mudaria a margem (layout). Ficam cinza-escuros; o texto delas (`primary_text_dark`) passa a `texto` pelo
-  `background_light`, e o foco (`mselector`) já é rosa (17A).
+  `background_light`, e o foco (`mselector`) já é rosa (17A). **Entraram no 19B como imagem recolorida (§13.3).**
 - **Texto das linhas do HiTvSetting**: array de strings (§12.4).
 - **As telas de instalar do PackageInstaller**: tema claro do framework (§12.5).
 
@@ -784,3 +791,125 @@ Conferido contra o `framework-res.apk` (varredura de `res/` desmontado: `holo_re
 - Kit: `bash tests/atualizar-md5-kit.sh` copia as vinte para `pendrive-autorun/overlay/` (a do `android` por último em
   `KIT_OVERLAYS`); `make check`, `make check-kit` e `make check-fix` verdes. O `PFL7560TemaZYCustomUI.apk` tem 1,5 MB
   (os dois GIFs); o `/vendor` tem folga (doc 47).
+
+---
+
+## 13. Bloco 19B: o resto do tema (2026-10-31)
+
+Pedido do dono: "Conclua tudo em aberto". Spec: [bloco 19](../sprints/2026-10-31-bloco-19-fechamento.md), parte 19B.
+O que sobrava fora do tema (§10.5, §11.5, §12.7): cores escritas direto nos layouts e umas poucas imagens do
+framework. As vinte sobreposições mantêm nome e pacote; só sobe o versionCode de quem mudou (3 nas quatro com
+layout, 4 na do `android`); as outras quinze saem com **o mesmo md5** do bloco 18.
+
+Arquivos lidos: os 19 APKs dos apps e o `framework-res.apk` dos blocos anteriores (mesmos md5, §1, §10.1, §11, §12),
+do `Software PFL7560.zip` (md5 do `.bin` `28a2f280`).
+
+### 13.1 Sobreposição de layout: a regra e por que ela funciona no Android 9
+
+**Regra:** o layout da sobreposição é o XML do alvo (o do `apktool d`) **copiado igual**, mudando só o valor de
+atributos de cor que no alvo já são cor literal (`cardBackgroundColor`, `textColor`, `background`), para cores
+literais do tema. Nada de elemento, atributo, id, ordem ou dimensão diferente.
+
+**O problema das referências.** Um layout cita recursos do alvo (`@id/...`, `@dimen/...`, `@string/...`,
+`@style/...`, atributos de biblioteca como `app:cardBackgroundColor`). No Android 9 o XML compilado de uma
+sobreposição é lido no espaço de ids do **alvo** (o pacote dela finge ser o do alvo, pelo idmap): cada referência
+tem de sair, no XML compilado, com o **mesmo número** que tem no alvo. Foi por isso que até o 18 layout ficou fora.
+
+**Como sai o mesmo número, sem o APK do alvo no build:**
+
+1. `molde-alvo.py <APK alvo> <pasta>` (uma vez por firmware, como o `recolorir.py`) grava `<pasta>/alvo-ids.txt`:
+   para cada recurso que os layouts citam e para cada recurso da própria sobreposição, o id dele no alvo (e, para
+   atributo, o formato e os símbolos de enum, ex.: `parent`). Só nomes e números; entra no git.
+2. No `build.sh`, `molde-alvo.py --gerar` faz um **molde**: um APK só de nomes, com o pacote do alvo e esses ids
+   (`--stable-ids`). O link da sobreposição usa `-I molde.apk`, `--stable-ids` com os mesmos ids (os recursos que a
+   própria sobreposição troca saem com o id do alvo, então uma referência a eles, ex.: `@color/color7`, também) e
+   `--rename-resources-package <alvo>` (as referências sem pacote se resolvem no molde). O manifesto continua
+   `com.pfl7560.tema.<pasta>`; o nome do pacote dentro da tabela não importa ao Android 9 (o pacote da sobreposição
+   assume o id do alvo pelo idmap; INFERIDO do código do `LoadedArsc`/`idmap` do Android 9).
+3. Nenhum valor do molde vai para o APK: só os números.
+
+**Prova (`conferir.py`, item 6):** para cada layout, em **cada configuração do alvo**, o `aapt2 dump xmltree` da
+sobreposição é igual ao do alvo linha a linha: mesmos elementos, mesma ordem, mesmos atributos e os mesmos
+números de referência. Só se ignora o número da linha do fonte e o texto cru `(Raw: "@style/x")` que o aapt antigo
+do fabricante guarda ao lado de uma referência (o número continua comparado; o que vale em execução é o número). A
+única diferença aceita é um atributo cujo valor é cor literal (`#aarrggbb`) nos dois lados. Provado que ele
+**falha** com: altura trocada (`-2` → `-1`), um elemento a mais (16 linhas contra 13), um id errado no
+`alvo-ids.txt` (`@0x7f070090` → `@0x7f070091`) e uma cor trocada por referência (`#ee2d283c` → `@0x0106000c`); e que o
+`build.sh` para se uma pasta tem layout sem `alvo-ids.txt`.
+
+Layout que cita recurso que não existe no alvo não entra (o `molde-alvo.py` para com "não existe no alvo"). Nenhum
+dos escolhidos caiu nisso. Desvio do texto do spec ("referencia recurso que não existe na sobreposição fica de
+fora"): as referências do layout apontam para recursos **do alvo** pelo número dele, que é o que o Android 9 lê; pôr
+esses recursos (dimen, string, estilo) dentro da sobreposição os trocaria. O que o spec protege (o layout não pode
+apontar para nada diferente do que o alvo aponta) é o que o item 6 prova.
+
+### 13.2 Os layouts
+
+Escolhidos pelo que o dono vê com `rgtp_ui.style=1` e `is_android=1` (classe que infla o layout lida no smali):
+
+| Sobreposição | Layout (configurações) | Quem infla | Fábrica → Drácula |
+|---|---|---|---|
+| `PFL7560TemaZYFileManager` (vc 3) | `activity_main_other` (padrão) | `MainOtherActivity` (a `SelectActivity` repassa com `is_android=1`) | os 9 `cardBackgroundColor` (`#06a279`, `#d37405`, `#c44c36`, `#49a419`, `#597dda`, `#d57708`, `#8666f5`, `#0585d4`, `#019fad`) → `linha` `#44475A`, como os cartões das Configurações (13A); subtítulos `#d4d4d4` → secundário `#B4BCCF` (4,8:1 sobre `linha`; de fábrica eram 2,2:1 sobre o verde); títulos brancos ficam (9,2:1). Nenhuma classe muda a cor dos cartões no código (`setCardBackgroundColor` não aparece no app) |
+| `PFL7560TemaZYCustomUI` (vc 3) | `layout_main` (padrão) | `SourceUIActivity` | fundo do `GridLayout` `#ee2d283c` → `fundo` com o mesmo alfa. Só aparece até o primeiro foco: aí o `SourceUIActivity$2` pinta `pt_grey_white` (já `fundo` desde o 18) |
+| `PFL7560TemaZYSetting` (vc 3) | `layout_wifi` (padrão) | `WifiSettingActivity`, `WifiSettingOneActivity` | fio de 1 dp `#000000` sob "Ativar / Desativar" → `linha` (§3.4) |
+| `PFL7560TemaHiVideoPlayer` (vc 3) | `main_dpt_o` (padrão, `sw1080dp-v13`, `sw720dp-hdpi-v13`) | `VideoActivity.getLayoutResID` | painel de informação `mediaInfo` `#223344` → `fundo`; fundo do tempo `pro_text` `#444444` → `linha`; fio `#50878787` → `comentario` com o mesmo alfa; o preto atrás do vídeo (`black_bg`) fica |
+
+Ficaram de fora, com o motivo:
+
+- `ZYFileManager/activity_main` (4 cartões): é a `MainActivity`, aberta só sem `is_android=1`.
+- `ZYSetting/layout_mount_mode` e `HiTvSetting/count_time_down_view`: nenhuma classe os infla (id do layout ausente
+  do smali).
+- `IjkPlayer/activity_player` (`#0099cc`): é a tela de exemplo da biblioteca; o gerenciador abre a
+  `com.newlink...VideoActivity`, que usa outro layout, sem cor escrita.
+- Textos brancos (`#ffffffff`) de todos os layouts: já são ≈ `texto`.
+- Cinzas neutros (`#999999` do modo caixa de som, `#212121` da lista do player de vídeo, `#333333`/`#666666` dos
+  avisos claros, que já têm painel claro): no tema o bastante; mexer seria trocar por trocar.
+- `notification_*`, `lb_details_overview`, `abc_*`: modelos de biblioteca que não aparecem neste aparelho.
+- AutoFocus3: telas de calibração e a imagem que a câmera lê (§11.1).
+
+### 13.3 Imagens do framework na do `android` (versionCode 4)
+
+A do `android` passa a aceitar **imagem** (PNG e 9-patch), recolorida pelo `recolorir.py` (tabela `android`, sobre
+o `framework-res` desmontado), com a borda de marcação do 9-patch e o alfa intactos (conferido pixel a pixel).
+Continua sem dimensão nem layout. As quatro só existem em `xhdpi` no alvo, e a sobreposição tem a mesma configuração.
+
+| Recurso | Quem usa | Fábrica → Drácula |
+|---|---|---|
+| `drawable/ic_media_play`, `ic_media_pause` | `@android:style/MediaButton.Play` do HiMusic (botão tocar/pausar) e todo app que use os dois | ícone branco → `texto`; o contorno cinza translúcido fica |
+| `drawable/panel_background` (9-patch) | `Theme.Dialog` (janela da `FileListActivity` do HiMusic) e todo `Theme.Dialog` antigo | painel preto 90% → `fundo` 90%; fio `#505050` → `comentario` (como o Toast, §10.6) |
+| `drawable/dialog_full_holo_dark` (9-patch) | `Theme.Holo.Dialog` (`ImageListAcvitity` do HiMusic) e os diálogos Holo escuros | corpo `#282828` → `fundo`, realce da borda → `linha`, a sombra preta fica |
+
+Alcance: essas imagens são do sistema todo, não só do HiMusic. Neste aparelho o modo TV usa os diálogos do Leanback
+(§5), então os temas `Dialog` e `Holo.Dialog` só aparecem em apps antigos como os players HiSilicon. A troca é de
+escuro para escuro, sem mudar desenho, margem nem tamanho.
+
+### 13.4 O branco global fica
+
+`@android:color/white` (e `@android:color/black`) não entram: trocar o branco do framework mudaria todo branco de
+todo app (ícones, textos, fundos). Continuam brancos o aviso de USB do `NewLinkService`, a `ToastActivity` do
+`NLHotkeyService` e as telas de instalar (§12.7), todos painel claro com texto preto.
+
+### 13.5 PROVISÓRIO (só o aparelho confirma)
+
+1. **O layout da sobreposição é inflado sem erro** e com as referências certas: a página inicial do gerenciador abre
+   com os cartões `linha`, ícones e textos no lugar, e o foco anda entre eles como antes. Este é o ponto novo do
+   bloco: se o Android 9 não ler o XML da sobreposição no espaço do alvo como o código indica, o app pode fechar ao
+   abrir a tela. Saída: `cmd overlay disable com.pfl7560.tema.zyfilemanager` (§7) e o app volta ao de fábrica.
+2. O mesmo no Wi-Fi (fio `linha`), no player de vídeo (painel de informação com a tecla de info) e na lista de
+   entradas (sem o roxo-acinzentado antes do primeiro foco).
+3. As quatro com versionCode 3 e a do `android` com 4 substituem as anteriores no boot seguinte ao kit.
+4. As listas do player de música (arquivos e imagens) com o painel `fundo` e o fio `comentario`, e o botão tocar
+   ≈ igual; nenhum outro app com `Theme.Dialog`/`Holo.Dialog` ficou ilegível.
+5. Ligar a do `android` nova só com o pendrive de emergência à mão (§7).
+
+### 13.6 Construção e provas
+
+- `bash artifacts/overlay/build.sh`: as vinte, `apksigner verify` v3 nas vinte; duas rodadas seguidas, mesmo md5 nas
+  vinte; as quinze sem mudança com o md5 do bloco 18 (`md5sum -c`: 15 SUCESSO, as 5 mudadas diferem).
+- `python3 -I artifacts/overlay/conferir.py <pasta com os 20 APKs alvo>`: **TUDO OK, 170 recursos** (os 162 do 18, 4
+  layouts e 4 imagens do `android`): `activity_main_other` 15 cores trocadas, `layout_main` 1, `layout_wifi` 1,
+  `main_dpt_o` 9 (3 em cada configuração), resto igual.
+- `python3 -I artifacts/overlay/gerar-previa-19b.py <pasta com os apps desmontados>`:
+  `artifacts/overlay/previa/antes-depois-19b.png`, as seis telas (desenho com os valores, não captura).
+- Kit: `bash tests/atualizar-md5-kit.sh` copia as vinte para `pendrive-autorun/overlay/`; `make check`,
+  `make check-kit` e `make check-fix` verdes.
