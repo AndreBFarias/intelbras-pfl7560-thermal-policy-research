@@ -7,6 +7,9 @@ confirma está marcado **PROVISÓRIO** e reunido na seção 8 (bloco 13A) e na �
 entradas HDMI, menu de energia), o ZYSetting sem o laranja das telas de modo, e a do `android` com os diálogos
 escuros do Leanback e a forma do Toast. A varredura de todo app com tela do firmware está na §10.1.
 
+**Bloco 17A (2026-10-31):** seis sobreposições novas (foco automático, modo caixa de som, avisos do
+`NewLinkService`, IjkPlayer, player de vídeo e de música HiSilicon), §11. A do `android` não foi tocada.
+
 Origem: o pedido do dono de 2026-10-31 ("Dentro das configs segue o tema antigo"; "Esse sim e não tão fora
 do tema", sobre o aviso de HDMI) e o [bloco 13](../sprints/2026-10-31-bloco-13-tema-no-sistema.md), parte 13A.
 Os APKs ficam em [`artifacts/overlay/`](../../artifacts/overlay/README.md). Paleta e tons derivados:
@@ -310,15 +313,15 @@ esta rodada não mapeou os recursos dele (ficou para o próximo bloco, §10.9).
 | `system/app/Miracast` | `com.hisilicon.miracast` | Espelhamento | desligado com `pm disable-user` |
 | `system/app/NLOfficeSuit` | `com.mobisystems.editor.office_registered` | Office | desligado com `pm disable-user` |
 | `system/app/RGTPLauncher` | `com.newlink.hisilauncher` | home do fabricante | não é mais a home (a nossa, doc 45); fora |
-| `system/app/HiPinyinIME` | `com.hisilicon.android.inputmethod.remote` | teclado na tela (senha do Wi-Fi, renomear) | não analisado |
-| `system/app/NLHotkeyService` | `com.newlink.hotkeyservices` | avisos de tecla de atalho (`MyDialog` claro, `ToastActivity`) | não analisado a fundo (painel `bg_white_90`, texto preto fixo) |
-| `system/priv-app/NewLinkService` | `com.newlink.service` | avisos raros: tempo de uso acumulado, atualização concluída, `BlackDialog` | não analisado a fundo (botões laranja/azul/verde em forma) |
-| `system/app/ZYCustomUI` | `com.zhiying.sourceui` | pareamento do controle por IR/voz (`MatchIRUIActivity`, `SYSTEM_ALERT`) | não analisado |
-| `system/app/ZYSpeakerModel` | `com.zhiying.bluetoothmodelservice` | modo caixa de som Bluetooth | não analisado |
-| `system/app/AutoFocus3` | `com.zhiying.autofocus` | foco e trapézio automáticos (telas de ajuste) | não analisado |
-| `system/app/HiTvSetting` | `com.hisilicon.tvsetting` | menu de imagem e som das entradas | não analisado |
-| `system/app/HiMusic`, `system/priv-app/HiVideoPlayer`, `system/app/IjkPlayer` | players do fabricante | abertos pelo gerenciador de arquivos | não analisado (o VLC está instalado, bloco 14) |
-| `system/priv-app/PackageInstaller` | `com.android.packageinstaller` | instalar e desinstalar app | não analisado; os `AlertDialog` dele caem nos temas Leanback da `android` (INFERIDO) |
+| `system/app/HiPinyinIME` | `com.hisilicon.android.inputmethod.remote` | teclado na tela (senha do Wi-Fi, renomear) | não analisado: próximo bloco, por decisão do dono (§11.6) |
+| `system/app/NLHotkeyService` | `com.newlink.hotkeyservices` | avisos de tecla de atalho (`MyDialog` claro, `ToastActivity`) | não analisado a fundo (painel `bg_white_90`, texto preto fixo): próximo bloco (§11.6) |
+| `system/priv-app/NewLinkService` | `com.newlink.service` | contagem de desligar do descanso, aviso de tela apagada, atualização do MCU e concluída, `BlackDialog` | sim: `PFL7560TemaNewLinkService` (17A, §11.3); o `ToastActivity` e o aviso de USB usam cor do framework (§11.5) |
+| `system/app/ZYCustomUI` | `com.zhiying.sourceui` | pareamento do controle por IR/voz (`MatchIRUIActivity`, `SYSTEM_ALERT`) | não analisado: próximo bloco (§11.6) |
+| `system/app/ZYSpeakerModel` | `com.zhiying.bluetoothmodelservice` | modo caixa de som Bluetooth (aberto pelo menu de energia e pela tela de Bluetooth) | sim: `PFL7560TemaZYSpeakerModel` (17A, §11.2) |
+| `system/app/AutoFocus3` | `com.zhiying.autofocus` | foco e trapézio automáticos: o aviso durante o ajuste; telas de calibração de fábrica | só o aviso: `PFL7560TemaAutoFocus` (17A, §11.1); a imagem de teste da câmera fica de propósito |
+| `system/app/HiTvSetting` | `com.hisilicon.tvsetting` | menu de imagem e som das entradas | não analisado: próximo bloco (§11.6) |
+| `system/app/HiMusic`, `system/priv-app/HiVideoPlayer`, `system/app/IjkPlayer` | players do fabricante | abertos pelo gerenciador de arquivos (o IjkPlayer para vídeo com áudio AC3/EAC3) | sim: `PFL7560TemaHiMusic`, `PFL7560TemaHiVideoPlayer`, `PFL7560TemaIjkPlayer` (17A, §11.4) |
+| `system/priv-app/PackageInstaller` | `com.android.packageinstaller` | instalar e desinstalar app | não analisado: próximo bloco (§11.6); os `AlertDialog` dele caem nos temas Leanback da `android` (INFERIDO) |
 | `system/app/Bluetooth` | `com.android.bluetooth` | receber arquivo por Bluetooth (OPP) | não analisado; diálogo do framework (INFERIDO) |
 | `system/priv-app/WTProvision`, `Service2`, `TvQuickSettings`, `SettingsIntelligence`, `StorageManager` | serviços e telas sem atalho neste aparelho | nenhuma vista no uso | fora |
 | `system/app/HiFactoryMenu`, `NLFactoryMenu`, `NLAutoTest`, `TvTestingTools` | menus e testes de fábrica | só com código de fábrica | fora |
@@ -466,3 +469,142 @@ avisos de tecla de atalho (`NLHotkeyService`), pareamento do controle (`ZYCustom
 entradas (`HiTvSetting`), foco automático (`AutoFocus3`), modo caixa de som (`ZYSpeakerModel`), avisos do
 `NewLinkService`, players do fabricante e o instalador de pacotes. E a decisão sobre os cartões coloridos do
 gerenciador de arquivos (§10.5).
+
+---
+
+## 11. Bloco 17A: o que o 16A deixou sem analisar (2026-10-31)
+
+Pedido do dono: "Pode tocar todo o resto", com quatro exceções ditas por ele: o Toast e os diálogos do sistema
+(dependem da sobreposição do `android`, que fica para o fim, com o pendrive de resgate à mão), os nove cartões do
+gerenciador de arquivos (§10.5), e o teclado na tela, os avisos de tecla de atalho, o pareamento do controle, o menu
+de imagem das entradas e o instalador (próximo bloco). Spec:
+[bloco 17](../sprints/2026-10-31-bloco-17-overlays-restantes.md). Mesmo método do 13A e do 16A (§1, §7): só
+`color`, `drawable` e `mipmap`, mesmo nome e mesmo tipo do alvo, valores literais, conferido pelo `conferir.py`.
+**A do `android` não foi tocada** (o mesmo md5 do 16A).
+
+Arquivos lidos (md5, 8 primeiros dígitos): `AutoFocus3.apk` `d30a2637`; `ZYSpeakerModel.apk` `4a7d0e1b`;
+`NewLinkService.apk` `615fd40f`; `IjkPlayer.apk` `ceadcaf9`; `HiVideoPlayer.apk` `6f111de0`; `HiMusic.apk`
+`483d6a89`; `HiTvPlayer.apk` `31129715`; `NLSourcePlayer.apk` `e7c7a107` (o mesmo do 16A). O smali dos que só têm
+odex saiu como no 16A (§1).
+
+### 11.1 `com.zhiying.autofocus` → `PFL7560TemaAutoFocus.apk`
+
+| Recurso | Fábrica | Drácula | Onde |
+|---|---|---|---|
+| `drawable/toast_bg` | forma branca, raio 5 dp | forma `texto` com fio `comentario` de 2 dp, mesmo raio (como o Toast do sistema, §10.6) | aviso durante o foco e o trapézio automáticos (layout `toast`; `AutoFocusService$14`, `OneACKSService$3`, `AutoCorrectKeyStoneService$2`, no caminho sem `vendor.newlink.toastbg.black`). Texto `#666666` fixo no layout: 5,4:1 |
+
+**Fica de propósito:** as imagens projetadas durante o ajuste (`autofocus_bg`, `autofocus_bg0..2`, `main_bg`,
+`correct_user_bg`) são o alvo que a câmera lê (`vendor.newlink.focus.pic=1`); trocar a cor delas pode quebrar o foco
+automático. As telas `MainActivity`, `CameraActivity`, `CorrectUserActivity`, `CorrectTipActivity` e
+`TrapezoidDatumActivity` são de calibração: nenhum app do firmware abre `AUTO_KEYSTONE_CORRECT_USER` nem
+`ONE_AUTO_CORRECTION_KEYSTONE` (busca nos `.apk`/`.vdex`), e `AUTO_FOCUS_CORRECTION` só o `NewLinkService` (fábrica).
+O `toast_yk` e o `passworderror` só abrem com `vendor.newlink.toast_style=1` ou `vendor.newlink.setting.xiaoxin=1`,
+que este aparelho não tem. CONFIRMADO no smali e no `getprop`.
+
+### 11.2 `com.zhiying.bluetoothmodelservice` → `PFL7560TemaZYSpeakerModel.apk`
+
+Aberto pelo menu de energia ("Só áudio") e pela tela de Bluetooth (`WelcomeActivity` → `MainActivity`). Com
+`rgtp_ui.style=1` (`isPTStyle`) o fundo é o `FlyBanner` com `pt_bg` e as fotos `zy_back1..5` (60 s cada).
+
+| Recurso | Fábrica | Drácula | Onde |
+|---|---|---|---|
+| `drawable/pt_bg` (PNG 1280x720) | teal `#163134` com desenho branco | teal → `fundo`, branco → `texto`, preto fica | primeira imagem do fundo (`initImageUrl`, `isPTStyle`) |
+| `drawable/paly_paly_focus`, `paly_pause_focus`, `paly_back_focus`, `paly_forward_focus`, `lock_focus` (`hdpi`, `xhdpi`; `lock_focus` também `mcc451-hdpi`) | círculo azul `#159EFF`, ícone branco | círculo `rosa`, ícone `fundo` (6,0:1) | botões de tocar, voltar, avançar e apagar a tela em foco |
+| `drawable/selected_background` | degradê verde-água → lilás, raio 8 dp | `rosa`, mesmo raio | botões "Tela desligada" / "Sair" em foco (`text_view_selector`) |
+| `drawable/unselected_background` | branco | `linha` | os mesmos botões parados |
+| `drawable/text_color_selector` (lista de cores guardada em `drawable/`) | foco branco, parado preto | foco `fundo`, parado `texto` (8,6:1 sobre `linha`) | texto desses botões |
+| `drawable/bg_button` | azul `#3875EF`, raio 15 dp | `comentario` | etiqueta `main_tv_screen` (texto branco 4,7:1) |
+| `color/pt_green` | `#00B26B` | `comentario` | botão em foco do aviso de sair (`MyDialog.changeBgByFocus`, texto branco fixo 4,7:1) |
+| `color/pt_grey_white` | `#E1EFE9` | `texto` | painel do aviso e botão parado (texto preto fixo 19,7:1) |
+
+Os botões parados de tocar etc. são ícones brancos sem círculo e ficam (o `MyFocus` ainda os tinge com
+`color/white`, que não muda: é texto em vários lugares). As fotos `zy_back*` ficam. As listas de contagem e de
+"atmosfera" (`CountdownAdapter`, `MusicAtmosphereAdapter`) só aparecem com `vendor.newlink.sleepbutton.vis` /
+`key_light.vis`, que este aparelho não tem: ficam.
+
+### 11.3 `com.newlink.service` → `PFL7560TemaNewLinkService.apk`
+
+| Recurso | Fábrica | Drácula | Onde |
+|---|---|---|---|
+| `color/black` | `#000000` | `fundo` | painel da contagem de desligar do descanso (`ShutDownDialog`, `persist.screensaver.shutdown.time`) e do `BlackDialog`, botão parado da contagem, e texto escuro dos avisos claros (títulos, botão parado). Escuro nos dois papéis: `fundo` sobre `texto` 13,4:1 |
+| `color/red` | `#FF2121` | `vermelho` | botão em foco da contagem de desligar (texto branco 3,1:1, como o Desligar do menu de energia) |
+| `color/dialog_bg` | roxo `#574FB0` | `linha` | painel do `my_dialog` (atualização do MCU, atualização concluída); texto branco 9,2:1 |
+| `drawable/bg_white_90` | branco 90%, raio 13 dp | `texto` 90% | painel do aviso de tela apagada (`activity_shimba_light`, `screen/MyDialog`); texto preto fixo |
+| `drawable/button_bg_itemcolor` | degradê laranja, raio 40 dp | `comentario` | botão em foco do aviso de tela apagada e do de tempo de uso (texto branco 4,7:1), como no ZYSetting (§10.2) |
+| `drawable/button_bg_item_white` | branco | `texto` com fio `comentario` de 1 dp | botão parado dos avisos claros; botão em foco do `my_dialog` (texto `color/black`, agora `fundo`) |
+| `drawable/button_bg_item_blue` | lilás `#A6A6E5` | `comentario` | botão parado do `my_dialog` (texto branco 4,7:1) |
+| `drawable/button_bg_item_green` / `_focus` | verde `#82AA81` / com fio branco 3 dp | `comentario` / com fio `rosa` 3 dp | confirmar do `BlackDialog` |
+| `drawable/button_bg_item_red` / `_focus` | `#FC5531` / `#FC1944` com fio branco 3 dp | `vermelho` / com fio `texto` 3 dp (rosa sobre vermelho: 1,3:1) | cancelar do `BlackDialog` |
+
+O aviso de tempo de uso (`CumulativeTimeDialog`) só abre com `vendor.newlink.cumulative_time_pop.vis`, que este
+aparelho não tem; os botões dele ficaram no tema mesmo assim. As telas de senha de ligar (`SetPasswordActivity`,
+`VerifyPasswordActivity`) só abrem pelo `PasswordTransitActivity`, que nenhum app do firmware chama: ficam.
+
+### 11.4 Players: `PFL7560TemaIjkPlayer`, `PFL7560TemaHiVideoPlayer`, `PFL7560TemaHiMusic`
+
+O gerenciador de arquivos abre o IjkPlayer para vídeo com áudio AC3/EAC3 (`FileListFragment$9`) e, no resto, manda
+`ACTION_VIEW`: o player de vídeo (`video/*`) e o de música (`audio/*`) da HiSilicon atendem, e o VLC também (bloco 14).
+O IjkPlayer e o HiVideoPlayer usam as mesmas imagens de barra de controle.
+
+| APK | Recurso | Fábrica | Drácula |
+|---|---|---|---|
+| IjkPlayer (padrão) e HiVideoPlayer (`nodpi-v4`) | `drawable/video_bottom` | barra azul-marinho translúcida | `fundo`/`linha`/`comentario`, mesmo alfa, a sombra preta fica |
+| | `drawable/pause_focus`, `play_focus` (e `control_settings_focus` no Ijk; `previous_`, `next_`, `fastbackward_`, `fastforward_focus` no HiVideo) | quadrado azul-marinho com brilho azul `#0099FD` | `fundo` com brilho `rosa`, ícone `texto` |
+| HiVideoPlayer | `drawable/dialog_background_selector` | degradê azul translúcido `#88...` | `fundo`/`linha`, mesmo alfa |
+| | `drawable/item_background_selector` | parado cinza, foco cinza-azulado com fio verde `#8890EE90`, pressionado tomate | parado `linha`, foco `comentario` com fio `rosa`, pressionado `rosa`; mesmos alfas |
+| HiMusic (`hdpi-v4`) | `drawable/hisil_background_3` | degradê azul, laranja e vermelho | `fundo`, `linha` e `comentario` (texto branco por cima: 4,7:1 no mais claro) |
+| | `drawable/hisil_lank_selected` (9-patch) | moldura azul `#11A9E1` | `rosa` |
+| | `drawable/hisil_yuandian`, `_selected` | esfera azul | esfera `rosa` |
+| | `drawable/mselector` | fio ciano `#00DAFF` de 4 px | fio `rosa` |
+
+Os dois HiSilicon têm `drawable-nodpi-v4` / `drawable-hdpi-v4`: geradas com minSdk 1, como a galeria (§10.8).
+O `HiTvPlayer` (`com.hisilicon.tvui`) nenhum app do firmware abre (busca nos `.apk`/`.vdex`): fora. O
+`NLSourcePlayer` não tem tela além das do 16A (2 layouts, ambos já cobertos).
+
+### 11.5 O que não dá para trocar sem mexer no app (17A)
+
+- **Barras de progresso** dos players (`seekbar_style`, `media_controller_progress_bar_selector`): `layer-list` que
+  cita `@android:id/background`/`progress`, como a do ZYSetting (§10.5). Ficam.
+- **Título vermelho da contagem de desligar**: `@android:color/holo_red_dark` (`#CC0000`) no layout, cor do
+  framework. Sobre o `fundo` dá 2,4:1 (sobre o preto de fábrica, 3,6:1). Só a sobreposição do `android` trocaria, e
+  ela fica para o fim por decisão do dono.
+- **`ToastActivity` e aviso de USB do `NewLinkService`**: fundo `@android:color/background_light` /
+  `@android:color/white`, cores do framework: idem.
+- **Botões de mídia do HiMusic** (`MediaButton.Play` etc.): desenho do framework. Ficam brancos.
+- **Listas do HiMusic** (`FileListActivity`, `ImageListAcvitity`): tema `Theme.Dialog` / `Theme.Holo.Dialog` do
+  framework. Só o foco (`mselector`) é do app.
+
+### 11.6 Para o próximo bloco (decisão do dono)
+
+Teclado na tela (`HiPinyinIME`), avisos de tecla de atalho (`NLHotkeyService`), pareamento do controle
+(`ZYCustomUI`), menu de imagem das entradas (`HiTvSetting`) e o instalador (`PackageInstaller`). No fim, com o
+pendrive de resgate à mão: a do `android` para o Toast, os diálogos do sistema e o título da contagem de desligar.
+Os nove cartões do gerenciador de arquivos ficam como estão (§10.5): abrir direto a lista ou trocar o gerenciador.
+
+### 11.7 PROVISÓRIO (só o aparelho confirma)
+
+1. As seis novas aparecem no `cmd overlay list` sob os pacotes alvo e ligam (§8, item 1); as duas com minSdk 1
+   (HiVideoPlayer, HiMusic) são aceitas como a da galeria (§10.7, item 2).
+2. O aviso do foco automático sai no `toast_bg` novo (e não no caminho preto `toastbg.black`), e o foco automático
+   continua funcionando igual (a imagem de teste não mudou; ver se nada mais mudou de lugar).
+3. Modo caixa de som: o `pt_bg` recolorido é a primeira imagem do fundo; os botões em foco rosa com ícone escuro; o
+   aviso de sair com painel claro e botão em foco `comentario`.
+4. A contagem de desligar do descanso e o aviso de tela apagada como na prévia
+   (`artifacts/overlay/previa/antes-depois-17a.png`; desenho com os valores, não captura); o título vermelho legível
+   com a luz da sala (2,4:1, §11.5).
+5. Barra de controle e menus do player de vídeo (HiVideoPlayer e IjkPlayer) e a tela do player de música.
+6. O `BlackDialog`, o `my_dialog` e o aviso de tempo de uso são raros: ver se algum aparece.
+
+### 11.8 Construção e provas
+
+- `build.sh` monta as quinze (as nove de antes + seis); as nove de antes saem com **o mesmo md5** do 16A
+  (`md5sum -c` com os valores de antes: 9 SUCESSO), `VERSAO_CODIGO` continua 2. Duas rodadas seguidas, mesmo md5
+  nas quinze; `apksigner verify` passa nas quinze (v3).
+- `recolorir.py` ganhou as tabelas `zyspeakermodel`, `ijkplayer`, `hivideoplayer` e `himusic`, e aceita cor literal
+  `#RRGGBB` como destino de uma âncora (o preto do desenho continua preto).
+- `python3 -I artifacts/overlay/conferir.py <pasta com os 15 APKs alvo>`: **TUDO OK, 118 recursos** (os 76 do 16A,
+  1 do foco automático, 12 da caixa de som, 11 do `NewLinkService`, 4 do IjkPlayer, 9 do HiVideoPlayer, 5 do HiMusic).
+- `python3 -I artifacts/overlay/gerar-previa-17a.py <pasta com os apps desmontados>`: a prévia das 7 telas.
+- Instalação: a mesma da §6, uma pasta por APK em `/vendor/overlay/`: `PFL7560TemaAutoFocus`,
+  `PFL7560TemaZYSpeakerModel`, `PFL7560TemaNewLinkService`, `PFL7560TemaIjkPlayer`, `PFL7560TemaHiVideoPlayer`,
+  `PFL7560TemaHiMusic` (pacotes `com.pfl7560.tema.<pasta>`). Nenhuma mexe no framework.
