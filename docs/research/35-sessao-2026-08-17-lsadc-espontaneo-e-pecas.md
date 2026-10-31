@@ -40,7 +40,7 @@ adb shell 'dd if=/dev/block/by-name/panelparam bs=1 \
 Artefato: `pos-reboot/panelparam-byte5c.txt`. O byte `0x5c` do perfil 69 está gravado com `1` (JEIDA). O
 **boot service intermediário foi removido**: `/vendor/bin/nl_lvds.sh` e `/vendor/etc/init/nl_lvds.rc`
 não existem (artefato: `pos-reboot/artefatos-ausentes.txt`); sobrou apenas o binário
-`/vendor/bin/nl_lvdsctl`, ferramenta de teste ao vivo. Confirma a invariante do BRIEF e **descarta** que
+`/vendor/bin/nl_lvdsctl`, ferramenta de teste ao vivo. Confirma que a cor persiste na própria `panelparam`, sem serviço de boot, e **descarta** que
 reconfiguração de LVDS em runtime pudesse causar piscar de imagem — não há nada reaplicando.
 
 ### 1.2. `fun_call_cnt` não é contador de reconfiguração

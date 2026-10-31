@@ -295,7 +295,7 @@ ser config e passa a ser hardware (sopradores de 3 fios com FG roteado a um GPIO
 criado lendo hardware inexistente, a leitura vira `STOP_VALUE` → estado 6 → **+10 no acumulador a cada
 avaliação (uma a cada 5 ticks)** → com `PROTECT_OVERDUE != 0`, loop de desligamento garantido. Pior ainda:
 `SW_SENSE_TYPE = 2` usaria `HW_SENSE_LSADC_CHANNEL`, e ausente ele cai no **canal 0 do LSADC, o dos
-termistores** — mexeria na cadeia de medição de temperatura, contra o espírito da invariante 8.
+termistores** — mexeria na cadeia de medição de temperatura, contra a regra de não mexer na conversão de temperatura ([`CONTRIBUTING.md`](../../CONTRIBUTING.md)).
 
 **Sobre a observação dos "956":** rebaixada de fato estabelecido para **hipótese não confirmada**. A rampa
 sobe `(delta>>5)+1` por chamada, então de 926 a 1000 leva 50-75 s — observar 956 no meio dela é normal, e
