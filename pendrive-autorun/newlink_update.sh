@@ -109,9 +109,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 1926ee5699fdc87bf677bd7e00aed28d  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 a66670952039a97e8870e79ab19d12d6  nl_camcheck
-75d8d5c24ef7ed1d8aad459ab5dd8121  suite.sh
-de39e29637c5c7f50bab7295d2b1969b  suite-boot.sh
-6a4a22efc5fb8ea6ef55daad3944e7f4  suite-pedido.sh
+5af3758dcb0cb90cec708be20241aa78  suite.sh
+2583c911268f151303ed24fa13569137  suite-boot.sh
+4a7751b4b3a7883c546bacf7a218673f  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png

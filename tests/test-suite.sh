@@ -997,6 +997,16 @@ exec '"$(command -v ls)"' "$@"'
   afirma 'grep -q "copia do backup do panelparam levada para o pendrive" "$T/kit.out"' "log sem a copia"
   limpa
 
+  novo_cenario "conferente: desinstalar com o override ativo (suite morta no meio da rampa) = limpa"
+  pendrive
+  roda_kit
+  awk -v k="$PROP_OV" 'index($0, k "=") != 1' "$T/props" > "$T/p" && echo "$PROP_OV=71000" >> "$T/p" && mv "$T/p" "$T/props"
+  : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
+  roda_kit
+  afirma '[ -z "$(awk -F= -v k="$PROP_OV" "\$1==k{print \$2}" "$T/props")" ] && tem_chamada "setprop $PROP_OV "' "o override ficou depois de desinstalar"
+  afirma 'grep -q "override de temperatura limpo e conferido" "$T/kit.out"' "log sem a limpeza"
+  limpa
+
   novo_cenario "conferente: pedido que nao se apaga (pasta) = ignorado, sem lancar"
   instala_suite; mkdir -p "$PED/pedir-verificacao/x"
   roda_pedido w "$PED" pedir-verificacao

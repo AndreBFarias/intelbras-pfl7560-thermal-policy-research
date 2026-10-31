@@ -894,6 +894,12 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     kill "$_vp" 2>/dev/null && LOG "vigia (pid $_vp) encerrado"
   fi
   rm -f "$VIGIA_PID"
+  # o ctl.stop mata o grupo do servico com SIGKILL (sem trap), inclusive uma suite que
+  # estivesse no meio da rampa: o override de temperatura nao pode ficar para tras
+  if [ -n "$(getprop "$PROP_OVERRIDE" 2>/dev/null)" ]; then
+    LOG "override de temperatura ativo depois de parar o servico: limpando"
+    rampa_limpar || _drc=1
+  fi
   if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then
     if mount -o rw,remount /vendor; then
       rm -f "$RC_SUITE"
