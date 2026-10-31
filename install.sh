@@ -13,6 +13,8 @@
 #                                  # idem + o usb_update.bin OFICIAL (V1.0.0.9, do
 #                                  # firmware/Software PFL7560.zip) na raiz e o nosso .bin
 #                                  # em firmware-nosso-NAO-GRADUADO/ (ver INSTALL.md)
+#    ./install.sh --conferir-firmware  # so confere as origens do firmware de resgate (md5),
+#                                      # sem copiar nada (o tests/preparar-pendrive.sh usa)
 #    ./install.sh --help
 #  PFL_FIRMWARE_DIR=<pasta> aponta outra pasta de firmware (padrao: firmware/ deste repo).
 #
@@ -28,6 +30,7 @@ cd "$HERE" || exit 1
 CHECK_ONLY=0
 PENDRIVE_DIR=""
 COM_FIRMWARE=0
+CONFERIR_FW=0
 while [ $# -gt 0 ]; do
   case "$1" in
     -h|--help)
@@ -43,12 +46,16 @@ while [ $# -gt 0 ]; do
       shift
       ;;
     --com-firmware) COM_FIRMWARE=1 ;;
+    --conferir-firmware) CONFERIR_FW=1 ;;
     *) echo "uso: $0 [--check|--pendrive DIR [--com-firmware]|--help]"; exit 1 ;;
   esac
   shift
 done
 if [ "$COM_FIRMWARE" = "1" ] && [ -z "$PENDRIVE_DIR" ]; then
   echo "uso: --com-firmware so vale junto com --pendrive <pasta-raiz-do-pendrive>"; exit 1
+fi
+if [ "$CONFERIR_FW" = "1" ] && { [ -n "$PENDRIVE_DIR" ] || [ "$COM_FIRMWARE" = "1" ] || [ "$CHECK_ONLY" = "1" ]; }; then
+  echo "uso: --conferir-firmware vale sozinho (so confere as origens; nao copia nada)"; exit 1
 fi
 
 say(){ printf '\033[1;36m>> %s\033[0m\n' "$*"; }
@@ -207,9 +214,12 @@ else
 fi
 FW_MEMBRO=""
 
+# $1 = destino (ponto de montagem); vazio = so as origens, sem a pasta nem o espaco (--conferir-firmware)
 fw_conferir(){
   local dest="$1" zip="$FW_DIR/$FW_OFICIAL_ZIP" nosso="$FW_DIR/$FW_NOSSO_BIN" m n tam livre
-  [ -d "$dest" ] || { err "'$dest' nao e uma pasta (informe o ponto de montagem do pendrive FAT32)"; return 1; }
+  if [ -n "$dest" ] && [ ! -d "$dest" ]; then
+    err "'$dest' nao e uma pasta (informe o ponto de montagem do pendrive FAT32)"; return 1
+  fi
   have unzip || { err "sem o comando unzip: preciso dele para tirar o .bin oficial do zip"; return 1; }
   have md5sum || have md5 || { err "sem md5sum/md5: nao consigo conferir o firmware"; return 1; }
   say "firmware de resgate: conferindo as origens em $FW_DIR"
@@ -241,11 +251,13 @@ fw_conferir(){
     err "'$FW_NOSSO_BIN' tem md5 $m, o esperado e $FW_NOSSO_MD5. Nada foi copiado."
     return 1
   fi
-  tam=$(( $(unzip -l "$zip" "$FW_MEMBRO" | awk 'END{print $1}') + $(wc -c < "$nosso") + 10485760 ))
-  livre=$(( $(df -Pk "$dest" | awk 'NR==2{print $4}') * 1024 ))
-  if [ "$livre" -lt "$tam" ]; then
-    err "pouco espaco em $dest: preciso de $((tam / 1048576)) MB e ha $((livre / 1048576)) MB livres. Nada foi copiado."
-    return 1
+  if [ -n "$dest" ]; then
+    tam=$(( $(unzip -l "$zip" "$FW_MEMBRO" | awk 'END{print $1}') + $(wc -c < "$nosso") + 10485760 ))
+    livre=$(( $(df -Pk "$dest" | awk 'NR==2{print $4}') * 1024 ))
+    if [ "$livre" -lt "$tam" ]; then
+      err "pouco espaco em $dest: preciso de $((tam / 1048576)) MB e ha $((livre / 1048576)) MB livres. Nada foi copiado."
+      return 1
+    fi
   fi
   ok "firmware oficial V1.0.0.9 (md5 $FW_OFICIAL_MD5) e nosso .bin (md5 $FW_NOSSO_MD5) conferidos"
 }
@@ -351,6 +363,10 @@ EOF
 }
 
 # --- main ---
+if [ "$CONFERIR_FW" = "1" ]; then
+  fw_conferir ""
+  exit $?
+fi
 if [ -n "$PENDRIVE_DIR" ]; then
   # com firmware, as origens sao conferidas ANTES de copiar o kit: nada vai pela metade
   if [ "$COM_FIRMWARE" = "1" ]; then fw_conferir "$PENDRIVE_DIR" || exit 1; fi

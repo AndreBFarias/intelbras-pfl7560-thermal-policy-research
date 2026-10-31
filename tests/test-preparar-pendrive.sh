@@ -129,6 +129,16 @@ else
   nada_copiado "$D" "$ROOT/firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin"
 fi
 
+CASO="--conferir-firmware: so confere as origens (o preparar-pendrive.sh usa antes de formatar)"
+D="$TMP/d13"; mkdir -p "$D"
+env PFL_TESTE=1 PFL_FIRMWARE_DIR="$FW" PFL_FW_OFICIAL_MD5="$OFICIAL_MD5" PFL_FW_NOSSO_MD5="$NOSSO_MD5" bash "$ROOT/install.sh" --conferir-firmware > "$TMP/saida.log" 2>&1; RC=$?
+afirma '[ "$RC" = 0 ] && grep -q "conferidos" "$TMP/saida.log"' "rc=$RC: $(tail -3 "$TMP/saida.log" | tr '\n' ' ')"
+env PFL_TESTE=1 PFL_FIRMWARE_DIR="$FW" PFL_FW_OFICIAL_MD5="00000000000000000000000000000000" PFL_FW_NOSSO_MD5="$NOSSO_MD5" bash "$ROOT/install.sh" --conferir-firmware > "$TMP/saida.log" 2>&1; RC=$?
+afirma '[ "$RC" != 0 ] && grep -q "esperado e 00000000000000000000000000000000" "$TMP/saida.log"' "md5 oficial errado passou: rc=$RC"
+env PFL_TESTE=1 PFL_FIRMWARE_DIR="$FW" PFL_FW_OFICIAL_MD5="$OFICIAL_MD5" PFL_FW_NOSSO_MD5="11111111111111111111111111111111" bash "$ROOT/install.sh" --conferir-firmware > "$TMP/saida.log" 2>&1; RC=$?
+afirma '[ "$RC" != 0 ] && grep -q "esperado e 11111111111111111111111111111111" "$TMP/saida.log"' "md5 do nosso errado passou: rc=$RC"
+afirma '! bash "$ROOT/install.sh" --conferir-firmware --pendrive "$D" >/dev/null 2>&1 && [ -z "$(ls -A "$D")" ]' "aceitou --conferir-firmware junto com --pendrive"
+
 CASO="argumentos"
 afirma '! bash "$ROOT/install.sh" --com-firmware >/dev/null 2>&1' "aceitou --com-firmware sem --pendrive"
 afirma '! bash "$ROOT/install.sh" --pendrive --com-firmware >/dev/null 2>&1' "aceitou --com-firmware como destino"
@@ -169,7 +179,7 @@ prepara(){ # $1.. = argumentos do preparar-pendrive.sh; confirmacao vem de $CONF
   [ -n "${LINHA_DEV:-}" ] && printf '%s\n' "$LINHA_DEV" > "$TMP/p/lsblk-$(basename "${1:-x}").txt"
   [ -n "${LINHA_PAI:-}" ] && printf '%s\n' "$LINHA_PAI" > "$TMP/p/lsblk-${PAI_NOME:-sdb}.txt"
   printf '%s' "${MONTAGENS:-}" > "$TMP/p/lsblk-mont.txt"
-  printf '%s\n' "${CONFIRMA:-}" | env T="$TMP/p" PFL_TESTE="${TESTE_ON:-1}" PFL_FIRMWARE_DIR="${FWDIR:-$FW}" PFL_FW_OFICIAL_MD5="$OFICIAL_MD5" PFL_FW_NOSSO_MD5="$NOSSO_MD5" \
+  printf '%s\n' "${CONFIRMA:-}" | env T="$TMP/p" PFL_TESTE="${TESTE_ON:-1}" PFL_FIRMWARE_DIR="${FWDIR:-$FW}" PFL_FW_OFICIAL_MD5="${OFMD5:-$OFICIAL_MD5}" PFL_FW_NOSSO_MD5="${NSMD5:-$NOSSO_MD5}" \
       PATH="$BIN:$PATH" bash "$ROOT/tests/preparar-pendrive.sh" "$@" > "$TMP/p/saida.log" 2>&1
   RC=$?
 }
@@ -220,6 +230,16 @@ CASO="firmware faltando: nada e formatado"
 F="$TMP/fwp"; mkdir -p "$F"; cp "$FW/Software PFL7560.zip" "$F/"
 LINHA_DEV="$L_USB" CONFIRMA=/dev/sdb FWDIR="$F" prepara /dev/sdb
 afirma '[ "$RC" = 4 ] && [ "$(mkfs_chamadas)" = 0 ]' "rc=$RC mkfs=$(mkfs_chamadas)"
+
+CASO="md5 do firmware errado: nada e formatado (conferido ANTES do mkfs, nao so na copia)"
+LINHA_DEV="$L_USB" CONFIRMA=/dev/sdb OFMD5="00000000000000000000000000000000" prepara /dev/sdb
+afirma '[ "$RC" = 4 ] && [ "$(mkfs_chamadas)" = 0 ] && ! grep -q "^mount\|^umount" "$TMP/p/calls.log"' "oficial com md5 errado: rc=$RC mkfs=$(mkfs_chamadas)"
+LINHA_DEV="$L_USB" CONFIRMA=/dev/sdb NSMD5="11111111111111111111111111111111" prepara /dev/sdb
+afirma '[ "$RC" = 4 ] && [ "$(mkfs_chamadas)" = 0 ]' "nosso .bin com md5 errado: rc=$RC mkfs=$(mkfs_chamadas)"
+
+CASO="recusa: dispositivo mapeado (crypt/dm) sobre o pendrive: so disco inteiro ou particao"
+LINHA_DEV='NAME="dm-0" RM="0" TRAN="" TYPE="crypt" MODEL="" SIZE="14,5G" PKNAME="sdb"' LINHA_PAI="$L_USB" CONFIRMA=/dev/dm-0 prepara /dev/dm-0
+afirma '[ "$RC" = 3 ] && [ "$(mkfs_chamadas)" = 0 ] && grep -q "RECUSADO" "$TMP/p/saida.log"' "rc=$RC mkfs=$(mkfs_chamadas)"
 
 CASO="pendrive de verdade (RM=1, usb): formata FAT32, copia o kit e o firmware, desmonta"
 LINHA_DEV="$L_USB" CONFIRMA=/dev/sdb prepara /dev/sdb
