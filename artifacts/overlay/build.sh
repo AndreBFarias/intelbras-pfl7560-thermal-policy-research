@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A, 16A e 17A, do zero, sem Gradle.
+# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A, 16A, 17A e 18, do zero, sem Gradle.
 #
 #   bash artifacts/overlay/build.sh
 #
@@ -18,6 +18,11 @@
 #   ijkplayer     -> com.newlink.isuperred.ijkplayerdemo PFL7560TemaIjkPlayer.apk (17A)
 #   hivideoplayer -> com.hisilicon.android.videoplayer PFL7560TemaHiVideoPlayer.apk (17A)
 #   himusic       -> com.hisilicon.android.music   PFL7560TemaHiMusic.apk         (17A)
+#   hipinyinime   -> com.hisilicon.android.inputmethod.remote PFL7560TemaHiPinyinIME.apk (18)
+#   nlhotkeyservice -> com.newlink.hotkeysservices PFL7560TemaNLHotkeyService.apk (18)
+#   zycustomui    -> com.zhiying.sourceui          PFL7560TemaZYCustomUI.apk      (18)
+#   hitvsetting   -> com.hisilicon.tvsetting       PFL7560TemaHiTvSetting.apk     (18)
+#   packageinstaller -> com.android.packageinstaller PFL7560TemaPackageInstaller.apk (18)
 #   android       -> android (framework)           PFL7560TemaAndroid.apk   (por ultimo; ver doc 48)
 # Passos de cada uma: aapt2 compile + link (-I android.jar) -> zipalign -> apksigner sign ->
 # apksigner verify. Saida em artifacts/overlay/apk/. NAO copia para o kit (pendrive-autorun/):
@@ -41,7 +46,7 @@ BT="$SDK/build-tools/${BUILD_TOOLS:-35.0.0}"
 JAR="$SDK/platforms/${PLATAFORMA:-android-34}/android.jar"
 APKSIGNER="${APKSIGNER:-$(command -v apksigner || echo "$BT/apksigner")}"
 
-VERSAO_CODIGO=2          # inteiro; sobe a cada APK novo (2: bloco 16A)
+VERSAO_CODIGO=2          # inteiro; sobe a cada APK novo (2: bloco 16A). Por sobreposicao: 4o campo abaixo
 VERSAO_NOME="1.1"
 MIN_SDK=28
 TARGET_SDK=28
@@ -56,12 +61,17 @@ SAIDA="$AQUI/apk"
 # (compilado com aapt antigo) tem justamente hdpi-v4 e v21. A sobreposicao precisa da MESMA
 # configuracao do alvo, senao a do alvo ganha (conferir.py, item 3). minSdk 1 desliga a fusao.
 # 17A: o mesmo vale para os players HiSilicon (drawable-nodpi-v4, drawable-hdpi-v4).
+# Bloco 18: um 4o campo opcional da o versionCode daquela sobreposicao (pasta:Nome:minSdk:versao;
+# minSdk vazio = o padrao). So a do android usa (3: ganhou cores no bloco 18); as outras continuam
+# com VERSAO_CODIGO e saem com o mesmo md5 de antes.
 SOBREPOSICOES="zysetting:PFL7560TemaZYSetting nlprovision:PFL7560TemaNLProvision
   zybluetooth:PFL7560TemaZYBluetooth zyfilemanager:PFL7560TemaZYFileManager tvsettings:PFL7560TemaTvSettings
   higallery:PFL7560TemaHiGallery:1 nlsource:PFL7560TemaNLSource powerservice:PFL7560TemaPowerService
   autofocus:PFL7560TemaAutoFocus zyspeakermodel:PFL7560TemaZYSpeakerModel newlinkservice:PFL7560TemaNewLinkService
   ijkplayer:PFL7560TemaIjkPlayer hivideoplayer:PFL7560TemaHiVideoPlayer:1 himusic:PFL7560TemaHiMusic:1
-  android:PFL7560TemaAndroid"
+  hipinyinime:PFL7560TemaHiPinyinIME nlhotkeyservice:PFL7560TemaNLHotkeyService zycustomui:PFL7560TemaZYCustomUI
+  hitvsetting:PFL7560TemaHiTvSetting packageinstaller:PFL7560TemaPackageInstaller
+  android:PFL7560TemaAndroid::3"
 
 for f in "$BT/aapt2" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER"; do
   [ -e "$f" ] || { echo "FALTA: $f" >&2; exit 1; }
@@ -72,9 +82,10 @@ trap 'rm -rf "$B"' EXIT
 mkdir -p "$SAIDA"
 
 for par in $SOBREPOSICOES; do
-  IFS=: read -r dir nome min <<< "$par"
+  IFS=: read -r dir nome min versao <<< "$par"
   min="${min:-$MIN_SDK}"
-  echo ">> $nome ($dir)"
+  versao="${versao:-$VERSAO_CODIGO}"
+  echo ">> $nome ($dir, versionCode $versao)"
   # nenhuma referencia a recurso dentro da sobreposicao (ver o cabecalho)
   if grep -rEn '"@(\+?id|color|drawable|style|dimen|string|layout|mipmap|android:)' "$AQUI/$dir/res"; then
     echo "ERRO: referencia a recurso em $dir/res (so valores literais)" >&2; exit 1
@@ -82,7 +93,7 @@ for par in $SOBREPOSICOES; do
   "$BT/aapt2" compile --dir "$AQUI/$dir/res" -o "$B/$dir.zip"
   "$BT/aapt2" link -o "$B/$dir.apk" -I "$JAR" --manifest "$AQUI/$dir/AndroidManifest.xml" \
     --min-sdk-version "$min" --target-sdk-version "$TARGET_SDK" \
-    --version-code "$VERSAO_CODIGO" --version-name "$VERSAO_NOME" \
+    --version-code "$versao" --version-name "$VERSAO_NOME" \
     --no-auto-version "$B/$dir.zip"
   "$BT/zipalign" -f -p 4 "$B/$dir.apk" "$B/$dir-alinhado.apk"
   "$APKSIGNER" sign --ks "$KS" --ks-key-alias "$KS_ALIAS" --ks-pass "pass:$KS_SENHA" \
