@@ -95,7 +95,7 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 51ed332580e2b19b287d0968083f56d1  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
-ae1a8ad6ccaa079e6eca32337ff18a0e  nl_tela
+b8791aa99caac36094977931c0bc210d  nl_tela
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png

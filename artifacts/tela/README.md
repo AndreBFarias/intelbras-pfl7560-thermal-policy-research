@@ -14,16 +14,19 @@ ASCII). Binario do aparelho: `nl_tela` (esta pasta) e a mesma copia em `pendrive
 
 ## Compilar
 
-    # aparelho (ARM): so libc, libm e libdl do Android
+    # aparelho (ARM): so libc, libm e libdl do Android. Da RAIZ do repositorio, com o caminho
+    # relativo: o assert da stb_truetype grava o caminho do cabecalho no binario
     ~/Android/android-ndk-r27c/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang \
-        -O2 -Wall -o nl_tela nl_tela.c -lm
-    cp nl_tela ../../pendrive-autorun/nl_tela
-    bash ../../tests/atualizar-md5-kit.sh      # regrava a lista de md5 do kit
+        -O2 -Wall -o artifacts/tela/nl_tela artifacts/tela/nl_tela.c -lm
+    cp artifacts/tela/nl_tela pendrive-autorun/nl_tela
+    bash tests/atualizar-md5-kit.sh      # regrava a lista de md5 do kit
 
     # PC (harness): o MESMO .c
-    cc -O2 -Wall -Wextra -o nl_tela nl_tela.c -lm
+    cc -O2 -Wall -Wextra -o nl_tela artifacts/tela/nl_tela.c -lm
 
-A compilacao e reprodutivel (o mesmo .c da o mesmo md5).
+A compilacao e reprodutivel (o mesmo .c, compilado da raiz como acima, da o mesmo md5; de
+dentro de `artifacts/tela/` o caminho gravado muda e o md5 tambem). O `tests/test-tela.sh`
+recompila com o NDK, se houver, e exige o binario versionado.
 
 ## Uso
 
@@ -90,7 +93,10 @@ caberem 6 itens e 3 dicas.
   50 em cima e embaixo). Depois: o caso no limite e textos longos demais (cortam, avisam, nao
   passam da margem), usos e entradas invalidas (saem 2 e 1, sem PNG), escapes (`\u00e7`,
   maiusculas, `\u0000`, substituto), byte cru, chave desconhecida, CRLF e comentario (mesmo PNG),
-  fonte ausente (reserva ou sai 1), TTF corrompido, binario ARM igual nas duas pastas.
+  fonte ausente (reserva ou sai 1), TTF corrompido ou truncado (o diretorio de tabelas e
+  conferido antes da stb_truetype, que nao confere offset; truncado sem reserva sai 1, com
+  reserva cai nela), saida que e uma pasta (sai 1 sem apaga-la), binario ARM igual nas duas
+  pastas e igual ao recompilado do .c (se houver NDK).
 - PNG de exemplo para olhar: `tests/saida/telas/` (fora do git), gerados a cada execucao.
 
 ## Pendente (aparelho)

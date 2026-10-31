@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 /* terceiros (dominio publico): avisos deles nao sao nossos */
 #pragma GCC diagnostic push
@@ -148,6 +149,25 @@ static struct fonte fontes[2 * N_EST];
 static int nfontes;
 static struct fonte *cadeia[N_EST][2];   /* primaria e reserva de cada estilo (NULL = ausente) */
 
+/* a stb_truetype nao confere offset nenhum: um TTF truncado (copia interrompida) faz ela ler
+ * fora do buffer. Confere o diretorio de tabelas do arquivo: cabe no arquivo e cada tabela
+ * (offset + tamanho) tambem. Devolve o offset da fonte 0 ou -1. */
+static uint32_t be32(const unsigned char *p) {
+  return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
+}
+static int sfnt_ok(const unsigned char *d, long n) {
+  if (n < 16) return -1;                /* GetFontOffsetForIndex le ate o byte 15 numa TTC */
+  int off = stbtt_GetFontOffsetForIndex(d, 0);
+  if (off < 0 || (long)off + 12 > n) return -1;
+  long nt = d[off + 4] << 8 | d[off + 5];
+  if (nt == 0 || (long)off + 12 + 16 * nt > n) return -1;
+  for (long i = 0; i < nt; i++) {
+    uint32_t o = be32(d + off + 12 + 16 * i + 8), l = be32(d + off + 12 + 16 * i + 12);
+    if (o > (uint32_t)n || l > (uint32_t)n - o) return -1;
+  }
+  return off;
+}
+
 /* carrega (uma vez por arquivo) a fonte do caminho; NULL se nao existe ou nao e TTF valido */
 static struct fonte *carregar(const char *dir, const char *nome) {
   char cam[512];
@@ -165,7 +185,7 @@ static struct fonte *carregar(const char *dir, const char *nome) {
     fprintf(stderr, "nl_tela: %s: nao consegui ler\n", cam); fclose(f); free(ft->dados); return NULL;
   }
   fclose(f);
-  int off = stbtt_GetFontOffsetForIndex(ft->dados, 0);
+  int off = sfnt_ok(ft->dados, n);
   if (off < 0 || !stbtt_InitFont(&ft->info, ft->dados, off)) {
     fprintf(stderr, "nl_tela: %s: nao e uma fonte TrueType valida\n", cam); free(ft->dados); return NULL;
   }
@@ -703,7 +723,7 @@ int main(int argc, char **argv) {
   if (resumo) tela_resumo(); else tela_aviso();
   if (!stbi_write_png(argv[3], LARG, ALT, 3, tela, LARG * 3)) {
     fprintf(stderr, "nl_tela: nao consegui gravar %s\n", argv[3]);
-    remove(argv[3]);
+    unlink(argv[3]);      /* so arquivo: remove() apagaria uma pasta vazia passada por engano */
     return 1;
   }
   return 0;

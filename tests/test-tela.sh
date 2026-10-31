@@ -190,10 +190,36 @@ afirma '[ "$_rc" = 1 ] && grep -q "sem fonte para IBMPlexMono-SemiBold.ttf" "$T/
 mkdir -p "$T/ruim"; cp "$FONTES"/*.ttf "$T/ruim/"; head -c 4096 /dev/urandom > "$T/ruim/IBMPlexSansCondensed-Bold.ttf"
 gera resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/ruim"
 afirma '[ "$_rc" = 1 ] && grep -q "nao e uma fonte TrueType valida" "$T/err"' "TTF corrompido sem reserva deveria sair 1 (saiu $_rc)"
+# TTF verdadeiro TRUNCADO (copia interrompida): a stb_truetype nao confere offset nenhum e lia
+# fora do buffer (ASan: heap-buffer-overflow). O diretorio de tabelas e conferido antes: sai 1
+# com mensagem, sem PNG, em qualquer ponto do corte (ate faltando so o ultimo byte)
+_tam=$(wc -c < "$FONTES/IBMPlexSansCondensed-Bold.ttf")
+for _c in 15 16 1000 100000 $((_tam - 1)); do
+  head -c "$_c" "$FONTES/IBMPlexSansCondensed-Bold.ttf" > "$T/ruim/IBMPlexSansCondensed-Bold.ttf"; rm -f "$T/f.png"
+  gera resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/ruim"
+  afirma '[ "$_rc" = 1 ] && grep -q "nao e uma fonte TrueType valida" "$T/err" && [ ! -e "$T/f.png" ]' "TTF truncado em $_c bytes deveria sair 1 com mensagem (saiu $_rc): $(head -2 "$T/err")"
+done
+# ...e com a reserva do sistema presente, o estilo truncado cai nela
+cp "$FONTES/IBMPlexSansCondensed-Bold.ttf" "$T/sistema/Roboto-Bold.ttf"
+NL_TELA_SISTEMA="$T/sistema" "$NT" resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/ruim" 2>"$T/err"; rc=$?
+afirma '[ "$rc" = 0 ] && grep -q "IBMPlexSansCondensed-Bold.ttf ausente, usando a reserva" "$T/err" && confere "$T/f.png"' "TTF truncado com reserva deveria usar a reserva (saiu $rc): $(head -2 "$T/err")"
+# saida que e uma pasta (vazia): sai 1 e NAO apaga a pasta (antes o remove() a apagava)
+mkdir -p "$T/pasta-saida"
+gera resumo "$FIX/resumo-correcao.txt" "$T/pasta-saida"
+afirma '[ "$_rc" = 1 ] && [ -d "$T/pasta-saida" ]' "saida apontando para uma pasta deveria sair 1 sem apaga-la (saiu $_rc)"
 
 # ---- binario ARM do kit
 afirma 'file "$ROOT/artifacts/tela/nl_tela" | grep -q "ELF 32-bit LSB.*ARM.*/system/bin/linker"' "artifacts/tela/nl_tela nao e um ELF ARM do Android"
 afirma 'cmp -s "$ROOT/artifacts/tela/nl_tela" "$ROOT/pendrive-autorun/nl_tela"' "pendrive-autorun/nl_tela difere de artifacts/tela/nl_tela"
+# o binario versionado e o deste .c: recompila com o NDK (se houver) e compara. Compila da raiz,
+# com o caminho relativo, como no README: o assert da stb_truetype grava o caminho no binario
+NDK_CC="${ANDROID_NDK:-$HOME/Android/android-ndk-r27c}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang"
+if [ -x "$NDK_CC" ]; then
+  ( cd "$ROOT" && "$NDK_CC" -O2 -Wall -o "$T/nl_tela.arm" artifacts/tela/nl_tela.c -lm ) 2>"$T/ndk.err"
+  afirma 'cmp -s "$T/nl_tela.arm" "$ROOT/artifacts/tela/nl_tela"' "artifacts/tela/nl_tela nao e o binario deste nl_tela.c (recompile como no README): $(head -3 "$T/ndk.err")"
+else
+  echo "  (NDK ausente em $NDK_CC: binario ARM nao recompilado para comparar)"
+fi
 afirma '[ "$(ls "$FONTES"/*.ttf | wc -l)" = 5 ] && [ -s "$FONTES/OFL.txt" ]' "pendrive-autorun/fontes sem os 5 TTF do C-tela e a OFL.txt"
 
 echo "----"
