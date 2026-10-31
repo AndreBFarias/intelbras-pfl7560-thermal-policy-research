@@ -45,6 +45,32 @@ md5. Se der outro valor, algo mudou no stock, na config ou no builder — invest
 
 O `build.prop` e o `init.bigfish.rc` são derivados do stock dentro da imagem.
 
+## Manifesto: o que a build leva além dos 3 fixes (bloco 12)
+
+```bash
+python3 build_fix_bin.py <stock_PFL7560.bin> ../ZYCustom_390.ini <saida.bin> --conteudo conteudo.txt
+```
+
+O [`conteudo.txt`](conteudo.txt) lista, uma entrada por linha, `origem destino modo uid gid rotulo`. A origem
+é relativa à raiz do repositório (o conjunto final de arquivos vem do `pendrive-autorun/`); `-` cria uma pasta.
+O destino é escrito como o aparelho o vê (`/vendor/...`). Depois que o tema (bloco 10) ou um app novo entrar,
+basta rodar de novo. O gerador:
+
+- recusa linha fora do formato, origem ausente, destino fora de `/vendor/` ou repetido, um dos 3 arquivos que
+  ele mesmo deriva, modo com escrita para grupo ou outros e rótulo fora de `u:object_r:<tipo>:s0`;
+- num destino que já existe no stock, exige exatamente os metadados declarados (troca só o conteúdo);
+- exige que a pasta-mãe exista no stock ou esteja no manifesto;
+- confere blocos e inodes livres antes de gravar (cada arquivo novo leva um bloco de xattr, porque o inode do
+  vendor tem 128 bytes);
+- carimba modo, dono, rótulo (com o NUL do stock) e horários fixos, e confere tipo, metadados e conteúdo byte a
+  byte depois do `e2fsck` e de novo depois do re-pack;
+- aborta se o sparse não couber no slot do record 14 (`maior que o slot stock`).
+
+**A folga do slot é o limite real.** O ext4 do vendor tem 213 MiB livres, mas o sparse dele vai num slot de
+tamanho fixo no container: no V1.0.0.9 sobram 65312 bytes (53024 depois dos 3 fixes). Cabe o `.rc` da suíte;
+o app (95577 B) não cabe, e a suíte inteira (1,2 MB) muito menos. Ver o
+[doc 47](../../docs/research/47-build-completa.md). Sem `--conteudo`, a saída é a de sempre (`eae3a83d…`).
+
 ## Metadados (obrigatório — causa do brick antigo)
 
 Após cada `debugfs write`, o script **lê e reaplica** do stock:

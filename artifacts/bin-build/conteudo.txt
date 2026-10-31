@@ -1,0 +1,25 @@
+# conteudo.txt - o que a build grava no vendor ALEM dos 3 fixes que o gerador deriva
+# do proprio stock (ZYCustom.ini do argumento, build.prop com wifi_disconnect_on_boot=0,
+# init.bigfish.rc com o xiriservice disabled). Bloco 12, doc 47.
+#
+# Uso: python3 build_fix_bin.py <stock.bin> <ZYCustom.ini> <saida.bin> --conteudo conteudo.txt
+#
+# Formato, uma entrada por linha:   origem  destino  modo  uid  gid  rotulo
+#  - origem: relativa a raiz do repositorio (ou absoluta); "-" = pasta a criar
+#  - destino: como o aparelho ve (/vendor/...)
+#  - modo: 0NNN octal; o gerador recusa escrita para grupo ou outros
+#  - rotulo: security.selinux, u:object_r:<tipo>:s0 (o gerador grava com o NUL do stock)
+# Um destino que ja existe no stock tem de ter exatamente estes metadados (so o conteudo
+# muda); pasta-mae nova tem de estar declarada aqui. '#' comenta ate o fim da linha.
+#
+# Mesmo .rc que o kit instala (newlink_update.sh, instalar_rc): byte a byte o do
+# pendrive-autorun, 0644 root:root, rotulo do init.bigfish.rc vizinho. Assim o kit, depois da
+# gravacao, acha o servico "ja estava instalado" e nao abre o /vendor por causa dele.
+pendrive-autorun/pfl7560-suite.rc  /vendor/etc/init/pfl7560-suite.rc  0644  0  0  u:object_r:vendor_configs_file:s0
+
+# O app NAO cabe: o slot do vendor no container tem folga fixa de 65312 bytes no V1.0.0.9
+# (53024 depois dos 3 fixes) e o app pede ~27 blocos de 4 KiB (95577 B de APK, mais a pasta e
+# os blocos de xattr). O gerador aborta com "maior que o slot stock". Fica no kit de pendrive
+# ate o dono decidir sobre realocar o container (doc 47, secao 3). Linhas prontas:
+# -                             /vendor/app/PFL7560              0755  0  0  u:object_r:vendor_app_file:s0
+# pendrive-autorun/pfl7560.apk  /vendor/app/PFL7560/PFL7560.apk  0644  0  0  u:object_r:vendor_app_file:s0

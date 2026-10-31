@@ -10,9 +10,14 @@
 #  security.selinux). Sem isso o init do Android recusa .rc group-writable
 #  (0664) e o boot trava na logo — causa do PFL7560-FIX em quarentena.
 #
+#  Com --conteudo <manifesto> (bloco 12) grava tambem os arquivos e pastas do
+#  manifesto (origem destino modo uid gid rotulo por linha; ver conteudo.txt), com
+#  os metadados carimbados e conferidos, e aborta se faltar espaco no ext4 ou no
+#  slot do record 14. Sem --conteudo a saida e a de sempre (md5 eae3a83d).
+#
 #  Requisitos: python3, debugfs, e2fsck (e2fsprogs). Precisa de sparse.py ao lado.
 #  Uso:
-#    python3 build_fix_bin.py <stock_PFL7560.bin> <ZYCustom.ini_modificado> <saida.bin>
+#    python3 build_fix_bin.py <stock_PFL7560.bin> <ZYCustom.ini_modificado> <saida.bin> [--conteudo <manifesto>]
 # ============================================================================
 import re
 import sys
@@ -54,6 +59,83 @@ TARGET_PATHS = (
     '/build.prop',
     '/etc/init/hw/init.bigfish.rc',
 )
+
+# Manifesto (bloco 12): origens relativas a raiz do repositorio (ou absolutas); destinos
+# como o aparelho os ve (/vendor/...), gravados na imagem sem o prefixo /vendor.
+RAIZ_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+PREFIXO_VENDOR = '/vendor'
+ROTULO_RE = re.compile(r'^u:object_r:[a-z0-9_]+:s0$')
+DESTINO_RE = re.compile(r'^(/[A-Za-z0-9._@+-]+)+$')
+
+
+def ler_conteudo(manifesto):
+    """Le o manifesto: 'origem destino modo uid gid rotulo' por linha ('#' comenta). Origem '-'
+    = pasta. Devolve a lista de entradas; aborta (SystemExit, nada e gravado) em qualquer linha
+    fora do formato, origem ausente, destino repetido ou derivado do stock, ou modo com escrita
+    para grupo ou outros (a causa do brick de julho)."""
+    entradas, vistos = [], set()
+    for n, linha in enumerate(open(manifesto, encoding='utf-8'), 1):
+        linha = linha.split('#', 1)[0].strip()
+        if not linha:
+            continue
+        campos = linha.split()
+        onde = f"{manifesto}:{n}"
+        if len(campos) != 6:
+            raise SystemExit(f"ERRO: {onde}: esperado 'origem destino modo uid gid rotulo' - abortado.")
+        origem, destino, modo, uid, gid, rotulo = campos
+        if not destino.startswith(PREFIXO_VENDOR + '/') or not DESTINO_RE.match(destino) \
+                or '/../' in destino + '/' or '/./' in destino + '/':
+            raise SystemExit(f"ERRO: {onde}: destino {destino!r} tem de ser um caminho limpo em /vendor/ - abortado.")
+        img = destino[len(PREFIXO_VENDOR):]
+        if img in TARGET_PATHS:
+            raise SystemExit(f"ERRO: {onde}: {destino} e derivado do stock pelo proprio gerador - abortado.")
+        if img in vistos:
+            raise SystemExit(f"ERRO: {onde}: destino {destino} repetido - abortado.")
+        if not re.match(r'^0[0-7]{3}$', modo) or not uid.isdigit() or not gid.isdigit():
+            raise SystemExit(f"ERRO: {onde}: modo (0NNN octal), uid e gid numericos - abortado.")
+        if int(modo, 8) & 0o022:
+            raise SystemExit(f"ERRO: {onde}: modo {modo} com escrita para grupo ou outros - abortado.")
+        if not ROTULO_RE.match(rotulo):
+            raise SystemExit(f"ERRO: {onde}: rotulo {rotulo!r} fora do formato u:object_r:<tipo>:s0 - abortado.")
+        tipo = 'directory' if origem == '-' else 'regular'
+        if tipo == 'regular':
+            if not os.path.isabs(origem):
+                origem = os.path.join(RAIZ_REPO, origem)
+            if not os.path.isfile(origem):
+                raise SystemExit(f"ERRO: {onde}: origem {origem} nao e um arquivo - abortado.")
+        vistos.add(img)
+        entradas.append({'origem': origem, 'destino': destino, 'img': img, 'tipo': tipo,
+                         'meta': {'mode': modo, 'uid': uid, 'gid': gid, 'selinux': rotulo}})
+    return entradas
+
+
+def existe(img, path):
+    return 'Inode:' in dfs_r(img, f'stat {path}')
+
+
+def livres(img):
+    """(blocos livres, inodes livres, tamanho do bloco) do ext4, pelo superbloco."""
+    r = subprocess.run(['debugfs', '-R', 'stats', img], capture_output=True, text=True,
+                       env=dict(os.environ, LC_ALL='C', LANG='C'))
+    st = r.stdout or ''
+    v = {k: re.search(rf'(?m)^{k}:\s+(\d+)', st) for k in ('Free blocks', 'Free inodes', 'Block size')}
+    if not all(v.values()):
+        raise SystemExit("ERRO: nao consegui ler blocos e inodes livres do vendor - abortado.")
+    return tuple(int(v[k].group(1)) for k in ('Free blocks', 'Free inodes', 'Block size'))
+
+
+def conferir_conteudo_no_ext4(img, entradas, tmp):
+    """Cada arquivo do manifesto, lido de volta da imagem, tem de ser byte a byte a copia
+    congelada da origem (pega tambem um write do debugfs que falhou por falta de espaco)."""
+    for e in entradas:
+        if e['tipo'] != 'regular':
+            continue
+        alvo = f'{tmp}/chk_manifesto'
+        if os.path.exists(alvo):
+            os.remove(alvo)
+        dump(img, e['img'], alvo)
+        if not os.path.exists(alvo) or open(alvo, 'rb').read() != open(e['copia'], 'rb').read():
+            raise SystemExit(f"ERRO: conteudo de {e['destino']} na imagem difere da origem - abortado.")
 
 
 def vendor_slot(stock):
@@ -196,11 +278,13 @@ def read_meta(img, path, *, allow_fallback=True):
     return meta
 
 
-def meta_cmds(path, meta):
+def meta_cmds(path, meta, tipo='regular'):
     """Comandos debugfs para carimbar mode/uid/gid + security.selinux.
-    mode com S_IFREG; selinux com NUL terminal (\\000) como no stock (34 bytes)."""
+    mode com S_IFREG (S_IFDIR numa pasta); selinux com NUL terminal (\\000) como no stock (34 bytes)."""
     se = meta['selinux']
     mode_sif = sif_mode_value(meta['mode'])
+    if tipo == 'directory':
+        mode_sif = f"0{(0o040000 | (int(meta['mode'], 8) & 0o7777)):o}"
     return (
         f"sif {path} mode {mode_sif}\n"
         f"sif {path} uid {meta['uid']}\n"
@@ -209,8 +293,8 @@ def meta_cmds(path, meta):
     )
 
 
-def verify_meta(img, path, expected):
-    """Confere type=regular, mode/uid/gid/selinux; aborta se group/world-writable."""
+def verify_meta(img, path, expected, tipo='regular'):
+    """Confere o tipo (regular ou directory), mode/uid/gid/selinux; aborta se group/world-writable."""
     got = read_meta(img, path, allow_fallback=False)
     mode_int = int(got['mode'], 8)
     if mode_int & 0o022:
@@ -219,10 +303,10 @@ def verify_meta(img, path, expected):
             f"(init do Android recusa .rc assim). Abortando."
         )
     ftype = (got.get('type') or '').lower()
-    if 'regular' not in ftype:
+    if tipo not in ftype:
         raise SystemExit(
-            f"ERRO: {path} Type={got.get('type')!r} (esperado regular). "
-            f"Provavel sif mode sem S_IFREG."
+            f"ERRO: {path} Type={got.get('type')!r} (esperado {tipo}). "
+            f"Provavel sif mode sem S_IFREG/S_IFDIR."
         )
     errs = []
     if got['mode'] != expected['mode']:
@@ -234,14 +318,20 @@ def verify_meta(img, path, expected):
     if got['selinux'] != expected['selinux']:
         errs.append(f"selinux {got['selinux']!r} != {expected['selinux']!r}")
     if errs:
-        raise SystemExit(f"ERRO: metadados de {path} divergem do stock: " + "; ".join(errs))
+        raise SystemExit(f"ERRO: metadados de {path} divergem do esperado: " + "; ".join(errs))
     return got
 
 
-def main():
-    stock, zy, out = sys.argv[1], sys.argv[2], sys.argv[3]
+def main(stock, zy, out, manifesto=None):
+    entradas = ler_conteudo(manifesto) if manifesto else []
     tmp = tempfile.mkdtemp(prefix='pflbin_')
     try:
+        # copia congelada de cada origem do manifesto, com nome sem espaco (o debugfs separa
+        # argumentos por espaco); e ela que vai para a imagem e contra ela que se confere
+        for i, e in enumerate(entradas):
+            if e['tipo'] == 'regular':
+                e['copia'] = f'{tmp}/manifesto_{i}'
+                shutil.copyfile(e['origem'], e['copia'])
         # 1) offset e size do payload vendor (record 14 da tabela) + extrai o sparse
         PFX, size = vendor_slot(stock)
         with open(stock, 'rb') as f:
@@ -274,6 +364,33 @@ def main():
             m = stock_meta[p]
             print(f"     {p}: mode={m['mode']} uid={m['uid']} gid={m['gid']} selinux={m['selinux']}")
 
+        # 2c) manifesto contra o stock: um destino que ja existe tem de ser do mesmo tipo e ter
+        #     exatamente os metadados declarados (trocar o conteudo, nunca o rotulo ou o modo); um
+        #     destino novo precisa da pasta-mae no stock ou declarada no manifesto; e tem de haver
+        #     blocos e inodes livres (cada arquivo novo leva um bloco de xattr: inode de 128 B).
+        if entradas:
+            novas = set()
+            for e in sorted(entradas, key=lambda x: x['img'].count('/')):
+                mae = os.path.dirname(e['img'])
+                if mae != '/' and not existe(f'{tmp}/orig.raw', mae) and mae not in novas:
+                    raise SystemExit(
+                        f"ERRO: a pasta de {e['destino']} nao existe no stock nem esta no manifesto - abortado.")
+                e['existe'] = existe(f'{tmp}/orig.raw', e['img'])
+                if e['existe']:
+                    verify_meta(f'{tmp}/orig.raw', e['img'], e['meta'], e['tipo'])
+                elif e['tipo'] == 'directory':
+                    novas.add(e['img'])
+            blocos_livres, inodes_livres, bs = livres(f'{tmp}/orig.raw')
+            precisa_b = sum((-(-os.path.getsize(e['copia']) // bs) + 2) if e['tipo'] == 'regular' else 2
+                            for e in entradas if not (e['existe'] and e['tipo'] == 'directory'))
+            precisa_i = sum(1 for e in entradas if not e['existe'])
+            if precisa_b > blocos_livres or precisa_i > inodes_livres:
+                raise SystemExit(
+                    f"ERRO: falta espaco no vendor: precisa de {precisa_b} blocos e {precisa_i} inodes, "
+                    f"livres {blocos_livres} e {inodes_livres} - abortado.")
+            print(f"[2c] manifesto: {len(entradas)} entradas conferidas contra o stock "
+                  f"(~{precisa_b} blocos de {blocos_livres} livres)")
+
         # 3) prepara build.prop e init.bigfish.rc a partir do proprio stock
         dump(f'{tmp}/orig.raw', '/build.prop', f'{tmp}/bp')
         open(f'{tmp}/bp.mod', 'w').write(
@@ -298,11 +415,28 @@ def main():
                 + meta_cmds(path, meta)
             )
 
+        def tempos(path):
+            return (f"sif {path} mtime {MT}\nsif {path} ctime {CT}\n"
+                    f"sif {path} atime {CT}\nsif {path} crtime {CT}\n")
+
+        # manifesto: pastas novas primeiro (das mais rasas para as mais fundas), depois os arquivos
+        def manifesto_cmds():
+            c = ''
+            for e in sorted(entradas, key=lambda x: (x['tipo'] != 'directory', x['img'].count('/'), x['img'])):
+                if e['tipo'] == 'directory':
+                    if not e['existe']:
+                        c += f"mkdir {e['img']}\n" + tempos(e['img']) + meta_cmds(e['img'], e['meta'], 'directory')
+                else:
+                    c += (f"rm {e['img']}\n" if e['existe'] else '') + f"write {e['copia']} {e['img']}\n" \
+                        + tempos(e['img']) + meta_cmds(e['img'], e['meta'])
+            return c
+
         cmds = f'{tmp}/cmds'
         open(cmds, 'w').write(
             edit('/etc/ZYCustom.ini', zy)
             + edit('/build.prop', f'{tmp}/bp.mod')
-            + edit('/etc/init/hw/init.bigfish.rc', f'{tmp}/rc.mod'))
+            + edit('/etc/init/hw/init.bigfish.rc', f'{tmp}/rc.mod')
+            + manifesto_cmds())
         dfs(f'{tmp}/edit.raw', cmds)
         # e2fsck -fy: 0 = limpo, 1/2 = corrigiu (esperado apos o debugfs); >= 4 = erros
         # NAO corrigidos ou falha operacional -> a imagem nao e confiavel.
@@ -315,14 +449,20 @@ def main():
 
         # Reaplica metadados apos e2fsck (defesa: e2fsck nao deve stripar, mas garantimos)
         cmds2 = f'{tmp}/cmds_meta'
-        open(cmds2, 'w').write(''.join(meta_cmds(p, stock_meta[p]) for p in TARGET_PATHS))
+        open(cmds2, 'w').write(''.join(meta_cmds(p, stock_meta[p]) for p in TARGET_PATHS)
+                               + ''.join(meta_cmds(e['img'], e['meta'], e['tipo']) for e in entradas))
         dfs(f'{tmp}/edit.raw', cmds2)
 
-        # Gate fatal: metadados == stock; nenhum .rc group-writable
+        # Gate fatal: metadados == stock (e == manifesto); nenhum .rc group-writable
         print("[4b] verificando metadados pos-edit:")
         for p in TARGET_PATHS:
             got = verify_meta(f'{tmp}/edit.raw', p, stock_meta[p])
             print(f"     OK {p}: mode={got['mode']} selinux={got['selinux']}")
+        for e in entradas:
+            got = verify_meta(f'{tmp}/edit.raw', e['img'], e['meta'], e['tipo'])
+            print(f"     OK {e['destino']}: {e['tipo']} mode={got['mode']} uid={got['uid']} "
+                  f"gid={got['gid']} selinux={got['selinux']}")
+        conferir_conteudo_no_ext4(f'{tmp}/edit.raw', entradas, tmp)
 
         # determinismo: o debugfs/e2fsck carimbam s_wtime e s_lastcheck
         FIXED = struct.pack('<I', 0x5e0be100)   # 2019-12-31, mesma era do stock
@@ -342,7 +482,7 @@ def main():
             raise SystemExit(f"ERRO: total_blocks pack={ptotal} != stock={total}")
         if psz > size:
             raise SystemExit(
-                f"ERRO: sparse empacotado ({psz}) maior que o slot stock ({size}). "
+                f"ERRO: sparse empacotado ({psz}) maior que o slot stock ({size}) em {psz - size} bytes. "
                 "Precisaria realocar a tabela LOAD — abortado.")
         if psz < size:
             with open(f'{tmp}/vendor.new', 'ab') as n:
@@ -359,6 +499,11 @@ def main():
             got = verify_meta(f'{tmp}/check.raw', p, stock_meta[p])
             print(f"     OK {p}: mode={got['mode']} type={got.get('type')} "
                   f"selinux={got['selinux']}")
+        for e in entradas:
+            got = verify_meta(f'{tmp}/check.raw', e['img'], e['meta'], e['tipo'])
+            print(f"     OK {e['destino']}: mode={got['mode']} type={got.get('type')} "
+                  f"selinux={got['selinux']}")
+        conferir_conteudo_no_ext4(f'{tmp}/check.raw', entradas, tmp)
 
         # round-trip do conteudo: as trocas do wifi e do xiri tem de estar na imagem final
         # (o replace/insert acima falha em silencio se o stock nao tiver o texto procurado)
@@ -403,14 +548,19 @@ def main():
               f"{'OK' if c1 == stored1 else 'ERRO'}")
         if not ok:
             raise SystemExit(f"[done] {out}  FALHOU (checksum1 ou tamanho)")
-        print(f"[done] {out}  VALIDO (conteudo + metadados stock nos 3 arquivos)")
+        extra = f" + {len(entradas)} entradas do manifesto" if entradas else ''
+        print(f"[done] {out}  VALIDO (conteudo + metadados stock nos 3 arquivos{extra})")
         print("       AVISO: ainda teste em hardware com pendrive de resgate oficial ao lado.")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
-        print("uso: build_fix_bin.py <stock.bin> <ZYCustom.ini> <saida.bin>")
+    args = sys.argv[1:]
+    manifesto = None
+    if len(args) == 5 and args[3] == '--conteudo':
+        manifesto, args = args[4], args[:3]
+    if len(args) != 3:
+        print("uso: build_fix_bin.py <stock.bin> <ZYCustom.ini> <saida.bin> [--conteudo <manifesto>]")
         sys.exit(1)
-    main()
+    main(*args, manifesto=manifesto)
