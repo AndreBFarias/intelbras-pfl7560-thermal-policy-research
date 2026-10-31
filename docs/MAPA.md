@@ -98,7 +98,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 |---|---|---|---|
 | `/vendor/etc/ZYCustom.ini`, `/vendor/build.prop`, `/vendor/etc/init/hw/init.bigfish.rc` | autorun, `pfl7560-fix.sh` | firmware | os 3 fixes (o `/atv/ini/ZYCustom*.ini`, se existir, vence) |
 | `/data/vendor/pfl7560-kit/` | autorun | `cor.sh`, gancho | cópia conferida do kit, `journal`, `panelparam-original.img`, `cor.log` |
-| `/data/vendor/pfl7560-suite/` | autorun, scripts da suíte | suíte | scripts e binários conferidos; `gatilho`, `luz`, `historico-boot.txt`, `resultados.txt`, `ultimo.log`, `incompletas`, `marca-original/` |
+| `/data/vendor/pfl7560-suite/` | autorun, scripts da suíte | suíte | scripts e binários conferidos; `gatilho`, `luz`, `luz-antes-descanso` (nível do `gbl` guardado no início do descanso), `historico-boot.txt`, `resultados.txt`, `ultimo.log`, `incompletas`, `marca-original/` |
 | `/vendor/etc/init/pfl7560-suite.rc` | autorun | init | serviço de boot |
 | `/vendor/app/PFL7560`, `/vendor/app/PFL7560Home`, `/vendor/overlay/<Nome>/` | autorun | PackageManager (no boot) | apps e sobreposições do sistema |
 | `/atv/bootvideo/logo.jpg`, `bootanimation.zip` | autorun | boot | marca MeowCast |

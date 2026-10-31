@@ -164,7 +164,7 @@ Os offsets andam **+0xc00** a partir do record 5 (a panelparam cresceu 3072 B = 
 
 ### 2.3 O `build_fix_bin.py` do repo funciona com este stock?
 
-- **Como está, NÃO.** O script fixa `PFX = 0x4b0b1d54` (`artifacts/bin-build/build_fix_bin.py`, l.26). No NOVO, o vendor está em `0x4b0bc954`. (**Resolvido em 2026-10-30, bloco 6 T6.2:** o builder lê offset e tamanho do record 14 da tabela; com o stock NOVO e o `.ini` NOTYPEC gera `0d294cb3…`, só em software.)
+- **Como está, NÃO.** O script fixa `PFX = 0x4b0b1d54` (`artifacts/bin-build/build_fix_bin.py`, l.26). No NOVO, o vendor está em `0x4b0bc954`. (**Resolvido em 2026-10-30, bloco 6 T6.2:** o builder lê offset e tamanho do record 14 da tabela; com o stock NOVO e o `.ini` NOTYPEC gerou `0d294cb3…`; desde o bloco 21, com o gerador nos mesmos blocos do stock, gera `e3e3e87c…`, só em software.)
   - Lido em `0x4b0b1d54` do NOVO, o "tamanho" vale 3631910283. O script lê até o fim do arquivo e o `sparse.parse` aborta com `AssertionError: magic 0xdf6d12ea nao e sparse`.
   - Testei uma cópia sem alteração no scratchpad, e ela falhou exatamente assim. CONFIRMADO.
   - A falha é **segura**: o script para antes de gravar qualquer `.bin` de saída.

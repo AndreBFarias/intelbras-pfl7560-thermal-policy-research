@@ -66,8 +66,8 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
 - Containers LOAD sintéticos e pequenos (ext4 de 4 MiB com os 3 arquivos, empacotado em sparse, com o record 14 em
   offsets diferentes) e o gerador real contra eles. O layout do container é escrito no teste, de propósito, e não
   importado do gerador.
-- Com os stocks de verdade (só leitura): `PFL_STOCK_ANTIGO` (V1.0.0.9) tem de sair com md5 `eae3a83d` e
-  `PFL_STOCK_NOVO` (V1.0.0.1, com o `ZYCustom_390.NOTYPEC.ini`) com `0d294cb3`, CRC do vendor `0xe2cad2f5`.
+- Com os stocks de verdade (só leitura): `PFL_STOCK_ANTIGO` (V1.0.0.9) tem de sair com md5 `a6e5da14` (a S4a) e
+  `PFL_STOCK_NOVO` (V1.0.0.1, com o `ZYCustom_390.NOTYPEC.ini`) com `e3e3e87c`, CRC do vendor `0xe5b1294a`.
 - O manifesto é conferido por fora, com `debugfs`, entrada por entrada, e as recusas uma a uma.
 
 ## `preparar-pendrive.sh` e `test-preparar-pendrive.sh`
