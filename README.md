@@ -87,7 +87,7 @@ install.bat
 ```
 
 1. **Pendrive autorun (mais fácil, sem PC)**
-   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt` e `kit/*.png`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
+   Copie o kit v2 **completo** (`newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png` e a suíte: `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`) para a raiz de um pendrive FAT32 com `./install.sh --pendrive /caminho/do/pendrive` (Windows: `install.bat`, opção 5), que confere o md5 depois da cópia; plugue no projetor **desligado** e ligue. Aplica a térmica (só as seções térmicas do `.ini` do aparelho, nos dois modelos) e faz o teste de cor da escada de 16 cinzas, sozinho pela câmera interna ou, se ela não ajudar, pelo controle remoto. Sem serial, sem arquivo para editar, idempotente. Provado só em simulação; bancada no aparelho pendente.
 
 2. **Script no PC (adb por Wi-Fi)**
    ```bash

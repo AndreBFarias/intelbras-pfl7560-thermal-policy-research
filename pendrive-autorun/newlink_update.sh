@@ -8,7 +8,7 @@
 #  auditor.
 # ---------------------------------------------------------------------------
 # ============================================================================
-#  PFL7560 - KIT UNIVERSAL de pendrive, v2 (termico + wi-fi + xiri + cor)
+#  PFL7560 - KIT UNIVERSAL de pendrive, v2 (termico + wi-fi + xiri + cor + suite)
 #
 #  Como funciona: o proprio firmware roda /vendor/bin/nl_usb_update.sh a cada
 #  boot (gatilho: sys.boot_completed=1). Esse script varre os pendrives e, se
@@ -17,8 +17,15 @@
 #  A fase de COR (pergunta a pessoa, ate ~90 s) e lancada DESTACADA, a partir de
 #  uma copia em /data/vendor/pfl7560-kit (pasta so do root, 0700), pelo cor.sh.
 #
+#  SUITE (bloco 9B): o kit instala a suite de verificacao em /data/vendor/pfl7560-suite
+#  (pasta so do root) e o servico de boot /vendor/etc/init/pfl7560-suite.rc, e lanca
+#  a suite no modo pendrive (cor, angulo e foco, temperatura, rampa, resumo) em vez do
+#  cor.sh direto. Com DESINSTALAR-SUITE.txt na raiz do pendrive, remove a suite e
+#  roda so a fase de cor, como antes. Sem a suite instalada, idem.
+#
 #  Coloque na RAIZ do pendrive (FAT32) tudo o que esta na pasta pendrive-autorun:
 #      newlink_update.sh  cor.sh  lvdsctl  nl_camcheck  ZYCustom.ini  LEIA-ME.txt  kit/*.png
+#      suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc  (e nl_tela, fontes/ do 9A)
 #  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
 #  IDEMPOTENTE:
@@ -58,6 +65,13 @@ RC="$R/vendor/etc/init/hw/init.bigfish.rc"
 ATV_INI_DIR="$R/atv/ini"
 WORK="$R/data/vendor/pfl7560-kit"
 JOURNAL="$WORK/journal"
+# suite (bloco 9B): pasta so do root, servico de boot e pasta do pedido do app. O .rc e
+# montado FORA da pasta que o init le (/vendor/etc/init) e so entra nela por mv.
+SUITE="$R/data/vendor/pfl7560-suite"
+RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
+RC_SUITE_NOVO="$R/vendor/etc/pfl7560-suite.rc.new"
+ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
+PEDIDO_DIR="$R/data/media/0/pfl7560"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
 DONO_UID=0
@@ -92,9 +106,13 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 # tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO editar a mao.
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-36b05d317275d78d67f94380ba08f607  cor.sh
+1926ee5699fdc87bf677bd7e00aed28d  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 a66670952039a97e8870e79ab19d12d6  nl_camcheck
+ea698598b4b0d5a45e92f73f414179f9  suite.sh
+440e37267d7f861f919754a5afafd0b1  suite-boot.sh
+a5ffa5af43c3b245e7f47a0e88411245  suite-pedido.sh
+cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -236,7 +254,7 @@ fi
 LOG "kit conferido: $(kit_nomes | wc -l | tr -dc '0-9') arquivos com md5 certo"
 
 # copia o kit para a pasta so do root (o cor.sh roda de la, destacado). Nao apaga
-# o journal nem o backup: so kit/, cor.sh e lvdsctl sao trocados.
+# o journal nem o backup: so as subpastas (kit/, fontes/) e os arquivos da lista sao trocados.
 # A copia vai primeiro para uma pasta de PREPARO dentro de $WORK, e conferida LA
 # e so entao cada arquivo vai para o lugar com mv (rename, atomico; um link no
 # lugar dele e substituido, nunca seguido). Assim $WORK/cor.sh e $WORK/lvdsctl
@@ -250,14 +268,22 @@ if ! preparar_trabalho; then
 fi
 KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
+# os executaveis do kit (os que existirem)
+KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh"
+# subpastas (um nivel) dos nomes da lista: kit, fontes
+kit_subpastas(){ echo "$1" | sed -n 's|/.*||p' | sort -u; }
 copiar_preparo(){
   rm -rf "$PREP"
-  ( umask 077; mkdir "$PREP" && mkdir "$PREP/kit" ) || return 1
+  ( umask 077; mkdir "$PREP" ) || return 1
+  for _cn in $(kit_subpastas "$KIT_COPIA"); do ( umask 077; mkdir "$PREP/$_cn" ) || return 1; done
   for _cn in $KIT_COPIA; do cp "$MP/$_cn" "$PREP/$_cn" || return 1; done
-  chmod 755 "$PREP/cor.sh" "$PREP/lvdsctl" "$PREP/nl_camcheck"
+  for _cn in $KIT_EXEC; do [ -f "$PREP/$_cn" ] && chmod 755 "$PREP/$_cn"; done
+  return 0
 }
 por_no_lugar(){
-  rm -rf "$WORK/kit" && mkdir "$WORK/kit" || return 1
+  for _cn in $(kit_subpastas "$KIT_COPIA"); do
+    rm -rf "${WORK:?}/$_cn" && mkdir "$WORK/$_cn" || return 1
+  done
   for _cn in $KIT_COPIA; do mv -f "$PREP/$_cn" "$WORK/$_cn" || return 1; done
 }
 if ! copiar_preparo; then
@@ -278,6 +304,115 @@ if ! trabalho_conferir $KIT_COPIA; then
   exit 1
 fi
 COR_MD5=$(kit_md5_esperado cor.sh)
+
+# ---- suite de verificacao (bloco 9B): arquivos e pasta do pedido -----------------
+# A suite roda como root a partir de $SUITE: mesmas regras da pasta de trabalho (so do
+# root, 0700; arquivo regular do root com o md5 da lista). Copia a partir de $WORK (ja
+# conferida), so o que tem md5 diferente, por uma pasta de preparo DENTRO de $SUITE,
+# conferida la, e mv para o lugar; no fim confere tudo. Idempotente: 2a vez nada grava.
+suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$'; }
+# a pasta e as subpastas dela (kit/, fontes/): um arquivo "regular" dentro de uma
+# subpasta que e link passaria pelo arq_seguro
+suite_dir_ok(){
+  if dir_seguro "$SUITE"; then
+    for _sd in $(kit_subpastas "$(suite_nomes)"); do
+      if [ -e "$SUITE/$_sd" ] || [ -L "$SUITE/$_sd" ]; then
+        dir_seguro "$SUITE/$_sd" || { LOG "[ERRO] $SUITE/$_sd nao e uma pasta so do root (link?) - suite NAO instalada."; return 1; }
+      fi
+    done
+    return 0
+  fi
+  LOG "[ERRO] $SUITE nao e uma pasta so do root (link, dono errado ou aberta a outros) - suite NAO instalada."
+  return 1
+}
+instalar_suite_arquivos(){
+  if [ ! -e "$SUITE" ] && [ ! -L "$SUITE" ]; then
+    mkdir -p "${SUITE%/*}" 2>/dev/null
+    ( umask 077; mkdir "$SUITE" 2>/dev/null ) && chmod 700 "$SUITE" 2>/dev/null
+  fi
+  suite_dir_ok || return 1
+  _ps="$SUITE/preparo.$$"
+  rm -rf "$_ps"
+  ( umask 077; mkdir "$_ps" ) || return 1
+  _mud=""
+  for _sn in $(suite_nomes); do
+    if arq_seguro "$SUITE/$_sn" && [ "$(md5sum "$SUITE/$_sn" 2>/dev/null | cut -d' ' -f1)" = "$(kit_md5_esperado "$_sn")" ]; then
+      continue
+    fi
+    case "$_sn" in */*) [ -d "$_ps/${_sn%/*}" ] || ( umask 077; mkdir "$_ps/${_sn%/*}" ) || { rm -rf "$_ps"; return 1; } ;; esac
+    cp "$WORK/$_sn" "$_ps/$_sn" || { rm -rf "$_ps"; return 1; }
+    _mud="$_mud $_sn"
+  done
+  if [ -n "$_mud" ]; then
+    # shellcheck disable=SC2086  # lista de nomes sem espaco, divisao de proposito
+    if ! conferir_em "$_ps" $_mud; then rm -rf "$_ps"; return 1; fi
+    for _sn in $_mud; do
+      case "$_sn" in */*) [ -d "$SUITE/${_sn%/*}" ] || ( umask 077; mkdir "$SUITE/${_sn%/*}" ) || { rm -rf "$_ps"; return 1; } ;; esac
+      mv -f "$_ps/$_sn" "$SUITE/$_sn" || { rm -rf "$_ps"; return 1; }
+    done
+  fi
+  rm -rf "$_ps"
+  for _sn in $KIT_EXEC; do [ -f "$SUITE/$_sn" ] && chmod 755 "$SUITE/$_sn"; done
+  # shellcheck disable=SC2046
+  conferir_em "$SUITE" $(suite_nomes) || return 1
+  if [ -n "$_mud" ]; then LOG "[OK] suite: arquivos atualizados em $SUITE:$_mud"; else LOG "suite: arquivos ja estavam em dia em $SUITE"; fi
+  return 0
+}
+# pasta do pedido do app (/sdcard/pfl7560 para os apps): media_rw, 0775. Um link no
+# lugar dela e recusado (nunca seguido).
+preparar_pedido(){
+  if [ -L "$PEDIDO_DIR" ]; then LOG "[ERRO] $PEDIDO_DIR e um link - pasta do pedido NAO preparada."; return 1; fi
+  if [ ! -d "$PEDIDO_DIR" ]; then mkdir -p "$PEDIDO_DIR" 2>/dev/null || { LOG "[ERRO] nao consegui criar $PEDIDO_DIR."; return 1; }; fi
+  chown media_rw:media_rw "$PEDIDO_DIR" 2>/dev/null || LOG "[AVISO] nao consegui dar $PEDIDO_DIR ao media_rw."
+  chmod 775 "$PEDIDO_DIR" 2>/dev/null
+  return 0
+}
+# servico de boot: o .rc igual ao do kit, 0644, do root e com o rotulo SELinux do
+# init.bigfish.rc vizinho (ou vendor_configs_file se o ls -Z nao responder). O brick de
+# julho veio de .rc 0664 e sem rotulo (fato 3 do bloco 9).
+# shellcheck disable=SC2012  # o ls -Z e o unico leitor de rotulo SELinux do toybox
+rotulo_de(){ ls -Z "$1" 2>/dev/null | tr ' ' '\n' | grep '^u:object_r:[a-z0-9_]*:s0$' | head -1; }
+rotulo_alvo(){ _ra=$(rotulo_de "$RC"); if [ -n "$_ra" ]; then echo "$_ra"; else echo "$ROTULO_PADRAO"; fi; }
+suite_rc_ok(){
+  [ -f "$RC_SUITE" ] && [ ! -L "$RC_SUITE" ] && cmp -s "$WORK/pfl7560-suite.rc" "$RC_SUITE" || return 1
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ln "$RC_SUITE" 2>/dev/null)
+  case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
+  [ "$3" = "$DONO_UID" ] || return 1
+  _rl=$(rotulo_de "$RC_SUITE")
+  [ -z "$_rl" ] || [ "$_rl" = "$(rotulo_alvo)" ]
+}
+# so com o /vendor ja aberto rw (dentro do bloco dos fixes)
+instalar_rc(){
+  trabalho_conferir pfl7560-suite.rc || return 1
+  _alvo=$(rotulo_alvo)
+  rm -f "$RC_SUITE_NOVO"
+  if cp "$WORK/pfl7560-suite.rc" "$RC_SUITE_NOVO" && chmod 644 "$RC_SUITE_NOVO" \
+     && chown root:root "$RC_SUITE_NOVO" && cmp -s "$WORK/pfl7560-suite.rc" "$RC_SUITE_NOVO"; then
+    chcon "$_alvo" "$RC_SUITE_NOVO" 2>/dev/null || LOG "[AVISO] chcon $_alvo falhou no .rc da suite."
+    if mv -f "$RC_SUITE_NOVO" "$RC_SUITE" && suite_rc_ok; then
+      _rf=$(rotulo_de "$RC_SUITE"); [ -n "$_rf" ] || _rf="(ls -Z nao respondeu; pedido $_alvo)"
+      LOG "[OK] suite: servico de boot instalado em $RC_SUITE (0644 root:root, rotulo $_rf); vale no proximo boot"
+      return 0
+    fi
+  fi
+  rm -f "$RC_SUITE_NOVO"
+  LOG "[ERRO] suite: nao consegui instalar o servico de boot $RC_SUITE."
+  return 1
+}
+suite_pronta(){ suite_dir_ok && conferir_em "$SUITE" suite.sh; }
+
+SUITE_INSTALAR=1
+if [ -e "$MP/DESINSTALAR-SUITE.txt" ]; then SUITE_INSTALAR=0; fi
+SUITE_OK=0
+if [ "$SUITE_INSTALAR" = "1" ]; then
+  if instalar_suite_arquivos; then
+    SUITE_OK=1
+    preparar_pedido
+  else
+    LOG "[ERRO] suite NAO instalada: o kit roda so a fase de cor, como antes."
+  fi
+fi
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
 # termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior
@@ -399,9 +534,9 @@ else
   fi
 fi
 
-# O /vendor so e aberto rw se algum dos 3 fixes DE /vendor estiver pendente.
+# O /vendor so e aberto rw se algum dos 3 fixes DE /vendor (ou o .rc da suite) estiver pendente.
 VENDOR_RW=0
-if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok; then
+if [ "$TERM_ACAO" = "1" ] || ! wifi_ok || ! xiri_ok || { [ "$SUITE_OK" = "1" ] && ! suite_rc_ok; }; then
   LOG "correcao ausente/incompleta -> aplicando o que faltar no /vendor ..."
   if ! mount -o rw,remount /vendor; then
     LOG "[ERRO] nao consegui remontar /vendor rw (dm-verity/particao ocupada?) - retentar no proximo boot."
@@ -477,11 +612,30 @@ else
   fi
 fi
 
+# ---- servico de boot da suite (nao exige reboot: vale no proximo boot) ----
+if [ "$SUITE_OK" = "1" ]; then
+  if suite_rc_ok; then
+    LOG "suite: servico de boot ja estava instalado"
+  else
+    instalar_rc
+  fi
+fi
+
 sync
 # fecha o /vendor em TODOS os ramos, inclusive no de reboot - antes ele ficava
 # gravavel durante os 8 s de sleep.
 if [ "$VENDOR_RW" = "1" ]; then
   mount -o ro,remount /vendor 2>/dev/null
+fi
+
+# ---- desinstalar a suite (DESINSTALAR-SUITE.txt na raiz do pendrive) ----
+if [ "$SUITE_INSTALAR" = "0" ]; then
+  LOG "DESINSTALAR-SUITE.txt no pendrive: removendo a suite (servico, pasta, pedido e vigia)"
+  if trabalho_ok && trabalho_conferir suite.sh; then
+    sh "$WORK/suite.sh" --desinstalar
+  else
+    LOG "[ERRO] suite.sh nao conferiu na hora de executar - a suite NAO foi removida."
+  fi
 fi
 
 if [ "$CHG" = "1" ] && [ "$FAIL" = "0" ]; then
@@ -504,21 +658,34 @@ else
   LOG "==== fixes de /vendor ja estavam ok; nada a reiniciar. ===="
 fi
 
-# ---- FASE DE COR (destacada do exec do init) ---------------------------------
+# ---- SUITE ou FASE DE COR (destacada do exec do init) --------------------------
 # PREMISSA NAO CONFIRMADA (doc 41): o init processa o 'exec' de forma bloqueante
 # (inferido do AOSP), entao a pergunta de ate ~90 s nao pode rodar aqui dentro;
-# lancamos o cor.sh destacado (setsid, ou nohup se nao houver) com log proprio,
-# que ele copia para o pendrive no fim. E o unico ponto que depende disso.
+# lancamos a suite (ou o cor.sh) destacada (setsid, ou nohup se nao houver) com log
+# proprio, que ela copia para o pendrive no fim. E o unico ponto que depende disso.
 # Segunda premissa, do mesmo ponto: ao fim do exec o init NAO mata o grupo de
-# processos do servico temporario (oneshot) e o cor.sh destacado sobrevive. Se
+# processos do servico temporario (oneshot) e o processo destacado sobrevive. Se
 # matar, a fase de cor morre no inicio: sem journal ainda, nada foi escrito.
 if [ "$AVISO" = "1" ]; then AVISO_ARG="termica-falhou"; else AVISO_ARG=""; fi
 # O cor.sh recebe o md5 que a lista embutida manda (COR_MD5): e o que o gancho de
-# boot dele vai embutir. A conferencia abaixo e a ULTIMA antes de executar.
+# boot dele vai embutir. A conferencia abaixo vale para os dois caminhos: com o cor.sh
+# da pasta de trabalho divergente, algo mexe numa pasta so do root e nada e lancado.
 if ! cor_pronto; then
   LOG "[ERRO] cor.sh nao conferiu na hora de executar - a fase de cor NAO foi lancada (nada foi escrito na panelparam)."
   exit 1
 fi
+# a suite (bloco 9B) faz a cor (cor.sh no modo suite) e o resto; e a ULTIMA conferencia
+# antes de executar o suite.sh
+if [ "$SUITE_OK" = "1" ] && suite_pronta; then
+  LOG "lancando a suite (suite.sh pendrive) destacada; log em $SUITE/ultimo.log e, no fim, newlink_suite.log e newlink_cor.log no pendrive"
+  if command -v setsid >/dev/null 2>&1; then
+    setsid sh "$SUITE/suite.sh" pendrive "$MP" "$AVISO_ARG" >>"$SUITE/lancador.log" 2>&1 </dev/null &
+  else
+    nohup sh "$SUITE/suite.sh" pendrive "$MP" "$AVISO_ARG" >>"$SUITE/lancador.log" 2>&1 </dev/null &
+  fi
+  exit 0
+fi
+[ "$SUITE_INSTALAR" = "1" ] && LOG "[AVISO] a suite nao esta pronta: lancando so a fase de cor."
 LOG "lancando a fase de cor (cor.sh) destacada; log em $WORK/cor.log e, no fim, newlink_cor.log no pendrive"
 if command -v setsid >/dev/null 2>&1; then
   setsid sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" >>"$WORK/cor.log" 2>&1 </dev/null &

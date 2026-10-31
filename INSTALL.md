@@ -37,6 +37,7 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    - `pendrive-autorun/nl_camcheck` (lê a câmera interna, para o teste de cor automático)
    - `pendrive-autorun/ZYCustom.ini`
    - `pendrive-autorun/LEIA-ME.txt`
+   - `pendrive-autorun/suite.sh`, `suite-boot.sh`, `suite-pedido.sh` e `pfl7560-suite.rc` (a suíte de verificação, bloco 9B)
    - `pendrive-autorun/kit/*.png` (oito imagens, na subpasta `kit/` do pendrive)
 
    O jeito certo é pelo instalador, que copia tudo e **confere o md5 de cada arquivo depois da cópia**

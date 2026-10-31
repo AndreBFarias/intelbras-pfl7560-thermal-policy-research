@@ -23,6 +23,7 @@ COMO USAR (5 passos)
   1. Formate um pendrive em FAT32 (MBR). Copie TUDO o que esta nesta pasta para
      a RAIZ do pendrive (nao deixe dentro de outra pasta):
         newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   ZYCustom.ini   pasta kit
+        suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc
      (a pasta "kit" tem as telas .png; este LEIA-ME e opcional).
   2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
      Se aparecer "AJUSTANDO", espere: ele reinicia sozinho uma vez (~1 min).
