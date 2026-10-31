@@ -102,3 +102,8 @@ não ASCII cru vira `?` com aviso (não recusa a tela inteira).
 de geração (passo 13); a galeria abrindo o PNG gerado sem cortar nada (passo 13); o sinal de `inclinacao_graus` com
 uma inclinação proposital, e os valores reais de borda, trapézio e contraste no 1280×720 do aparelho (passo 10);
 a câmera ocupada pelo `AutoFocusService` (a suíte espera o autofoco antes; passo 11).
+
+## Atualização (bloco 20, 2026-10-31)
+
+O `nl_tela` e a `geometria` rodam no aparelho com a suíte ([ESTADO-2026-10-31.md](ESTADO-2026-10-31.md)). O sinal de `inclinacao_graus` com uma
+inclinação proposital e os limiares de borda continuam PROVISÓRIO (doc 44 §11).

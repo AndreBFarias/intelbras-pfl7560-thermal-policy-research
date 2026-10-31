@@ -15,8 +15,10 @@ As duas atividades com `MAIN` + `LAUNCHER` (o launcher do projetor lista só iss
 `LEANBACK_LAUNCHER` com `banner`, que custaram pouco. Por que a pasta privada: em `/sdcard` qualquer
 app gravaria o pedido e dispararia a suíte como root; na pasta privada só o UID do app grava, e o vigia
 root (`pendrive-autorun/suite-boot.sh`, `suite-pedido.sh`) confere que o dono do arquivo é o dono da
-pasta, com UID de app (>= 10000). O app não sabe se o pedido foi atendido (a suíte ignora pedidos até 10
-min depois de outra), e o vigia só liga no boot: o ícone vale a partir do boot **seguinte** à instalação.
+pasta, com UID de app (>= 10000). O app não sabe se o pedido foi atendido (a suíte ignora o pedido se outra
+já estiver rodando; fora isso o ícone sempre roda), e o vigia só liga no boot: o ícone vale a partir do boot
+**seguinte** à instalação. O `Descanso` grava `descanso-inicio` e `descanso-fim` na mesma pasta, e o vigia
+baixa a luz a 10% enquanto ele está na tela (doc 44 §14.1).
 
 ## Compilar
 
@@ -52,11 +54,12 @@ e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/ge
 ## Provas
 
 - `build.sh` gera o APK do zero e `apksigner verify` passa.
-- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='3'` (o 3 é o do descanso, bloco 16B; o 2 foi o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='4'` (o 4 é o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
   duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
 - O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
 
-## Pendente (aparelho)
+## No aparelho
 
 - Provado por rede em 2026-10-30: o app em `/vendor/app` (`flags=[ SYSTEM ]`) e o pedido do "Verificar
-  projetor" chegando ao vigia. Falta ver os ícones na lista de apps com o controle (passo 5 do doc 44).
+  projetor" chegando ao vigia. Em 2026-10-31 o ícone disparou a suíte pelo vigia do boot, e o descanso
+  MeowCast com a luz a 10% foi provado (doc 44 §14.1).

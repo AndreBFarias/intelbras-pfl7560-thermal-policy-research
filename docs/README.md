@@ -47,9 +47,12 @@
 | [`research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md`](research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) | **2ª troca de LCD: o painel novo é VESA** (o aparelho estava em JEIDA); medição térmica com o `gtt1` +8,17 °C sobre a base, com ressalvas; **OPT-S7 fechado:** o `gtt1` mede o **bloco dissipador do LED** e nenhum sensor mede o polarizador/LCD; **OPT-S6 fechado:** 3 ventiladores; 26 achados de auditoria de código e docs em 4 blocos |
 | [`research/41-auto-pareamento-camera-e-kit-universal.md`](research/41-auto-pareamento-camera-e-kit-universal.md) | **Cor automática após troca de LCD:** a câmera interna é USB UVC (lida direto por V4L2, captura ainda não provada); não existe ID elétrico do painel; critério **"duas metades" 63\|64** que não se engana com balanço de branco; desenho do **kit universal** de pendrive (térmica + cor, idempotente, para leigo) |
 | [`research/42-firmware-2026-10-modelo-sem-usbc.md`](research/42-firmware-2026-10-modelo-sem-usbc.md) | **Firmware de 2026-10-20 decompilado:** é o modelo **sem USB-C** (V1.0.0.1), não atualização do V1.0.0.9; **a térmica não mudou** (o bug do mux segue de fábrica); 4 perfis de painel novos; não aplicar no aparelho com USB-C; lições para o kit e o builder |
-
 | [`research/43-pesquisa-autofoco-keystone-teclas.md`](research/43-pesquisa-autofoco-keystone-teclas.md) | **Pesquisa de firmware para a suíte de boot:** como disparar o autofoco e saber que terminou (`sys.newlink.auto`), onde ficam os 4 pontos (`persist.sys.keystone.*`), por que nenhuma tecla do controle chama um script nosso, o modo de projeção e como o launcher lista os apps (`LAUNCHER`) |
-| [`research/44-suite-de-boot.md`](research/44-suite-de-boot.md) | **A suíte de verificação de boot:** o que é, como instala (kit de pendrive, serviço de boot, app, firmware de resgate), os três gatilhos (tomada, pendrive, ícone), etapas, telas, arquivos no aparelho, como desligar, limites, o que não foi feito e o que ficou PROVISÓRIO. Termina no **roteiro único "Teste no aparelho"** |
+| [`research/44-suite-de-boot.md`](research/44-suite-de-boot.md) | **A suíte de verificação de boot:** o que é, como instala (kit de pendrive, serviço de boot, app, firmware de resgate), os três gatilhos (tomada, pendrive, ícone), etapas, telas, arquivos no aparelho, como desligar, limites, o que não foi feito e o que ficou PROVISÓRIO. Termina no **roteiro único "Teste no aparelho"**. Em uso no projetor do dono desde 2026-10-31 |
+| [`research/45-home-pfl7560.md`](research/45-home-pfl7560.md) | **A home MeowCast** (`com.pfl7560.home`): intents das entradas, o que o `nlprovision` faz como HOME, por que a home entra pela prop `vendor.newlink.launcher.package` (o `set-home-activity` não vence), desenho, atalho Luz |
+| [`research/46-foco-e-qualidade.md`](research/46-foco-e-qualidade.md) | Pesquisa de firmware para o bloco 11: foco pelo `hidebug` (`gfd`, `sfd`), ajustes de imagem, resolução e keystone |
+| [`research/47-build-completa.md`](research/47-build-completa.md) | **A build completa** (`.bin` com escada, wi-fi, xiri e o `.rc` da suíte): gerador por manifesto, o que não cabe no slot e vai pelo pendrive, roteiro de gravação. Não gravada (gate BIN-S4a) |
+| [`research/48-tema-no-sistema.md`](research/48-tema-no-sistema.md) | **Tema Drácula no sistema do fabricante:** as 20 sobreposições (RRO), só cor, forma, imagens e layouts só de cor; o que fica de fora e por quê; saída de emergência |
 
 ## Reparo de hardware — troca do painel LCD e correção de cor
 
@@ -87,6 +90,17 @@ Os blocos de correção abertos a partir da sessão do doc 40, cada um com a se�
 | [`sprints/2026-10-30-bloco-9a-tela-e-geometria.md`](sprints/2026-10-30-bloco-9a-tela-e-geometria.md) | `nl_tela` (telas geradas no aparelho) e `nl_camcheck geometria` |
 | [`sprints/2026-10-30-bloco-9b-suite.md`](sprints/2026-10-30-bloco-9b-suite.md) | A suíte (`suite.sh`), o serviço de boot, os gatilhos, a integração com o kit |
 | [`sprints/2026-10-30-bloco-9c-app-pendrive-docs.md`](sprints/2026-10-30-bloco-9c-app-pendrive-docs.md) | App (Verificar projetor, Wi-Fi), pendrive com firmware de resgate, `pfl7560-processos.sh` e os documentos |
+| [`sprints/2026-10-31-bloco-10-home-e-tema-dracula.md`](sprints/2026-10-31-bloco-10-home-e-tema-dracula.md) | Home nova (10A) e tema Drácula nas telas da suíte e no app (10B) |
+| [`sprints/2026-10-31-bloco-11-qualidade-e-foco.md`](sprints/2026-10-31-bloco-11-qualidade-e-foco.md) | Mapa de nitidez 3x3, varredura fina de foco e `pfl7560-qualidade.sh` (feito no 19A) |
+| [`sprints/2026-10-31-bloco-12-build-completa.md`](sprints/2026-10-31-bloco-12-build-completa.md) | Gerador do `.bin` por manifesto e a build completa (doc 47) |
+| [`sprints/2026-10-31-bloco-13-tema-no-sistema.md`](sprints/2026-10-31-bloco-13-tema-no-sistema.md) | Sobreposições Drácula no sistema do fabricante (13A) e ícones dos apps na home (13B) |
+| [`sprints/2026-10-31-bloco-14-kit-tema-vlc.md`](sprints/2026-10-31-bloco-14-kit-tema-vlc.md) | O kit leva o que foi feito à mão: sobreposições, prop do gerenciador, apps desligados, marca; `pfl7560-marca.sh` e `pfl7560-vlc.sh` |
+| [`sprints/2026-10-31-bloco-15-luz-na-home.md`](sprints/2026-10-31-bloco-15-luz-na-home.md) | Botão Luz na home pelo `sbl` do `hidebug`, com a ponte root pelo vigia |
+| [`sprints/2026-10-31-bloco-16-tema-em-tudo.md`](sprints/2026-10-31-bloco-16-tema-em-tudo.md) | Sobreposições para o resto (16A), descanso de tela MeowCast e home sem Espelhamento (16B) |
+| [`sprints/2026-10-31-bloco-17-overlays-restantes.md`](sprints/2026-10-31-bloco-17-overlays-restantes.md) | Seis sobreposições a mais (foco, caixa de som, avisos, players) |
+| [`sprints/2026-10-31-bloco-18-overlays-finais.md`](sprints/2026-10-31-bloco-18-overlays-finais.md) | As últimas telas: teclado, atalhos, pareamento, menu de imagem, instalador e a do `android` v3 |
+| [`sprints/2026-10-31-bloco-19-fechamento.md`](sprints/2026-10-31-bloco-19-fechamento.md) | Fechamento: foco pela câmera (19A), layouts só de cor e imagens do framework (19B), o teste intermitente (19C) |
+| [`sprints/ESTADO-2026-10-31.md`](sprints/ESTADO-2026-10-31.md) | **O estado do conjunto:** o que está no projetor do dono, no pendrive e na build, e o que falta fazer com o dono |
 
 ## Arquivo interno (histórico de auditorias)
 
@@ -94,4 +108,6 @@ Pasta [`archive/`](archive/) — sprints e auditorias internas (não é o caminh
 
 ## Artefatos
 
-Pasta [`../artifacts/`](../artifacts/) — `ZYCustom.ini` stock e build, `bin-build/`, `app/` (o app da suíte), `camcheck/` e `tela/` (binários ARM da suíte), históricos.
+Pasta [`../artifacts/`](../artifacts/) — `ZYCustom.ini` stock e build, `bin-build/`, `app/` (o app da suíte e do descanso de tela), `home/` (a home MeowCast), `overlay/` (as
+sobreposições do tema), `tema/` (paleta, fundo e marca MeowCast), `camcheck/` e `tela/` (binários ARM da suíte),
+históricos.

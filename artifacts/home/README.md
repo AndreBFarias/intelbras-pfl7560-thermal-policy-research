@@ -13,7 +13,7 @@ O atalho **Luz** mostra o valor atual por baixo ("100%") e, com OK, abre o paine
 níveis (100, 80, 60, 40 e 25 "Econômico"). Setas escolhem, OK aplica, BACK fecha. O app não fala com o
 `hidebug` (só roda como root): grava o número, só dígitos, no arquivo `luz` da pasta privada dele
 (`getDataDir()`), e o vigia root do kit (`suite-pedido.sh`) aplica com `sbl N`, confere com `gbl` e devolve o
-valor em `luz-atual` (lido de volta pelo app). O nível escolhido fica guardado pelo kit e é reaplicado em todo
+valor na prop `vendor.pfl7560.luz` (lida de volta pelo app com `getprop`). O nível escolhido fica guardado pelo kit e é reaplicado em todo
 boot (`suite-boot.sh`). Doc 44 (vigia) e doc 45 (home).
 
 ![painel de luz](previa/home-painel-luz.png)
@@ -23,18 +23,14 @@ boot (`suite-boot.sh`). Doc 44 (vigia) e doc 45 (home).
 O atalho Espelhamento saiu e a fileira Apps nunca mostra o Office, o iOSCast nem o Espelhamento (`Modelo.OCULTOS`),
 que o dono mandou desligar. Doc 45 §12.
 
-## Ligar e desligar (sem exceção, nesta ordem)
+## Ligar e desligar
 
-A home de fábrica continua instalada. A nossa só vira a padrão com:
-
-    adb shell cmd package set-home-activity com.pfl7560.home/.HomeActivity
-
-e volta para a de fábrica com:
-
-    adb shell cmd package set-home-activity com.newlink.nlprovision/.MainActivity
-
-Antes de usar o primeiro comando, leia o doc 45 §4: com ele, o trabalho de boot do `nlprovision` (a HOME
-de fábrica) deixa de rodar. Há um caminho mais conservador, documentado lá e ainda não aplicado.
+A home de fábrica continua instalada. A nossa vira a tela inicial pela linha
+`vendor.newlink.launcher.package=com.pfl7560.home` no `/vendor/build.prop`, que o kit do pendrive grava só com
+a home instalada e conferida: o `nlprovision` (a HOME de fábrica) continua fazendo o trabalho de boot e repassa
+para a nossa (doc 45 §4.2, caminho B). O `cmd package set-home-activity` **não serve** aqui: o `nlprovision` tem
+prioridade 29 no filtro HOME e vence (visto no aparelho em 2026-10-31). Para voltar à de fábrica: o
+`DESINSTALAR-SUITE.txt` no pendrive (tira a linha) ou tirar a linha à mão; vale no boot seguinte.
 
 Para abrir sem trocar a padrão: `adb shell am start -n com.pfl7560.home/.HomeActivity`.
 
@@ -65,5 +61,5 @@ ambas normais.
 | `previa-src/.../PintorJ2D.java`, `Previa.java` | pintor Java2D e gerador das prévias, só no PC |
 
 Instalação no aparelho: como o app do 9C, só como app do sistema em `/vendor/app/PFL7560Home/PFL7560Home.apk`
-(o `pm install` deste firmware recusa apps de fora). Nada disto foi instalado ainda; o que falta provar
-está no doc 45 §9.
+(o `pm install` deste firmware recusa apps de fora). O kit do pendrive faz isso (`KIT_APPS` no
+`newlink_update.sh`). Em uso no projetor do dono desde 2026-10-31.

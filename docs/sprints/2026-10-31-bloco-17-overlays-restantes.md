@@ -21,3 +21,8 @@ A do `android` ja esta ligada no aparelho: o que for framework entra nela, sempr
 
 Provas: `conferir.py` TUDO OK contra cada APK alvo extraido do firmware; `apksigner verify`; previa antes e
 depois em `artifacts/overlay/previa/`. Nada no aparelho.
+
+## Estado (bloco 20, 2026-10-31)
+
+Integrado (merge `1638bb8`); as seis sobreposições estão ligadas no aparelho com as outras (20 ao todo; doc 48
+§11). Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).

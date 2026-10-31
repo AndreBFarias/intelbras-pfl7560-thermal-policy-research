@@ -28,10 +28,11 @@ COMO USAR (5 passos)
      a RAIZ do pendrive (nao deixe dentro de outra pasta):
         newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   nl_tela   ZYCustom.ini
         suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc   pfl7560.apk
-        pasta kit   pasta fontes   pasta overlay   pasta marca
+        pfl7560-home.apk   pasta kit   pasta fontes   pasta overlay   pasta marca
      (a pasta "kit" tem as telas .png e a pasta "fontes" as letras das telas geradas;
      "overlay" tem o tema do sistema e "marca" o logo e a animacao de boot;
-     pfl7560.apk e o app dos icones; este LEIA-ME e opcional). Pelo PC, o jeito mais
+     pfl7560.apk e o app dos icones e pfl7560-home.apk a tela inicial MeowCast;
+     este LEIA-ME e opcional). Pelo PC, o jeito mais
      seguro e ./install.sh --pendrive <pasta do pendrive> (copia e confere tudo).
   2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
      Se aparecer "AJUSTANDO", espere: ele reinicia sozinho uma vez (~1 min).
@@ -87,9 +88,9 @@ A SUITE DE VERIFICACAO (o que ela faz, quando roda, como desligar)
       tambem traz o icone "Wi-Fi", que abre a tela de Wi-Fi.
   ATENCAO: o icone SO PASSA A VALER NO BOOT SEGUINTE a instalacao do app (quem
   escuta o pedido liga no boot): depois de rodar este pendrive pela primeira vez,
-  desligue e ligue o projetor uma vez. Se tocar no icone e nada acontecer, pode ser
-  que outra verificacao tenha terminado ha menos de 10 minutos (ha uma protecao
-  contra repeticao) ou que ainda esteja rodando; espere e toque de novo.
+  desligue e ligue o projetor uma vez. O icone SEMPRE roda a verificacao, mesmo
+  logo depois de outra; so nao roda se uma verificacao ainda estiver na tela:
+  espere ela terminar e toque de novo.
   Se o projetor for desligado NO MEIO da verificacao 2 vezes seguidas, ela deixa
   de rodar sozinha ao voltar da tomada, ate que uma termine (pelo pendrive ou pelo
   icone). Tecnicamente: o contador e o arquivo "incompletas" na pasta da suite, e o
@@ -99,13 +100,16 @@ A SUITE DE VERIFICACAO (o que ela faz, quando roda, como desligar)
   historico-boot.txt, com os sinais de cada boot).
   COMO DESLIGAR A SUITE: crie um arquivo VAZIO chamado DESINSTALAR-SUITE.txt na
   raiz do pendrive e ligue o projetor com ele plugado. O kit remove o servico de
-  boot, a pasta da suite e o pedido, e roda so a fase de cor, como antes. Se a suite
+  boot, a pasta da suite e o pedido, tira a tela inicial MeowCast (a de fabrica
+  volta no boot seguinte) e roda so a fase de cor, como antes. Se a suite
   tinha um backup da cor guardado no projetor (quando rodou sem pendrive), ele vem
-  para o pendrive como suite-panelparam-backup-<serial>.img (com .md5). O app
-  continua instalado, mas sem efeito: para tira-lo use, no PC,
-  adb uninstall com.pfl7560.verificar
-  LIMITE: a suite e o app foram provados so em SIMULACAO; o teste no aparelho esta
-  marcado para o fim (docs/research/44-suite-de-boot.md, "Teste no aparelho").
+  para o pendrive como suite-panelparam-backup-<serial>.img (com .md5). Os apps
+  (icones e tela inicial) continuam instalados, sem efeito: sao apps do sistema e
+  o "adb uninstall" nao os tira (docs/research/44-suite-de-boot.md, secao 8).
+  PROVADO no projetor do dono (2026-10-31): a suite pelo boot, pelo icone e pelo
+  pendrive, a luz da tela inicial e o descanso de tela. FALTA: tirar da tomada com
+  o projetor LIGADO com o cabo de verdade (o mecanismo foi provado com um reset
+  sem desligamento) e a varredura fina de foco com o foco ruim de proposito.
 
 TEMA E MARCA (bloco 14; pastas "overlay" e "marca" do pendrive)
   Na mesma passada, com a suite instalada, o kit tambem:
@@ -183,9 +187,9 @@ LIMITES (o que o kit NAO faz)
   - Nao corrige painel que precise de swap, bit ou map: isso fica no wizard do
     PC (./pfl7560-lcd-color.sh wizard).
   - Termico so vale nos firmwares V1.0.0.9 e V1.0.0.1 de fabrica (em outro, o kit recusa).
-  - Este kit v2 foi provado so em SIMULACAO (harness com stubs, tests/). A
-    bancada no aparelho (etapa E4) ainda nao foi feita: se algo se comportar
-    diferente, guarde os dois .log do pendrive.
+  - A cor automatica foi provada no projetor do dono com o kit rodado pelo PC e
+    reboot; a bancada completa do pendrive (etapa E4) ainda nao foi feita: se
+    algo se comportar diferente, guarde os .log do pendrive.
 
 OBSERVACOES
   - Testado no firmware V1.0.0.9; o V1.0.0.1 (sem USB-C) so em simulacao, ainda nao no

@@ -54,3 +54,10 @@ alvo do `Makefile` que já roda os testes do builder.
    - nada no aparelho.
 4. **Relatório:** o que fica PROVISÓRIO até o gate BIN-S4a, e um roteiro de gravação seguro para o dono
    (resgate pronto, o que olhar no 1º boot, como voltar).
+
+## Atualização (bloco 20, 2026-10-31)
+
+A build atual é `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin` (md5 `397698b9…`: escada, wi-fi, xiri e o `.rc` da
+suíte), válida no PC e **não gravada** (gate BIN-S4a); a de escada citada acima é a anterior. O kit do pendrive
+leva hoje também a home, as 20 sobreposições, a prop do gerenciador de arquivos e a marca (doc 44 §15). Doc 47 e
+`firmware/README.md`.

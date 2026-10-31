@@ -191,6 +191,8 @@ exit 0'
   # sleep: registra; com $T/mata-no-sleep = N, o "sleep N" manda TERM para quem chamou
   stub sleep 'echo "sleep $*" >> "$T/calls.log"
 if [ -f "$T/mata-no-sleep" ] && [ "$1" = "$(cat "$T/mata-no-sleep")" ]; then rm -f "$T/mata-no-sleep"; kill -TERM "$PPID"; fi
+# sleep-cria: caminhos (um por linha) que o "sleep 30" do laco do vigia cria (um pedido que chega depois do boot)
+if [ -f "$T/sleep-cria" ] && [ "$1" = 30 ]; then while IFS= read -r f; do : > "$f"; done < "$T/sleep-cria"; rm -f "$T/sleep-cria"; fi
 # o PackageManager grava o package-restrictions.xml com atraso: restr-atraso = quantos sleeps ate gravar
 if [ -f "$T/restr-pendente" ]; then
   n=$(cat "$T/restr-atraso" 2>/dev/null || echo 0)
@@ -518,6 +520,15 @@ c_vigia(){
     afirma 'grep -q "vigia do pedido ligado: laco de 30s" "$S/boot.log"' "log sem o laco: $(cat "$S/boot.log")"
     afirma 'tem_chamada "setsid sh $S/suite.sh pedido"' "o pedido no laco nao lancou a suite"
     afirma '[ ! -e "$PED/pedir-verificacao" ]' "o pedido nao foi apagado"
+    limpa
+
+    novo_cenario "vigia: sem inotifyd = laco; o descanso de tela (inicio e fim) tambem chega ao suite-pedido"
+    instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"
+    rm -f "$T/bin/inotifyd"
+    printf '%s\n' "$PED/descanso-inicio" "$PED/descanso-fim" > "$T/sleep-cria"
+    roda_boot
+    afirma 'tem_chamada "HIDEBUG  picture sbl 10 quit " && grep -q "luz de volta a 60%" "$S/vigia.log"' "o laco ignorou o descanso: $(grep HIDEBUG "$T/calls.log" | tr '\n' '|')"
+    afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ]' "o sinal do descanso nao foi apagado"
     limpa
   else
     echo "  (o host tem inotifyd: caso do laco pulado)"

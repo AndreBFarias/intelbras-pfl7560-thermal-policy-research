@@ -85,13 +85,14 @@ pergunta olhando a tela:
 Depois da cor, o kit roda o resto da **suíte de verificação** (ângulo, foco, nitidez, temperatura e um teste
 da proteção, em que a imagem escurece por cerca de 1 minuto: é proposital) e mostra um **resumo** em tela cheia
 por 20 s. Se o painel foi trocado e o formato ficou errado de novo em outro dia (por exemplo, depois de
-regravar o firmware), basta o projetor voltar da tomada: a suíte roda sozinha e corrige (o gatilho da tomada ainda não foi provado no aparelho). Também dá para pedir
+regravar o firmware), basta o projetor voltar da tomada: a suíte roda sozinha e corrige (o gatilho da tomada foi provado com um reset sem desligamento, `sysrq b`; com o cabo tirado de verdade, ainda não). Também dá para pedir
 pelo ícone **Verificar projetor** na lista de apps (vale a partir do boot seguinte à instalação do kit).
 Detalhes: [doc 44](../research/44-suite-de-boot.md).
 
 Antes de trocar, o kit faz backup da `panelparam` (conferido com `cmp`) e grava um journal: se faltar
 energia no meio do teste, o formato original volta no boot seguinte. Rodar de novo é inofensivo.
-**Limite:** o kit v2 foi provado só em simulação; a bancada no aparelho (etapa E4 do
+**Limite:** a cor automática foi provada no aparelho do dono com o kit rodado por adb e reboot
+([bloco 8](../sprints/2026-10-30-bloco-8-camera-robusta.md)); a bancada completa do pendrive (etapa E4 do
 [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md)) ainda não foi feita.
 
 ### Com PC: wizard guiado

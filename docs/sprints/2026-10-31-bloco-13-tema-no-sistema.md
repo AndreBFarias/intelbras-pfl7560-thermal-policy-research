@@ -93,3 +93,8 @@ Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-13b`, branch `bloco
   atribuição; push do branch no fim. Docs em pt-BR com acento; zero emoji. Use a skill `hallmark` no que for
   desenho, mas a paleta do bloco 10 manda.
 - Relatório no schema: feito, provas, commits, provisorio, desvios, pendente.
+
+## Estado (bloco 20, 2026-10-31)
+
+13A e 13B integrados (merges `47ae1be` e `2daf954`). As sobreposições estão ligadas no aparelho: 20 hoje, com as
+dos blocos 16A, 17A, 18 e 19B (doc 48). Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).

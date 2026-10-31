@@ -14,7 +14,8 @@ Histórico de builds (nenhuma delas deve ser flashada; todas reproduzíveis pelo
 |---|---|---|
 | protótipo sem metadados | `f5ff89c9…` | **BRICOU** o aparelho (mode `0664` + xattr ausente). Apagado; não recriar. |
 | `PFL7560-FIX-com-metadados.bin` | `16a4b42a…` | superada em 2026-07-29 — carregava os limiares de `[BacklightPolicy]` **pré-escada** (`27000..36000`). Removida do disco; reproduzível. |
-| `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | **atual.** Offline aprovado, HW pendente (gate BIN-S4a). |
+| `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | anterior: só a escada. Offline aprovado, HW pendente (gate BIN-S4a). É o `.bin` que o `install.sh --com-firmware` leva para `firmware-nosso-NAO-GRADUADO/`. |
+| `PFL7560-COMPLETO-NAO-GRADUADO.bin` | `397698b9…` | **atual** (2026-10-31): escada + wi-fi + xiri + `.rc` da suíte. Offline válido, HW pendente (gate BIN-S4a). |
 
 **BIN-S3b FECHADO (2026-07-29):** a build é **reprodutível** — duas execuções a partir do mesmo stock
 (`28a2f280…`) e do mesmo `artifacts/ZYCustom_390.ini` (`252ab7a7…`) deram md5 idêntico. Verificação

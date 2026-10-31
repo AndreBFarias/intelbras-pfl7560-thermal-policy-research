@@ -133,3 +133,9 @@ estáticas do kit, se forem regeradas por script: ache o gerador; se não houver
   linha de atribuição; push do branch no fim.
 - Kit em `pendrive-autorun/`: ASCII puro, md5 só pelo script. Docs em pt-BR com acento.
 - Relatório no schema: feito, provas, commits, provisorio, desvios, pendente.
+
+## Estado (bloco 20, 2026-10-31)
+
+10A e 10B integrados (merges `9f3eeba` e `67619ed`). A home MeowCast (`versionCode` 4) é a tela inicial do
+projetor do dono pela linha `vendor.newlink.launcher.package` no `/vendor/build.prop`, que o kit grava: o
+`set-home-activity` previsto aqui não vence o `nlprovision` (prioridade 29 no HOME; doc 45). Estado em [ESTADO-2026-10-31.md](ESTADO-2026-10-31.md).
