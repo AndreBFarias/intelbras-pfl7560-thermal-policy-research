@@ -39,7 +39,4 @@ public interface Pintor {
     void texto(String s, float x, float yBase, int fonte, float tam, int cor, int alin);
 
     float largura(String s, int fonte, float tam);
-
-    /** Desenha o icone de um app (Drawable no Android). Devolve false se nao houver. */
-    boolean icone(Object icone, float x, float y, float lado);
 }

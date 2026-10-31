@@ -8,7 +8,6 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 
 /** Pintor sobre o Canvas do Android. As fontes IBM Plex vem de assets/ (o build.sh copia do kit). */
 final class PintorCanvas implements Pintor {
@@ -122,18 +121,5 @@ final class PintorCanvas implements Pintor {
     @Override
     public float largura(String s, int fonte, float tam) {
         return letra(fonte, tam).measureText(s);
-    }
-
-    @Override
-    public boolean icone(Object icone, float x, float y, float lado) {
-        if (!(icone instanceof Drawable)) return false;
-        Drawable d = (Drawable) icone;
-        try {
-            d.setBounds(Math.round(x), Math.round(y), Math.round(x + lado), Math.round(y + lado));
-            d.draw(c);
-            return true;
-        } catch (RuntimeException e) {
-            return false;
-        }
     }
 }

@@ -12,7 +12,8 @@ import java.util.List;
  * direita, alinhadas pelo topo do relogio; Atalhos e Apps embaixo, numa grade de 24 px de vao e
  * margens de 112 px. Uma cor de destaque so: rosa no foco (anel de 5 px, icone rosa, cartao
  * cheio). Roxo so nos titulos de grupo e nos dois pontos do relogio. Sem sombra, sem gradiente
- * nos cartoes, sem animacao: o foco aparece na hora.
+ * nos cartoes, sem animacao: o foco aparece na hora. Unica excecao ao "uma cor so": o monograma do
+ * app sem desenho proprio usa um dos 5 acentos do tema, estavel pelo pacote (bloco 13B).
  */
 public final class Desenho {
     public static final float LARGURA = 1920f;
@@ -145,7 +146,11 @@ public final class Desenho {
             float lado = 88;
             float ix = x + (APP_W - lado) / 2;
             float iy = APP_Y + 22;
-            if (!p.icone(a.imagem, ix, iy, lado)) monograma(p, a.rotulo, ix + lado / 2, iy + lado / 2, lado / 2, f);
+            if (a.icone == Icones.MONOGRAMA) {
+                Icones.monograma(p, a.rotulo, a.pacote, ix, iy, lado, f);
+            } else {
+                Icones.desenhar(p, a.icone, ix, iy, lado, f ? Tema.ROSA : Tema.TEXTO_2, f ? Tema.LINHA : Tema.CARTAO);
+            }
             rotulo(p, a.rotulo, x + APP_W / 2, APP_Y + APP_H - 20, APP_W - 28, Pintor.SANS_SEMI, 26, 30, Pintor.CENTRO);
         }
     }
@@ -180,12 +185,6 @@ public final class Desenho {
         } else {
             p.retangulo(x, y, w, h, RAIO, Tema.CARTAO);
         }
-    }
-
-    private static void monograma(Pintor p, String rotulo, float cx, float cy, float r, boolean foco) {
-        p.circulo(cx, cy, r, foco ? Tema.ROSA : Tema.DISCO);
-        String ini = rotulo.isEmpty() ? "?" : rotulo.substring(0, 1).toUpperCase();
-        p.texto(ini, cx, cy + 15, Pintor.SANS_NEGRITO, 44, foco ? Tema.FUNDO : Tema.TEXTO, Pintor.CENTRO);
     }
 
     /** Rotulo em ate duas linhas, quebrando nos espacos; `base` e a linha de base da ULTIMA linha. */

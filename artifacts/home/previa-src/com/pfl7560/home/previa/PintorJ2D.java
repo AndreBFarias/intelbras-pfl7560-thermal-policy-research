@@ -124,9 +124,4 @@ final class PintorJ2D implements Pintor {
         FontRenderContext frc = new FontRenderContext(null, true, true);
         return (float) fonte(fonte, tam).getStringBounds(s, frc).getWidth();
     }
-
-    @Override
-    public boolean icone(Object icone, float x, float y, float lado) {
-        return false;   // no PC nao ha icone de app: o Desenho cai no monograma
-    }
 }
