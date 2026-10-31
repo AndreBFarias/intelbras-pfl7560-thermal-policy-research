@@ -230,7 +230,7 @@ sair(){
     LOG "saindo com o override de temperatura ativo: limpando"
     if rampa_limpar; then res rampa_limpeza_saida ok; else res rampa_limpeza_saida falhou; fi
   fi
-  [ -n "$LOGCAT_PID" ] && kill "$LOGCAT_PID" 2>/dev/null
+  parar_logcat
   if [ "$TRAVA_MINHA" = "1" ]; then
     date +%s > "$FIM_ARQ.new" 2>/dev/null && mv -f "$FIM_ARQ.new" "$FIM_ARQ"
     rm -f "$INCOMPLETAS_ARQ"
@@ -241,6 +241,15 @@ sair(){
     copiar_log_pendrive
     rmdir "$LOCK" 2>/dev/null
   fi
+}
+# o logcat da rampa roda sob timeout; o timeout do toybox nao repassa o TERM ao filho,
+# entao o logcat (filho dele) e morto primeiro, pelo pid do pai
+parar_logcat(){
+  [ -n "$LOGCAT_PID" ] || return 0
+  pkill -P "$LOGCAT_PID" 2>/dev/null
+  kill "$LOGCAT_PID" 2>/dev/null
+  wait "$LOGCAT_PID" 2>/dev/null
+  LOGCAT_PID=""
 }
 # conta mais uma suite comecada (zerada no fim, pelo sair)
 contar_inicio(){
@@ -720,7 +729,7 @@ etapa_rampa(){
   sleep "$RAMPA_INJETADO"
   if rampa_limpar; then _limpo=ok; else _limpo=falhou; fi
   sleep "$RAMPA_DEPOIS"
-  kill "$LOGCAT_PID" 2>/dev/null; wait "$LOGCAT_PID" 2>/dev/null; LOGCAT_PID=""
+  parar_logcat
   _nw=$(grep -ac 'Overheat Warning' "$_lc" 2>/dev/null)
   _desce=$(grep -a 'Level Change' "$_lc" 2>/dev/null | grep -a '=> 850!' | grep -avc '850 => 850!')
   _sobe=$(grep -a 'Level Change' "$_lc" 2>/dev/null | grep -a '=> 1000!' | grep -avc '1000 => 1000!')

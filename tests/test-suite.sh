@@ -975,6 +975,17 @@ exec '"$(command -v ls)"' "$@"'
   afirma '[ "$RC" = 130 ] && [ ! -e "$S/incompletas" ]' "rc=$RC ou contador ficou"
   limpa
 
+  novo_cenario "conferente: timeout que nao repassa o TERM (toybox) = o logcat da rampa nao fica orfao"
+  etapa_feliz
+  local real_sleep; real_sleep="$(command -v sleep)"
+  stub logcat 'echo "logcat $*" >> "$T/calls.log"; cat "$T/logcat-saida"; echo $$ > "$T/logcat.pid"; exec '"$real_sleep"' 30'
+  stub timeout 'shift; case "$1" in logcat) "$@" & wait $! ;; *) exec "$@" ;; esac'
+  roda_suite tomada
+  afirma '[ -s "$T/logcat.pid" ] && ! kill -0 "$(cat "$T/logcat.pid")" 2>/dev/null' "o logcat ficou rodando depois da suite"
+  afirma '[ "$(res rampa)" = reagiu ]' "rampa: $(res rampa)"
+  [ -s "$T/logcat.pid" ] && kill "$(cat "$T/logcat.pid")" 2>/dev/null
+  limpa
+
   novo_cenario "conferente: pedido que nao se apaga (pasta) = ignorado, sem lancar"
   instala_suite; mkdir -p "$PED/pedir-verificacao/x"
   roda_pedido w "$PED" pedir-verificacao
