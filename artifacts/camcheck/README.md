@@ -33,6 +33,7 @@ ser o md5 novo (o `make check-kit` reprova se nao for) e a lista do
 | `faixas dev N saida.txt [descarte]` | captura 1 quadro YUYV (640x480, ou o menor YUYV), acha as faixas claras e exige EXATAMENTE N. Grava `ini fim` por faixa. Sai 0 se achou N, 3 se nao (imprime quantas achou), 1 se nao conseguiu abrir ou ler, ou se o quadro veio marcado com erro, curto ou de outro tamanho |
 | `niveis dev faixas.txt [descarte]` | captura 1 quadro e imprime a media do miolo de cada faixa, uma por linha, e `inv_cresc=X inv_decresc=Y` na ultima |
 | `geometria dev faixas.txt [descarte]` | (bloco 9A, contrato C-geo) captura 1 quadro com a tela de calibracao e imprime `inclinacao_graus`, `trapezio_pct`, `borda_centro_px`, `borda_esq_px`, `borda_dir_px`, `contraste_centro` e `quadro=LxA`, uma `chave=valor` por linha, nesta ordem, com ponto decimal. Sai 0; 3 se as faixas do `faixas.txt` nao aparecem (em mesmo numero) nas tres colunas; 1 se nao conseguiu ler o quadro ou o `faixas.txt` (ou ele tem menos de 3 faixas, ou faixa fora do quadro) |
+| `nitidez dev faixas.txt [descarte]` | (bloco 11) captura 1 quadro com a tela de calibracao e imprime o mapa de nitidez 3x3: `nitidez_r1c1` ... `nitidez_r3c3` (largura de borda 10-90 % em px, linha r de cima para baixo no quadro como ele chega, coluna c da esquerda para a direita) e `quadro=LxA`, uma `chave=valor` por linha, nesta ordem, com ponto decimal. Sai 0; 3 se a imagem ou as faixas do `faixas.txt` nao aparecem nas tres colunas, ou se uma regiao fica sem borda; 1 se nao conseguiu ler o quadro ou o `faixas.txt` (menos de 4 faixas, faixa fora do quadro) |
 
 `descarte` padrao 15 em `faixas` e `niveis`. No lugar de `dev`, vale
 `arquivo:<caminho.yuyv>:<L>:<A>` (quadro cru do disco, sem V4L2). O arquivo tem de ter
@@ -93,7 +94,41 @@ Os `-f0` foram capturados com o painel em VESA (cores trocadas): o fundo nao fic
 clareiam e a borda alarga; nao servem de referencia de foco. A borda de 640x480 e a de 1280x720
 nao se comparam direto (px de quadros diferentes): os limiares do 9B devem ser por tamanho.
 
+## Como mede a nitidez 3x3 (bloco 11)
+
+- As regioes saem da imagem achada no quadro, nao de janelas fixas: em cada coluna do quadro, o
+  desvio padrao da luma no trecho da pilha (o do `faixas.txt`, com a folga de 1/8 da altura). Dentro
+  da imagem as faixas alternam claro e escuro; fora, a parede e lisa (acesa ou nao). Limiar na metade
+  do maior desvio (media movel de 9 colunas); a imagem e o trecho acima dele que contem o meio do
+  quadro. Imagem achada mais estreita que 20 % do quadro: sai 3.
+- Tres colunas de 6 % da largura da imagem achada, centradas em 10, 50 e 90 % dela. Em cada uma, as
+  faixas (tem de achar as N do `faixas.txt`), a inclinacao local (como na geometria) e o perfil
+  endireitado. Os N-1 vaos viram tres grupos, de cima para baixo no quadro: o grupo do vao k e
+  `k*3/(N-1)` (16 faixas: 5, 5 e 5 vaos). A nitidez da regiao e a media das larguras 10-90 % das
+  bordas dos vaos do grupo, a mesma medida da geometria.
+- O quadro da camera vem espelhado de cima para baixo: a linha r1 do quadro e a de BAIXO na parede.
+  As colunas nao sao espelhadas (c1 = esquerda na parede).
+- A camera nao esta no eixo da lente (doc 46 s5.4): o mapa compara-se contra ele mesmo (antes e
+  depois), nao em valor absoluto.
+
+Mapas dos quadros reais (px; linha a linha, c1 c2 c3):
+
+| quadro | r1 | r2 | r3 |
+| --- | --- | --- | --- |
+| `calibracao-f1` (640x480, imagem alem do quadro) | 2.73 2.98 2.95 | 2.82 2.88 2.82 | 2.50 2.85 2.81 |
+| `calibracao-inclinada-f1` (640x480, imagem de x 0 a 615) | 1.60 1.69 1.84 | 1.62 1.57 1.75 | 1.64 1.59 1.79 |
+| `calibracao-hd-f1` (1280x720, imagem de x 102 a 1080) | 3.22 1.75 2.00 | 2.27 1.51 1.79 | 1.83 1.65 1.93 |
+
+No `calibracao-hd-f1` (4 pontos ligados, o caso do dono) a coluna da esquerda sai ~1,5x mais
+borrada que a do meio, pior no canto r1c1 (de baixo na parede), como a suite mediu no aparelho.
+
 ## Provas
+
+- Nitidez 3x3 (bloco 11): as 10 chaves em ordem nos 5 quadros reais, cada regiao entre 0 e o vao; o
+  `calibracao-hd-f1` com a esquerda > 1,3x o meio e o `calibracao-f1` plano (+-20 %); quadros
+  sinteticos com a imagem dentro do quadro (parede acesa de um lado), a esquerda com o dobro da
+  rampa (c1 = 0,8 x 4, o resto 0,8 x 2) e a rampa crescendo para baixo (r1 < r2 < r3); escada e
+  quadro preto saem 3; quadro, `faixas.txt` (ou menos de 4 faixas) e dispositivo ausentes saem 1.
 
 - `bash tests/test-camcheck.sh`: o binario do host sobre os quadros reais de
   `tests/fixtures/camera/` (2026-10-30, painel da 3a troca): 640x480 (`*-f0`, `*-f1`),

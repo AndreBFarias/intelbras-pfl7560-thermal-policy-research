@@ -540,6 +540,137 @@ static int geometria_cmd(const char *dev, const char *arq, int skip) {
   return 0;
 }
 
+/* ---- bloco 11 (19A): mapa de nitidez 3x3 (so le o quadro) ------------------------ */
+
+/* As colunas nao sao janelas fixas do quadro: saem da largura da imagem projetada ACHADA no
+ * quadro (a imagem nao ocupa o quadro inteiro e muda de lugar com a correcao de 4 pontos). */
+#define NIT_LADO_PCT 10   /* centro das colunas de fora: 10% e 90% da largura da imagem achada */
+#define NIT_JAN_PCT 6     /* largura de cada coluna: 6% da largura da imagem achada */
+#define NIT_SUAVE 4       /* media movel (+-colunas) do desvio por coluna */
+#define NIT_LARG_MIN 20   /* imagem achada mais estreita que 20% do quadro: nao e a calibracao */
+
+/* Largura da imagem projetada: em cada coluna, o desvio padrao da luma nas linhas [ya,yb)
+ * (dentro da imagem as faixas alternam claro e escuro; fora, parede lisa, acesa ou nao).
+ * Limiar na metade do maior desvio; a imagem e o trecho acima dele que contem o meio do
+ * quadro. Devolve 0 e [*xe, *xd) (fim exclusivo). */
+static int extensao_imagem(const struct quadro *q, int ya, int yb, int *xe, int *xd) {
+  double *dp = malloc(sizeof(double) * q->larg), *sv = malloc(sizeof(double) * q->larg);
+  if (!dp || !sv) { free(dp); free(sv); return 1; }
+  for (int x = 0; x < q->larg; x++) {
+    double s = 0, s2 = 0;
+    for (int y = ya; y < yb; y++) {
+      double v = q->dados[(size_t)y * q->stride + 2 * x];
+      s += v; s2 += v * v;
+    }
+    double m = s / (yb - ya), var = s2 / (yb - ya) - m * m;
+    dp[x] = var > 0 ? sqrt(var) : 0;
+  }
+  double mx = 0;
+  for (int x = 0; x < q->larg; x++) {
+    int a = x - NIT_SUAVE < 0 ? 0 : x - NIT_SUAVE, b = x + NIT_SUAVE >= q->larg ? q->larg - 1 : x + NIT_SUAVE;
+    double s = 0;
+    for (int i = a; i <= b; i++) s += dp[i];
+    sv[x] = s / (b - a + 1);
+    if (sv[x] > mx) mx = sv[x];
+  }
+  double lim = mx / 2;
+  int meio = q->larg / 2, e = meio, d = meio;
+  if (mx <= 0 || sv[meio] <= lim) { free(dp); free(sv); return 1; }
+  while (e > 0 && sv[e - 1] > lim) e--;
+  while (d + 1 < q->larg && sv[d + 1] > lim) d++;
+  free(dp); free(sv);
+  *xe = e; *xd = d + 1;
+  return (*xd - *xe) * 100 < NIT_LARG_MIN * q->larg;
+}
+
+static int nitidez_cmd(const char *dev, const char *arq, int skip) {
+  int fini[MAXFAIXAS], ffim[MAXFAIXAS], n = 0;
+  FILE *f = fopen(arq, "r");
+  if (!f) { fprintf(stderr, "open %s: %s\n", arq, strerror(errno)); return 1; }
+  while (n < MAXFAIXAS && fscanf(f, "%d %d", &fini[n], &ffim[n]) == 2) n++;
+  fclose(f);
+  /* 3 grupos de vaos (um por linha da grade): pelo menos 4 faixas */
+  if (n < 4) { fprintf(stderr, "%s: faixas insuficientes (%d)\n", arq, n); return 1; }
+
+  struct quadro q = {0};
+  if (obter_quadro(dev, skip, &q)) return 1;
+  for (int i = 0; i < n; i++)
+    if (fini[i] < 0 || ffim[i] > q.alt || ffim[i] <= fini[i] || (i && fini[i] < ffim[i - 1])) {
+      fprintf(stderr, "faixa %d fora do quadro ou fora de ordem (%d..%d, altura %d)\n",
+              i, fini[i], ffim[i], q.alt);
+      free(q.dados); return 1;
+    }
+  /* o mesmo trecho de busca da geometria: a pilha com folga de 1/8 da altura */
+  int ya = fini[0] - q.alt / 8, yb = ffim[n - 1] + q.alt / 8;
+  if (ya < 0) ya = 0;
+  if (yb > q.alt) yb = q.alt;
+
+  int xe, xd;
+  if (extensao_imagem(&q, ya, yb, &xe, &xd)) {
+    fprintf(stderr, "a imagem projetada nao aparece no quadro (sem faixas no meio)\n");
+    free(q.dados); return 3;
+  }
+  double *p = malloc(sizeof(double) * q.alt);
+  if (!p) { free(q.dados); return 1; }
+
+  static const int POS[3] = { NIT_LADO_PCT, 50, 100 - NIT_LADO_PCT };
+  int w = xd - xe, meia = w * NIT_JAN_PCT / 200, c0[3], c1[3], rc = 0;
+  if (meia < 1) meia = 1;
+  int ini[3][MAXFAIXAS], fim[3][MAXFAIXAS];
+  double cen[3][MAXFAIXAS], xc[3];
+  for (int j = 0; j < 3; j++) {
+    int centro = xe + w * POS[j] / 100;
+    c0[j] = centro - meia; c1[j] = centro + meia;
+    if (c0[j] < 0) c0[j] = 0;
+    if (c1[j] > q.larg) c1[j] = q.larg;
+    xc[j] = (c0[j] + c1[j] - 1) / 2.0;
+    perfil_janela(&q, c0[j], c1[j], 0, p);
+    int k = achar_faixas(p, ya, yb, ini[j], fim[j], cen[j]);
+    if (k != n) {
+      fprintf(stderr, "coluna c%d (x %d a %d): %d faixas, esperadas %d\n", j + 1, c0[j], c1[j], k, n);
+      rc = 3;
+    }
+  }
+  if (rc) { free(p); free(q.dados); return rc; }
+
+  /* inclinacao local de cada coluna (como na geometria): c1-c2, a reta das tres, c2-c3 */
+  double xm = (xc[0] + xc[1] + xc[2]) / 3, sxx = 0, inc[3] = {0, 0, 0};
+  for (int j = 0; j < 3; j++) sxx += (xc[j] - xm) * (xc[j] - xm);
+  for (int i = 0; i < n; i++) {
+    double ym = (cen[0][i] + cen[1][i] + cen[2][i]) / 3, sxy = 0;
+    for (int j = 0; j < 3; j++) sxy += (xc[j] - xm) * (cen[j][i] - ym);
+    inc[1] += sxy / sxx;
+    inc[0] += (cen[1][i] - cen[0][i]) / (xc[1] - xc[0]);
+    inc[2] += (cen[2][i] - cen[1][i]) / (xc[2] - xc[1]);
+  }
+  for (int j = 0; j < 3; j++) inc[j] /= n;
+
+  /* bordas por regiao: os vaos da coluna em tres grupos, de cima para baixo no quadro */
+  double nit[3][3];
+  for (int j = 0; j < 3 && !rc; j++) {
+    perfil_janela(&q, c0[j], c1[j], inc[j], p);
+    if (achar_faixas(p, ya, yb, ini[j], fim[j], cen[j]) != n) {
+      fprintf(stderr, "coluna c%d: as faixas nao se separam no perfil endireitado\n", j + 1);
+      rc = 3; break;
+    }
+    double soma[3] = {0, 0, 0}; int nb[3] = {0, 0, 0};
+    for (int k = 0; k + 1 < n; k++) {
+      int g = k * 3 / (n - 1);
+      bordas_vao(p, ini[j], fim[j], k, &soma[g], &nb[g]);
+    }
+    for (int g = 0; g < 3; g++) {
+      if (nb[g] == 0) { fprintf(stderr, "regiao r%dc%d: nenhuma borda medida\n", g + 1, j + 1); rc = 3; break; }
+      nit[g][j] = soma[g] / nb[g];
+    }
+  }
+  free(p); free(q.dados);
+  if (rc) return rc;
+  for (int g = 0; g < 3; g++)
+    for (int j = 0; j < 3; j++) printf("nitidez_r%dc%d=%.2f\n", g + 1, j + 1, nit[g][j]);
+  printf("quadro=%dx%d\n", q.larg, q.alt);
+  return 0;
+}
+
 int main(int argc, char **argv) {
   if (argc >= 2 && strcmp(argv[1], "info") == 0)
     return info(argc >= 3 ? argv[2] : "/dev/video0");
@@ -552,8 +683,10 @@ int main(int argc, char **argv) {
     return niveis_cmd(argv[2], argv[3], argc >= 5 ? atoi(argv[4]) : 15);
   if (argc >= 4 && strcmp(argv[1], "geometria") == 0)
     return geometria_cmd(argv[2], argv[3], argc >= 5 ? atoi(argv[4]) : 15);
+  if (argc >= 4 && strcmp(argv[1], "nitidez") == 0)
+    return nitidez_cmd(argv[2], argv[3], argc >= 5 ? atoi(argv[4]) : 15);
   fprintf(stderr, "uso: nl_camcheck info [dev] | grab dev MJPG|YUYV larg alt saida [descarte]\n"
                   "     | faixas dev N saida.txt [descarte] | niveis dev faixas.txt [descarte]\n"
-                  "     | geometria dev faixas.txt [descarte]\n");
+                  "     | geometria dev faixas.txt [descarte] | nitidez dev faixas.txt [descarte]\n");
   return 2;
 }

@@ -186,6 +186,103 @@ afirma '[ "$rc" = 1 ]' "geometria com dispositivo ausente deveria sair 1 (saiu $
 "$NL" geometria "$(arq calibracao-f1)" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "geometria sem faixas.txt e uso errado: deveria sair 2 (saiu $rc)"
 
+# ---- bloco 11 (19A): nitidez 3x3 ---------------------------------------------------------
+# quadros reais: sai 0, as 10 chaves na ordem, numeros com ponto, bordas positivas e menores que o vao
+# shellcheck disable=SC2034  # lida dentro do afirma (eval)
+NIT_CHAVES="nitidez_r1c1 nitidez_r1c2 nitidez_r1c3 nitidez_r2c1 nitidez_r2c2 nitidez_r2c3 nitidez_r3c1 nitidez_r3c2 nitidez_r3c3 quadro "
+nit(){ # sufixo L A: saida em $T/nit-<sufixo>.txt, rc em _rc (usa o faixas.txt da geometria)
+  "$NL" nitidez "arquivo:$FIX/calibracao-$1.yuyv:$2:$3" "$T/gfx-$1.txt" >"$T/nit-$1.txt" 2>"$T/nit-$1.err"; _rc=$?
+}
+nv3(){ sed -n "s/^nitidez_$2=//p" "$T/nit-$1.txt"; }
+for c in "f1 640 480" "f0 640 480" "inclinada-f1 640 480" "hd-f1 1280 720" "hd-f0 1280 720"; do
+  read -r _n _l _a <<<"$c"
+  nit "$_n" "$_l" "$_a"
+  echo "  nitidez calibracao-$_n: $(tr '\n' ' ' < "$T/nit-$_n.txt")"
+  afirma '[ "$_rc" = 0 ]' "nitidez calibracao-$_n deveria sair 0 (saiu $_rc): $(cat "$T/nit-$_n.err")"
+  afirma '[ "$(cut -d= -f1 "$T/nit-$_n.txt" | tr "\n" " ")" = "$NIT_CHAVES" ]' "nitidez calibracao-$_n: chaves fora do contrato: $(cut -d= -f1 "$T/nit-$_n.txt" | tr '\n' ' ')"
+  afirma '[ "$(sed -n "s/^quadro=//p" "$T/nit-$_n.txt")" = "${_l}x${_a}" ]' "nitidez calibracao-$_n: quadro errado"
+  afirma '[ "$(head -9 "$T/nit-$_n.txt" | grep -cE "^nitidez_r[1-3]c[1-3]=[0-9]+\.[0-9]{2}$")" = 9 ]' "nitidez calibracao-$_n: numero fora do formato"
+  _vao=$(LC_ALL=C awk 'NR>1{g+=$1-pf;n++} {pf=$2} END{printf "%.2f", g/n}' "$T/gfx-$_n.txt")
+  for r in r1c1 r1c2 r1c3 r2c1 r2c2 r2c3 r3c1 r3c2 r3c3; do
+    _v=$(nv3 "$_n" $r)
+    afirma 'compara "0 < ${_v:-0} < $_vao"' "nitidez calibracao-$_n: $r=$_v fora de (0, vao $_vao)"
+  done
+done
+# hd-f1 (1280x720, 4 pontos ligados, o caso do dono): a coluna da esquerda mais borrada que a do meio,
+# como a suite mediu no aparelho (esquerda 2,9-3,1 px, centro 2,0, direita 1,9)
+med_col(){ python3 -I -c 'import sys; v=[float(x) for x in sys.argv[1:]]; print("%.3f" % (sum(v)/len(v)))' "$(nv3 "$1" "r1$2")" "$(nv3 "$1" "r2$2")" "$(nv3 "$1" "r3$2")"; }
+afirma 'compara "$(med_col hd-f1 c1) > 1.3 * $(med_col hd-f1 c2) and $(med_col hd-f1 c3) < 1.3 * $(med_col hd-f1 c2)"' "calibracao-hd-f1: esquerda $(med_col hd-f1 c1), meio $(med_col hd-f1 c2), direita $(med_col hd-f1 c3)"
+# f1 (640x480, de frente): o mapa e plano, cada regiao a menos de 20% do centro
+for r in r1c1 r1c2 r1c3 r2c1 r2c3 r3c1 r3c2 r3c3; do
+  afirma 'compara "0.8 < $(nv3 f1 $r) / $(nv3 f1 r2c2) < 1.2"' "calibracao-f1: $r=$(nv3 f1 $r) longe do centro $(nv3 f1 r2c2)"
+done
+# a regiao segue a imagem achada, nao a janela fixa: no hd-f1 a imagem vai de x~100 a x~1080 de 1280,
+# a coluna fixa da direita da geometria (79 a 85%) fica parte fora dela
+afirma '! grep -q "GEO_JAN" <(sed -n "/^static int nitidez_cmd/,/^}/p" "$ROOT/artifacts/camcheck/nl_camcheck.c")' "a nitidez usa as janelas fixas da geometria"
+
+# quadros sinteticos: imagem de x0 a x1 (parede acesa a esquerda, escura a direita), 16 faixas
+# inclinadas A graus, rampa Re px no terco esquerdo da imagem e Rr no resto, multiplicada de 1 (topo
+# da pilha) ate Rb (base)
+sint_nit(){ # saida A Re Rr Rb
+  python3 -I - "$@" <<'PY'
+import sys, math
+out, A, Re, Rr, Rb = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
+L, H = 640, 480; x0, x1 = 64, 544
+t = math.tan(math.radians(A)); passo = H * 0.04; faixa = passo * 0.7
+buf = bytearray(L * H * 2)
+for x in range(L):
+    base = H * 0.5 + t * (x - L / 2); R0 = Re if (x - x0) < (x1 - x0) / 3 else Rr
+    for y in range(H):
+        if x < x0: v = 100
+        elif x >= x1: v = 15
+        else:
+            u = y + 0.5 - base + 8 * passo; k = math.floor(u / passo); v = 20
+            R = R0 * (1 + (Rb - 1) * min(1.0, max(0.0, u / (16 * passo))))
+            if 0 <= k < 16:
+                d = u - k * passo
+                if d < faixa: v = 20 + 210 * min(1.0, min(d, faixa - d) / R + 0.5)
+                else: v = 20 + 210 * max(0.0, 0.5 - min(d - faixa, passo - d) / R)
+        buf[(y * L + x) * 2] = int(round(v)); buf[(y * L + x) * 2 + 1] = 128
+open(out, 'wb').write(bytes(buf))
+PY
+}
+sn(){ # nome A Re Rr Rb
+  sint_nit "$T/n-$1.yuyv" "$2" "$3" "$4" "$5"
+  "$NL" faixas "arquivo:$T/n-$1.yuyv:640:480" 16 "$T/nfx-$1.txt" >/dev/null 2>&1
+  "$NL" nitidez "arquivo:$T/n-$1.yuyv:640:480" "$T/nfx-$1.txt" >"$T/nit-s$1.txt" 2>&1; _rc=$?
+  echo "  nitidez sintetico $1 (A=$2 Re=$3 Rr=$4 Rb=$5): $(tr '\n' ' ' < "$T/nit-s$1.txt")"
+}
+# esquerda com o dobro da rampa: c1 = 0,8 x 4, c2 e c3 = 0,8 x 2 (mais 0 a 0,7 px de amostragem)
+sn a 2 4 2 1
+afirma '[ "$_rc" = 0 ]' "sintetico a: rc=$_rc: $(cat "$T/nit-sa.txt")"
+for r in r1c1 r2c1 r3c1; do afirma 'compara "3.2 <= $(nv3 sa $r) < 3.9"' "sintetico a: $r=$(nv3 sa $r) fora de [0,8x4, +0,7]"; done
+for r in r1c2 r2c2 r3c2 r1c3 r2c3 r3c3; do afirma 'compara "1.6 <= $(nv3 sa $r) < 2.3"' "sintetico a: $r=$(nv3 sa $r) fora de [0,8x2, +0,7]"; done
+# a rampa cresce de cima para baixo (1x a 2x): r1 < r2 < r3 em cada coluna
+sn b -1.5 2 2 2
+afirma '[ "$_rc" = 0 ]' "sintetico b: rc=$_rc: $(cat "$T/nit-sb.txt")"
+for c in c1 c2 c3; do
+  afirma 'compara "$(nv3 sb r1$c) + 0.3 < $(nv3 sb r2$c) and $(nv3 sb r2$c) + 0.3 < $(nv3 sb r3$c)"' "sintetico b: coluna $c sem a ordem r1 < r2 < r3: $(nv3 sb r1$c) $(nv3 sb r2$c) $(nv3 sb r3$c)"
+done
+# sem a calibracao: escada no lugar (as faixas nao batem) e quadro preto saem 3, sem chaves
+"$NL" nitidez "arquivo:$FIX/escada-hd-f1.yuyv:1280:720" "$T/gfx-hd-f1.txt" >"$T/n3.out" 2>"$T/n3.err"; rc=$?
+afirma '[ "$rc" = 3 ] && [ ! -s "$T/n3.out" ]' "nitidez com a escada deveria sair 3 sem chaves (saiu $rc): $(cat "$T/n3.err")"
+"$NL" nitidez "arquivo:$T/preto.yuyv:1280:720" "$T/gfx-hd-f1.txt" >"$T/n3b.out" 2>/dev/null; rc=$?
+afirma '[ "$rc" = 3 ] && [ ! -s "$T/n3b.out" ]' "nitidez com quadro preto deveria sair 3 (saiu $rc)"
+# nao conseguiu ler: sai 1; uso errado: 2
+"$NL" nitidez "arquivo:$T/nao-existe.yuyv:640:480" "$T/gfx-f1.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "nitidez com quadro ausente deveria sair 1 (saiu $rc)"
+"$NL" nitidez "$(arq calibracao-f1)" "$T/nao-existe.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "nitidez com faixas.txt ausente deveria sair 1 (saiu $rc)"
+printf '10 20\n30 40\n50 60\n' > "$T/tres.txt"
+"$NL" nitidez "$(arq calibracao-f1)" "$T/tres.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "nitidez com 3 faixas (menos de 3 vaos) deveria sair 1 (saiu $rc)"
+"$NL" nitidez "$(arq calibracao-f1)" "$T/fora3.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "nitidez com faixa fora do quadro deveria sair 1 (saiu $rc)"
+"$NL" nitidez /dev/nao-existe-video "$T/gfx-f1.txt" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 1 ]' "nitidez com dispositivo ausente deveria sair 1 (saiu $rc)"
+"$NL" nitidez "$(arq calibracao-f1)" >/dev/null 2>&1; rc=$?
+afirma '[ "$rc" = 2 ]' "nitidez sem faixas.txt: deveria sair 2 (saiu $rc)"
+
 # so leitura: o fonte nao tem S_CTRL nem escreve controle
 afirma '! grep -q "VIDIOC_S_CTRL\|VIDIOC_S_EXT_CTRLS" "$ROOT/artifacts/camcheck/nl_camcheck.c"' "o nl_camcheck passou a escrever controle da camera"
 # o binario ARM do kit e o versionado em artifacts/ sao o mesmo
