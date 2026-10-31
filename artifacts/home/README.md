@@ -34,7 +34,7 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 1`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
+`minSdk 28`, `targetSdk 28`, `versionCode 2`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
 ambas normais.
 
 ## Código
@@ -44,7 +44,7 @@ ambas normais.
 | `src/.../Desenho.java`, `Icones.java`, `Modelo.java`, `Tema.java`, `Item.java`, `Acoes.java`, `Pintor.java` | Java puro: layout, ícones, estado e navegação do D-pad. O mesmo código no aparelho e nas prévias |
 | `src/.../PintorCanvas.java`, `HomeView.java`, `HomeActivity.java` | Android: Canvas, foco e teclas, ciclo de vida |
 | `src/.../Abridor.java` | intents de cada cartão (fontes no doc 45 §3) |
-| `src/.../Leitor.java` | lista de apps, rede e temperatura, fora da thread da interface |
+| `src/.../Leitor.java` | lista de apps (só rótulo e pacote: o ícone de cada app é desenhado em `Icones.java`, nunca o `loadIcon`), rede e temperatura, fora da thread da interface |
 | `src/.../Guarda.java` | trava anti-laço: duas quedas em 2 min entregam a tela à home de fábrica |
 | `previa-src/.../PintorJ2D.java`, `Previa.java` | pintor Java2D e gerador das prévias, só no PC |
 

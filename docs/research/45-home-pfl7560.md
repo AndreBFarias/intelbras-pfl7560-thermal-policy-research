@@ -214,8 +214,8 @@ escolha dela. Gênero: utilitário e calmo, um painel de instrumento. O D-pad ma
   (`pendrive-autorun/fontes/`, OFL). O `build.sh` as copia para `assets/fontes/` do APK, junto com a OFL.
 - **Ícones:** desenhados no código (`Icones.java`), numa grade de 64 e traço único de 4/64 com pontas
   redondas: conector HDMI, USB-C, círculo com visto, Wi-Fi, runa do Bluetooth, tela em trapézio com os 4
-  cantos (Imagem), reguladores (Configurações), tela com ondas (Espelhamento) e termômetro. O ícone do app é
-  um vetor XML. Apps sem ícone ganham a inicial num disco.
+  cantos (Imagem), reguladores (Configurações), tela com ondas (Espelhamento) e termômetro. Na fileira Apps
+  (bloco 13B) todo ícone também é desenhado no código, sem `loadIcon`: um desenho por função para os pacotes conhecidos e, para o resto, a inicial num círculo na cor do tema escolhida pelo pacote.
 - **Texto:** maiúscula no início de rótulo e de frase, português com acento, zero emoji. Rótulo longo
   quebra em até duas linhas e só ganha reticências depois disso.
 - **Sem animação:** o foco aparece na hora. Nada de sombra, de brilho nem de gradiente nos cartões.
