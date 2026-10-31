@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-# artifacts/overlay/conferir.py - confere cada sobreposicao (RRO) contra o APK do alvo (blocos 13A e 16A).
+# artifacts/overlay/conferir.py - confere cada sobreposicao (RRO) contra o APK do alvo (blocos 13A, 16A e 17A).
 #
 #   python3 -I artifacts/overlay/conferir.py <pasta com os APKs alvo extraidos do firmware>
 #
 # A pasta precisa ter (em qualquer subpasta) o APK de cada alvo, extraido do firmware (doc 48,
 # secao Metodo): ZYSetting, NLProvision, framework-res, ZYBluetooth, ZYFileManager, TvSettings,
-# HiGalleryL, NLSourcePlayer e PowerService. O alvo de cada sobreposicao e achado pelo nome do
+# HiGalleryL, NLSourcePlayer, PowerService e, desde o 17A, AutoFocus3, ZYSpeakerModel e
+# NewLinkService. O alvo de cada sobreposicao e achado pelo nome do
 # pacote, nao pelo nome do arquivo.
 #
 # Para cada APK de artifacts/overlay/apk/ confere, com `aapt2 dump`:

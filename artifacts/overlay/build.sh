@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A e 16A, do zero, sem Gradle.
+# artifacts/overlay/build.sh - monta as sobreposicoes (RRO) Dracula dos blocos 13A, 16A e 17A, do zero, sem Gradle.
 #
 #   bash artifacts/overlay/build.sh
 #
@@ -12,6 +12,9 @@
 #   higallery     -> com.hisilicon.higallery       PFL7560TemaHiGallery.apk       (16A)
 #   nlsource      -> com.newlink.nlsource          PFL7560TemaNLSource.apk        (16A)
 #   powerservice  -> com.zhiying.powerservice      PFL7560TemaPowerService.apk    (16A)
+#   autofocus     -> com.zhiying.autofocus         PFL7560TemaAutoFocus.apk       (17A)
+#   zyspeakermodel -> com.zhiying.bluetoothmodelservice PFL7560TemaZYSpeakerModel.apk (17A)
+#   newlinkservice -> com.newlink.service          PFL7560TemaNewLinkService.apk  (17A)
 #   android       -> android (framework)           PFL7560TemaAndroid.apk   (por ultimo; ver doc 48)
 # Passos de cada uma: aapt2 compile + link (-I android.jar) -> zipalign -> apksigner sign ->
 # apksigner verify. Saida em artifacts/overlay/apk/. NAO copia para o kit (pendrive-autorun/):
@@ -52,6 +55,7 @@ SAIDA="$AQUI/apk"
 SOBREPOSICOES="zysetting:PFL7560TemaZYSetting nlprovision:PFL7560TemaNLProvision
   zybluetooth:PFL7560TemaZYBluetooth zyfilemanager:PFL7560TemaZYFileManager tvsettings:PFL7560TemaTvSettings
   higallery:PFL7560TemaHiGallery:1 nlsource:PFL7560TemaNLSource powerservice:PFL7560TemaPowerService
+  autofocus:PFL7560TemaAutoFocus zyspeakermodel:PFL7560TemaZYSpeakerModel newlinkservice:PFL7560TemaNewLinkService
   android:PFL7560TemaAndroid"
 
 for f in "$BT/aapt2" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER"; do
