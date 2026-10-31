@@ -9,4 +9,8 @@
          foco e pt_green = fundo, e o texto e branco fixo no codigo: precisa de painel mais claro
          que o fundo e escuro o bastante para o branco: 4,7:1 no texto, 3,0:1 no foco) -->
     <color name="pt_green_black">#FF6272A4</color>
+    <!-- bloco 16A. Seta pressionada nos valores do modo de imagem e de brilho
+         (CustomizeAdapter, setBackgroundTintList); de fabrica #FFFB884C laranja -> rosa. O mesmo
+         laranja abre o degrade dos itens escolhidos, que agora sao formas proprias (bg_itemcolor) -->
+    <color name="color_FB884C">#FFFF79C6</color>
 </resources>
