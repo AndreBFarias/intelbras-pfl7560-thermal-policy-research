@@ -97,14 +97,20 @@ e a suíte, a home, o tema e a marca estão em uso desde 2026-10-31
 
 **Atenção:** o recomendado é **não** colocar `usb_update.bin` no mesmo pendrive do autorun: o pendrive de **resgate** (firmware de fábrica) fica **separado** e desconectado no dia a dia. O `LEIA-ME.txt` descreve também um "kit de emergência" pessoal com os dois juntos (arranjo B), aceitável só para quem conhece o risco: ligar segurando o power com ele plugado reflasha o aparelho.
 
-**Firmware de resgate no pendrive (arranjo B, opcional).** `./install.sh --pendrive /caminho/do/pendrive --com-firmware`
-(Windows: `install.bat` opção 5, resposta `s` à pergunta do firmware) copia, além do kit, o `usb_update.bin`
-**oficial V1.0.0.9** (tirado do `firmware/Software PFL7560.zip` e conferido pelo md5 `28a2f280eee313a4b115567926b2ba4f`;
-**nunca** o `Firmware PFL7560.zip`, que é do modelo sem USB-C) na raiz e o nosso `.bin` em
-`firmware-nosso-NAO-GRADUADO/`, com um `LEIA-ME.txt`: ele **não está ativo**, não foi provado no hardware e só vale
-com a palavra do dono. O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/`, ou aponte outra
-pasta com `PFL_FIRMWARE_DIR=<pasta>`. Faltou um arquivo ou o md5 não bate: a opção falha e não copia nada.
+**Firmware no pendrive (arranjo B, opcional).** `./install.sh --pendrive /caminho/do/pendrive --com-firmware`
+(Windows: `install.bat` opção 5, resposta `s` à pergunta do firmware) copia, além do kit, o **nosso** `.bin`
+(`PFL7560-COMPLETO-NAO-GRADUADO.bin`, md5 de `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5`) na raiz como
+`usb_update.bin` e o **oficial V1.0.0.9** em `resgate-oficial/PFL7560.bin` (tirado do `firmware/Software PFL7560.zip`
+e conferido pelo md5 `28a2f280eee313a4b115567926b2ba4f`; **nunca** o `Firmware PFL7560.zip`, que é do modelo sem
+USB-C), com um `LEIA-ME.txt` que ensina a troca para o resgate. É a decisão do dono de 2026-10-31: ligar
+**segurando o power** com este pendrive plugado grava o nosso firmware, que **não foi provado no hardware**; tenha o
+oficial à mão. O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/`, ou aponte outra pasta com
+`PFL_FIRMWARE_DIR=<pasta>`. Faltou um arquivo ou o md5 não bate: a opção falha e não copia nada. O pendrive do
+arranjo antigo (oficial na raiz e `firmware-nosso-NAO-GRADUADO/`) é trocado pelo novo.
 Só serve para o aparelho **com USB-C** (V1.0.0.9): no modelo sem USB-C (V1.0.0.1) não use este pendrive de resgate.
+
+O `install.sh --pendrive` recusa, sem copiar nada, um pendrive que tenha `DESINSTALAR-SUITE.txt` (plugado, ele
+desinstalaria a suíte) ou, sem `--com-firmware`, um `usb_update.bin` que ele não conferiu.
 
 Instruções resumidas: `pendrive-autorun/LEIA-ME.txt`.
 
@@ -246,7 +252,8 @@ Resgate com boot travado: [`docs/guide/16-recuperacao-brick.md`](docs/guide/16-r
 
 ## O que **não** fazer
 
-- **Nunca** renomear um `.bin` experimental para `usb_update.bin` — resgate é **só** o firmware de fábrica.
+- **Nunca** renomear um `.bin` experimental para `usb_update.bin`: na raiz, só o nosso `.bin` conferido pelo
+  `install.sh --com-firmware` ou o de fábrica; o resgate é **só** o firmware de fábrica.
 - Não distribua/flashe `.bin` caseiro sem validar boot + metadados (ver `artifacts/bin-build/`).
 
 ---

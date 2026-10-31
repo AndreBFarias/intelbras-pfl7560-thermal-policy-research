@@ -63,14 +63,16 @@ dito no `LEIA-ME.txt` do kit; o app não tem como saber se o pedido foi atendido
 
 **Pendrive pelo PC:** `./install.sh --pendrive <ponto de montagem>` (Windows: `install.bat`, opção 5) copia o
 kit inteiro (suíte, `nl_tela`, `fontes/`, APK, `kit/*.png`) e confere o md5 de cada arquivo depois da cópia.
-`--com-firmware` (no `.bat`, a pergunta "Incluir o firmware de resgate?") leva também o firmware de resgate:
+`--com-firmware` (no `.bat`, a pergunta "Incluir o firmware no pendrive?") leva também o firmware, no layout que
+o dono decidiu em 2026-10-31 (bloco 21):
 
-- `usb_update.bin` na raiz = o `PFL7560.bin` **oficial V1.0.0.9**, tirado do `firmware/Software PFL7560.zip` e
-  conferido pelo md5 `28a2f280eee313a4b115567926b2ba4f`. **Nunca** o `Firmware PFL7560.zip`, que é do modelo
-  sem USB-C ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md)).
-- `firmware-nosso-NAO-GRADUADO/` com `PFL7560-FIX-escada-NAO-GRADUADO.bin` (md5
-  `eae3a83db44f790b64b9a5838a27a977`, local only: não vem no git) e um `LEIA-ME.txt` dizendo que **não está
-  ativo**, não foi provado no hardware e só vale com a palavra do dono. Nunca com o nome `usb_update.bin`.
+- `usb_update.bin` na raiz = o **nosso** `PFL7560-COMPLETO-NAO-GRADUADO.bin` (md5 de
+  `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5`, local only: não vem no git), não provado no hardware.
+- `resgate-oficial/PFL7560.bin` = o **oficial V1.0.0.9**, tirado do `firmware/Software PFL7560.zip` e conferido
+  pelo md5 `28a2f280eee313a4b115567926b2ba4f`, com um `LEIA-ME.txt` que ensina a troca. **Nunca** o
+  `Firmware PFL7560.zip`, que é do modelo sem USB-C ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md)).
+- A pasta do arranjo antigo (`firmware-nosso-NAO-GRADUADO/`) sai do pendrive; um pendrive com
+  `DESINSTALAR-SUITE.txt`, ou com um `usb_update.bin` sem `--com-firmware`, é recusado antes de copiar.
 - Faltou um dos arquivos de origem ou o md5 não bate: erro claro e **nada** é copiado (as origens são
   conferidas antes de tocar o pendrive; falha no meio remove o firmware). `PFL_FIRMWARE_DIR=<pasta>` aponta
   outra pasta de firmware; `./install.sh --conferir-firmware` só confere as origens, sem copiar.
@@ -85,7 +87,7 @@ dispositivo mapeado (crypt, LVM) são recusados sem perguntar. Provado com `lsbl
 **nunca foi rodado num disco de verdade**.
 
 Um pendrive com `--com-firmware` é o arranjo B do `LEIA-ME.txt` (kit de emergência): ligar **segurando o power**
-com ele plugado reflasha o aparelho e apaga o `/data`. Mantenha-o desconectado no uso normal.
+com ele plugado grava o **nosso** firmware e apaga o `/data`. Mantenha-o desconectado no uso normal.
 
 ## 3. Gatilhos
 
@@ -399,8 +401,8 @@ e anote o resultado (a linha de base). Espera: tudo verde.
     novo (reinstala a suíte) e reinicie uma vez para o vigia voltar.
 16. **O pendrive de resgate (sem ligar segurando o power).** Prepare `sudo bash tests/preparar-pendrive.sh /dev/sdX`
     num pendrive que possa ser apagado (**confira o dispositivo duas vezes**). No PC:
-    `md5sum <ponto>/usb_update.bin` deve dar `28a2f280eee313a4b115567926b2ba4f`;
-    `ls <ponto>/firmware-nosso-NAO-GRADUADO/` com o `.bin` e o `LEIA-ME.txt`. Plugue-o no projetor **ligado
+    `md5sum <ponto>/usb_update.bin` deve dar o md5 de `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5` e
+    `md5sum <ponto>/resgate-oficial/PFL7560.bin`, `28a2f280eee313a4b115567926b2ba4f`, com o `LEIA-ME.txt` ao lado. Plugue-o no projetor **ligado
     normalmente** (sem segurar o power): a suíte roda como no passo 1 e o firmware não é tocado. **Não** teste o
     power-hold. No Windows, repita a opção 5 do `install.bat` com a pergunta do firmware e o mesmo `md5sum`.
 17. **Fechamento.** `PFL_IP=$IP ./pfl7560-saude.sh` e `--vivacidade` verdes; `gatilho` de volta em `auto`;
