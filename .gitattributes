@@ -53,3 +53,5 @@ artifacts/app/pfl7560.apk           -text byte-exact
 artifacts/app/assinatura.keystore   -text byte-exact
 artifacts/app/res/**/*.png          -text byte-exact
 pendrive-autorun/pfl7560.apk        -text byte-exact
+# texto que acompanha o nosso .bin no pendrive (--com-firmware, bloco 9C): ASCII puro, copiado byte a byte
+firmware/LEIA-ME-nosso-NAO-GRADUADO.txt  -text byte-exact

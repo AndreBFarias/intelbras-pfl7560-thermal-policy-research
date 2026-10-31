@@ -9,7 +9,12 @@
 #    ./install.sh --check      # so verifica (sem instalar)
 #    ./install.sh --pendrive DIR   # copia o kit v2 COMPLETO para a raiz do pendrive
 #                                  # (DIR = ponto de montagem) e confere os md5
+#    ./install.sh --pendrive DIR --com-firmware
+#                                  # idem + o usb_update.bin OFICIAL (V1.0.0.9, do
+#                                  # firmware/Software PFL7560.zip) na raiz e o nosso .bin
+#                                  # em firmware-nosso-NAO-GRADUADO/ (ver INSTALL.md)
 #    ./install.sh --help
+#  PFL_FIRMWARE_DIR=<pasta> aponta outra pasta de firmware (padrao: firmware/ deste repo).
 #
 #  Depois:
 #    PFL_IP=<ip> ./pfl7560-fix.sh status|apply|revert
@@ -22,19 +27,29 @@ cd "$HERE" || exit 1
 
 CHECK_ONLY=0
 PENDRIVE_DIR=""
-case "${1:-}" in
-  -h|--help)
-    sed -n '2,18p' "$0" | sed 's/^# \?//'
-    exit 0
-    ;;
-  --check|-c) CHECK_ONLY=1 ;;
-  --pendrive|-p)
-    PENDRIVE_DIR="${2:-}"
-    [ -n "$PENDRIVE_DIR" ] || { echo "uso: $0 --pendrive <pasta-raiz-do-pendrive>"; exit 1; }
-    ;;
-  "") ;;
-  *) echo "uso: $0 [--check|--pendrive DIR|--help]"; exit 1 ;;
-esac
+COM_FIRMWARE=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -h|--help)
+      sed -n '2,24p' "$0" | sed 's/^# \?//'
+      exit 0
+      ;;
+    --check|-c) CHECK_ONLY=1 ;;
+    --pendrive|-p)
+      PENDRIVE_DIR="${2:-}"
+      case "$PENDRIVE_DIR" in
+        ""|-*) echo "uso: $0 --pendrive <pasta-raiz-do-pendrive> [--com-firmware]"; exit 1 ;;
+      esac
+      shift
+      ;;
+    --com-firmware) COM_FIRMWARE=1 ;;
+    *) echo "uso: $0 [--check|--pendrive DIR [--com-firmware]|--help]"; exit 1 ;;
+  esac
+  shift
+done
+if [ "$COM_FIRMWARE" = "1" ] && [ -z "$PENDRIVE_DIR" ]; then
+  echo "uso: --com-firmware so vale junto com --pendrive <pasta-raiz-do-pendrive>"; exit 1
+fi
 
 say(){ printf '\033[1;36m>> %s\033[0m\n' "$*"; }
 ok(){  printf '\033[1;32m[OK] %s\033[0m\n' "$*"; }
@@ -110,12 +125,16 @@ chmod_scripts(){
 }
 
 # ---- kit v2 no pendrive ------------------------------------------------------
-# Copia o kit COMPLETO para a RAIZ do pendrive (newlink_update.sh, cor.sh, lvdsctl,
-# nl_camcheck, nl_tela, ZYCustom.ini, LEIA-ME.txt, kit/*.png e fontes/*) e confere, depois da copia, o md5 de cada
+# Copia o kit COMPLETO para a RAIZ do pendrive e confere, depois da copia, o md5 de cada
 # arquivo contra a lista embutida no proprio newlink_update.sh (a mesma que o
-# aparelho confere antes de escrever). O newlink_update.sh nao esta na lista (nao
-# pode conter o proprio md5) e o LEIA-ME.txt tambem nao: os dois sao comparados byte
-# a byte com a origem. NAO grava nada no projetor.
+# aparelho confere antes de escrever). O kit inteiro e o que a lista traz:
+#   newlink_update.sh  cor.sh  lvdsctl  nl_camcheck  ZYCustom.ini  LEIA-ME.txt
+#   suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc   (suite de verificacao, bloco 9B)
+#   nl_tela  fontes/*                                              (telas geradas, bloco 9A)
+#   pfl7560.apk                                                    (app "PFL7560", bloco 9C)
+#   kit/*.png
+# O newlink_update.sh nao esta na lista (nao pode conter o proprio md5) e o LEIA-ME.txt
+# tambem nao: os dois sao comparados byte a byte com a origem. NAO grava nada no projetor.
 md5_de(){
   if have md5sum; then md5sum "$1" | cut -d' ' -f1
   elif have md5; then md5 -q "$1"
@@ -161,6 +180,103 @@ LISTA
   fi
   err "$falhas arquivo(s) NAO conferem - nao use este pendrive. Copie de novo."
   return 1
+}
+
+
+# ---- firmware de resgate no pendrive (--com-firmware, bloco 9C) -------------------
+# So o firmware OFICIAL do modelo COM USB-C (V1.0.0.9, Software PFL7560.zip) vai como
+# usb_update.bin; NUNCA o "Firmware PFL7560.zip" (modelo sem USB-C, doc 42). O nosso .bin
+# (escada, NAO graduado no hardware) vai so numa pasta, com um LEIA-ME, e nunca com o nome
+# usb_update.bin (README do firmware). Tudo e conferido ANTES de copiar qualquer coisa
+# (fw_conferir) e de novo depois (fw_copiar): faltou um arquivo ou o md5 nao e o esperado =
+# erro claro e nada vai para o pendrive.
+FW_DIR="${PFL_FIRMWARE_DIR:-$HERE/firmware}"
+FW_OFICIAL_ZIP="Software PFL7560.zip"
+FW_OFICIAL_MD5="28a2f280eee313a4b115567926b2ba4f"   # PFL7560.bin do V1.0.0.9 (firmware/README.md)
+FW_NOSSO_BIN="PFL7560-FIX-escada-NAO-GRADUADO.bin"
+FW_NOSSO_MD5="eae3a83db44f790b64b9a5838a27a977"
+FW_NOSSO_LEIAME="LEIA-ME-nosso-NAO-GRADUADO.txt"
+FW_NOSSO_PASTA="firmware-nosso-NAO-GRADUADO"
+# gancho de teste: so com PFL_TESTE=1 o harness (tests/) troca os md5 esperados, para usar
+# .bin falsos pequenos. Fora disso as variaveis saem do ambiente.
+if [ "${PFL_TESTE:-}" = "1" ]; then
+  FW_OFICIAL_MD5="${PFL_FW_OFICIAL_MD5:-$FW_OFICIAL_MD5}"
+  FW_NOSSO_MD5="${PFL_FW_NOSSO_MD5:-$FW_NOSSO_MD5}"
+else
+  unset PFL_FW_OFICIAL_MD5 PFL_FW_NOSSO_MD5
+fi
+FW_MEMBRO=""
+
+fw_conferir(){
+  local dest="$1" zip="$FW_DIR/$FW_OFICIAL_ZIP" nosso="$FW_DIR/$FW_NOSSO_BIN" m n tam livre
+  [ -d "$dest" ] || { err "'$dest' nao e uma pasta (informe o ponto de montagem do pendrive FAT32)"; return 1; }
+  have unzip || { err "sem o comando unzip: preciso dele para tirar o .bin oficial do zip"; return 1; }
+  have md5sum || have md5 || { err "sem md5sum/md5: nao consigo conferir o firmware"; return 1; }
+  say "firmware de resgate: conferindo as origens em $FW_DIR"
+  if [ ! -f "$zip" ]; then
+    err "falta '$zip' (o firmware OFICIAL V1.0.0.9 do aparelho com USB-C). NAO use o 'Firmware PFL7560.zip': e do modelo sem USB-C."
+    return 1
+  fi
+  if [ ! -f "$nosso" ]; then
+    err "falta '$nosso' (o nosso .bin; e 'local only', nao vem no git: copie-o para $FW_DIR). Nada foi copiado."
+    return 1
+  fi
+  if [ ! -f "$FW_DIR/$FW_NOSSO_LEIAME" ]; then
+    err "falta '$FW_DIR/$FW_NOSSO_LEIAME' (o texto que acompanha o nosso .bin no pendrive). Nada foi copiado."
+    return 1
+  fi
+  n="$(unzip -Z1 "$zip" 2>/dev/null | grep -E '(^|/)PFL7560\.bin$')"
+  if [ -z "$n" ] || [ "$(printf '%s\n' "$n" | wc -l)" != "1" ]; then
+    err "'$FW_OFICIAL_ZIP' deveria ter exatamente um PFL7560.bin e tem: '${n:-nenhum}'. Nada foi copiado."
+    return 1
+  fi
+  FW_MEMBRO="$n"
+  m="$(unzip -p "$zip" "$FW_MEMBRO" | { md5sum 2>/dev/null || md5 -q; } | cut -d' ' -f1)"
+  if [ "$m" != "$FW_OFICIAL_MD5" ]; then
+    err "o .bin dentro de '$FW_OFICIAL_ZIP' tem md5 $m, o esperado e $FW_OFICIAL_MD5 (V1.0.0.9 oficial). Nada foi copiado."
+    return 1
+  fi
+  m="$(md5_de "$nosso")"
+  if [ "$m" != "$FW_NOSSO_MD5" ]; then
+    err "'$FW_NOSSO_BIN' tem md5 $m, o esperado e $FW_NOSSO_MD5. Nada foi copiado."
+    return 1
+  fi
+  tam=$(( $(unzip -l "$zip" "$FW_MEMBRO" | awk 'END{print $1}') + $(wc -c < "$nosso") + 10485760 ))
+  livre=$(( $(df -Pk "$dest" | awk 'NR==2{print $4}') * 1024 ))
+  if [ "$livre" -lt "$tam" ]; then
+    err "pouco espaco em $dest: preciso de $((tam / 1048576)) MB e ha $((livre / 1048576)) MB livres. Nada foi copiado."
+    return 1
+  fi
+  ok "firmware oficial V1.0.0.9 (md5 $FW_OFICIAL_MD5) e nosso .bin (md5 $FW_NOSSO_MD5) conferidos"
+}
+
+fw_limpar(){ rm -rf "${1:?}/usb_update.bin" "${1:?}/usb_update.bin.copiando" "${1:?}/$FW_NOSSO_PASTA"; }
+
+fw_copiar(){
+  local dest zip="$FW_DIR/$FW_OFICIAL_ZIP" p
+  dest="$(cd "$1" && pwd)"; p="$dest/$FW_NOSSO_PASTA"
+  say "copiando o firmware de resgate (o oficial e grande: leva alguns minutos)"
+  if ! { unzip -p "$zip" "$FW_MEMBRO" > "$dest/usb_update.bin.copiando" \
+         && mv -f "$dest/usb_update.bin.copiando" "$dest/usb_update.bin" \
+         && mkdir -p "$p" \
+         && cp "$FW_DIR/$FW_NOSSO_BIN" "$p/$FW_NOSSO_BIN" \
+         && cp "$FW_DIR/$FW_NOSSO_LEIAME" "$p/LEIA-ME.txt"; }; then
+    fw_limpar "$dest"; err "falha ao copiar o firmware (pendrive cheio, protegido ou removido?). O firmware foi removido do pendrive; NAO use este pendrive."
+    return 1
+  fi
+  sync
+  say "conferindo o firmware depois da copia"
+  if [ "$(md5_de "$dest/usb_update.bin")" != "$FW_OFICIAL_MD5" ]; then
+    fw_limpar "$dest"; err "usb_update.bin NAO confere com o md5 oficial $FW_OFICIAL_MD5. O firmware foi removido do pendrive; copie de novo."
+    return 1
+  fi
+  ok "usb_update.bin (oficial V1.0.0.9, md5 $FW_OFICIAL_MD5)"
+  if [ "$(md5_de "$p/$FW_NOSSO_BIN")" != "$FW_NOSSO_MD5" ] || ! cmp -s "$FW_DIR/$FW_NOSSO_LEIAME" "$p/LEIA-ME.txt"; then
+    fw_limpar "$dest"; err "$FW_NOSSO_PASTA/ NAO confere com a origem. O firmware foi removido do pendrive; copie de novo."
+    return 1
+  fi
+  ok "$FW_NOSSO_PASTA/ ($FW_NOSSO_BIN md5 $FW_NOSSO_MD5 e LEIA-ME.txt; NAO esta ativo)"
+  warn "pendrive com firmware de resgate: ligar o projetor SEGURANDO O POWER com ele plugado REFLASHA o aparelho e apaga o /data. Deixe-o desconectado no uso normal (LEIA-ME.txt do kit)."
 }
 
 verify(){
@@ -226,7 +342,8 @@ print_next(){
 
   Sem PC: ./install.sh --pendrive /caminho/do/pendrive (FAT32) copia o kit
   v2 completo para a raiz e confere os md5; ligue o projetor com o pendrive
-  plugado. Ver INSTALL.md.
+  plugado. Com --com-firmware leva tambem o usb_update.bin oficial (resgate).
+  Ver INSTALL.md.
 
   NAO flashar nenhum .bin em firmware/ (quarentena).
 ------------------------------------------------------------
@@ -235,8 +352,11 @@ EOF
 
 # --- main ---
 if [ -n "$PENDRIVE_DIR" ]; then
-  copiar_pendrive "$PENDRIVE_DIR"
-  exit $?
+  # com firmware, as origens sao conferidas ANTES de copiar o kit: nada vai pela metade
+  if [ "$COM_FIRMWARE" = "1" ]; then fw_conferir "$PENDRIVE_DIR" || exit 1; fi
+  copiar_pendrive "$PENDRIVE_DIR" || exit 1
+  if [ "$COM_FIRMWARE" = "1" ]; then fw_copiar "$PENDRIVE_DIR" || exit 1; fi
+  exit 0
 fi
 OS="$(detect_os)"
 say "PFL7560 — setup do PC ($OS)"
