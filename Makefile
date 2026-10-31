@@ -8,6 +8,7 @@ check:
 # pendrive com firmware de resgate e preparar-pendrive.sh (bloco 9C) com lsblk/mkfs de mentira;
 # pfl7560-processos.sh (bloco 9C) com uma saida de top gravada e um adb de mentira
 # pfl7560-marca.sh e pfl7560-vlc.sh (bloco 14) com um adb de mentira (a particao logo e um arquivo)
+# pfl7560-qualidade.sh (bloco 11) com um adb de mentira (os ajustes de imagem num arquivo)
 check-kit:
 	python3 -I tests/simula-padroes-kit.py
 	bash tests/test-camcheck.sh
@@ -18,6 +19,7 @@ check-kit:
 	bash tests/test-preparar-pendrive.sh
 	bash tests/test-processos.sh
 	bash tests/test-pc-marca-vlc.sh
+	bash tests/test-qualidade.sh
 
 # builder do .bin (bloco 6): offset do vendor lido da tabela, em containers sinteticos; e o
 # manifesto --conteudo (bloco 12) com as recusas (espaco, slot, metadados).
