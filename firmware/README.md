@@ -16,7 +16,7 @@ deles é versionado (`*.bin.md5`). O estado da build, o que ela leva e o roteiro
 | Build | md5 | Estado |
 |---|---|---|
 | `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | **atual, gate BIN-S4a.** Escada, Wi-Fi e xiri **nos mesmos blocos do stock** (só o `i_size` dos 3 inodes muda; chunks, slot, cabeçalho e `checksum1` do stock). CRC do vendor `0x883b40d6`. É a que o `install.sh --com-firmware` põe na raiz do pendrive como `usb_update.bin` |
-| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `e6b41856e26add86d0fad8881c0bf145` | **atual, BIN-S4b, só depois de a S4a subir.** O mesmo, mais o `.rc` da suíte, o app, a home e as 20 sobreposições (`artifacts/bin-build/conteudo.txt`), com o record 14 realocado (+3407872 B). CRC do vendor `0xdb34914f`. Muda de md5 sempre que um APK do kit ou o `.rc` mudar |
+| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `31702b647ba9b2bca98e6da625231e69` | **atual, BIN-S4b, só depois de a S4a subir.** O mesmo, mais o `.rc` da suíte, o app, a home e as 20 sobreposições (`artifacts/bin-build/conteudo.txt`), com o record 14 realocado (+3407872 B). CRC do vendor `0xd8e4e78b`. Muda de md5 sempre que um APK do kit ou o `.rc` mudar |
 | `PFL7560-COMPLETO-NAO-GRADUADO.bin` | `397698b9…` | aposentada (bloco 21): chunks FILL e 44832 B de zeros soltos no slot, forma que o loader nunca gravou; `build_fix_bin.py --verificar` a reprova |
 | `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | aposentada (bloco 21): só a escada, com 8 chunks FILL e 53024 B de zeros soltos; `--verificar` a reprova |
 | `PFL7560-FIX-com-metadados.bin` | `16a4b42a…` | superada em 2026-07-29 (limiares de brilho de antes da escada); removida do disco |

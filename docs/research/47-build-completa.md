@@ -8,7 +8,7 @@ sem USB-C com esta base. Spec: [bloco 12](../sprints/2026-10-31-bloco-12-build-c
 > FILL que o re-pack criava, forma que o loader nunca gravou; as builds `eae3a83d` e `397698b9` saíram de uso. O
 > gate BIN-S4a passa a gravar `PFL7560-S4a-NAO-GRADUADO.bin` (os 3 fixes nos mesmos blocos do stock, md5
 > `a6e5da14…`), e a build completa vira o BIN-S4b, realocada, com o `.rc`, o app, a home e as 20 sobreposições
-> (`PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin`, md5 `e6b41856…`).
+> (`PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin`, md5 `31702b64…` desde os APKs refeitos no fim do bloco 21).
 
 Pedido do dono: "nossa nova build vai conferir isso tudo né? por default? [...] ter essas correções e o sistema
 operacional todo prontinho."
@@ -17,21 +17,20 @@ operacional todo prontinho."
 
 ## 1. Resposta curta
 
-- **Por padrão, a build nova leva:** a correção térmica com a escada de brilho (`ZYCustom.ini`), o Wi-Fi que
-  reconecta sozinho (`build.prop`), o `xiriservice` desligado (`init.bigfish.rc`) e o **serviço de boot da
-  suíte** (`/vendor/etc/init/pfl7560-suite.rc`), todos com modo, dono e rótulo SELinux carimbados e conferidos.
-- **Não leva o app nem a suíte.** O motivo é medido, não escolhido: o vendor viaja no `.bin` dentro de um slot
-  de tamanho fixo, e esse slot tem só **65312 bytes de folga** (seção 2). O app sozinho pede cerca de 110 KB; a
-  suíte, cerca de 1,4 MB.
+- **Por padrão (S4a, §10), a build leva:** a correção térmica com a escada de brilho (`ZYCustom.ini`), o Wi-Fi
+  que reconecta sozinho (`build.prop`) e o `xiriservice` desligado (`init.bigfish.rc`), nos mesmos blocos do
+  stock. **Com `--realocar --conteudo` (S4b)** leva também o **serviço de boot da suíte**
+  (`/vendor/etc/init/pfl7560-suite.rc`), o app, a home e as 20 sobreposições, todos com modo, dono e rótulo
+  SELinux carimbados e conferidos.
+- **Não leva a suíte**, que mora no `/data`. No bloco 12, sem o `--realocar`, nem o app cabia: a folga medida de
+  65312 bytes (seção 2) vinha toda dos chunks FILL do re-pack, e sem eles o slot do stock não tem folga (§10).
 - **Mesmo que coubessem, o pendrive do kit seria obrigatório depois da gravação.** Gravar o `.bin` formata o
   `/data` (visto em julho, [guia 16](../guide/16-recuperacao-brick.md) §1; o `misc` do container pede
   `--wipe_data`, [doc 42](42-firmware-2026-10-modelo-sem-usbc.md)), e a suíte mora em `/data/vendor`. Além disso,
   a `panelparam` provavelmente vem no container ([doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3) e a
   gravação devolve o formato de cor ao de fábrica: um painel JEIDA precisa do kit para voltar a ter cor certa. O
   JEIDA não entra no `.bin`, porque depende do painel de cada aparelho.
-- **Bloco 21:** com `--realocar` (opção c, §10) o app, a home e as 20 sobreposições cabem; a suíte segue pelo
-  pendrive, porque mora no `/data`.
-- **Recomendação (bloco 12):** opção (a) da spec, do tamanho que cabe: `.bin` com os 3 fixes e o `.rc`; app e suíte pelo
+- **Recomendação (bloco 12, trocada pela ordem da §11):** opção (a) da spec, do tamanho que cabe: `.bin` com os 3 fixes e o `.rc`; app e suíte pelo
   pendrive do kit, uma vez, logo depois da gravação. Nenhum script do kit precisa mudar (seção 4).
 
 ## 2. A medida que manda: a folga do slot do vendor
@@ -195,7 +194,7 @@ os dois stocks; a recusa do app "maior que o slot stock" deixou de existir (§10
 A §11 fixa a ordem: o BIN-S4a grava o **delta mínimo** (só os 3
 fixes), para que um travamento não tenha variável confusa; a build com arquivo novo em `/vendor/etc/init` vem
 numa 2ª gravação (o antigo BIN-S4b). **Bloco 21:** a 1ª é a `PFL7560-S4a` (`a6e5da14`, nos mesmos blocos) e a 2ª
-a `PFL7560-S4b-COMPLETO` (`e6b41856`, realocada, com `.rc`, app, home e sobreposições); a `397698b9` saiu de uso.
+a `PFL7560-S4b-COMPLETO` (`31702b64`, realocada, com `.rc`, app, home e sobreposições); a `397698b9` saiu de uso.
 Só o aparelho confirma:
 
 1. que o loader grava a build e o Android sobe com os 3 fixes (BIN-S4a) e, na 2ª gravação, também com o `.rc`
@@ -216,7 +215,7 @@ fixes; só se ela subir limpa vem a 2ª, com o `.rc`.
 1. Gere a build: `unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d <pasta>` e
    `python3 artifacts/bin-build/build_fix_bin.py <pasta>/PFL7560.bin artifacts/ZYCustom_390.ini <saída.bin>`
    (1ª gravação: md5 `a6e5da14cb3f53b42a457eb92bd91814`), ou o mesmo comando com
-   `--realocar --conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `e6b41856e26add86d0fad8881c0bf145`
+   `--realocar --conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `31702b647ba9b2bca98e6da625231e69`
    com o kit de hoje; se um APK ou o `.rc` mudar, o md5 muda também). As duas terminam em `VALIDO`, depois do
    `verificar_bin`; `build_fix_bin.py --verificar <saída.bin> <stock.bin>` repete a conferência.
 2. **Pendrive de resgate pronto e separado:** um pendrive só com o firmware de **fábrica do modelo com USB-C**
@@ -230,6 +229,10 @@ fixes; só se ela subir limpa vem a 2ª, com o `.rc`.
 
 **Gravar:** pela "Atualização local do sistema" do menu, como em julho ([guia 16](../guide/16-recuperacao-brick.md)
 §1), a partir de um terceiro pendrive (nem o de resgate, nem o do kit). Não desligue durante a gravação. O
+pendrive do kit feito com `--com-firmware` já leva a S4a na raiz como `usb_update.bin`: ligar **segurando o
+POWER** com ele plugado também grava a S4a, pelo mesmo motor ([guia 16](../guide/16-recuperacao-brick.md) §3).
+Ligar sem segurar o POWER não grava: dos blocos 9 a 20 o kit rodou de um pendrive com o oficial na raiz como
+`usb_update.bin`. O
 checklist completo de pré-condições é o do [doc 18](../archive/18-sprint-bin-futuro.md) ("Pré-requisito absoluto —
 kit de resgate").
 
@@ -301,7 +304,7 @@ estragaria essas libs sem aviso, e zeros lidos como cabeçalho de chunk parariam
 | Build | md5 | CRC do vendor | O que leva |
 |---|---|---|---|
 | `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | `0x883b40d6` | escada, Wi-Fi e xiri, nos mesmos blocos; 1393758396 B, como o stock |
-| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `e6b41856e26add86d0fad8881c0bf145` | `0xdb34914f` | o mesmo, mais o `.rc` da suíte, app, home e as 20 sobreposições (`conteudo.txt`); record 14 com +3407872 B |
+| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `31702b647ba9b2bca98e6da625231e69` | `0xd8e4e78b` | o mesmo, mais o `.rc` da suíte, app, home e as 20 sobreposições (`conteudo.txt`); record 14 com +3407872 B |
 | V1.0.0.1 (sem USB-C), nos mesmos blocos, só em software | `e3e3e87ce08a625c83c3824eafd26d9b` | `0xe5b1294a` | a mesma conta com o `ZYCustom_390.NOTYPEC.ini` |
 
 **O que o `.bin` não leva de jeito nenhum:** o JEIDA (cada painel), a partição `logo` (cada keystone) e o estado
@@ -337,6 +340,6 @@ na gravação (doc 41 §3, inferido): quem tem painel JEIDA refaz a cor pelo kit
 | # | Gate | Build | Por quê |
 |---|---|---|---|
 | 1 | BIN-S4a | `PFL7560-S4a-NAO-GRADUADO.bin` (`a6e5da14…`) | **delta mínimo** (só os 3 fixes, nos mesmos blocos do stock): se travar, não há variável confusa |
-| 2 | BIN-S4b | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`e6b41856…`) | só depois de a 1ª subir limpa: acrescenta arquivo novo em `/vendor` e o container realocado |
+| 2 | BIN-S4b | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`31702b64…`) | só depois de a 1ª subir limpa: acrescenta arquivo novo em `/vendor` e o container realocado |
 
 Se a 1ª travar, o resgate é o da §8 e a causa entra neste doc antes de outra tentativa (o antigo BIN-S5).
