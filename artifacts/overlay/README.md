@@ -1,4 +1,4 @@
-# Sobreposições Drácula do sistema do fabricante (blocos 13A, 16A e 17A)
+# Sobreposições Drácula do sistema do fabricante (blocos 13A, 16A, 17A e 18)
 
 Pedido do dono (2026-10-31): "Dentro das configs segue o tema antigo". As telas do fabricante passam
 para a paleta do bloco 10 (`artifacts/tema/dracula.txt`) por **sobreposição de recursos em tempo
@@ -22,20 +22,26 @@ o Android as troca na hora de desenhar. Mapa completo, limites e saída de emerg
 | `PFL7560TemaIjkPlayer.apk` | `com.pfl7560.tema.ijkplayer` | `com.newlink.isuperred.ijkplayerdemo` | barra de controle e botões em foco do player (17A) |
 | `PFL7560TemaHiVideoPlayer.apk` | `com.pfl7560.tema.hivideoplayer` | `com.hisilicon.android.videoplayer` | barra de controle, botões em foco e menus do player de vídeo (17A, minSdk 1) |
 | `PFL7560TemaHiMusic.apk` | `com.pfl7560.tema.himusic` | `com.hisilicon.android.music` | fundo, moldura de foco, ponto da barra e foco da lista do player de música (17A, minSdk 1) |
-| `PFL7560TemaAndroid.apk` | `com.pfl7560.tema.android` | `android` | **só 6 cores e 1 forma**: diálogos claros e escuros do Leanback ("Temperatura anormal") e o fundo do Toast. Instalar por último |
+| `PFL7560TemaHiPinyinIME.apk` | `com.pfl7560.tema.hipinyinime` | `com.hisilicon.android.inputmethod.remote` | teclado na tela: fundo, teclas, tecla em foco (moldura rosa), barra de candidatos e texto sendo composto (18) |
+| `PFL7560TemaNLHotkeyService.apk` | `com.pfl7560.tema.nlhotkeyservice` | `com.newlink.hotkeysservices` | avisos de tecla de atalho (`MyDialog`): painel claro e botões (18) |
+| `PFL7560TemaZYCustomUI.apk` | `com.pfl7560.tema.zycustomui` | `com.zhiying.sourceui` | pareamento do controle (GIF animado recolorido) e lista de entradas do botão de entrada (18) |
+| `PFL7560TemaHiTvSetting.apk` | `com.pfl7560.tema.hitvsetting` | `com.hisilicon.tvsetting` | menu de imagem e som das entradas: painel, linha em foco, barras de ajuste (18) |
+| `PFL7560TemaPackageInstaller.apk` | `com.pfl7560.tema.packageinstaller` | `com.android.packageinstaller` | pedido de permissão do modo TV, opções da desinstalação, ícone das telas de instalar (18) |
+| `PFL7560TemaAndroid.apk` | `com.pfl7560.tema.android` | `android` | **só 8 cores e 1 forma**: diálogos claros e escuros do Leanback ("Temperatura anormal"), o fundo do Toast e, desde o 18 (versionCode 3), o vermelho do título da contagem de desligar e o `background_light`. Instalar por último |
 
 | Arquivo | O que é |
 | --- | --- |
-| `build.sh` | gera os quinze APKs do zero (`aapt2 compile/link`, `zipalign`, `apksigner`); reprodutível (mesmo md5); minSdk por sobreposição quando o alvo tem `v21`/`hdpi-v4` |
+| `build.sh` | gera os vinte APKs do zero (`aapt2 compile/link`, `zipalign`, `apksigner`); reprodutível (mesmo md5); minSdk por sobreposição quando o alvo tem `v21`/`hdpi-v4`; versionCode por sobreposição (só a do `android` usa: 3) |
 | `conferir.py` | confere cada APK contra o APK do alvo extraído do firmware: mesmo nome e **mesmo tipo**, todas as configurações do alvo cobertas, nenhum valor com referência, só `color`, `drawable` e `mipmap` |
-| `recolorir.py` | gera as imagens recoloridas a partir do app desmontado, uma tabela por app (`zysetting`, `zybluetooth`, `zyfilemanager`, `higallery`, `zyspeakermodel`, `ijkplayer`, `hivideoplayer`, `himusic`; roda uma vez por firmware) |
+| `recolorir.py` | gera as imagens recoloridas a partir do app desmontado, uma tabela por app (`zysetting`, `zybluetooth`, `zyfilemanager`, `higallery`, `zyspeakermodel`, `ijkplayer`, `hivideoplayer`, `himusic`, `hipinyinime`, `zycustomui`; roda uma vez por firmware). Um `.gif` é recolorido só na paleta de cada quadro (18) |
 | `gerar-previa.py` | desenha `previa/antes-depois.png`, as cinco telas do 13A antes e depois, com os valores |
 | `gerar-previa-16a.py` | desenha `previa/antes-depois-16a.png`, as oito telas do 16A antes e depois |
 | `gerar-previa-17a.py` | desenha `previa/antes-depois-17a.png`, as sete telas do 17A antes e depois |
+| `gerar-previa-18.py` | desenha `previa/antes-depois-18.png`, as oito telas do bloco 18 antes e depois |
 | `assinatura.keystore` | chave própria e estável (alias `pfl7560tema`, senha no `build.sh`; não é segredo) |
 
     bash artifacts/overlay/build.sh
-    python3 -I artifacts/overlay/conferir.py <pasta com os 15 APKs alvo do firmware (doc 48 §10.1 e §11)>
+    python3 -I artifacts/overlay/conferir.py <pasta com os 20 APKs alvo do firmware (doc 48 §10.1, §11 e §12)>
 
 Instalação: **o kit do pendrive faz sozinho** (bloco 14). `bash tests/atualizar-md5-kit.sh` copia cada APK desta
 pasta `apk/` para `pendrive-autorun/overlay/` (sem lista fixa: um APK novo aqui entra sozinho, a do `android` sempre
