@@ -46,3 +46,30 @@ validarmos isso?"
 
 - Nada de escrever nas props dos 4 pontos nem chamar o `ProjectionService` (doc 43).
 - Cada mudança de ajuste é reversível e registrada, com antes e depois medidos pela câmera.
+
+## 11P - Pesquisa (agora, em paralelo ao bloco 10; só leitura, sem aparelho)
+
+Worktree `/home/andrefarias/Desenvolvimento/pfl7560-wt/bloco-11p`, branch `bloco-11p/pesquisa`. Entrega só
+`docs/research/46-foco-e-qualidade.md`, no formato do doc 43: tabela com comando, fonte (arquivo, classe ou
+offset, linha) e confiança, e uma seção "o que não se achou". Firmware em `firmware/Software PFL7560.zip`. Os
+scripts da pesquisa P estão em `/tmp/claude-1000/-home-andrefarias-Desenvolvimento-intelbras-pfl7560-thermal-policy-research/a20b0f13-e9aa-4144-beb6-53924ad7357d/scratchpad/pesquisa-scripts/`.
+Extraia numa pasta nova do scratchpad e apague os brutos no fim.
+
+Perguntas:
+1. **Foco:**
+   - O `AutoFocus3` ou outro serviço expõe passos do motor de foco (posição absoluta ou relativa, `+`/`-`)?
+     Por intent, prop, `/dev`, `/sys` ou comando do `hidebug`?
+   - Como o autofoco decide o ponto: por contraste da câmera? Com que padrão na tela?
+   - Dá para pedir "foco fino" ou repetir só a varredura fina?
+   - Por que o serviço às vezes "não começa" (doc 43 §2: backlight desligado, teste de fábrica, outra
+     condição)?
+2. **Ajustes de imagem:**
+   - quais existem e onde moram (props, `ZYCustom.db`, PQ do HiSilicon, `/proc/msp/pq`): modo de imagem,
+     nitidez, redução de ruído, MEMC, contraste dinâmico, overscan e zoom;
+   - qual valor é o "máximo de qualidade" para cada um;
+   - como ler e como mudar de forma reversível, sem tocar nos 4 pontos.
+3. **Resolução:** a saída para o painel é 1080p nativo sem reescala? O overscan está zerado? Ler `/proc/msp/disp`
+   e `vo` no texto do firmware (strings do driver) e as props `persist.display.*`.
+4. **Keystone e nitidez:** a correção de 4 pontos é feita em GPU (SurfaceFlinger) ou no hardware de vídeo? Qual
+   filtro de reamostragem ela usa? Há como trocar para um filtro mais nítido?
+5. O que disso pode virar etapa automática da suíte e o que só deve ser mostrado ao dono.
