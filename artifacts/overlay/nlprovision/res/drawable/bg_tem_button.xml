@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Botao OK dos avisos MyDialog do nlprovision (texto branco fixo no layout). De fabrica: preto
+     40% com fio preto 60% -> fundo cheio com fio rosa de 2 dp (o unico botao da janela). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="10dp" />
+    <solid android:color="#FF282A36" />
+    <stroke android:width="2dp" android:color="#FFFF79C6" />
+</shape>

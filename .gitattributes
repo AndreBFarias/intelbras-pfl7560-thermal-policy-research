@@ -61,3 +61,7 @@ pendrive-autorun/pfl7560.apk        -text byte-exact
 pendrive-autorun/pfl7560-home.apk   -text byte-exact
 # texto que acompanha o nosso .bin no pendrive (--com-firmware, bloco 9C): ASCII puro, copiado byte a byte
 firmware/LEIA-ME-nosso-NAO-GRADUADO.txt  -text byte-exact
+artifacts/overlay/apk/*.apk         -text byte-exact
+artifacts/overlay/assinatura.keystore  -text byte-exact
+artifacts/overlay/*/res/**/*.png    -text byte-exact
+artifacts/overlay/previa/*.png      -text byte-exact

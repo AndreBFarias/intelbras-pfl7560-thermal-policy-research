@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia: no Android 9 uma
+     sobreposicao nao pode apontar para recurso so dela (o id cairia no espaco do alvo). -->
+<resources>
+    <!-- fundo de TODAS as telas no estilo vendor.newlink.rgtp_ui.style=1 (My*Layout) e cor do
+         botao em foco do MyDialog (aviso de HDMI); de fabrica #FF00B26B (o verde antigo) -> fundo -->
+    <color name="pt_green">#FF282A36</color>
+    <!-- painel do MyDialog e do MyConfirmDialog; de fabrica #FF163134 -> comentario (o botao em
+         foco e pt_green = fundo, e o texto e branco fixo no codigo: precisa de painel mais claro
+         que o fundo e escuro o bastante para o branco: 4,7:1 no texto, 3,0:1 no foco) -->
+    <color name="pt_green_black">#FF6272A4</color>
+</resources>
