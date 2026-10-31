@@ -4,11 +4,8 @@ Artefatos da solução. Diagnóstico completo em
 [`../../docs/research/28-troca-painel-rx058b-diagnostico-cor.md`](../../docs/research/28-troca-painel-rx058b-diagnostico-cor.md).
 
 ## Contexto
-1ª troca (2026-07-10): painel de fábrica `RX058B-4300` (driver SC5010E, LVDS VESA) trocado por
-`RX058B-0600`, que pediu **JEIDA**. 2ª troca (2026-10-29): o painel instalado é de novo um
-`FPX-RX058B-4300-V0` `20241101 HT` e pediu **VESA**
-([doc 40](../../docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §1). 3ª troca (2026-10-30): o painel
-pediu **JEIDA**, e o aparelho está hoje em JEIDA ([doc 41](../../docs/research/41-auto-pareamento-camera-e-kit-universal.md) §8).
+O histórico das trocas de painel deste aparelho (e o formato de cada uma) está só na
+[matriz de painéis, doc 33](../../docs/research/33-matriz-paineis.md).
 Sintoma de formato errado: primárias certas, preto e cinzas tingidos (a cor muda com a imagem).
 **O formato não se deduz do nome do painel:** decide o teste de cinza. Sem PC, o kit de pendrive
 (`pendrive-autorun/`, que leva uma cópia deste `lvdsctl`) faz o teste da escada de 16 cinzas (pela câmera interna ou pelo controle; a suíte de boot, [doc 44](../../docs/research/44-suite-de-boot.md), repete o teste a cada volta da tomada)

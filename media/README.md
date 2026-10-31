@@ -27,7 +27,7 @@ existem em duas versões (`-a`/`-b`) que discordam num rótulo; as duas ficam at
 | `guia-lateral-pasta-led-a.jpg` | Lateral: pasta entre o LED e o bloco dos heat pipes, passo a passo | Rotula a peça no topo do bloco como "fio com terminal parafusado". **Incompleto:** o terminal é o NTC do `gtt1` (OPT-S7) |
 | `guia-lateral-pasta-led-b.jpg` | Mesma lateral | Rotula a mesma peça como "sensor de temperatura (NTC)". **Confirmado em 2026-10-29** (OPT-S7 fechado, [doc 40](../docs/research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3): é o NTC do `gtt1`, encapsulado no olhal. O olhal que o doc 27 trata como aterramento EMI é outro, o solto entre os sopradores |
 | `guia-motor-optico-angulo.jpg` | Motor óptico em ângulo: funil, LCD, bloco do LED, ventoinha | — |
-| `guia-ordem-pecas-opticas.jpg` | Ordem e posição de Fresnel, polarizadores, LCD e espelho; 3 testes rápidos | Diz que "o firmware já está em JEIDA". **Desatualizado:** desde 2026-10-29 o aparelho está em VESA (2ª troca de LCD) |
+| `guia-ordem-pecas-opticas.jpg` | Ordem e posição de Fresnel, polarizadores, LCD e espelho; 3 testes rápidos | Diz que "o firmware já está em JEIDA". Vale para o painel em uso na foto; o formato muda a cada troca ([doc 33](../docs/research/33-matriz-paineis.md)) |
 
 Auditoria de privacidade: **REVISAR** antes de publicar. Há QR/data-matrix de placas, mãos e fundo
 doméstico (tecido, piso).
