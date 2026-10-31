@@ -205,6 +205,8 @@ rc_suite_ok(){
   # o app ja no /vendor/app (bloco 9C): o aparelho "com tudo" nao abre o /vendor por ele
   mkdir -p "$T/root/vendor/app/PFL7560"; chmod 755 "$T/root/vendor/app/PFL7560"
   cp "$KIT/pfl7560.apk" "$T/root/vendor/app/PFL7560/PFL7560.apk"; chmod 644 "$T/root/vendor/app/PFL7560/PFL7560.apk"
+  mkdir -p "$T/root/vendor/app/PFL7560Home"; chmod 755 "$T/root/vendor/app/PFL7560Home"
+  cp "$KIT/pfl7560-home.apk" "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk"; chmod 644 "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk"
 }
 # aparelho com tudo aplicado (termico/wi-fi/xiri/servico da suite): so a cor fica em jogo
 aparelho_ok(){
@@ -1159,7 +1161,7 @@ c_instalador(){
   local d x f n
   d="$(mktemp -d)"
   afirma 'bash "$ROOT/install.sh" --pendrive "$d" >"$d.log" 2>&1' "install.sh --pendrive falhou: $(tail -3 "$d.log" 2>/dev/null | tr '\n' ' ')"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png fontes/IBMPlexMono-Regular.ttf fontes/IBMPlexMono-SemiBold.ttf fontes/IBMPlexSansCondensed-Bold.ttf fontes/IBMPlexSansCondensed-Regular.ttf fontes/IBMPlexSansCondensed-SemiBold.ttf fontes/OFL.txt; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk pfl7560-home.apk kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png fontes/IBMPlexMono-Regular.ttf fontes/IBMPlexMono-SemiBold.ttf fontes/IBMPlexSansCondensed-Bold.ttf fontes/IBMPlexSansCondensed-Regular.ttf fontes/IBMPlexSansCondensed-SemiBold.ttf fontes/OFL.txt; do
     afirma 'cmp -s "$KIT/$f" "$d/$f"' "pendrive sem $f ou com copia diferente"
   done
   n="$(cd "$d" && find . -type f | wc -l)"
@@ -1186,7 +1188,7 @@ c_instalador(){
   CASO="install.bat"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk 'kit\*.png' 'fontes\*'; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk pfl7560-home.apk 'kit\*.png' 'fontes\*'; do
     afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -qF "$f"' "install.bat nao copia/lista $f"
   done
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
@@ -1258,11 +1260,17 @@ c_app(){
   afirma '[ ! -e "$T/root/vendor/app/.PFL7560.apk.new" ] && [ ! -e "$T/root/data/vendor/pfl7560-suite/pfl7560.apk" ]' "sobrou .new ou o apk foi para a pasta da suite"
   afirma 'tem_chamada "^mount -o rw,remount /vendor" && tem_chamada "^mount -o ro,remount /vendor"' "gravou no /vendor sem o remount rw/ro"
   afirma '[ "$(grep -n "vendor_app_file" "$T/calls.log" | head -1 | cut -d: -f1)" -lt "$(grep -n "^am start" "$T/calls.log" | head -1 | cut -d: -f1)" ]' "o app nao entrou antes da primeira tela da suite"
-  afirma 'log_tudo | grep -q "\[OK\] app: com.pfl7560.verificar instalado como app do sistema" && log_tudo | grep -q "PROXIMO boot"' "log sem a instalacao ou sem o aviso do proximo boot"
+  afirma 'log_tudo | grep -q "\[OK\] app: pfl7560.apk instalado como app do sistema" && log_tudo | grep -q "PROXIMO boot"' "log sem a instalacao ou sem o aviso do proximo boot"
   afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "o app mudou o fluxo do kit: telas '$(telas)'"
   : > "$T/calls.log"
   roda nokey
-  afirma '! tem_chamada "^mount -o rw,remount /vendor" && log_tudo | grep -q "app: ja estava em /vendor/app/PFL7560"' "2a execucao abriu o /vendor ou regravou"
+  afirma '! tem_chamada "^mount -o rw,remount /vendor" && log_tudo | grep -q "app: pfl7560.apk ja estava em /vendor/app/PFL7560"' "2a execucao abriu o /vendor ou regravou"
+  limpa
+
+  novo_cenario "app: home ausente = vai para /vendor/app/PFL7560Home; o outro app fica"; aparelho_ok
+  rm -rf "$T/root/vendor/app/PFL7560Home"
+  roda nokey
+  afirma 'cmp -s "$KIT/pfl7560-home.apk" "$T/root/vendor/app/PFL7560Home/PFL7560Home.apk" && log_tudo | grep -q "\[OK\] app: pfl7560-home.apk instalado" && log_tudo | grep -q "app: pfl7560.apk ja estava"' "home: $(log_tudo | grep "app:" | tr '\n' '|')"
   limpa
 
   novo_cenario "app: apk antigo em /vendor/app = atualiza"; aparelho_ok

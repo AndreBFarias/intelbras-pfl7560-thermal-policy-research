@@ -32,6 +32,7 @@
 #      newlink_update.sh  cor.sh  lvdsctl  nl_camcheck  ZYCustom.ini  LEIA-ME.txt  kit/*.png
 #      suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc  (e nl_tela, fontes/ do 9A)
 #      pfl7560.apk  (app dos icones "Verificar projetor" e "Wi-Fi", bloco 9C)
+#      pfl7560-home.apk  (home nova, bloco 10A)
 #  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
 #  IDEMPOTENTE:
@@ -79,7 +80,9 @@ RC_SUITE_NOVO="$R/vendor/etc/pfl7560-suite.rc.new"
 ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # app "PFL7560" (bloco 9C): pacote e versionCode do pfl7560.apk da lista (build.sh tem o mesmo
 # VERSAO_CODIGO; o harness confere os dois)
+# shellcheck disable=SC2034  # so conferidos pelo harness contra o build.sh e o apk
 APP_PKG="com.pfl7560.verificar"
+# shellcheck disable=SC2034
 APP_VERSION_CODE="2"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
@@ -124,6 +127,7 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 725662c93e2556d39e6d7ab1b8e48f02  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 a339b061efc6e6a8e0421dc9f1eb9e8d  pfl7560.apk
+95aa6e9ba83551e17a9300c0df136e95  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -327,7 +331,7 @@ COR_MD5=$(kit_md5_esperado cor.sh)
 # root, 0700; arquivo regular do root com o md5 da lista). Copia a partir de $WORK (ja
 # conferida), so o que tem md5 diferente, por uma pasta de preparo DENTRO de $SUITE,
 # conferida la, e mv para o lugar; no fim confere tudo. Idempotente: 2a vez nada grava.
-suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$'; }
+suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$'; }
 # a pasta e as subpastas dela (kit/, fontes/): um arquivo "regular" dentro de uma
 # subpasta que e link passaria pelo arq_seguro
 suite_dir_ok(){
@@ -428,48 +432,52 @@ suite_pronta(){ suite_dir_ok && conferir_em "$SUITE" suite.sh; }
 # KeymasterProvisionDemo de fabrica): 0755/0644, root, rotulo vendor_app_file, dentro da
 # MESMA janela rw do /vendor do .rc da suite. Vale no proximo boot. O APK vem de $WORK (ja
 # conferido pelo md5 da lista), nunca do pendrive.
-APP_DIR="$R/vendor/app/PFL7560"
-APP_APK="$APP_DIR/PFL7560.apk"
-APP_NOVO="$R/vendor/app/.PFL7560.apk.new"
+# Dois apps do kit, cada um em /vendor/app/<Pasta>/<Pasta>.apk: o "PFL7560" (Verificar
+# projetor e Wi-Fi, bloco 9C) e a home nova "PFL7560Home" (bloco 10A).
 ROTULO_APP="u:object_r:vendor_app_file:s0"
+# $1 = nome no kit (pfl7560.apk), $2 = pasta em /vendor/app (PFL7560)
 app_conforme(){
-  [ -d "$APP_DIR" ] && [ ! -L "$APP_DIR" ] || return 1
-  [ -f "$APP_APK" ] && [ ! -L "$APP_APK" ] && cmp -s "$WORK/pfl7560.apk" "$APP_APK" || return 1
+  _ad="$R/vendor/app/$2"; _aa="$_ad/$2.apk"
+  [ -d "$_ad" ] && [ ! -L "$_ad" ] || return 1
+  [ -f "$_aa" ] && [ ! -L "$_aa" ] && cmp -s "$WORK/$1" "$_aa" || return 1
   # shellcheck disable=SC2046  # divisao em campos de proposito
-  set -- $(ls -ln "$APP_APK" 2>/dev/null)
+  set -- $(ls -ln "$_aa" 2>/dev/null)
   case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
   [ "$3" = "$DONO_UID" ] || return 1
-  _al=$(rotulo_de "$APP_APK")
+  _al=$(rotulo_de "$_aa")
   [ -z "$_al" ] || [ "$_al" = "$ROTULO_APP" ]
 }
 # so com o /vendor ja aberto rw. Falha so avisa (devolve !=0): o resto do kit segue.
+# $1 = nome no kit, $2 = pasta em /vendor/app
 instalar_app(){
-  if ! trabalho_ok || ! trabalho_conferir pfl7560.apk; then
-    LOG "[AVISO] app: pfl7560.apk em $WORK nao confere - o app NAO foi instalado (o resto do kit segue)."
+  _ad="$R/vendor/app/$2"; _aa="$_ad/$2.apk"; _an="$R/vendor/app/.$2.apk.new"
+  if ! trabalho_ok || ! trabalho_conferir "$1"; then
+    LOG "[AVISO] app: $1 em $WORK nao confere - o app NAO foi instalado (o resto do kit segue)."
     return 1
   fi
   # um link no lugar da pasta e apagado, nunca seguido
-  [ -L "$APP_DIR" ] && rm -f "$APP_DIR"
-  if ! { mkdir -p "$APP_DIR" && chmod 755 "$APP_DIR" && chown root:root "$APP_DIR"; }; then
-    LOG "[AVISO] app: nao consegui preparar $APP_DIR - o app NAO foi instalado (o resto do kit segue)."
+  [ -L "$_ad" ] && rm -f "$_ad"
+  if ! { mkdir -p "$_ad" && chmod 755 "$_ad" && chown root:root "$_ad"; }; then
+    LOG "[AVISO] app: nao consegui preparar $_ad - o app NAO foi instalado (o resto do kit segue)."
     return 1
   fi
-  chcon "$ROTULO_APP" "$APP_DIR" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou na pasta do app."
-  rm -f "$APP_NOVO"
-  if cp "$WORK/pfl7560.apk" "$APP_NOVO" && chmod 644 "$APP_NOVO" && chown root:root "$APP_NOVO" \
-     && cmp -s "$WORK/pfl7560.apk" "$APP_NOVO"; then
-    chcon "$ROTULO_APP" "$APP_NOVO" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou no apk."
-    if mv -f "$APP_NOVO" "$APP_APK" && app_conforme; then
-      _alf=$(rotulo_de "$APP_APK"); [ -n "$_alf" ] || _alf="(ls -Z nao respondeu; pedido $ROTULO_APP)"
-      LOG "[OK] app: $APP_PKG instalado como app do sistema em ${APP_DIR#"$R"} (versao $APP_VERSION_CODE, 0644 root, rotulo $_alf). Os icones Verificar projetor e Wi-Fi aparecem depois do PROXIMO boot."
+  chcon "$ROTULO_APP" "$_ad" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou na pasta do app."
+  rm -f "$_an"
+  if cp "$WORK/$1" "$_an" && chmod 644 "$_an" && chown root:root "$_an" && cmp -s "$WORK/$1" "$_an"; then
+    chcon "$ROTULO_APP" "$_an" 2>/dev/null || LOG "[AVISO] chcon $ROTULO_APP falhou no apk."
+    if mv -f "$_an" "$_aa" && app_conforme "$1" "$2"; then
+      _alf=$(rotulo_de "$_aa"); [ -n "$_alf" ] || _alf="(ls -Z nao respondeu; pedido $ROTULO_APP)"
+      LOG "[OK] app: $1 instalado como app do sistema em ${_ad#"$R"} (0644 root, rotulo $_alf). Vale depois do PROXIMO boot."
       return 0
     fi
-    rm -f "$APP_APK"
+    rm -f "$_aa"
   fi
-  rm -f "$APP_NOVO"
-  LOG "[AVISO] app: nao consegui gravar o apk em $APP_DIR - o app NAO foi instalado (o resto do kit segue)."
+  rm -f "$_an"
+  LOG "[AVISO] app: nao consegui gravar o apk em $_ad - o app NAO foi instalado (o resto do kit segue)."
   return 1
 }
+# os apps do kit: "nome-no-kit:Pasta"
+KIT_APPS="pfl7560.apk:PFL7560 pfl7560-home.apk:PFL7560Home"
 
 SUITE_INSTALAR=1
 if [ -e "$MP/DESINSTALAR-SUITE.txt" ]; then SUITE_INSTALAR=0; fi
@@ -484,7 +492,9 @@ fi
 # o app entra na janela rw do /vendor, abaixo (antes de lancar a suite e do reboot da fase
 # termica). So com a suite instalada: o app so serve a ela.
 APP_PEND=0
-if [ "$SUITE_OK" = "1" ] && ! app_conforme; then APP_PEND=1; fi
+if [ "$SUITE_OK" = "1" ]; then
+  for _ka in $KIT_APPS; do app_conforme "${_ka%%:*}" "${_ka#*:}" || APP_PEND=1; done
+fi
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
 # termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior
@@ -702,11 +712,13 @@ if [ "$SUITE_OK" = "1" ]; then
   elif [ "$VENDOR_RW" = "1" ]; then
     instalar_rc
   fi
-  if [ "$APP_PEND" = "0" ]; then
-    LOG "app: ja estava em ${APP_DIR#"$R"} (igual ao do kit)"
-  elif [ "$VENDOR_RW" = "1" ]; then
-    instalar_app
-  fi
+  for _ka in $KIT_APPS; do
+    if app_conforme "${_ka%%:*}" "${_ka#*:}"; then
+      LOG "app: ${_ka%%:*} ja estava em /vendor/app/${_ka#*:} (igual ao do kit)"
+    elif [ "$VENDOR_RW" = "1" ]; then
+      instalar_app "${_ka%%:*}" "${_ka#*:}"
+    fi
+  done
 fi
 
 sync

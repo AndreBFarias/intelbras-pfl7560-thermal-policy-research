@@ -51,6 +51,12 @@ if [ -e "$KIT/pfl7560.apk" ]; then
   fi
   APK="pfl7560.apk"
 fi
+if [ -e "$KIT/pfl7560-home.apk" ]; then
+  if ! cmp -s "$ROOT/artifacts/home/pfl7560-home.apk" "$KIT/pfl7560-home.apk"; then
+    echo "FALHA: pendrive-autorun/pfl7560-home.apk difere de artifacts/home/pfl7560-home.apk (rode artifacts/home/build.sh)"; exit 1
+  fi
+  APK="$APK pfl7560-home.apk"
+fi
 FONTES=""
 for f in "$KIT"/fontes/*; do [ -f "$f" ] && FONTES="$FONTES fontes/${f##*/}"; done
 

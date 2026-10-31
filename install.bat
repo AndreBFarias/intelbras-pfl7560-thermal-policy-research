@@ -342,7 +342,7 @@ echo.
 echo  Metodo SEM PC: copia o kit v2 COMPLETO para a RAIZ de um pendrive FAT32
 echo  e confere o md5 de cada arquivo contra a lista do newlink_update.sh.
 echo    Arquivos: newlink_update.sh, cor.sh, lvdsctl, nl_camcheck, nl_tela, ZYCustom.ini, LEIA-ME.txt,
-echo              suite.sh, suite-boot.sh, suite-pedido.sh, pfl7560-suite.rc, pfl7560.apk, kit\*.png e fontes\*
+echo              suite.sh, suite-boot.sh, suite-pedido.sh, pfl7560-suite.rc, pfl7560.apk, pfl7560-home.apk, kit\*.png e fontes\*
 echo    Origem:   %HERE%\pendrive-autorun
 echo    O pendrive tem de estar em FAT32 ^(MBR^). NAO use o pendrive de resgate do firmware.
 echo    Opcional: juntar o firmware de RESGATE ^(usb_update.bin oficial V1.0.0.9 na raiz e o nosso .bin em
@@ -383,7 +383,7 @@ if "%COMFW%"=="1" (
 )
 if not exist "%DST%\kit\" mkdir "%DST%\kit"
 if not exist "%DST%\fontes\" mkdir "%DST%\fontes"
-for %%F in (newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk) do copy /y "%SRC%\%%F" "%DST%\%%F" >nul || set "KITFAIL=1"
+for %%F in (newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk pfl7560-home.apk) do copy /y "%SRC%\%%F" "%DST%\%%F" >nul || set "KITFAIL=1"
 copy /y "%SRC%\kit\*.png" "%DST%\kit\" >nul || set "KITFAIL=1"
 copy /y "%SRC%\fontes\*" "%DST%\fontes\" >nul || set "KITFAIL=1"
 if "%KITFAIL%"=="1" (
