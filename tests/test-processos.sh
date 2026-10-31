@@ -1,9 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-processos.sh - bloco 9C (C3): pfl7560-processos.sh com uma saida de "top" gravada
-# (tests/fixtures/processos/, formato do toybox do Android 9) e com um adb de mentira. Nada fala
-# com o aparelho; o adb de mentira registra cada comando e o teste exige que sejam so de leitura.
-#
-#   bash tests/test-processos.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export LC_ALL=C
@@ -80,7 +75,6 @@ afirma 'grep -q "^Os 10 que mais gastam" "$arq" && grep -q "^---- dados brutos: 
 afirma '[ "$(grep -c "^A|" "$arq")" -ge 5 ] && grep -q "kworker/u8:3 .*visto em D" "$arq"' "poucas amostras ou sem o estado D: $(grep -c '^A|' "$arq") amostras"
 afirma 'grep -q "^Os 10 que mais gastam" "$TMP/c.out"' "o resumo nao foi para a tela"
 afirma 'grep -q "adb -s 10.0.0.9:5555 shell top -b -n 2 -d 10" "$TMP/adb.log"' "nao chamou o top com a janela pedida: $(grep top "$TMP/adb.log" | head -1)"
-# SO LEITURA: so estes comandos chegam ao aparelho (conectar, ler o modelo, top, ler /proc e props)
 afirma '[ "$(grep -vE "^adb (connect|-s [0-9.:]+ shell (getprop ro.product.model|top -b -n 2 -d 10|cat /proc/loadavg))" "$TMP/adb.log" | wc -l | tr -d " ")" = 0 ]' "comando fora da lista de leitura: $(grep -vE '^adb (connect|-s [0-9.:]+ shell (getprop ro.product.model|top -b -n 2 -d 10|cat /proc/loadavg))' "$TMP/adb.log" | head -2)"
 
 CASO="coleta com --saida"

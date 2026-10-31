@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-tela.sh - bloco 9A (A3): o nl_tela do HOST (mesmo .c do binario ARM) gera as telas de
-# exemplo do contrato C-tela (tests/fixtures/tela/*.txt) com as fontes do kit
-# (pendrive-autorun/fontes/) e confere cada PNG: 1920x1080 RGB, decodificavel com zlib puro, nada
-# fora das margens, zero truncamento nos exemplos do dono. Depois, entradas invalidas, escapes,
-# reserva de fonte e o binario ARM do kit. Nao fala com o projetor.
-# Os PNG de exemplo ficam em tests/saida/telas/ (fora do git) para olhar.
-#   bash tests/test-tela.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FIX="$ROOT/tests/fixtures/tela"
@@ -15,7 +8,6 @@ T="$(mktemp -d)"; trap 'rm -rf "$T"' EXIT
 NT="$T/nl_tela"
 FALHAS=0; TESTES=0
 afirma(){ TESTES=$((TESTES+1)); if eval "$1"; then :; else FALHAS=$((FALHAS+1)); echo "  FALHA: $2  (cond: $1)"; fi; }
-# sem a reserva do sistema do PC: so as fontes do kit (os casos de reserva usam pasta propria)
 mkdir -p "$SAIDA" "$T/sem-sistema"
 export NL_TELA_SISTEMA="$T/sem-sistema"
 
@@ -23,9 +15,6 @@ cc -O2 -Wall -Wextra -o "$NT" "$ROOT/artifacts/tela/nl_tela.c" -lm 2>"$T/cc.err"
 echo "nl_tela compilado no host (cc -O2 -Wall -Wextra)"
 afirma '[ ! -s "$T/cc.err" ]' "a compilacao deu aviso: $(head -5 "$T/cc.err")"
 
-# conferencia do PNG em python puro (zlib): assinatura, CRC, IHDR 1920x1080 8 bits RGB, dados
-# completos e, com --margens, nenhum pixel diferente do fundo fora da area util (110 px dos lados,
-# 50 em cima e embaixo)
 cat > "$T/confere.py" <<'PY'
 import sys, zlib, struct
 def ler(p):
@@ -76,11 +65,10 @@ for p in sys.argv[2:]:
 sys.exit(ruim)
 PY
 confere(){ python3 -I "$T/confere.py" --margens "$@"; }
-gera(){ # modo campos.txt saida.png [dir_fontes]; rc em _rc, stderr em $T/err
+gera(){
   "$NT" "$1" "$2" "$3" "${4:-$FONTES}" 2>"$T/err"; _rc=$?
 }
 
-# ---- os exemplos do dono: geram, sem aviso nenhum (nem truncamento), PNG valido e nas margens
 for f in "$FIX"/*.txt; do
   nome=$(basename "$f" .txt); modo=${nome%%-*}
   gera "$modo" "$f" "$SAIDA/$nome.png"
@@ -95,19 +83,16 @@ for f in "$FIX"/resumo-*.txt; do
 done
 afirma '! grep -v "^#" "$FIX/aviso-abertura-tomada.txt" | grep -qi "pendrive"' "a abertura da tomada nao fala de pendrive"
 afirma 'grep -q "tirar o pendrive" "$FIX/aviso-final-pendrive.txt"' "a tela final do pendrive pede para tira-lo"
-# ASCII puro: campos.txt (o kit e ASCII) e a licenca das fontes que vai no pendrive
 afirma '! LC_ALL=C grep -qP "[^\x00-\x7F]" "$FIX"/*.txt "$FIX"/estresse/*.txt "$FONTES/OFL.txt"' "arquivo de campos ou OFL.txt com byte nao ASCII"
 echo "  exemplos em $SAIDA/"
 
-# ---- no limite (4x6 itens, 3 dicas, textos longos demais): corta com reticencias, avisa, nada
-# passa da margem
 for f in "$FIX"/estresse/*.txt; do
   nome=$(basename "$f" .txt); modo=${nome%%-*}
   gera "$modo" "$f" "$SAIDA/estresse-$nome.png"
   afirma '[ "$_rc" = 0 ] && grep -q "^nl_tela: truncado: " "$T/err"' "estresse $nome: deveria sair 0 avisando o truncamento (saiu $_rc)"
   afirma 'confere "$SAIDA/estresse-$nome.png"' "estresse $nome: fora das margens"
 done
-LONGO="muito longo $(printf 'palavra%.0s ' $(seq 1 36))fim"   # ~300 bytes: cabe na linha de 1024
+LONGO="muito longo $(printf 'palavra%.0s ' $(seq 1 36))fim"
 printf 'titulo=%s\ntexto=%s\netapa=%s\ncanto=%s\npasso=%s|agora\nrodape=%s\n' \
   "$LONGO" "$LONGO" "$LONGO" "$LONGO" "$LONGO" "$LONGO" > "$T/longo-aviso.txt"
 gera aviso "$T/longo-aviso.txt" "$T/longo-aviso.png"
@@ -119,14 +104,13 @@ gera resumo "$T/longo-resumo.txt" "$T/longo-resumo.png"
 afirma '[ "$_rc" = 0 ] && [ "$(grep -c "truncado: " "$T/err")" -ge 6 ]' "resumo longo: deveria truncar os campos (rc $_rc)"
 afirma 'confere "$T/longo-resumo.png"' "resumo longo passou da margem"
 
-# ---- uso e entradas invalidas
 "$NT" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "sem argumentos deveria sair 2 (saiu $rc)"
 "$NT" resumo "$FIX/resumo-correcao.txt" "$T/x.png" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "faltando dir_fontes deveria sair 2 (saiu $rc)"
 "$NT" outro "$FIX/resumo-correcao.txt" "$T/x.png" "$FONTES" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "modo desconhecido deveria sair 2 (saiu $rc)"
-invalido(){ # descricao conteudo [modo]: deve sair 1, sem gravar o PNG
+invalido(){
   printf '%b' "$2" > "$T/inv.txt"; rm -f "$T/inv.png"
   gera "${3:-resumo}" "$T/inv.txt" "$T/inv.png"
   afirma '[ "$_rc" = 1 ] && [ ! -e "$T/inv.png" ] && [ -s "$T/err" ]' "$1: deveria sair 1 com mensagem e sem PNG (saiu $_rc)"
@@ -154,29 +138,24 @@ afirma '[ "$_rc" = 1 ] && grep -q "maior que" "$T/err"' "campos.txt maior que 64
 gera resumo "$FIX/resumo-correcao.txt" "$T/nao-existe/x.png"
 afirma '[ "$_rc" = 1 ] && grep -q "gravar" "$T/err"' "saida em pasta inexistente deveria sair 1 (saiu $_rc)"
 
-# ---- escapes e chaves desconhecidas (comparando PNG gerados)
 md5(){ md5sum "$1" | cut -d' ' -f1; }
 um(){ printf 'titulo=%s\ncanto=c\n' "$1" > "$T/e.txt"; gera resumo "$T/e.txt" "$T/$2.png"; }
 um 'a\u00e7b' esc-ce; um 'a?b' esc-int; um 'a\u00E7b' esc-maiusc; um 'a\u0000b' esc-zero; um 'a\ud800b' esc-subst
 afirma '[ "$(md5 "$T/esc-ce.png")" != "$(md5 "$T/esc-int.png")" ]' "\\u00e7 deveria virar c-cedilha, nao ?"
 afirma '[ "$(md5 "$T/esc-ce.png")" = "$(md5 "$T/esc-maiusc.png")" ]' "\\u00E7 e \\u00e7 deveriam ser iguais"
 afirma '[ "$(md5 "$T/esc-zero.png")" = "$(md5 "$T/esc-int.png")" ] && [ "$(md5 "$T/esc-subst.png")" = "$(md5 "$T/esc-int.png")" ]' "\\u0000 e substituto deveriam virar ?"
-# byte nao ASCII cru (erro de quem escreveu): decidido trocar por ? e avisar, a tela sai assim mesmo
 printf 'titulo=a\303\247b\ncanto=c\n' > "$T/cru.txt"
 gera resumo "$T/cru.txt" "$T/cru.png"
 afirma '[ "$_rc" = 0 ] && grep -q "nao ASCII cru" "$T/err"' "byte nao ASCII cru deveria sair 0 com aviso (saiu $_rc)"
 printf 'titulo=a??b\ncanto=c\n' > "$T/cru2.txt"; gera resumo "$T/cru2.txt" "$T/cru2.png"
 afirma '[ "$(md5 "$T/cru.png")" = "$(md5 "$T/cru2.png")" ]' "cada byte nao ASCII cru deveria virar um ?"
-# chave desconhecida, comentario, CRLF e linha sem '=' nao mudam a tela
 { echo "# comentario"; echo "nova_chave=qualquer"; sed 's/$/\r/' "$FIX/resumo-correcao.txt"; echo "sem igual"; } > "$T/extra.txt"
 gera resumo "$FIX/resumo-correcao.txt" "$T/base.png"; gera resumo "$T/extra.txt" "$T/extra.png"
 afirma '[ "$_rc" = 0 ] && [ "$(md5 "$T/base.png")" = "$(md5 "$T/extra.png")" ]' "chave desconhecida, CRLF ou comentario mudaram a tela"
-# chave do outro modo e ignorada (passo= no resumo nao vira nada)
 { cat "$FIX/resumo-correcao.txt"; echo "passo=x|agora"; echo "texto=y"; } > "$T/outro.txt"
 gera resumo "$T/outro.txt" "$T/outro.png"
 afirma '[ "$(md5 "$T/base.png")" = "$(md5 "$T/outro.png")" ]' "chave do modo aviso mudou o resumo"
 
-# ---- fontes: sem nenhuma (nem reserva) sai 1 com mensagem; faltando uma, cai na reserva
 mkdir -p "$T/vazia"
 gera resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/vazia"
 afirma '[ "$_rc" = 1 ] && grep -q "sem fonte" "$T/err" && [ ! -e "$T/f.png" ]' "sem fonte nenhuma deveria sair 1 com mensagem (saiu $_rc)"
@@ -190,29 +169,21 @@ afirma '[ "$_rc" = 1 ] && grep -q "sem fonte para IBMPlexMono-SemiBold.ttf" "$T/
 mkdir -p "$T/ruim"; cp "$FONTES"/*.ttf "$T/ruim/"; head -c 4096 /dev/urandom > "$T/ruim/IBMPlexSansCondensed-Bold.ttf"
 gera resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/ruim"
 afirma '[ "$_rc" = 1 ] && grep -q "nao e uma fonte TrueType valida" "$T/err"' "TTF corrompido sem reserva deveria sair 1 (saiu $_rc)"
-# TTF verdadeiro TRUNCADO (copia interrompida): a stb_truetype nao confere offset nenhum e lia
-# fora do buffer (ASan: heap-buffer-overflow). O diretorio de tabelas e conferido antes: sai 1
-# com mensagem, sem PNG, em qualquer ponto do corte (ate faltando so o ultimo byte)
 _tam=$(wc -c < "$FONTES/IBMPlexSansCondensed-Bold.ttf")
 for _c in 15 16 1000 100000 $((_tam - 1)); do
   head -c "$_c" "$FONTES/IBMPlexSansCondensed-Bold.ttf" > "$T/ruim/IBMPlexSansCondensed-Bold.ttf"; rm -f "$T/f.png"
   gera resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/ruim"
   afirma '[ "$_rc" = 1 ] && grep -q "nao e uma fonte TrueType valida" "$T/err" && [ ! -e "$T/f.png" ]' "TTF truncado em $_c bytes deveria sair 1 com mensagem (saiu $_rc): $(head -2 "$T/err")"
 done
-# ...e com a reserva do sistema presente, o estilo truncado cai nela
 cp "$FONTES/IBMPlexSansCondensed-Bold.ttf" "$T/sistema/Roboto-Bold.ttf"
 NL_TELA_SISTEMA="$T/sistema" "$NT" resumo "$FIX/resumo-correcao.txt" "$T/f.png" "$T/ruim" 2>"$T/err"; rc=$?
 afirma '[ "$rc" = 0 ] && grep -q "IBMPlexSansCondensed-Bold.ttf ausente, usando a reserva" "$T/err" && confere "$T/f.png"' "TTF truncado com reserva deveria usar a reserva (saiu $rc): $(head -2 "$T/err")"
-# saida que e uma pasta (vazia): sai 1 e NAO apaga a pasta (antes o remove() a apagava)
 mkdir -p "$T/pasta-saida"
 gera resumo "$FIX/resumo-correcao.txt" "$T/pasta-saida"
 afirma '[ "$_rc" = 1 ] && [ -d "$T/pasta-saida" ]' "saida apontando para uma pasta deveria sair 1 sem apaga-la (saiu $_rc)"
 
-# ---- binario ARM do kit
 afirma 'file "$ROOT/artifacts/tela/nl_tela" | grep -q "ELF 32-bit LSB.*ARM.*/system/bin/linker"' "artifacts/tela/nl_tela nao e um ELF ARM do Android"
 afirma 'cmp -s "$ROOT/artifacts/tela/nl_tela" "$ROOT/pendrive-autorun/nl_tela"' "pendrive-autorun/nl_tela difere de artifacts/tela/nl_tela"
-# o binario versionado e o deste .c: recompila com o NDK (se houver) e compara. Compila da raiz,
-# com o caminho relativo, como no README: o assert da stb_truetype grava o caminho no binario
 NDK_CC="${ANDROID_NDK:-$HOME/Android/android-ndk-r27c}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang"
 if [ -x "$NDK_CC" ]; then
   ( cd "$ROOT" && "$NDK_CC" -O2 -Wall -o "$T/nl_tela.arm" artifacts/tela/nl_tela.c -lm ) 2>"$T/ndk.err"

@@ -1,34 +1,11 @@
 #!/usr/bin/env bash
-# tests/test-kit-pendrive.sh - bloco 5 (E3): harness do kit universal de pendrive.
-#
-# Roda o newlink_update.sh e o cor.sh REAIS (os que vao no pendrive) contra uma
-# arvore de mentira (PFL_ROOT) e stubs de getprop/getevent/am/lvdsctl/reboot/
-# sleep/mount/setsid em um PATH temporario. dd, cmp, md5sum, od, tr, sed, awk e
-# timeout sao os do host. NUNCA fala com o aparelho. Os cenarios rodam sob dash
-# (POSIX estrito; o mksh do Android 9 nao esta nesta maquina). O busybox ash so
-# entra na checagem de sintaxe (sh -n): ele embute mount/sleep/reboot como
-# applets, que passam por cima dos stubs do PATH, entao NAO serve para cenarios.
-#
-# Bloco 7: o modo automatico (camera) roda com um nl_camcheck de mentira que le o byte
-# lvds_fmt da panelparam de mentira e devolve uma escada em ordem (ou embaralhada);
-# o nl_camcheck de verdade e provado a parte (tests/test-camcheck.sh).
-#
-# Bloco 9B: o autorun lanca a SUITE (suite.sh pendrive), que roda o cor.sh no modo suite
-# e depois as etapas dela. Aqui a suite roda sem nl_tela (telas estaticas do kit): a
-# sequencia de telas fica "aguarde" (abertura da suite), as do cor.sh, "calibracao" (a
-# geometria da suite; o nl_camcheck de mentira nao tem o modo geometria) e a final da
-# suite ("pronto" ou "erro"). A suite em si e provada em tests/test-suite.sh.
-#
-# Precisa de: dash, busybox, shellcheck (opcional), pkill, python3 com PIL e numpy.
-#
-#   bash tests/test-kit-pendrive.sh
 # shellcheck disable=SC2034,SC2115
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
-# shellcheck disable=SC2034  # usada nas strings do afirma (eval) e nos stubs
-APP_VC="$(sed -n 's/^APP_VERSION_CODE="\([0-9]*\)"$/\1/p' "$KIT/newlink_update.sh")"   # versionCode do app no kit
-OFF=$(( 168 + 69 * 768 + 92 ))     # byte lvdsctl_fmt do perfil 69 (53252, 0-based; 53253 no cmp -l)
+# shellcheck disable=SC2034
+APP_VC="$(sed -n 's/^APP_VERSION_CODE="\([0-9]*\)"$/\1/p' "$KIT/newlink_update.sh")"
+OFF=$(( 168 + 69 * 768 + 92 ))
 PNOME="RX058B_4300_5010E_1080P_M"
 REAL_CMP="$(command -v cmp)"
 REAL_MD5SUM="$(command -v md5sum)"
@@ -40,9 +17,7 @@ falha(){ TESTES=$((TESTES+1)); FALHAS=$((FALHAS+1)); echo "  FALHA [$SHELL_NOME]
 afirma(){ if eval "$1"; then ok; else falha "$2  (cond: $1)"; fi; }
 
 md5(){ md5sum "$1" | cut -d' ' -f1; }
-W(){ echo "$T/root/data/vendor/pfl7560-kit"; }   # pasta de trabalho do cenario
-# ambiente de teste: SO com PFL_TESTE=1 os ganchos PFL_* valem (E3b). O dono exigido
-# nas pastas e o do usuario que roda o harness (no aparelho e o root, uid 0).
+W(){ echo "$T/root/data/vendor/pfl7560-kit"; }
 amb(){
   env PFL_TESTE=1 PFL_DONO="${DONO_TESTE:-$(id -u)}" PFL_RAPIDO=1 PFL_ROOT="$T/root" \
       PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" \
@@ -55,30 +30,23 @@ chamadas(){ grep -c "^$1" "$T/calls.log" 2>/dev/null || true; }
 tem_chamada(){ grep -q "$1" "$T/calls.log" 2>/dev/null; }
 telas(){ grep '^am start' "$T/calls.log" 2>/dev/null | sed 's#.*/\([a-z0-9-]*\)\.png.*#\1#' | tr '\n' ' '; }
 
-# ---------------------------------------------------------------------------
-# cenario: arvore de mentira + stubs
-# ---------------------------------------------------------------------------
-novo_cenario(){ # $1 = nome do caso
+novo_cenario(){
   CASO="$1"
-  MODO_AUTO_TESTE=0     # os casos do fluxo manual rodam com o modo automatico desligado
+  MODO_AUTO_TESTE=0
   T="$(mktemp -d)"
   local r="$T/root" b="$T/bin"
   mkdir -p "$r/vendor/etc/init/hw" "$r/vendor/lib" "$r/vendor/bin" "$r/atv" "$r/proc/msp" "$r/dev/block/by-name" \
            "$r/data/local/tmp" "$r/data/media/0" "$r/sdcard" "$r/mnt/media_rw/USB1" "$r/atv/bootvideo" "$b"
-  # a marca de fabrica (bloco 14): o logo e a animacao de boot originais do aparelho
   echo "logo de fabrica" > "$r/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$r/atv/bootvideo/bootanimation.zip"
   : > "$r/vendor/lib/libhitvservice.so"
   : > "$r/dev/video0"
-  # termico/wi-fi/xiri: aparelho de FABRICA
   cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$r/vendor/etc/ZYCustom.ini"
   cp "$ROOT/artifacts/build.prop.STOCK" "$r/vendor/build.prop"
   cp "$ROOT/artifacts/init.bigfish.rc.STOCK" "$r/vendor/etc/init/hw/init.bigfish.rc"
-  # painel: perfil 69, VESA
   printf 'panel_name   | %s\ncut_idx      : 69\nlvds_fmt     | vesa\n' "$PNOME" > "$r/proc/msp/panel"
   head -c 8388608 /dev/zero | tr '\0' 'A' > "$r/dev/block/by-name/panelparam"
   printf '%s\0' "$PNOME" | dd of="$r/dev/block/by-name/panelparam" bs=1 seek=$(( 168 + 69 * 768 )) conv=notrunc 2>/dev/null
   printf '\000' | dd of="$r/dev/block/by-name/panelparam" bs=1 seek="$OFF" conv=notrunc 2>/dev/null
-  # pendrive = copia da pasta do kit
   cp -r "$KIT"/. "$r/mnt/media_rw/USB1/"
   : > "$T/calls.log"; : > "$T/keys"
   PP0="$(md5 "$r/dev/block/by-name/panelparam")"
@@ -91,7 +59,6 @@ novo_cenario(){ # $1 = nome do caso
 esac'
   echo PFL7560 > "$T/model"
   stub getevent 'echo "getevent $*" >> "$T/calls.log"
-# injecoes do harness: trocam o lvdsctl entre a copia e o uso (1a ou 2a espera de tecla)
 n=$(cat "$T/n-getevent" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-getevent"
 [ -f "$T/adultera-lvdsctl-$n" ] && echo "# adulterado" >> "$T/bin/lvdsctl"
 [ -f "$T/linka-lvdsctl-$n" ] && { cp "$T/bin/lvdsctl" "$T/lvdsctl.copia"; rm -f "$T/bin/lvdsctl"; ln -s "$T/lvdsctl.copia" "$T/bin/lvdsctl"; }
@@ -104,15 +71,12 @@ f=$(echo "$*" | sed "s#.*-d file://\([^ ]*\).*#\1#")
 f="$PFL_ROOT$f"
 [ -f "$f" ] || echo "AM_ARQUIVO_AUSENTE $f" >> "$T/calls.log"
 exit 0'
-  # resolvedor de VIEW de PNG (ultima linha = pacote/atividade); a 1a chamada de cada tela
   stub cmd 'echo "cmd $*" >> "$T/calls.log"
 n=$(cat "$T/n-cmd" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-cmd"
 [ -f "$T/adultera-nlcam-$n" ] && echo "# adulterado" >> "$T/bin/nl_camcheck"
 [ -f "$T/cmd-falha" ] && exit 1
 echo "priority=0 isDefault=false"
 if [ -f "$T/cmd-pkg" ]; then echo "$(cat "$T/cmd-pkg")/.Atividade"; else echo "com.hisilicon.higallery/.NetworkHiGallery"; fi'
-  # nl_camcheck de mentira: faixas acha 16 (ou 15 com cam-faixas-rc); niveis olha o byte
-  # lvds_fmt da panelparam de mentira: igual ao de cam-certo = escada em ordem
   stub nl_camcheck 'echo "nl_camcheck $*" >> "$T/calls.log"
 JEIDA="235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63"
 VESA="235 235 235 231 192 148 105 86 220 212 156 90 185 116 195 128"
@@ -136,10 +100,8 @@ exit 2'
   stub reboot 'echo "reboot" >> "$T/calls.log"'
   stub sleep 'echo "sleep $*" >> "$T/calls.log"'
   stub mount 'echo "mount $*" >> "$T/calls.log"; [ -f "$T/mount-falha" ] && exit 1; exit 0'
-  # hidebug: registra os argumentos E o que entrou pela entrada (o gtt chegaria por ela)
   stub hidebug 'echo "HIDEBUG $* $(cat 2>/dev/null | tr "\n" " ")" >> "$T/calls.log"'
   cp "$b/hidebug" "$r/vendor/bin/hidebug"
-  # bloco 9B: o que a suite usa e o host nao tem (ou nao pode, sem root)
   stub setprop 'echo "setprop $*" >> "$T/calls.log"'
   stub logcat 'exit 0'
   stub wm 'echo "Physical size: 1920x1080"'
@@ -148,8 +110,6 @@ exit 2'
   stub chcon 'echo "chcon $*" >> "$T/calls.log"'
   stub dmesg 'exit 0'
   stub gtt 'echo "GTT $*" >> "$T/calls.log"'
-  # bloco 9C: pm e dumpsys do app. $T/app-versao = versionCode instalado (vazio = ausente);
-  # pm-falha = o install falha; pm-sem-versioncode = o pm list nao mostra a versao (cai no dumpsys)
   stub pm 'echo "pm $*" >> "$T/calls.log"
 case "$1" in
   list)
@@ -158,41 +118,32 @@ case "$1" in
     exit 0 ;;
   install)
     [ -f "$T/pm-falha" ] && { echo "Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE]"; exit 1; }
-    md5sum "$3" | cut -d" " -f1 > "$T/apk-instalado-md5"   # o que o pm leu (a copia do root some no fim da suite)
+    md5sum "$3" | cut -d" " -f1 > "$T/apk-instalado-md5"
     echo '"$APP_VC"' > "$T/app-versao"; echo Success; exit 0 ;;
 esac
 exit 1'
   stub dumpsys 'echo "dumpsys $*" >> "$T/calls.log"
 v=$(cat "$T/app-versao" 2>/dev/null); [ -n "$v" ] && echo "    versionCode=$v minSdk=28 targetSdk=28"
 exit 0'
-  # md5sum que, uma vez, troca o cor.sh da pasta de trabalho quando le o ZYCustom.ini
-  # do /vendor (isso acontece DEPOIS da copia conferida e ANTES de executar o cor.sh)
   stub md5sum 'if [ -f "$T/troca-cor" ]; then case "$*" in *vendor/etc/ZYCustom.ini)
   w="$PFL_ROOT/data/vendor/pfl7560-kit"; modo=$(cat "$T/troca-cor"); rm -f "$T/troca-cor"
   case "$modo" in
     conteudo) printf "touch \"$T/cor-adulterado-rodou\"\n" >> "$w/cor.sh" ;;
     link) cp "$w/cor.sh" "$T/cor.igual"; rm -f "$w/cor.sh"; ln -s "$T/cor.igual" "$w/cor.sh" ;;
   esac ;; esac; fi
-# e outra que adultera um arquivo NO PENDRIVE logo depois da conferencia la (o md5
-# do ultimo PNG da lista) e antes da copia para a pasta do root
 if [ -f "$T/troca-pendrive" ]; then case "$*" in *media_rw/USB1/kit/reiniciando.png)
   a=$(cat "$T/troca-pendrive"); rm -f "$T/troca-pendrive"
   printf "\ntouch \"$T/pendrive-adulterado-rodou\"\n" >> "$PFL_ROOT/mnt/media_rw/USB1/$a" ;; esac; fi
 exec '"$REAL_MD5SUM"' "$@"'
-  # setsid de mentira: roda o comando e marca o fim (o script o lanca com &)
   stub setsid '"$@"; touch "$T/setsid.done"'
-  # cmp que pode falhar so para o backup (caso de backup invalido)
   stub cmp 'if [ -f "$T/cmp-falha" ]; then for a in "$@"; do case "$a" in *panelparam-original.img) exit 1 ;; esac; done; fi
 exec '"$REAL_CMP"' "$@"'
-  # lvdsctl de mentira: persiste o byte como a SetLvdsFormat real (doc 40 s1)
   stub lvdsctl 'echo "lvdsctl $*" >> "$T/calls.log"
 [ -f "$T/lvds-falha" ] && exit 0
 pp="$PFL_ROOT/dev/block/by-name/panelparam"
 if [ "$2" = "1" ]; then printf "\001"; else printf "\000"; fi | dd of="$pp" bs=1 seek='"$OFF"' conv=notrunc 2>/dev/null
 [ -f "$T/lvds-corrompe" ] && rm -f "$T/lvds-corrompe" && printf "ZZ" | dd of="$pp" bs=1 seek='"$(( 168 + 69 * 768 + 200 ))"' conv=notrunc 2>/dev/null
-# fora do perfil (cabecalho da particao), uma vez
 [ -f "$T/lvds-corrompe-cab" ] && rm -f "$T/lvds-corrompe-cab" && printf "ZZ" | dd of="$pp" bs=1 seek=10 conv=notrunc 2>/dev/null
-# so na chamada que devolve o formato original (fmt 0), uma vez
 [ "$2" = "0" ] && [ -f "$T/lvds-corrompe-ao-reverter" ] && rm -f "$T/lvds-corrompe-ao-reverter" && printf "ZZ" | dd of="$pp" bs=1 seek='"$(( 168 + 69 * 768 + 200 ))"' conv=notrunc 2>/dev/null
 exit 0'
   ln -sf "$(command -v "$SHELL_BIN")" "$b/sh"
@@ -202,10 +153,8 @@ exit 0'
 
 stub(){ printf '#!/bin/sh\n%s\n' "$2" > "$T/bin/$1"; chmod +x "$T/bin/$1"; }
 
-# o servico de boot da suite (bloco 9B) ja instalado, como o kit deixa
 rc_suite_ok(){
   cp "$KIT/pfl7560-suite.rc" "$T/root/vendor/etc/init/pfl7560-suite.rc"; chmod 644 "$T/root/vendor/etc/init/pfl7560-suite.rc"
-  # o app ja no /vendor/app (bloco 9C): o aparelho "com tudo" nao abre o /vendor por ele
   mkdir -p "$T/root/vendor/app/PFL7560"; chmod 755 "$T/root/vendor/app/PFL7560"
   cp "$KIT/pfl7560.apk" "$T/root/vendor/app/PFL7560/PFL7560.apk"; chmod 644 "$T/root/vendor/app/PFL7560/PFL7560.apk"
   mkdir -p "$T/root/vendor/app/PFL7560Home"; chmod 755 "$T/root/vendor/app/PFL7560Home"
@@ -213,8 +162,6 @@ rc_suite_ok(){
   grep -qx "vendor.newlink.launcher.package=com.pfl7560.home" "$T/root/vendor/build.prop" || echo "vendor.newlink.launcher.package=com.pfl7560.home" >> "$T/root/vendor/build.prop"
   fm_e_overlays_ok
 }
-# bloco 14: as sobreposicoes de tema ja em /vendor/overlay, a prop do gerenciador de arquivos e a marca
-# ja gravada (o aparelho "com tudo" nao abre o /vendor nem escreve nada por eles)
 OVL_KIT="$(sed -n '/^# KIT_OVERLAYS_INICIO/,/^# KIT_OVERLAYS_FIM/p' "$KIT/newlink_update.sh" | sed -n 's/^\(KIT_OVERLAYS="\)\{0,1\}\(overlay\/[A-Za-z0-9]*\.apk:[A-Za-z0-9]*\)$/\2/p')"
 overlays_ok(){
   local e
@@ -228,7 +175,6 @@ fm_e_overlays_ok(){
   grep -qx "vendor.nl.filemanage_file=1" "$T/root/vendor/build.prop" || echo "vendor.nl.filemanage_file=1" >> "$T/root/vendor/build.prop"
   cp "$KIT/marca/logo.jpg" "$T/root/atv/bootvideo/logo.jpg"; cp "$KIT/marca/bootanimation.zip" "$T/root/atv/bootvideo/bootanimation.zip"
 }
-# aparelho com tudo aplicado (termico/wi-fi/xiri/servico da suite): so a cor fica em jogo
 aparelho_ok(){
   local r="$T/root"
   rc_suite_ok
@@ -238,13 +184,10 @@ aparelho_ok(){
 }
 estado_vendor(){ ( cd "$T/root/vendor" && find . -type f | sort | xargs md5sum | md5sum ); }
 
-# modelo SEM USB-C (V1.0.0.1, NOTYPEC): o aparelho de fabrica dele (ini e build.prop do
-# firmware de 2026-10-20, doc 42). Chamar logo depois de novo_cenario.
 modelo_novo(){
   cp "$ROOT/artifacts/ZYCustom.ini.NOTYPEC.STOCK" "$T/root/vendor/etc/ZYCustom.ini"
   cp "$ROOT/artifacts/build.prop.NOTYPEC.STOCK" "$T/root/vendor/build.prop"
 }
-# ... e o dele ja com tudo aplicado (termico por secoes, wi-fi e xiri)
 aparelho_ok_novo(){
   local r="$T/root"
   rc_suite_ok
@@ -255,10 +198,8 @@ aparelho_ok_novo(){
   echo "vendor.nl.filemanage_file=1" >> "$r/vendor/build.prop"
   sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$r/vendor/etc/init/hw/init.bigfish.rc"
 }
-# linhas do ini sem o CONFIG_MODEL (para comparar o resto byte a byte)
 sem_modelo(){ grep -av '^CONFIG_MODEL' "$1"; }
 
-# roda o autorun; $1.. = teclas (key|nokey) na ordem em que getevent for chamado
 roda(){
   : > "$T/keys"; for k in "$@"; do echo "$k" >> "$T/keys"; done
   rm -f "$T/setsid.done"
@@ -272,12 +213,8 @@ roda(){
   return 0
 }
 limpa(){ if [ -n "${DEBUG_KEEP:-}" ]; then echo "  (mantido: $T)"; else chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"; fi; }
-# log completo (autorun + fase de cor, que vai para o pendrive no fim)
 log_tudo(){ cat "$T/out.log" "$T/root/mnt/media_rw/USB1/newlink_cor.log" "$T/root/mnt/media_rw/USB1/newlink_suite.log" 2>/dev/null; }
 
-# ---------------------------------------------------------------------------
-# casos
-# ---------------------------------------------------------------------------
 c_sem_tecla(){
   novo_cenario "sem tecla = nenhuma escrita"; aparelho_ok
   local v0; v0="$(estado_vendor)"
@@ -323,7 +260,6 @@ c_tecla_tecla(){
   afirma 'cmp -s "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup nao guarda o original"
   afirma '[ "$(telas)" = "aguarde escada-1 escada-1 escada-2 calibracao pronto " ]' "telas: '$(telas)'"
   afirma 'log_tudo | grep -q "segunda tecla: lvds_fmt=1 mantido, relido"' "log sem a confirmacao"
-  # segunda execucao sobre o estado confirmado (JEIDA): sem tecla = nada muda
   local pp1; pp1="$(pp_md5)"; : > "$T/calls.log"
   roda nokey
   afirma '[ "$(pp_md5)" = "$pp1" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "2a execucao mexeu em algo"
@@ -332,7 +268,7 @@ c_tecla_tecla(){
 
 c_idempotencia(){
   novo_cenario "2a execucao: nada a fazer"
-  roda nokey            # 1a: aplica termico/wifi/xiri e pede reboot
+  roda nokey
   afirma '[ "$(chamadas reboot)" = 1 ]' "1a execucao deveria reiniciar uma vez"
   afirma '[ "$(md5 "$T/root/vendor/etc/ZYCustom.ini")" = "$(md5 "$KIT/ZYCustom.ini")" ]' "ini nao ficou igual ao corrigido"
   afirma '[ -f "$T/root/vendor/etc/ZYCustom.ini.STOCK" ] && [ "$(md5 "$T/root/vendor/etc/ZYCustom.ini.STOCK")" = 29d8ba36149413e899563029df078f6d ]' "STOCK nao guardado"
@@ -341,7 +277,7 @@ c_idempotencia(){
   afirma 'tem_chamada "reiniciando.png"' "tela 'reiniciando' nao apareceu"
   afirma 'tem_chamada "mount -o rw,remount /vendor" && tem_chamada "mount -o ro,remount /vendor"' "remount rw/ro ausente"
   local v1; v1="$(estado_vendor)"; : > "$T/calls.log"
-  roda nokey            # 2a: tudo ok, so a pergunta de cor
+  roda nokey
   afirma '[ "$(chamadas reboot)" = 0 ]' "2a execucao reiniciou"
   afirma '[ "$(estado_vendor)" = "$v1" ]' "2a execucao escreveu em /vendor"
   afirma '[ "$(chamadas mount)" = 0 ]' "2a execucao remontou /vendor"
@@ -351,8 +287,6 @@ c_idempotencia(){
 }
 
 c_ini_anterior(){
-  # cada versao NOSSA que ja foi para aparelho: a do artifacts e as que o pendrive
-  # levou antes da escada (git: d10f6da = 1ad641ed) e com espacos cortados (cd5a80f)
   local v f
   for v in artifacts:PREV-211927 d10f6da cd5a80f; do
     novo_cenario "ini da versao anterior ($v) e atualizado"
@@ -480,8 +414,6 @@ c_journal_no_boot(){
   limpa
 }
 
-# estado de uma queda de energia no meio do teste: panelparam em JEIDA (1), journal,
-# backup do original, copia do cor.sh em /data e gancho instalado
 simula_teste_interrompido(){
   local r="$T/root" w="$T/root/data/vendor/pfl7560-kit"
   mkdir -p "$r/data/vendor" "$r/data/local/nlsu"
@@ -500,12 +432,7 @@ fi
 FIM
 }
 
-# executa o kit ate a 2a pergunta e "cai a energia": a 2a espera de tecla mata o
-# processo. Sobra o byte em JEIDA, o journal, o backup e o gancho GERADO pelo cor.sh.
-# A "queda" mata SO o cor.sh DESTE cenario (o caminho dele passa por $T): um pkill pelo
-# nome so ("pfl7560-kit/cor.sh") matava tambem o cor.sh de outra rodada do harness na
-# mesma maquina (outra arvore, outro make check-kit), que falhava sem motivo (bloco 19C).
-# shellcheck disable=SC2016  # o $T expande dentro do stub, na hora da queda
+# shellcheck disable=SC2016
 mata_cor(){ echo 'pkill -9 -f "$T/root/data/vendor/pfl7560-kit/cor.sh"; sleep 1'; }
 gera_gancho_interrompido(){
   stub getevent 'echo "getevent $*" >> "$T/calls.log"
@@ -514,11 +441,10 @@ n=$(cat "$T/n" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n"
 if [ "$n" = 2 ]; then '"$(mata_cor)"'; fi
 exit 0'
   roda
-  rmdir "$T/root/dev/pfl7560-kit.lock" 2>/dev/null   # /dev e tmpfs: o lock some com a queda de energia
+  rmdir "$T/root/dev/pfl7560-kit.lock" 2>/dev/null
 }
 
 c_gancho_gerado(){
-  # o gancho que o PROPRIO cor.sh escreve tem de ser o que restaura (nao um de teste)
   novo_cenario "gancho gerado pelo cor.sh restaura o formato"; aparelho_ok
   gera_gancho_interrompido
   afirma '[ "$(pp_byte)" = 1 ]' "o teste interrompido deveria ter deixado o byte em 1"
@@ -530,12 +456,7 @@ c_gancho_gerado(){
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# E3b: seguranca da pasta de trabalho, do md5 na hora do uso, do backup e do gancho
-# ---------------------------------------------------------------------------
-# nada foi escrito na panelparam nem executado: o estado de $1 (md5 da particao)
-# segue igual e nem lvdsctl nem getevent foram chamados
-nada_escrito(){ # $1 = md5 esperado da panelparam; $2 = chamadas de lvdsctl ja feitas antes (padrao 0)
+nada_escrito(){
   afirma "[ \"\$(pp_md5)\" = \"$1\" ]" "panelparam mudou"
   afirma "[ \"\$(chamadas lvdsctl)\" = \"${2:-0}\" ]" "lvdsctl foi executado"
 }
@@ -643,7 +564,6 @@ c_troca_no_pendrive(){
     afirma '[ "$RC" = 1 ]' "deveria sair com 1 (saiu com $RC)"
     nada_escrito "$PP0"
     afirma '[ ! -e "$T/pendrive-adulterado-rodou" ] && [ ! -e "$T/setsid.done" ] && [ "$(chamadas getevent)" = 0 ]' "a fase de cor andou com o kit adulterado"
-    # o invariante: em $WORK/<arquivo> so existe (se existir) a versao conferida
     afirma '[ ! -e "$(W)/$a" ] || [ "$(md5 "$(W)/$a")" = "$(md5 "$KIT/$a")" ]' "arquivo nao conferido ficou em $(W)/$a"
     afirma '[ -z "$(ls -d "$(W)"/preparo.* 2>/dev/null)" ]' "sobrou pasta de preparo"
     afirma 'grep -q "nao confere - abortando" "$T/out.log"' "log sem a recusa"
@@ -799,16 +719,11 @@ c_ambiente_sem_teste(){
   else
     echo "  (rodando como root: caso do ambiente sem PFL_TESTE pulado)"
   fi
-  # estatico: nenhum override do ambiente aparece fora do bloco que o protege
   afirma 'grep -q "^if \[ \"\${PFL_TESTE:-}\" != \"1\" \]; then$" "$KIT/cor.sh" && grep -q "^if \[ \"\${PFL_TESTE:-}\" != \"1\" \]; then$" "$KIT/newlink_update.sh"' "falta o bloco que apaga os PFL_* sem PFL_TESTE"
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# bloco 7: modo automatico pela camera (nl_camcheck de mentira, ver novo_cenario)
-# ---------------------------------------------------------------------------
-auto_on(){ MODO_AUTO_TESTE=1; echo "$1" > "$T/cam-certo"; }   # $1 = byte lvds_fmt que da a escada em ordem
-# 0 se TODO 'am start' vem logo depois de 'am force-stop <pacote>' ($1; padrao: a galeria)
+auto_on(){ MODO_AUTO_TESTE=1; echo "$1" > "$T/cam-certo"; }
 force_stop_antes(){
   grep '^am ' "$T/calls.log" | awk -v pkg="${1:-com.hisilicon.higallery}" \
     '/^am start/ { n++; if (prev != "am force-stop " pkg) bad=1 } { prev=$0 } END { exit (bad || !n) }'
@@ -829,7 +744,6 @@ c_auto_certo(){
   afirma 'log_tudo | grep -q "niveis= 235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63 inv_cresc=10 inv_decresc=0 amplitude=172"' "log sem os 16 valores e as inversoes"
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
   afirma '[ "$(estado_vendor)" = "$v0" ]' "/vendor mudou"
-  # 2a execucao no mesmo estado: igual
   : > "$T/calls.log"; roda
   afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(nl_chamadas niveis)" = 1 ]' "2a execucao mexeu em algo"
   limpa
@@ -859,7 +773,6 @@ c_auto_errado(){
   afirma 'log_tudo | grep -q "lvds_fmt=1 mantido, relido e a particao confere"' "log sem a confirmacao"
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start: $(grep '^am ' "$T/calls.log" | tr '\n' '|')"
   afirma '[ "$(chamadas gtt)" = 0 ] && ! grep -q "^HIDEBUG.*gtt" "$T/calls.log"' "chamou gtt (direto ou pelo hidebug)"
-  # 2a execucao: agora em ordem, nada muda
   local pp1; pp1="$(pp_md5)"; : > "$T/calls.log"
   roda
   afirma '[ "$(pp_md5)" = "$pp1" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "2a execucao mexeu em algo"
@@ -894,8 +807,6 @@ c_auto_errado(){
   afirma 'force_stop_antes' "am force-stop nao veio antes de cada am start"
   limpa
 
-  # queda de energia na tela "corrigida": a troca automatica ja tinha backup, journal e
-  # gancho; o gancho de boot que o proprio cor.sh gerou devolve o original
   novo_cenario "auto: queda de energia depois da troca = journal e gancho restauram"; aparelho_ok
   auto_on 1
   stub getevent 'echo "getevent $*" >> "$T/calls.log"; '"$(mata_cor)"'; exit 0'
@@ -934,8 +845,6 @@ c_auto_duvida(){
     afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ]' "escreveu na panelparam"
     afirma '[ ! -e "$(W)/journal" ] && [ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ] && [ ! -e "$T/root/data/local/nlsu" ]' "backup/journal/gancho"
     if [ "$caso" = "faixas 15" ]; then
-      # a camera nao le: a suite chama a pessoa (2 voltas de espera no harness) antes do cor.sh
-      # e de novo na geometria; o manual pede a 1a tecla
       afirma '[ "$(chamadas getevent)" = 5 ] && [ "$(grep -c "camera sem leitura" "$T/root/data/vendor/pfl7560-suite/ultimo.log")" = 2 ]' "esperas: getevent=$(chamadas getevent)"
     else
       afirma '[ "$(chamadas getevent)" = 1 ]' "o fluxo manual deveria pedir a 1a tecla"
@@ -992,7 +901,6 @@ c_troca_de_tela(){
 
 c_modo_auto_ambiente(){
   novo_cenario "PFL_MODO_AUTO=0 sem PFL_TESTE=1 e ignorado; com PFL_TESTE=1 vale"
-  # cor.sh sem o despacho final: so imprime o MODO_AUTO que ele calculou
   sed '/^case "\$1" in$/,$d' "$KIT/cor.sh" > "$T/cor-sem-despacho.sh"
   echo 'echo "MODO_AUTO=$MODO_AUTO"' >> "$T/cor-sem-despacho.sh"
   afirma '[ "$(env PFL_MODO_AUTO=0 dash "$T/cor-sem-despacho.sh")" = "MODO_AUTO=1" ]' "PFL_MODO_AUTO=0 sem PFL_TESTE desligou o modo automatico"
@@ -1084,9 +992,6 @@ c_falhas_seguras(){
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# bloco 6 (T6.1): termico por secoes, preservando o CONFIG_MODEL, nos DOIS modelos
-# ---------------------------------------------------------------------------
 c_modelo_antigo_secoes(){
   novo_cenario "modelo com USB-C (V1.0.0.9): por secoes sai o md5 de sempre"
   roda nokey
@@ -1105,21 +1010,16 @@ c_modelo_novo_secoes(){
   roda nokey
   afirma '[ "$(md5 "$f")" = bdf5c4640596d1b2f2fb7f62fbadd6e3 ]' "o ini do modelo novo nao ficou com o md5 esperado"
   afirma '[ "$(md5 "$f")" = "$(md5 "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini")" ]' "difere do artefato ZYCustom_390.NOTYPEC.ini"
-  # o CONFIG_MODEL do modelo sem USB-C foi preservado (nao virou o do modelo antigo)
   afirma 'grep -aq "^CONFIG_MODEL = KJM_5H039_412_INTELBRAS_NOTYPEC_TP;" "$f"' "CONFIG_MODEL do modelo novo nao foi preservado"
   afirma '! grep -aq "^CONFIG_MODEL = KJM_5H039_412;" "$f"' "CONFIG_MODEL rebaixado para o do modelo antigo"
-  # difere do corrigido do modelo antigo SO no CONFIG_MODEL (uma linha)
   afirma '[ "$(diff -a "$f" "$KIT/ZYCustom.ini" | grep -c "^[<>]")" = 2 ] && diff -a "$f" "$KIT/ZYCustom.ini" | grep -aq "CONFIG_MODEL"' "difere do corrigido antigo em mais que o CONFIG_MODEL"
   afirma 'cmp -s <(sem_modelo "$f") <(sem_modelo "$KIT/ZYCustom.ini")' "fora o CONFIG_MODEL, nao e o ini corrigido"
-  # as secoes termicas de fato mudaram e o mux esta corrigido
   afirma 'grep -aq "HW_VIRTUAL_CHANNEL = 1" "$f" && grep -aq "= 66000, 67500, 69000, 70000, 71500, 73000" "$f"' "secoes termicas nao foram trocadas"
-  # o que NAO e termico ficou byte a byte como no stock: so as linhas termicas diferem
   afirma '[ "$(diff -a "$st" "$f" | grep -a "^[<>]" | grep -avE "WARNING_VALUE|EMERGENCY_VALUE|POLICY_[01]_(THRESHOLD|BRIGHTNESS|SPEED)|HW_VIRTUAL_CHANNEL|DEFAULT_PWM_DUTY|FW_SPEED_CURVE" | wc -l)" = 0 ]' "linhas fora das secoes termicas mudaram em relacao ao stock novo"
   afirma '[ -f "$f.STOCK" ] && [ "$(md5 "$f.STOCK")" = ed3f314ca89698cb057a74ef64dca38e ]' "o stock novo nao foi guardado como .STOCK"
   afirma 'grep -q "wifi_disconnect_on_boot=0" "$T/root/vendor/build.prop"' "wi-fi nao aplicado no modelo novo"
   afirma '[ "$(chamadas reboot)" = 1 ]' "o modelo novo deveria reiniciar uma vez"
   afirma '! grep -q "NAO vou sobrescrever" "$T/out.log"' "recusou um ini de fabrica conhecido"
-  # 2a execucao: idempotente, nada e escrito
   local v1; v1="$(estado_vendor)"; : > "$T/calls.log"
   roda nokey
   afirma '[ "$(chamadas reboot)" = 0 ] && [ "$(chamadas mount)" = 0 ]' "2a execucao reiniciou ou remontou /vendor"
@@ -1149,8 +1049,6 @@ c_modelo_novo_desconhecido(){
   limpa
 }
 
-# se o grep/sed/head/tail do aparelho se comportarem diferente e o ini montado nao tiver
-# o md5 esperado, nada e gravado (o harness estraga o tail do PATH)
 c_secoes_resultado_errado(){
   local m
   for m in antigo novo; do
@@ -1168,21 +1066,16 @@ c_secoes_resultado_errado(){
 }
 
 c_sem_hidebug(){
-  # bloco 9B: a suite le ventoinha e brilho pelo hidebug (gfs, gbri); o gtt, nunca
   novo_cenario "nunca chama gtt (nem pelo hidebug); autorun e cor.sh nem chamam hidebug"
   roda nokey
   afirma '! grep -q "^GTT" "$T/calls.log" && ! grep -q "^HIDEBUG.*gtt" "$T/calls.log"' "gtt chamado na 1a execucao"
   roda key key
   afirma '! grep -q "^GTT" "$T/calls.log" && ! grep -q "^HIDEBUG.*gtt" "$T/calls.log"' "gtt chamado na fase de cor ou na suite"
   afirma 'grep -q "^HIDEBUG.*gfs 0" "$T/calls.log"' "a suite nao leu a ventoinha pelo hidebug"
-  # estatico: nenhuma linha executavel (fora de comentario) cita hidebug ou gtt
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/newlink_update.sh" "$KIT/cor.sh" | grep -qiE "hidebug|[[:space:]]gtt[[:space:]]"' "script executavel cita hidebug/gtt"
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# E3c: instaladores copiam o kit v2 COMPLETO para a raiz do pendrive e conferem
-# ---------------------------------------------------------------------------
 c_instalador(){
   CASO="install.sh --pendrive"; SHELL_NOME="-"
   local d x f n
@@ -1194,15 +1087,12 @@ c_instalador(){
   n="$(cd "$d" && find . -type f | wc -l)"
   local nl; nl="$(sed -n '/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p' "$KIT/newlink_update.sh" | grep -cE '^(KIT_LISTA=")?[0-9a-f]{32}  ')"
   afirma '[ "$n" = "$((nl + 2))" ]' "esperava $((nl + 2)) arquivos no pendrive (lista + newlink_update.sh + LEIA-ME.txt), achei $n"
-  # o pendrive copiado confere, arquivo a arquivo, com a lista que o aparelho usa
   afirma '( cd "$d" && sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh" \
             | sed -n "s/^\(KIT_LISTA=\"\)\{0,1\}\([0-9a-f]\{32\}  .*\)\$/\2/p" | md5sum -c --quiet - )' "o pendrive nao confere com a lista embutida"
-  # destino inexistente e destino = pasta do kit: recusa
   afirma '! bash "$ROOT/install.sh" --pendrive "$d/nao-existe" >/dev/null 2>&1' "aceitou destino inexistente"
   afirma '! bash "$ROOT/install.sh" --pendrive "$KIT" >/dev/null 2>&1' "aceitou a propria pasta do kit como destino"
   afirma '! bash "$ROOT/install.sh" --pendrive >/dev/null 2>&1' "aceitou --pendrive sem destino"
 
-  # origem com arquivo adulterado (uma copia da arvore): a conferencia depois da copia reprova
   x="$(mktemp -d)"
   mkdir -p "$x/pendrive-autorun" && cp -r "$KIT"/. "$x/pendrive-autorun/" && cp "$ROOT/install.sh" "$x/"
   printf 'X' >> "$x/pendrive-autorun/kit/pronto.png"
@@ -1211,7 +1101,6 @@ c_instalador(){
   afirma 'grep -q "kit/pronto.png" "$d.2.log"' "a recusa nao aponta o arquivo"
   rm -rf "$d" "$d.log" "$d.2" "$d.2.log" "$x"
 
-  # install.bat: texto estatico (nao ha Windows aqui; a prova de execucao e a mao)
   CASO="install.bat"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
@@ -1220,7 +1109,6 @@ c_instalador(){
   done
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "newlink_update.sh.*\\x22"' "install.bat nao le a lista embutida no newlink_update.sh"
-  # o regex da lista do install.bat acha as mesmas entradas da lista embutida
   afirma '[ "$(python3 -I -c "
 import re,sys
 t=open(sys.argv[1]).read()
@@ -1232,11 +1120,6 @@ print(len(re.findall(r\"(?m)^(?:KIT_LISTA=\\x22)?([0-9a-f]{32})  (\\S+)\\s*\$\",
   afirma 'grep -q "pendrive-autorun/overlay/" "$ROOT/INSTALL.md" && grep -q "pendrive-autorun/marca/" "$ROOT/INSTALL.md"' "INSTALL.md nao lista overlay/ e marca/"
 }
 
-# ---------------------------------------------------------------------------
-# estaticos
-# ---------------------------------------------------------------------------
-# conferente do 9B: o caminho de antes (cor.sh lancado direto pelo autorun, com as telas
-# dele) continua valendo quando a suite nao roda; aqui com DESINSTALAR-SUITE.txt
 c_sem_suite_legado(){
   local u
   novo_cenario "sem a suite (DESINSTALAR): cor.sh direto, sem tecla = telas de antes"; aparelho_ok
@@ -1274,8 +1157,6 @@ c_sem_suite_legado(){
   limpa
 }
 
-# bloco 9C: o kit poe o app em /vendor/app/PFL7560 (app do sistema; o pm install do firmware
-# recusa apps de fora) na janela rw do /vendor; falha nao para o kit
 APPV(){ echo "$T/root/vendor/app/PFL7560"; }
 c_app(){
   novo_cenario "app: ausente = vai para /vendor/app como app do sistema, antes da suite; 2a vez nao regrava"; aparelho_ok
@@ -1313,7 +1194,6 @@ c_app(){
 
   novo_cenario "home: o apk da home nao grava (cp falha) = a prop NAO e gravada"; aparelho_ok
   sed -i '/^vendor.newlink.launcher.package=/d' "$T/root/vendor/build.prop"; rm -rf "$T/root/vendor/app/PFL7560Home"
-  # um diretorio no lugar do .new faz o cp do apk falhar
   mkdir -p "$T/root/vendor/app/.PFL7560Home.apk.new/x"
   roda nokey
   afirma '! grep -q "vendor.newlink.launcher.package" "$T/root/vendor/build.prop" && log_tudo | grep -q "a tela inicial continua a de fabrica"' "gravou a prop sem a home instalada: $(log_tudo | grep -i home | tr '\n' '|')"
@@ -1352,7 +1232,6 @@ c_app(){
   limpa
 }
 
-# bloco 14: sobreposicoes de tema (/vendor/overlay), prop do gerenciador de arquivos e marca MeowCast
 OVLV(){ echo "$T/root/vendor/overlay"; }
 S14(){ echo "$T/root/data/vendor/pfl7560-suite"; }
 N_OVL="$(echo "$OVL_KIT" | wc -w | tr -d ' ')"
@@ -1399,7 +1278,6 @@ c_bloco14(){
   e="$(echo "$OVL_KIT" | tr ' ' '\n' | head -1)"; n="${e#*:}"
   for x in $OVL_KIT; do [ "$x" != "$e" ] && rm -rf "$(OVLV)/${x#*:}"; done
   rm -rf "$(OVLV)/$n"
-  # o primeiro nao grava (a pasta do .new e um diretorio); os demais, ausentes, entram
   mkdir -p "$(OVLV)/.$n.apk.new/x"
   roda nokey
   afirma '[ ! -e "$(OVLV)/$n/$n.apk" ] && [ "$(log_tudo | grep -c "\[OK\] overlay: ")" = "$((N_OVL - 1))" ]' "esperava $((N_OVL - 1)) instaladas: $(log_tudo | grep "overlay:" | cut -c1-90 | tr '\n' '|')"
@@ -1436,7 +1314,6 @@ c_bloco14(){
   afirma '[ ! -e "$(OVLV)" ] && ! grep -q "vendor.nl.filemanage_file" "$T/root/vendor/build.prop" && [ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = orig ]' "gravou algo do bloco 14 com a suite desinstalada"
   limpa
 
-  # ---- prop do gerenciador de arquivos -----------------------------------------------------
   novo_cenario "gerenciador: prop ausente = gravada uma vez, o resto do build.prop fica; 2a vez nao regrava"; aparelho_ok
   sed -i '/^vendor.nl.filemanage_file=/d' "$T/root/vendor/build.prop"
   cp "$T/root/vendor/build.prop" "$T/bp-antes"
@@ -1463,7 +1340,6 @@ c_bloco14(){
   chmod -R u+rwx "$T/root/vendor/build.prop.new" 2>/dev/null
   limpa
 
-  # ---- marca MeowCast -------------------------------------------------------------------
   novo_cenario "marca: os de fabrica sao guardados UMA vez e os do kit gravados com cat (dono e rotulo ficam); 2a vez nada; firmware que os troca nao muda o backup"; aparelho_ok
   echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$T/root/atv/bootvideo/bootanimation.zip"
   roda nokey
@@ -1476,7 +1352,6 @@ c_bloco14(){
   m1="$(stat -c %Y.%i "$(S14)/marca-original/logo.jpg")"
   : > "$T/calls.log"; roda nokey
   afirma 'log_tudo | grep -q "marca: logo.jpg ja estava igual ao do kit" && [ "$(stat -c %Y.%i "$(S14)/marca-original/logo.jpg")" = "$m1" ]' "2a execucao regravou: $(log_tudo | grep marca | cut -c1-90 | tr '\n' '|')"
-  # o firmware (ou o dono) poe outro logo; o kit grava o dele de novo e o backup continua sendo o de fabrica
   echo "outro logo" > "$T/root/atv/bootvideo/logo.jpg"
   roda nokey
   afirma 'cmp -s "$KIT/marca/logo.jpg" "$T/root/atv/bootvideo/logo.jpg" && [ "$(cat "$(S14)/marca-original/logo.jpg")" = "logo de fabrica" ]' "o backup foi sobrescrito ou o logo nao voltou"
@@ -1505,7 +1380,6 @@ c_bloco14(){
     roda nokey
     afirma '[ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && log_tudo | grep -q "AVISO.*marca: logo.jpg nao conferiu depois de gravar - voltei o original" && [ "$RC" = 0 ]' "rc=$RC; $(log_tudo | grep marca | cut -c1-110 | tr '\n' '|')"
     afirma 'cmp -s "$KIT/marca/bootanimation.zip" "$T/root/atv/bootvideo/bootanimation.zip"' "a falha de um impediu o outro"
-    # liberado, o logo do kit entra; so leitura de novo, o desinstalar nao consegue devolver o de fabrica
     chmod 644 "$T/root/atv/bootvideo/logo.jpg"
     roda nokey
     chmod 444 "$T/root/atv/bootvideo/logo.jpg"
@@ -1522,7 +1396,6 @@ c_bloco14(){
   afirma '[ "$RC" != 0 ] && [ "$(cat "$T/root/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && log_tudo | grep -q "marca/logo.jpg.*md5 diferente"' "rc=$RC; gravou marca adulterada"
   limpa
 
-  # ---- desinstalar leva o bloco 14 de volta -------------------------------------------------------
   novo_cenario "desinstalar: sobreposicoes, prop do gerenciador e marca voltam ao de fabrica; o resto do /vendor fica"; aparelho_ok
   echo "logo de fabrica" > "$T/root/atv/bootvideo/logo.jpg"; echo "animacao de fabrica" > "$T/root/atv/bootvideo/bootanimation.zip"
   roda nokey
@@ -1558,17 +1431,15 @@ c_estaticos(){
   local lista_ini; lista_ini="$(sed -n 's/^KIT_LISTA="\([0-9a-f]*\)  ZYCustom.ini$/\1/p' "$KIT/newlink_update.sh")"
   afirma '[ "$lista_ini" = "$(grep ^INI_MD5_OK= "$KIT/newlink_update.sh" | cut -d\" -f2)" ]' "INI_MD5_OK difere do md5 da lista"
   afirma '[ "$(md5 "$KIT/ZYCustom.ini")" = 252ab7a72a007a8b79b3fc86bd5c0d19 ]' "ZYCustom.ini do pendrive mudou"
-  # bloco 6: os md5 do modelo sem USB-C embutidos batem com os artefatos versionados
   afirma '[ "$(grep ^INI_MD5_OK_NOTYPEC= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini")" ]' "INI_MD5_OK_NOTYPEC difere do artefato corrigido"
   afirma '[ "$(grep ^INI_MD5_FABRICA_NOTYPEC= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.NOTYPEC.STOCK")" ]' "INI_MD5_FABRICA_NOTYPEC difere do ini de fabrica novo versionado"
   afirma '[ "$(grep ^INI_MD5_FABRICA= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.ORIGINAL")" ]' "INI_MD5_FABRICA difere do ini de fabrica antigo versionado"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/newlink_update.sh" | grep -qw awk' "o newlink_update.sh usa awk (o shell do aparelho so garante sed/grep/head/tail)"
   afirma '[ "$(md5 "$KIT/lvdsctl")" = 178d812872cb9306c0ae6faeed07184a ]' "lvdsctl do kit com md5 errado"
-  # bloco 9C: o apk do kit e o de artifacts/app; o versionCode do kit e o do build.sh (e o do apk, se ha aapt2)
   afirma 'cmp -s "$KIT/pfl7560.apk" "$ROOT/artifacts/app/pfl7560.apk"' "pfl7560.apk do kit difere do de artifacts/app"
-  afirma '[ -n "$APP_VC" ] && [ "$APP_VC" = "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\) .*/\1/p" "$ROOT/artifacts/app/build.sh")" ]' "APP_VERSION_CODE do newlink_update.sh difere do VERSAO_CODIGO do build.sh"
+  afirma '[ -n "$APP_VC" ] && [ "$APP_VC" = "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" ]' "APP_VERSION_CODE do newlink_update.sh difere do VERSAO_CODIGO do build.sh"
   local aapt2
-  # shellcheck disable=SC2012  # nomes sem espaco; o ls so acha o aapt2 do SDK local
+  # shellcheck disable=SC2012
   aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
   if [ -n "$aapt2" ]; then
     afirma '"$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^package: name='"'"'com.pfl7560.verificar'"'"' versionCode='"'"'$APP_VC'"'"'"' "versionCode do apk difere do APP_VERSION_CODE"
@@ -1587,8 +1458,6 @@ c_estaticos(){
     afirma 'git -C "$ROOT" check-attr byte-exact -- "pendrive-autorun/$f" | grep -q "byte-exact: set"' "$f nao esta como byte-exact no .gitattributes"
   done
   afirma 'python3 -I "$ROOT/tests/simula-padroes-kit.py" >/dev/null' "simulacao dos padroes falhou"
-  # bloco 14: o kit leva TODOS os APKs de artifacts/overlay/apk (nenhum a mais, nenhum a menos), com a
-  # do android por ultimo, e a marca; tudo na KIT_LISTA e byte-exact
   afirma '[ "$(echo "$OVL_KIT" | wc -w | tr -d " ")" = "$(ls "$ROOT"/artifacts/overlay/apk/*.apk | wc -l | tr -d " ")" ]' "KIT_OVERLAYS nao tem um item por APK de artifacts/overlay/apk"
   afirma '[ "$(echo "$OVL_KIT" | tr " " "\n" | tail -1)" = "overlay/PFL7560TemaAndroid.apk:PFL7560TemaAndroid" ]' "a sobreposicao do android nao e a ultima de KIT_OVERLAYS"
   for f in $OVL_KIT; do
@@ -1600,14 +1469,12 @@ c_estaticos(){
   done
   afirma 'git -C "$ROOT" check-attr byte-exact -- pendrive-autorun/overlay/PFL7560TemaAndroid.apk pendrive-autorun/marca/logo.jpg | grep -c "byte-exact: set" | grep -qx 2' "overlay/ e marca/ nao estao como byte-exact no .gitattributes"
   afirma '! git -C "$ROOT" check-ignore -q pendrive-autorun/marca/bootanimation.zip' "o .gitignore (*.zip) esconde marca/bootanimation.zip"
-  # LEIA-ME: fluxo de leigo com ate 5 passos numerados e todos os arquivos do kit citados
   afirma '[ "$(sed -n "/^COMO USAR/,/^  Resultado da parte termica/p" "$KIT/LEIA-ME.txt" | grep -cE "^  [0-9]\. ")" = 5 ]' "o fluxo do LEIA-ME nao tem exatamente 5 passos"
   for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela pfl7560.apk fontes ZYCustom.ini kit DESINSTALAR-SUITE.txt incompletas suite-panelparam-backup; do
     afirma 'grep -q "$f" "$KIT/LEIA-ME.txt"' "LEIA-ME nao cita $f"
   done
 }
 
-# ---------------------------------------------------------------------------
 echo "== estaticos =="
 c_estaticos
 echo "== instaladores (E3c) =="

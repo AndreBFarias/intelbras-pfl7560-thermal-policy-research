@@ -1,12 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-fix-modelo.sh - bloco 6 (T6.3): o pfl7560-fix.sh apply/revert e POR MODELO.
-#
-# Roda o pfl7560-fix.sh REAL contra um aparelho de mentira: um adb de mentira no PATH que
-# executa os comandos de `adb shell` numa arvore temporaria (o /vendor vira $FAKE/vendor),
-# e push/pull que copiam para ela. NUNCA fala com o aparelho. O script e os artefatos sao
-# copiados para uma pasta temporaria: o backups-projetor/ do teste nao toca o do repo.
-#
-#   bash tests/test-fix-modelo.sh
 # shellcheck disable=SC2034
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,14 +10,13 @@ falha(){ TESTES=$((TESTES+1)); FALHAS=$((FALHAS+1)); echo "  FALHA $CASO: $*"; }
 afirma(){ if eval "$1"; then ok; else falha "$2  (cond: $1)"; fi; }
 md5(){ md5sum "$1" | cut -d' ' -f1; }
 
-A_INI=29d8ba36149413e899563029df078f6d     # fabrica V1.0.0.9
+A_INI=29d8ba36149413e899563029df078f6d
 A_BP=fd8406c494c201e468a0401fa082027c
-N_INI=ed3f314ca89698cb057a74ef64dca38e     # fabrica V1.0.0.1 (NOTYPEC)
+N_INI=ed3f314ca89698cb057a74ef64dca38e
 N_BP=f5b24c1db546dcfb4340f485bf841c8e
-A_FIX=252ab7a72a007a8b79b3fc86bd5c0d19     # corrigido V1.0.0.9
-N_FIX=bdf5c4640596d1b2f2fb7f62fbadd6e3     # corrigido V1.0.0.1
+A_FIX=252ab7a72a007a8b79b3fc86bd5c0d19
+N_FIX=bdf5c4640596d1b2f2fb7f62fbadd6e3
 
-# aparelho de fabrica de um modelo: $1 = antigo|novo
 novo_cenario(){
   CASO="$2"
   T="$(mktemp -d)"; FAKE="$T/dev"
@@ -114,7 +105,6 @@ c_novo_apply_revert(){
 }
 
 c_novo_revert_com_backup_do_antigo(){
-  # armadilha: backup do V1.0.0.9 na pasta de sempre, aparelho do modelo novo
   novo_cenario novo "revert no modelo novo com SO o backup do V1.0.0.9 = recusa"
   mkdir -p "$(BKD)"
   cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$(BKD)/ZYCustom.ini.STOCK"
@@ -129,7 +119,6 @@ c_novo_revert_com_backup_do_antigo(){
 }
 
 c_revert_backup_de_outro_modelo(){
-  # backup do outro modelo colocado na pasta certa: o md5 nao confere = recusa
   novo_cenario novo "revert com build.prop.STOCK de outro modelo na pasta do aparelho = recusa"
   mkdir -p "$(BKD)/notypec"
   cp "$ROOT/artifacts/ZYCustom.ini.NOTYPEC.STOCK" "$(BKD)/notypec/ZYCustom.ini.STOCK"
@@ -154,7 +143,6 @@ c_revert_backup_de_outro_modelo(){
 c_modelo_desconhecido(){
   novo_cenario antigo "modelo desconhecido ou contraditorio = apply e revert recusam"
   local e0 cmd
-  # CONFIG_MODEL de outro modelo
   sed -i 's/^CONFIG_MODEL = .*/CONFIG_MODEL = OUTRO_MODELO;/' "$FAKE/vendor/etc/ZYCustom.ini"
   echo OUTRO_MODELO_TP > "$T/projectname"
   e0="$(estado)"
@@ -163,8 +151,6 @@ c_modelo_desconhecido(){
     afirma '[ "$RC" != 0 ] && [ "$(estado)" = "$e0" ] && [ "$(reboots)" = 0 ] && [ ! -d "$(BKD)" ]' "$cmd num modelo desconhecido nao recusou limpo"
     afirma 'grep -q "modelo nao reconhecido" "$T/out.log"' "$cmd: mensagem"
   done
-  # um sinal conhecido e o outro presente mas DESCONHECIDO: nao basta o conhecido, recusa
-  # (senao o apply gravaria o ini do V1.0.0.9 por cima do CONFIG_MODEL de outro modelo)
   echo KJM_5H039_412_INTELBRAS_TP > "$T/projectname"
   e0="$(estado)"
   for cmd in apply revert; do
@@ -180,7 +166,6 @@ c_modelo_desconhecido(){
     afirma '[ "$RC" != 0 ] && [ "$(estado)" = "$e0" ] && [ "$(reboots)" = 0 ] && [ ! -d "$(BKD)" ]' "$cmd com projectname desconhecido e CONFIG_MODEL conhecido nao recusou limpo"
     afirma 'grep -q "modelo nao reconhecido" "$T/out.log"' "$cmd (projectname desconhecido): mensagem"
   done
-  # ini diz antigo, propriedade diz sem USB-C
   cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$FAKE/vendor/etc/ZYCustom.ini"
   echo KJM_5H039_412_INTELBRAS_NOTYPEC_TP > "$T/projectname"
   e0="$(estado)"
@@ -203,15 +188,9 @@ c_novo_apply_idempotente(){
 }
 
 c_install_bat_recusa_outro_modelo(){
-  # install.bat (so texto: nao ha Windows aqui) grava o ini/build.prop do V1.0.0.9; no apply e no
-  # revert so segue com o CONFIG_MODEL do V1.0.0.9, conferido depois do connect e ANTES de qualquer
-  # escrita (backup/remount)
   CASO="install.bat recusa o modelo sem USB-C"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c "CONFIG_MODEL \*= \*KJM_5H039_412;" "$b")" = 2 ]' "esperava a conferencia do CONFIG_MODEL no apply e no revert"
-  # o CONFIG_MODEL sozinho nao basta: um aparelho sem USB-C que ja levou o ini do V1.0.0.9 (pelo
-  # install.bat/fix.sh de antes do bloco 6) tem o CONFIG_MODEL rebaixado, e o revert lhe daria o
-  # build.prop do V1.0.0.9. A mesma linha tem de conferir tambem o ro.newlink.projectname.
   afirma '[ "$(grep "CONFIG_MODEL \*= \*KJM_5H039_412;" "$b" | grep -c "getprop ro.newlink.projectname | grep -qx KJM_5H039_412_INTELBRAS_TP")" = 2 ]' "a conferencia do install.bat nao exige tambem o ro.newlink.projectname do V1.0.0.9"
   afirma 'awk '"'"'/^:do_apply/{a=1} /^:do_revert/{a=0} a&&/call :connect/{c=NR} a&&/CONFIG_MODEL \*=/{m=NR} a&&/call :backup_stock/{k=NR} END{exit !(c&&m&&k&&c<m&&m<k)}'"'"' "$b"' "apply: a conferencia do modelo nao esta entre o connect e o backup"
   afirma 'awk '"'"'/^:do_revert/{a=1} /^:no_bk/{a=0} a&&/call :connect/{c=NR} a&&/CONFIG_MODEL \*=/{m=NR} a&&/remount/{k=NR} END{exit !(c&&m&&k&&c<m&&m<k)}'"'"' "$b"' "revert: a conferencia do modelo nao esta entre o connect e o remount"

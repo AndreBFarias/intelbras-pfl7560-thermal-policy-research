@@ -1,34 +1,10 @@
 #!/usr/bin/env python3
-"""Gera os PNG 1920x1080 do kit universal de pendrive (blocos 5 e 7).
-
-Uso:  python3 -I tests/gerar-padroes-kit.py [pasta-de-saida]
-      (padrão: pendrive-autorun/kit)
-
-Desenho (bloco 7, docs/sprints/2026-10-30-bloco-7-cor-automatica.md): VESA e
-JEIDA diferem por uma rotação de 2 bits igual em R, G e B. O pipeline de imagem
-do aparelho (gamma, DCI, balanço de branco) muda os valores antes do LVDS, então
-"duas metades iguais" não é confiável (medido no aparelho). O que aparece sempre
-é a ORDEM DE BRILHO: uma ESCADA de 16 faixas cinza, níveis 10 + 15k (k = 0..15),
-cada uma com 34 px de altura e passo de 50 px a partir de y = 140, separadas por
-preto, na largura toda. No formato certo ela sobe em ordem; no errado a rotação
-embaralha (zigue-zague, no mínimo 3 inversões). A tela "calibracao" traz as
-mesmas faixas em BRANCO (255) sobre preto (0): 0 e 255 não mudam entre VESA e
-JEIDA, e é por elas que a câmera acha as faixas sem depender do formato.
-
-Os textos ficam só em bandas de preto e branco PUROS (0 e 255), acima de
-y = 140 e a partir de y = 940: a instrução continua legível nos dois formatos.
-
-Os PNG gerados são versionados e o md5 de cada um vai na lista embutida no
-newlink_update.sh (tests/atualizar-md5-kit.sh). Este gerador existe para
-reproduzir/ajustar os padrões; o md5 depende da fonte instalada na máquina.
-"""
 import os
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
 
 LARGURA, ALTURA = 1920, 1080
-# Geometria compartilhada com tests/simula-padroes-kit.py (que a confere).
 NFAIXAS = 16
 NIVEIS = tuple(10 + 15 * k for k in range(NFAIXAS))
 FAIXA_ALTURA = 34
@@ -46,23 +22,19 @@ FONTES = (
 PRETO = (0, 0, 0)
 BRANCO = (255, 255, 255)
 
-
 def carregar_fonte(tamanho):
     for caminho in FONTES:
         if os.path.exists(caminho):
             return ImageFont.truetype(caminho, tamanho)
     sys.exit("fonte DejaVu Sans Bold nao encontrada; instale fonts-dejavu-core")
 
-
 def novo_quadro():
     img = Image.new("RGB", (LARGURA, ALTURA), PRETO)
     d = ImageDraw.Draw(img)
-    d.fontmode = "1"  # sem antialiasing: so 0 e 255 nos textos
+    d.fontmode = "1"
     return img, d
 
-
 def texto_centrado(d, caixa, linhas, tamanho):
-    """Escreve linhas brancas centradas verticalmente na caixa (y0, y1)."""
     fonte = carregar_fonte(tamanho)
     altura_linha = int(tamanho * 1.35)
     y0, y1 = caixa
@@ -75,19 +47,15 @@ def texto_centrado(d, caixa, linhas, tamanho):
         d.text(((LARGURA - largura) // 2, y), linha, font=fonte, fill=BRANCO)
         y += altura_linha
 
-
 def faixas_y():
-    """(y0, y1) de cada faixa, de cima para baixo (k = 0 em cima)."""
     return [(FAIXA_Y0 + k * FAIXA_PASSO, FAIXA_Y0 + k * FAIXA_PASSO + FAIXA_ALTURA)
             for k in range(NFAIXAS)]
-
 
 def tela_calibracao():
     img, d = novo_quadro()
     for y0, y1 in faixas_y():
         d.rectangle([0, y0, LARGURA - 1, y1 - 1], fill=BRANCO)
     return img
-
 
 def tela_escada(topo, base):
     img, d = novo_quadro()
@@ -97,12 +65,10 @@ def tela_escada(topo, base):
     texto_centrado(d, BANDA_BASE, base, 34)
     return img
 
-
 def tela_texto(linhas, tamanho=74):
     img, d = novo_quadro()
     texto_centrado(d, (0, ALTURA), linhas, tamanho)
     return img
-
 
 TELAS = {
     "calibracao.png": tela_calibracao,
@@ -131,7 +97,6 @@ TELAS = {
          "Se repetir, veja o arquivo newlink_update.log", "que fica no pendrive."], 56),
 }
 
-
 def main():
     destino = sys.argv[1] if len(sys.argv) > 1 else os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "pendrive-autorun", "kit")
@@ -140,7 +105,6 @@ def main():
         caminho = os.path.join(destino, nome)
         fabrica().save(caminho, format="PNG", optimize=True)
         print("gerado", caminho)
-
 
 if __name__ == "__main__":
     main()

@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-qualidade.sh - bloco 11: pfl7560-qualidade.sh com um adb de mentira. O adb de mentira
-# guarda os ajustes de imagem num arquivo (como o banco do middleware), responde a leitura em lote e
-# aplica o "s<ajuste> <valor>" do hidebug; registra cada comando. Nada fala com o aparelho.
-#
-#   bash tests/test-qualidade.sh
-# as condicoes do afirma sao avaliadas depois (eval): aspas simples de proposito
 # shellcheck disable=SC2016
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,9 +12,6 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 BIN="$TMP/bin"; mkdir -p "$BIN"
 
-# adb de mentira. $T/pq = "gshr=75" por linha (sem a linha: o hidebug nao responde aquele ajuste);
-# $T/saida = getprop resolucao, getprop 720p e wm size; sem-root = o "adb root" nao pega;
-# hb-negado = errno 13; trava = o "s..." nao muda nada; MODELO = outro aparelho
 cat > "$BIN/adb" <<'EOF'
 #!/bin/sh
 printf "%s\n" "adb $*" >> "$T/adb.log"
@@ -54,13 +45,13 @@ exit 1
 EOF
 chmod +x "$BIN/adb"
 
-cenario(){ # $1 = nome; estado: um ajuste fora em cada (modo dinamico, nitidez 75, NR media, MEMC 3, DCI 1), overscan ok
+cenario(){
   CASO="$1"; T="$TMP/c$((TESTES))"; rm -rf "$T"; mkdir -p "$T"
   printf 'gpicm=1\ngshr=75\ngnr=2\ngmemc=3\ngdci=1\ngovs=0\n' > "$T/pq"
   printf '1080P\nfalse\nPhysical size: 1920x1080\n' > "$T/saida"
   : > "$T/adb.log"
 }
-roda(){ # [entrada] -- argumentos; saida em $T/out e $T/err, rc em RC
+roda(){
   local entrada="$1"; shift
   printf '%s' "$entrada" | env T="$T" PATH="$BIN:$PATH" PFL_IP="${IP_TESTE-10.0.0.9}" PFL_BACKUPS="$T/bk" ${MODELO:+MODELO="$MODELO"} bash "$SCRIPT" "$@" > "$T/out" 2> "$T/err"; RC=$?
 }
@@ -83,7 +74,6 @@ afirma 'linha nr | grep -qE " 2 +0 +fora " && linha memc | grep -qE " 3 +0 +fora
 afirma 'linha overscan | grep -qE " 0 +0 +ok "' "overscan: $(linha overscan)"
 afirma 'linha saida | grep -qE "^  saida +1080P +1080P +ok +painel 1920x1080"' "saida: $(linha saida)"
 afirma 'grep -q "5 ajuste(s) fora do maximo" "$T/out"' "contagem: $(grep fora "$T/out" | tail -1)"
-# SO LEITURA: so connect, root, id, o modelo e a leitura em lote; nenhum "s..." do hidebug
 afirma '[ -z "$(sets)" ] && [ "$(pq gshr)" = 75 ]' "mudou algo so lendo: $(sets)"
 afirma '[ -z "$(grep -vE "^adb (connect [0-9.:]+|-s [0-9.:]+ (root|shell id|shell getprop ro.product.model|shell for c in gpicm gshr gnr gmemc gdci govs ; do .*@@ saida.*))$" "$T/adb.log")" ]' "comando fora da lista de leitura: $(grep -vE "@@ saida|connect|root|shell id|ro.product.model" "$T/adb.log" | head -2)"
 afirma '[ ! -d "$T/bk" ]' "criou backup so lendo"
@@ -108,7 +98,6 @@ afirma '[ "$(head -1 "$T/bk/nitidez.txt")" = 75 ]' "backup: $(cat "$T/bk/nitidez
 afirma '[ "$(sets)" = "sshr 50|" ]' "comandos de mudanca: $(sets)"
 afirma '[ "$(pq gpicm)" = 1 ] && [ "$(pq gnr)" = 2 ]' "mexeu em outro ajuste"
 afirma 'grep -q "nitidez = 50 (relido)" "$T/err"' "sem a releitura: $(cat "$T/err")"
-# o antigo guardado e o de antes da primeira mudanca: mudar de novo nao o sobrescreve
 echo "gshr=60" >> "$T/pq"; sed -i '/^gshr=50$/d' "$T/pq"
 roda "MUDAR" --aplicar nitidez
 afirma '[ "$RC" = 0 ] && [ "$(pq gshr)" = 50 ] && [ "$(head -1 "$T/bk/nitidez.txt")" = 75 ]' "rc=$RC gshr=$(pq gshr) backup=$(head -1 "$T/bk/nitidez.txt")"
@@ -168,7 +157,6 @@ echo "== estaticos =="
 CASO="estaticos"
 afirma 'bash -n "$SCRIPT"' "bash -n"
 afirma '[ -x "$SCRIPT" ]' "sem +x"
-# nunca gtt, nada do foco, dos 4 pontos, de props ou de GPIO
 afirma '! grep -vE "^[[:space:]]*#" "$SCRIPT" | grep -qE "gtt|sfd|gfd|snk|setprop|/proc/msp/(gpio|pq)|ProjectionService"' "o script cita comando proibido fora de comentario"
 if command -v shellcheck >/dev/null 2>&1; then afirma 'shellcheck "$SCRIPT"' "shellcheck"; else echo "  (shellcheck ausente: etapa pulada)"; fi
 

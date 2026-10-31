@@ -1,8 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-camcheck.sh - bloco 7 (C1): o nl_camcheck do HOST (mesmo .c do binario ARM)
-# sobre os quadros reais de tests/fixtures/camera/ (YUYV 640x480 e 1280x720, projetor de verdade,
-# camera interna, 2026-10-30). Nao fala com o projetor nem com a camera.
-#   bash tests/test-camcheck.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FIX="$ROOT/tests/fixtures/camera"
@@ -15,10 +11,9 @@ arq(){ echo "arquivo:$FIX/$1.yuyv:640:480"; }
 cc -O2 -Wall -Wextra -o "$NL" "$ROOT/artifacts/camcheck/nl_camcheck.c" -lm || { echo "FALHA: nao compilou no host"; exit 1; }
 echo "nl_camcheck compilado no host (cc)"
 
-# valores medidos com a janela de colunas 47 a 53% (bloco 8), tolerancia de 2
 JEIDA="235 235 235 235 235 231 218 208 196 180 164 140 113 91 72 64"
 VESA="235 235 235 232 191 146 104 86 219 211 156 89 184 115 194 128"
-confere_valores(){ # "esperados" "obtidos"; 0 se cada par difere <= 2
+confere_valores(){
   python3 -I -c '
 import sys
 a=list(map(int,sys.argv[1].split())); b=list(map(int,sys.argv[2].split()))
@@ -36,17 +31,12 @@ for f in f1 f0; do
 done
 nv(){ head -16 "$T/niveis-$1.txt" | tr '\n' ' '; }
 inv(){ tail -1 "$T/niveis-$1.txt"; }
-# JEIDA (f1, formato certo): monotona (10 quedas, 0 subidas)
 afirma 'confere_valores "$JEIDA" "$(nv f1)"' "escada-f1: niveis fora do prototipo: $(nv f1)"
 afirma '[ "$(inv f1)" = "inv_cresc=10 inv_decresc=0" ]' "escada-f1 deveria ser monotona: $(inv f1)"
-# VESA (f0, formato errado): fora de ordem
 afirma 'confere_valores "$VESA" "$(nv f0)"' "escada-f0: niveis fora do prototipo: $(nv f0)"
 afirma '[ "$(inv f0)" = "inv_cresc=9 inv_decresc=3" ]' "escada-f0 deveria ser fora de ordem: $(inv f0)"
 
-# bloco 8: imagem inclinada para a camera (falhava com a janela de 35 a 65%) e quadros
-# 1280x720, o tamanho que a captura passou a preferir. Formato certo = monotona;
-# formato errado (VESA) = pelo menos 3 inversoes.
-caso_bloco8(){ # nome L A inversoes-esperadas
+caso_bloco8(){
   _c="arquivo:$FIX/calibracao-$1.yuyv:$2:$3"; _e="arquivo:$FIX/escada-$1.yuyv:$2:$3"
   "$NL" faixas "$_c" 16 "$T/fx-$1.txt" >"$T/ofx-$1" 2>&1; _rc=$?
   afirma '[ "$_rc" = 0 ]' "calibracao-$1 ($2x$3): esperava 16 faixas: $(cat "$T/ofx-$1")"
@@ -57,21 +47,17 @@ caso_bloco8(){ # nome L A inversoes-esperadas
 caso_bloco8 inclinada-f1 640 480 "inv_cresc=8 inv_decresc=0"
 caso_bloco8 hd-f1 1280 720 "inv_cresc=8 inv_decresc=0"
 caso_bloco8 hd-f0 1280 720 "inv_cresc=9 inv_decresc=3"
-# a janela de colunas e estreita (a larga de 35 a 65% achava 9 faixas no quadro inclinado)
 afirma 'grep -q "^#define COL_INI_PCT 47$" "$ROOT/artifacts/camcheck/nl_camcheck.c" && grep -q "^#define COL_FIM_PCT 53$" "$ROOT/artifacts/camcheck/nl_camcheck.c"' "janela de colunas diferente de 47 a 53%"
 
-# faixas: N errado nao acha (exit 3, nao grava) -- a calibracao tem 16; escada tem 13 trechos acima do limiar
 "$NL" faixas "$(arq calibracao-f1)" 15 "$T/x15.txt" >"$T/o15" 2>&1; rc=$?
 afirma '[ "$rc" = 3 ] && [ ! -e "$T/x15.txt" ] && grep -q "achadas: 16" "$T/o15"' "N=15 sobre 16 faixas deveria sair 3, sem arquivo (saiu $rc)"
 "$NL" faixas "$(arq escada-f1)" 16 "$T/xe.txt" >"$T/oe" 2>&1; rc=$?
 afirma '[ "$rc" = 3 ]' "a escada nao serve para localizar (so a calibracao): esperava 3, saiu $rc"
-# erros: arquivo ausente, quadro curto, faixas.txt invalido, faixa fora do quadro, uso
 "$NL" faixas "arquivo:$T/nao-existe.yuyv:640:480" 16 "$T/y.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "quadro ausente deveria sair 1"
 head -c 1000 "$FIX/escada-f1.yuyv" > "$T/curto.yuyv"
 "$NL" niveis "arquivo:$T/curto.yuyv:640:480" "$T/faixas-f1.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "quadro curto deveria sair 1"
-# quadro de OUTRO tamanho (o de 640x480 lido como 320x480: sobram bytes) e dimensoes absurdas
 "$NL" faixas "arquivo:$FIX/calibracao-f1.yuyv:320:480" 16 "$T/w.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ] && [ ! -e "$T/w.txt" ]' "quadro maior que L*A*2 deveria sair 1 (saiu $rc)"
 "$NL" niveis "arquivo:$FIX/escada-f1.yuyv:2:2" "$T/faixas-f1.txt" >/dev/null 2>&1; rc=$?
@@ -91,12 +77,9 @@ afirma '[ "$rc" = 2 ]' "uso errado deveria sair 2"
 "$NL" faixas /dev/nao-existe-video 16 "$T/z.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "dispositivo ausente deveria sair 1 (cai no manual)"
 
-# ---- bloco 9A: geometria (contrato C-geo) ---------------------------------------------
-# quadros reais: sai 0, as 7 chaves na ordem do contrato, numeros com ponto, bordas positivas e
-# menores que o vao entre as faixas (do faixas.txt), contraste entre 0 e 1
-# shellcheck disable=SC2034  # lida dentro do afirma (eval)
+# shellcheck disable=SC2034
 GEO_CHAVES="inclinacao_graus trapezio_pct borda_centro_px borda_esq_px borda_dir_px contraste_centro quadro "
-geo(){ # sufixo L A [arquivo-de-faixas]: roda faixas+geometria; saida em $T/geo-<sufixo>.txt, rc em _rc
+geo(){
   _q="arquivo:$FIX/calibracao-$1.yuyv:$2:$3"
   "$NL" faixas "$_q" 16 "$T/gfx-$1.txt" >/dev/null 2>&1
   "$NL" geometria "$_q" "${4:-$T/gfx-$1.txt}" >"$T/geo-$1.txt" 2>"$T/geo-$1.err"; _rc=$?
@@ -104,7 +87,7 @@ geo(){ # sufixo L A [arquivo-de-faixas]: roda faixas+geometria; saida em $T/geo-
 chave(){ sed -n "s/^$2=//p" "$T/geo-$1.txt"; }
 compara(){ python3 -I -c 'import sys; sys.exit(0 if eval(sys.argv[1]) else 1)' "$1"; }
 for c in "f1 640 480" "f0 640 480" "inclinada-f1 640 480" "hd-f1 1280 720" "hd-f0 1280 720"; do
-  read -r _n _l _a <<<"$c"     # (o afirma usa $1: nada de parametros posicionais aqui)
+  read -r _n _l _a <<<"$c"
   geo "$_n" "$_l" "$_a"
   echo "  geometria calibracao-$_n: $(tr '\n' ' ' < "$T/geo-$_n.txt")"
   afirma '[ "$_rc" = 0 ]' "geometria calibracao-$_n deveria sair 0 (saiu $_rc): $(cat "$T/geo-$_n.err")"
@@ -119,15 +102,11 @@ for c in "f1 640 480" "f0 640 480" "inclinada-f1 640 480" "hd-f1 1280 720" "hd-f
   _ct=$(chave "$_n" contraste_centro)
   afirma 'compara "0.5 < ${_ct:-0} < 1"' "geometria calibracao-$_n: contraste_centro=$_ct fora de (0.5, 1)"
 done
-# a imagem HD (correcao de 4 pontos inclinada) esta mais torta que a do boot anterior
 afirma 'compara "abs($(chave hd-f1 inclinacao_graus)) > abs($(chave f1 inclinacao_graus)) + 1"' "calibracao-hd-f1 deveria ter inclinacao maior que calibracao-f1"
-# valores medidos em 2026-10-30 (sinal: positivo = faixas descem para a direita no quadro)
 afirma 'compara "2.6 < $(chave hd-f1 inclinacao_graus) < 3.1 and 10 < $(chave hd-f1 trapezio_pct) < 15"' "calibracao-hd-f1 fora do medido (2,82 graus, trapezio 12,5%)"
 afirma 'compara "0.4 < $(chave f1 inclinacao_graus) < 0.9"' "calibracao-f1 fora do medido (0,64 graus)"
 
-# quadros sinteticos de geometria conhecida: 16 faixas (230 sobre 20), borda em rampa de R px
-# (10-90% = 0,8 R), inclinacao A graus, pilha T vezes mais alta na borda direita que na esquerda
-sintetico(){ # saida A R T
+sintetico(){
   python3 -I - "$@" <<'PY'
 import sys, math
 out, A, R, T = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4])
@@ -146,7 +125,7 @@ for x in range(L):
 open(out, 'wb').write(bytes(buf))
 PY
 }
-sint_geo(){ # nome A R T
+sint_geo(){
   sintetico "$T/s-$1.yuyv" "$2" "$3" "$4"
   "$NL" faixas "arquivo:$T/s-$1.yuyv:640:480" 16 "$T/sfx-$1.txt" >/dev/null 2>&1
   "$NL" geometria "arquivo:$T/s-$1.yuyv:640:480" "$T/sfx-$1.txt" >"$T/geo-s$1.txt" 2>&1; _rc=$?
@@ -158,19 +137,16 @@ afirma 'compara "2.4 <= $(chave sa borda_centro_px) < 3.1"' "sintetico R=3: bord
 sint_geo b -2 2 1
 afirma '[ "$_rc" = 0 ] && compara "abs($(chave sb inclinacao_graus) + 2) < 0.05"' "sintetico -2 graus: sinal ou valor errado"
 afirma 'compara "1.6 <= $(chave sb borda_esq_px) < 2.3 and 1.6 <= $(chave sb borda_dir_px) < 2.3"' "sintetico R=2: bordas laterais fora de [0,8R, 0,8R+0,7]"
-# T=1,1 na borda direita: nas janelas (18% e 82%) a razao das alturas e 1,082/1,018 = +6,3%
 sint_geo c 0 4 1.1
 afirma '[ "$_rc" = 0 ] && compara "5.8 < $(chave sc trapezio_pct) < 6.8 and abs($(chave sc inclinacao_graus)) < 0.1"' "sintetico trapezio 6,3%: valor errado"
 afirma 'compara "3.2 <= $(chave sc borda_centro_px) < 3.9"' "sintetico R=4: borda fora de [0,8R, 0,8R+0,7]"
 afirma 'compara "0.88 < $(chave sc contraste_centro) < 0.94"' "sintetico: contraste (230-20)/230 = 0,91 fora"
 
-# sem faixas nas tres colunas: sai 3 (escada no lugar da calibracao; quadro preto)
 "$NL" geometria "arquivo:$FIX/escada-hd-f1.yuyv:1280:720" "$T/gfx-hd-f1.txt" >/dev/null 2>"$T/g3.err"; rc=$?
 afirma '[ "$rc" = 3 ] && grep -q "esperadas 16" "$T/g3.err"' "escada no lugar da calibracao deveria sair 3 (saiu $rc)"
 head -c $((1280*720*2)) /dev/zero > "$T/preto.yuyv"
 "$NL" geometria "arquivo:$T/preto.yuyv:1280:720" "$T/gfx-hd-f1.txt" >"$T/g3b.out" 2>/dev/null; rc=$?
 afirma '[ "$rc" = 3 ] && [ ! -s "$T/g3b.out" ]' "quadro preto deveria sair 3 sem imprimir chaves (saiu $rc)"
-# nao conseguiu ler: sai 1
 "$NL" geometria "arquivo:$T/nao-existe.yuyv:640:480" "$T/gfx-f1.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "geometria com quadro ausente deveria sair 1 (saiu $rc)"
 "$NL" geometria "$(arq calibracao-f1)" "$T/nao-existe.txt" >/dev/null 2>&1; rc=$?
@@ -186,11 +162,9 @@ afirma '[ "$rc" = 1 ]' "geometria com dispositivo ausente deveria sair 1 (saiu $
 "$NL" geometria "$(arq calibracao-f1)" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "geometria sem faixas.txt e uso errado: deveria sair 2 (saiu $rc)"
 
-# ---- bloco 11 (19A): nitidez 3x3 ---------------------------------------------------------
-# quadros reais: sai 0, as 10 chaves na ordem, numeros com ponto, bordas positivas e menores que o vao
-# shellcheck disable=SC2034  # lida dentro do afirma (eval)
+# shellcheck disable=SC2034
 NIT_CHAVES="nitidez_r1c1 nitidez_r1c2 nitidez_r1c3 nitidez_r2c1 nitidez_r2c2 nitidez_r2c3 nitidez_r3c1 nitidez_r3c2 nitidez_r3c3 quadro "
-nit(){ # sufixo L A: saida em $T/nit-<sufixo>.txt, rc em _rc (usa o faixas.txt da geometria)
+nit(){
   "$NL" nitidez "arquivo:$FIX/calibracao-$1.yuyv:$2:$3" "$T/gfx-$1.txt" >"$T/nit-$1.txt" 2>"$T/nit-$1.err"; _rc=$?
 }
 nv3(){ sed -n "s/^nitidez_$2=//p" "$T/nit-$1.txt"; }
@@ -208,22 +182,14 @@ for c in "f1 640 480" "f0 640 480" "inclinada-f1 640 480" "hd-f1 1280 720" "hd-f
     afirma 'compara "0 < ${_v:-0} < $_vao"' "nitidez calibracao-$_n: $r=$_v fora de (0, vao $_vao)"
   done
 done
-# hd-f1 (1280x720, 4 pontos ligados, o caso do dono): a coluna da esquerda mais borrada que a do meio,
-# como a suite mediu no aparelho (esquerda 2,9-3,1 px, centro 2,0, direita 1,9)
 med_col(){ python3 -I -c 'import sys; v=[float(x) for x in sys.argv[1:]]; print("%.3f" % (sum(v)/len(v)))' "$(nv3 "$1" "r1$2")" "$(nv3 "$1" "r2$2")" "$(nv3 "$1" "r3$2")"; }
 afirma 'compara "$(med_col hd-f1 c1) > 1.3 * $(med_col hd-f1 c2) and $(med_col hd-f1 c3) < 1.3 * $(med_col hd-f1 c2)"' "calibracao-hd-f1: esquerda $(med_col hd-f1 c1), meio $(med_col hd-f1 c2), direita $(med_col hd-f1 c3)"
-# f1 (640x480, de frente): o mapa e plano, cada regiao a menos de 20% do centro
 for r in r1c1 r1c2 r1c3 r2c1 r2c3 r3c1 r3c2 r3c3; do
   afirma 'compara "0.8 < $(nv3 f1 $r) / $(nv3 f1 r2c2) < 1.2"' "calibracao-f1: $r=$(nv3 f1 $r) longe do centro $(nv3 f1 r2c2)"
 done
-# a regiao segue a imagem achada, nao a janela fixa: no hd-f1 a imagem vai de x~100 a x~1080 de 1280,
-# a coluna fixa da direita da geometria (79 a 85%) fica parte fora dela
 afirma '! grep -q "GEO_JAN" <(sed -n "/^static int nitidez_cmd/,/^}/p" "$ROOT/artifacts/camcheck/nl_camcheck.c")' "a nitidez usa as janelas fixas da geometria"
 
-# quadros sinteticos: imagem de x0 a x1 (parede acesa a esquerda, escura a direita), 16 faixas
-# inclinadas A graus, rampa Re px no terco esquerdo da imagem e Rr no resto, multiplicada de 1 (topo
-# da pilha) ate Rb (base)
-sint_nit(){ # saida A Re Rr Rb
+sint_nit(){
   python3 -I - "$@" <<'PY'
 import sys, math
 out, A, Re, Rr, Rb = sys.argv[1], float(sys.argv[2]), float(sys.argv[3]), float(sys.argv[4]), float(sys.argv[5])
@@ -246,29 +212,25 @@ for x in range(L):
 open(out, 'wb').write(bytes(buf))
 PY
 }
-sn(){ # nome A Re Rr Rb
+sn(){
   sint_nit "$T/n-$1.yuyv" "$2" "$3" "$4" "$5"
   "$NL" faixas "arquivo:$T/n-$1.yuyv:640:480" 16 "$T/nfx-$1.txt" >/dev/null 2>&1
   "$NL" nitidez "arquivo:$T/n-$1.yuyv:640:480" "$T/nfx-$1.txt" >"$T/nit-s$1.txt" 2>&1; _rc=$?
   echo "  nitidez sintetico $1 (A=$2 Re=$3 Rr=$4 Rb=$5): $(tr '\n' ' ' < "$T/nit-s$1.txt")"
 }
-# esquerda com o dobro da rampa: c1 = 0,8 x 4, c2 e c3 = 0,8 x 2 (mais 0 a 0,7 px de amostragem)
 sn a 2 4 2 1
 afirma '[ "$_rc" = 0 ]' "sintetico a: rc=$_rc: $(cat "$T/nit-sa.txt")"
 for r in r1c1 r2c1 r3c1; do afirma 'compara "3.2 <= $(nv3 sa $r) < 3.9"' "sintetico a: $r=$(nv3 sa $r) fora de [0,8x4, +0,7]"; done
 for r in r1c2 r2c2 r3c2 r1c3 r2c3 r3c3; do afirma 'compara "1.6 <= $(nv3 sa $r) < 2.3"' "sintetico a: $r=$(nv3 sa $r) fora de [0,8x2, +0,7]"; done
-# a rampa cresce de cima para baixo (1x a 2x): r1 < r2 < r3 em cada coluna
 sn b -1.5 2 2 2
 afirma '[ "$_rc" = 0 ]' "sintetico b: rc=$_rc: $(cat "$T/nit-sb.txt")"
 for c in c1 c2 c3; do
   afirma 'compara "$(nv3 sb r1$c) + 0.3 < $(nv3 sb r2$c) and $(nv3 sb r2$c) + 0.3 < $(nv3 sb r3$c)"' "sintetico b: coluna $c sem a ordem r1 < r2 < r3: $(nv3 sb r1$c) $(nv3 sb r2$c) $(nv3 sb r3$c)"
 done
-# sem a calibracao: escada no lugar (as faixas nao batem) e quadro preto saem 3, sem chaves
 "$NL" nitidez "arquivo:$FIX/escada-hd-f1.yuyv:1280:720" "$T/gfx-hd-f1.txt" >"$T/n3.out" 2>"$T/n3.err"; rc=$?
 afirma '[ "$rc" = 3 ] && [ ! -s "$T/n3.out" ]' "nitidez com a escada deveria sair 3 sem chaves (saiu $rc): $(cat "$T/n3.err")"
 "$NL" nitidez "arquivo:$T/preto.yuyv:1280:720" "$T/gfx-hd-f1.txt" >"$T/n3b.out" 2>/dev/null; rc=$?
 afirma '[ "$rc" = 3 ] && [ ! -s "$T/n3b.out" ]' "nitidez com quadro preto deveria sair 3 (saiu $rc)"
-# nao conseguiu ler: sai 1; uso errado: 2
 "$NL" nitidez "arquivo:$T/nao-existe.yuyv:640:480" "$T/gfx-f1.txt" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 1 ]' "nitidez com quadro ausente deveria sair 1 (saiu $rc)"
 "$NL" nitidez "$(arq calibracao-f1)" "$T/nao-existe.txt" >/dev/null 2>&1; rc=$?
@@ -283,9 +245,6 @@ afirma '[ "$rc" = 1 ]' "nitidez com dispositivo ausente deveria sair 1 (saiu $rc
 "$NL" nitidez "$(arq calibracao-f1)" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "nitidez sem faixas.txt: deveria sair 2 (saiu $rc)"
 
-# captura com um driver de mentira (open/ioctl trocados no link): o driver devolve mais buffers que
-# o pedido (o nl_camcheck so mapeia NBUF=4; com ASan, passar disso estoura a pilha), nenhum buffer
-# (sai 1 sem esperar quadro), e a saida em /dev/full (gravacao incompleta tem de dar erro)
 cat > "$T/falso.c" <<'FIM'
 #define _GNU_SOURCE
 #include <errno.h>
@@ -339,12 +298,9 @@ else
   echo "  (sem ASan no cc do host: driver de mentira pulado) $(head -1 "$T/falso.err")"
 fi
 
-# so leitura: o fonte nao tem S_CTRL nem escreve controle
 afirma '! grep -q "VIDIOC_S_CTRL\|VIDIOC_S_EXT_CTRLS" "$ROOT/artifacts/camcheck/nl_camcheck.c"' "o nl_camcheck passou a escrever controle da camera"
-# o binario ARM do kit e o versionado em artifacts/ sao o mesmo
 afirma 'cmp -s "$ROOT/artifacts/camcheck/nl_camcheck" "$ROOT/pendrive-autorun/nl_camcheck"' "pendrive-autorun/nl_camcheck difere de artifacts/camcheck/nl_camcheck"
 afirma 'file "$ROOT/pendrive-autorun/nl_camcheck" | grep -q "ELF 32-bit LSB.*ARM"' "pendrive-autorun/nl_camcheck nao e um ELF ARM"
-# e e o binario deste .c (bloco 9A mudou o fonte): recompila com o NDK, se houver, e compara
 NDK_CC="${ANDROID_NDK:-$HOME/Android/android-ndk-r27c}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang"
 if [ -x "$NDK_CC" ]; then
   ( cd "$ROOT" && "$NDK_CC" -O2 -Wall -o "$T/nl_camcheck.arm" artifacts/camcheck/nl_camcheck.c -lm ) 2>"$T/ndk.err"

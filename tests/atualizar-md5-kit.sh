@@ -1,29 +1,6 @@
 #!/usr/bin/env bash
-# tests/atualizar-md5-kit.sh - bloco 5 (E3), suite no bloco 9B
-# Reescreve os md5 embutidos no kit, nesta ordem (cada um depende do anterior):
-#   1. pendrive-autorun/suite.sh: SUITE_LISTA, o md5 de cada arquivo que a suite executa
-#      ou mostra (cor.sh, lvdsctl, nl_camcheck, nl_tela, kit/*.png, fontes/*);
-#   2. pendrive-autorun/suite-boot.sh e suite-pedido.sh: o md5 do suite.sh (e, no
-#      suite-boot.sh, o do suite-pedido.sh);
-#   3. pendrive-autorun/newlink_update.sh: KIT_LISTA, o md5 de CADA arquivo do kit (o que
-#      o autorun confere antes de qualquer escrita).
-#   bash tests/atualizar-md5-kit.sh           grava as listas
-#   bash tests/atualizar-md5-kit.sh --check   so confere; sai !=0 se alguma estiver velha
-# Tambem exige que pendrive-autorun/lvdsctl seja byte-identico ao binario
-# versionado em artifacts/lcd-color-fix/lvdsctl (md5 178d8128...), e que o
-# pendrive-autorun/nl_camcheck (binario ARM da camera, bloco 7) seja byte-identico ao
-# versionado em artifacts/camcheck/nl_camcheck. O nl_tela e as fontes (bloco 9A) entram
-# nas listas quando existirem em pendrive-autorun/ (e o nl_tela tem de ser igual ao de
-# artifacts/tela/nl_tela). O pfl7560.apk (app, bloco 9C) entra so na KIT_LISTA (a suite nao o
-# executa; o newlink_update.sh o instala) e tem de ser igual ao de artifacts/app/pfl7560.apk.
-# Bloco 14: antes de tudo, regenera pendrive-autorun/overlay/ (uma copia de cada APK de
-# artifacts/overlay/apk/, SEM lista fixa: um APK novo la entra sozinho) e pendrive-autorun/marca/
-# (logo.jpg e bootanimation.zip de artifacts/tema/marca/); escreve o bloco KIT_OVERLAYS do
-# newlink_update.sh (a sobreposicao do android SEMPRE por ultimo, a ordem de instalacao e de
-# ligacao) e poe as copias na KIT_LISTA. --check confere tudo isso sem gravar.
-# Nao toca no aparelho.
 set -u
-export LC_ALL=C   # ordem dos nomes (glob) igual em qualquer maquina
+export LC_ALL=C
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
 SH="$KIT/newlink_update.sh"
@@ -68,7 +45,6 @@ for f in "$KIT"/fontes/*; do [ -f "$f" ] && FONTES="$FONTES fontes/${f##*/}"; do
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# 0. sobreposicoes e marca: o que DEVE estar em pendrive-autorun/overlay e /marca, montado em $TMP/novo
 OVL_FONTE="$ROOT/artifacts/overlay/apk"
 MARCA_FONTE="$ROOT/artifacts/tema/marca"
 mkdir -p "$TMP/novo/overlay" "$TMP/novo/marca"
@@ -79,7 +55,7 @@ for f in "$OVL_FONTE"/*.apk; do
   case "${n%.apk}" in
     *[!A-Za-z0-9]*) echo "FALHA: nome de sobreposicao fora de [A-Za-z0-9]: $n"; exit 1 ;;
   esac
-  [ "$n" = "PFL7560TemaAndroid.apk" ] && continue      # a do android vai por ultimo
+  [ "$n" = "PFL7560TemaAndroid.apk" ] && continue
   OVL_NOMES="$OVL_NOMES $n"
 done
 [ -f "$OVL_FONTE/PFL7560TemaAndroid.apk" ] && OVL_NOMES="$OVL_NOMES PFL7560TemaAndroid.apk"
@@ -94,7 +70,6 @@ OVL_LISTA=""; MARCA_LISTA=""
 for n in $OVL_NOMES; do OVL_LISTA="$OVL_LISTA overlay/$n"; done
 for n in $MARCA_NOMES; do MARCA_LISTA="$MARCA_LISTA marca/$n"; done
 
-# troca o miolo entre "# <INICIO>" e "# <FIM>" de $1 pelo texto de $4 (arquivo); saida em $5
 troca_bloco(){
   awk -v ini="# $2" -v fim="# $3" -v novo="$4" '
     $0 == ini { print; while ((getline l < novo) > 0) print l; pula=1; next }
@@ -104,13 +79,11 @@ troca_bloco(){
 }
 md5(){ md5sum "$1" | cut -d' ' -f1; }
 
-# 1. SUITE_LISTA (suite.sh)
-# shellcheck disable=SC2086  # nomes sem espaco, divisao de proposito
+# shellcheck disable=SC2086
 suite_lista="$(cd "$KIT" && for f in cor.sh lvdsctl nl_camcheck $NLTELA kit/*.png $FONTES; do md5sum "$f"; done)"
 { printf 'SUITE_LISTA="%s\n' "$suite_lista"; echo '"'; } > "$TMP/b1"
 troca_bloco "$SUITE_SH" SUITE_LISTA_INICIO SUITE_LISTA_FIM "$TMP/b1" "$TMP/suite.sh"
 
-# 2. md5 do suite.sh (o NOVO) no suite-boot.sh e no suite-pedido.sh
 m_suite="$(md5 "$TMP/suite.sh")"
 echo "SUITE_MD5=\"$m_suite\"" > "$TMP/b2p"
 troca_bloco "$PEDIDO_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2p" "$TMP/suite-pedido.sh"
@@ -118,8 +91,6 @@ m_pedido="$(md5 "$TMP/suite-pedido.sh")"
 { echo "SUITE_MD5=\"$m_suite\""; echo "PEDIDO_MD5=\"$m_pedido\""; } > "$TMP/b2b"
 troca_bloco "$BOOT_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2b" "$TMP/suite-boot.sh"
 
-# 3. KIT_OVERLAYS e KIT_LISTA (newlink_update.sh), com os scripts da suite ja regravados e as
-# copias de overlay/ e marca/ como devem ficar
 { printf 'KIT_OVERLAYS="'
   for n in $OVL_NOMES; do printf 'overlay/%s:%s\n' "$n" "${n%.apk}"; done
   echo '"'; } > "$TMP/b4"
@@ -139,7 +110,6 @@ if [ "${1:-}" = "--check" ]; then
   for f in suite.sh suite-boot.sh suite-pedido.sh newlink_update.sh; do
     cmp -s "$TMP/$f" "$KIT/$f" || { echo "FALHA: a lista md5 embutida no $f esta desatualizada (rode tests/atualizar-md5-kit.sh)"; rc=1; }
   done
-  # as copias de overlay/ e marca/ no kit sao as de artifacts (e nao sobra nem falta arquivo)
   for d in overlay marca; do
     if ! diff -r "$TMP/novo/$d" "$KIT/$d" >/dev/null 2>&1; then
       echo "FALHA: pendrive-autorun/$d difere de artifacts/ (rode tests/atualizar-md5-kit.sh)"; rc=1
@@ -149,9 +119,8 @@ if [ "${1:-}" = "--check" ]; then
   exit "$rc"
 fi
 for f in suite.sh suite-boot.sh suite-pedido.sh newlink_update.sh; do
-  cmp -s "$TMP/$f" "$KIT/$f" || cat "$TMP/$f" > "$KIT/$f"   # cat preserva modo e atributos
+  cmp -s "$TMP/$f" "$KIT/$f" || cat "$TMP/$f" > "$KIT/$f"
 done
-# overlay/ e marca/ do kit = exatamente o que veio de artifacts/ (sai o que nao esta mais la)
 for d in overlay marca; do
   mkdir -p "$KIT/$d"
   for f in "$KIT/$d"/*; do [ -f "$f" ] && [ ! -e "$TMP/novo/$d/${f##*/}" ] && rm -f "$f"; done

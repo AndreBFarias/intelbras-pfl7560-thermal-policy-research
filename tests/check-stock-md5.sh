@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# tests/check-stock-md5.sh - sprint 21 (T3)
-# Valida a integridade byte-exata dos artefatos stock/fix versionados contra as
-# constantes do proprio pfl7560-fix.sh (lidas via grep, NUNCA redigitadas aqui,
-# para o teste nao envelhecer se as constantes mudarem). Roda da raiz do repo:
-#   make check   ou   bash tests/check-stock-md5.sh
-# Sai !=0 se qualquer md5 divergir. Nao toca no aparelho.
 set -u
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -13,10 +7,6 @@ ART="$ROOT/artifacts"
 
 [ -f "$FIX" ] || { echo "FALHA: nao encontrei $FIX"; exit 1; }
 
-# le uma constante do fix.sh (aspas simples ou duplas), sem redigitar o valor.
-# strip do prefixo NOME= e do primeiro quote; corta a partir do quote de fechamento.
-# extrator robusto tambem para CONFIG_B64, cujo base64 termina em '=' (padding)
-# imediatamente antes da aspa - onde um sed greedy s/.*='// comeria o valor todo.
 const(){ grep -m1 "^$1=" "$FIX" | sed -E "s/^[A-Za-z0-9_]+=[\"']//; s/[\"'].*\$//"; }
 
 md5f(){ md5sum "$1" | awk '{print $1}'; }
@@ -30,7 +20,7 @@ INI_FIX_MD5_NOTYPEC="$(const INI_FIX_MD5_NOTYPEC)"
 BP_STOCK_MD5_NOTYPEC="$(const BP_STOCK_MD5_NOTYPEC)"
 
 rc=0
-check(){ # $1 rotulo  $2 obtido  $3 esperado
+check(){
   if [ -n "$3" ] && [ "$2" = "$3" ]; then
     printf 'OK    %-50s %s\n' "$1" "$2"
   else
@@ -43,13 +33,11 @@ check "ZYCustom.ini.ORIGINAL == INI_STOCK_MD5" "$(md5f "$ART/ZYCustom.ini.ORIGIN
 check "build.prop.STOCK == BP_STOCK_MD5"        "$(md5f "$ART/build.prop.STOCK")"       "$BP_STOCK_MD5"
 check "init.bigfish.rc.STOCK == RC_STOCK_MD5"   "$(md5f "$ART/init.bigfish.rc.STOCK")"  "$RC_STOCK_MD5"
 check "ZYCustom_390.ini == INI_FIX_MD5"         "$(md5f "$ART/ZYCustom_390.ini")"       "$INI_FIX_MD5"
-# modelo sem USB-C (NOTYPEC, V1.0.0.1; firmware de 2026-10-20, doc 42)
 check "ZYCustom.ini.NOTYPEC.STOCK == INI_STOCK_MD5_NOTYPEC" "$(md5f "$ART/ZYCustom.ini.NOTYPEC.STOCK")" "$INI_STOCK_MD5_NOTYPEC"
 check "build.prop.NOTYPEC.STOCK == BP_STOCK_MD5_NOTYPEC"    "$(md5f "$ART/build.prop.NOTYPEC.STOCK")"    "$BP_STOCK_MD5_NOTYPEC"
 check "ZYCustom_390.NOTYPEC.ini == INI_FIX_MD5_NOTYPEC"     "$(md5f "$ART/ZYCustom_390.NOTYPEC.ini")"    "$INI_FIX_MD5_NOTYPEC"
 check "pendrive-autorun/ZYCustom.ini == INI_FIX_MD5" "$(md5f "$ROOT/pendrive-autorun/ZYCustom.ini")" "$INI_FIX_MD5"
 
-# base64 embutido no fix.sh, decodificado, deve bater INI_FIX_MD5 (as 3 copias)
 b64md5="$(grep -m1 '^CONFIG_B64=' "$FIX" | sed -E "s/^[A-Za-z0-9_]+=[\"']//; s/[\"'].*\$//" | base64 -d | md5sum | awk '{print $1}')"
 check "CONFIG_B64 base64 -d (fix.sh) == INI_FIX_MD5" "$b64md5" "$INI_FIX_MD5"
 

@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-preparar-pendrive.sh - bloco 9C (C2): install.sh --pendrive ... --com-firmware e
-# tests/preparar-pendrive.sh, SEM tocar em disco nenhum: lsblk, mkfs.vfat, mount, umount e df de
-# mentira no PATH; .bin falsos pequenos, com o md5 esperado injetado pelas variaveis de teste
-# (so valem com PFL_TESTE=1). O firmware de verdade (1,3 GB) nao e lido aqui.
-#
-#   bash tests/test-preparar-pendrive.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export LC_ALL=C
@@ -18,8 +12,7 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 NOSSO_BIN="PFL7560-S4a-NAO-GRADUADO.bin"
 
-# ---- firmware falso ------------------------------------------------------------------
-fw_falso(){ # $1 = pasta; cria o zip oficial falso e o nosso .bin falso; exporta os md5
+fw_falso(){
   local d="$1"
   mkdir -p "$d/z/Software PFL7560"
   head -c 300000 /dev/urandom > "$d/z/Software PFL7560/PFL7560.bin"
@@ -31,10 +24,9 @@ fw_falso(){ # $1 = pasta; cria o zip oficial falso e o nosso .bin falso; exporta
 }
 arquivos(){ find "$1" -type f 2>/dev/null | wc -l | tr -d ' '; }
 
-# ===========================================================================================
 echo "== install.sh --pendrive --com-firmware =="
 FW="$TMP/fw"; mkdir -p "$FW"; fw_falso "$FW"
-instala(){ # $1 = destino; resto = args extras; o ambiente de teste vem das variaveis do caso
+instala(){
   env PFL_TESTE=1 PFL_FIRMWARE_DIR="${FWDIR:-$FW}" PFL_FW_OFICIAL_MD5="${OFMD5:-$OFICIAL_MD5}" PFL_FW_NOSSO_MD5="${NSMD5:-$NOSSO_MD5}" \
       PATH="${PATH_EXTRA:+$PATH_EXTRA:}$PATH" bash "$ROOT/install.sh" --pendrive "$@" > "$TMP/saida.log" 2>&1
 }
@@ -63,7 +55,7 @@ D="$TMP/d2b"; mkdir -p "$D/firmware-nosso-NAO-GRADUADO"; echo velho > "$D/usb_up
 instala "$D" --com-firmware; RC=$?
 afirma '[ "$RC" = 0 ] && [ "$(md5 "$D/usb_update.bin")" = "$NOSSO_MD5" ] && [ ! -e "$D/firmware-nosso-NAO-GRADUADO" ] && [ "$(md5 "$D/resgate-oficial/PFL7560.bin")" = "$OFICIAL_MD5" ]' "rc=$RC: $(find "$D" -name "*.bin" | tr '\n' ' ')"
 
-sem_kit(){ # $1 = destino  $2 = trecho esperado na mensagem; o que ja estava no pendrive fica, o kit nao vai
+sem_kit(){
   SK_D="$1"; SK_T="$2"
   afirma '[ "$RC" != 0 ]' "install.sh deveria recusar"
   afirma '[ ! -e "$SK_D/newlink_update.sh" ] && [ ! -e "$SK_D/kit" ]' "copiou o kit mesmo assim em $SK_D"
@@ -86,7 +78,7 @@ instala "$D"; RC=$?
 sem_kit "$D" "usb_update.bin"
 afirma '[ "$(cat "$D/usb_update.bin")" = qualquer ]' "mexeu no usb_update.bin do dono"
 
-nada_copiado(){ # $1 = destino  $2 = trecho esperado na mensagem (globais: o afirma usa eval)
+nada_copiado(){
   NC_D="$1"; NC_T="$2"
   afirma '[ "$RC" != 0 ]' "install.sh deveria falhar"
   afirma '[ "$(arquivos "$NC_D")" = 0 ] && [ -z "$(ls -A "$NC_D")" ]' "copiou pela metade: $(ls -A "$NC_D" | tr '\n' ' ')"
@@ -164,7 +156,6 @@ afirma '! bash "$ROOT/install.sh" --com-firmware >/dev/null 2>&1' "aceitou --com
 afirma '! bash "$ROOT/install.sh" --pendrive --com-firmware >/dev/null 2>&1' "aceitou --com-firmware como destino"
 afirma '! bash "$ROOT/install.sh" --pendrive "$TMP/nao-existe" --com-firmware >/dev/null 2>&1' "aceitou destino inexistente"
 
-# ===========================================================================================
 echo "== tests/preparar-pendrive.sh =="
 BIN="$TMP/bin"; mkdir -p "$BIN"
 cat > "$BIN/lsblk" <<'EOF'
@@ -188,13 +179,12 @@ EOF
 cat > "$BIN/umount" <<'EOF'
 #!/bin/sh
 echo "umount $*" >> "$T/calls.log"
-# guarda uma copia do que estava no "pendrive" (a pasta de montagem) para o teste olhar
 [ -d "$1" ] && [ "$1" != "${1#/tmp}" ] && [ ! -d "$T/snapshot" ] && cp -r "$1" "$T/snapshot" 2>/dev/null
 exit 0
 EOF
 chmod +x "$BIN"/*
 
-prepara(){ # $1.. = argumentos do preparar-pendrive.sh; confirmacao vem de $CONFIRMA; usa $TMP/p como T
+prepara(){
   rm -rf "$TMP/p"; mkdir -p "$TMP/p"; : > "$TMP/p/calls.log"
   [ -n "${LINHA_DEV:-}" ] && printf '%s\n' "$LINHA_DEV" > "$TMP/p/lsblk-$(basename "${1:-x}").txt"
   [ -n "${LINHA_PAI:-}" ] && printf '%s\n' "$LINHA_PAI" > "$TMP/p/lsblk-${PAI_NOME:-sdb}.txt"
@@ -278,7 +268,7 @@ LINHA_DEV="$L_USB" MONTAGENS=$'/media/usuario/PENDRIVE\n' CONFIRMA=/dev/sdb prep
 afirma '[ "$RC" = 0 ] && grep -qx "umount /media/usuario/PENDRIVE" "$TMP/p/calls.log" && [ "$(grep -n "^umount /media" "$TMP/p/calls.log" | cut -d: -f1)" -lt "$(grep -n "^mkfs" "$TMP/p/calls.log" | cut -d: -f1)" ]' "rc=$RC: $(cut -d' ' -f1-2 "$TMP/p/calls.log" | tr '\n' '|')"
 
 CASO="install.bat e install-firmware-pendrive.ps1 (texto: nao ha Windows aqui)"
-# shellcheck disable=SC2034  # usadas nas strings do afirma (eval)
+# shellcheck disable=SC2034
 BAT="$ROOT/install.bat"; PS1="$ROOT/install-firmware-pendrive.ps1"
 afirma '[ -f "$PS1" ] && [ -z "$(LC_ALL=C grep -nP "[^\x00-\x7F]" "$PS1")" ] && [ "$(grep -c $'"'"'\r'"'"' "$PS1")" = 0 ]' "o .ps1 falta, tem byte fora de ASCII ou CRLF"
 afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$BAT" | grep -q "install-firmware-pendrive.ps1.*-Modo conferir" && sed -n "/^:do_pendrive/,/^goto :menu/p" "$BAT" | grep -q "install-firmware-pendrive.ps1.*-Modo copiar"' "install.bat nao chama o .ps1 nos dois modos"

@@ -1,16 +1,4 @@
 #!/usr/bin/env bash
-# tests/test-suite.sh - bloco 9B: harness da suite de verificacao.
-#
-# Roda os scripts REAIS do kit (suite.sh, suite-boot.sh, suite-pedido.sh, cor.sh,
-# newlink_update.sh) contra uma arvore de mentira (PFL_ROOT) e stubs em um PATH
-# temporario: getprop/setprop (com estado num arquivo), am, cmd, logcat, hidebug,
-# nl_camcheck (faixas, niveis e geometria do contrato C-geo), nl_tela (contrato C-tela:
-# guarda o campos.txt de cada tela), lvdsctl, getevent, input, dmesg, inotifyd, mount,
-# chcon, chown, setsid, sleep, wm, reboot. NUNCA fala com o aparelho. Os cenarios rodam
-# sob dash (POSIX estrito, como no test-kit-pendrive.sh).
-#
-#   bash tests/test-suite.sh
-# as condicoes do afirma sao avaliadas depois (eval): aspas simples de proposito
 # shellcheck disable=SC2016
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -18,8 +6,8 @@ KIT="$ROOT/pendrive-autorun"
 OFF=$(( 168 + 69 * 768 + 92 ))
 PNOME="RX058B_4300_5010E_1080P_M"
 PROP_OV=vendor.zy.power.tm.temp
-TODAS="$(mktemp)"     # todas as chamadas de todos os cenarios (verificacoes globais)
-TODAS_CAMPOS="$(mktemp)"   # todos os campos.txt de todas as telas geradas
+TODAS="$(mktemp)"
+TODAS_CAMPOS="$(mktemp)"
 trap 'rm -f "$TODAS" "$TODAS_CAMPOS"' EXIT
 
 FALHAS=0
@@ -30,9 +18,6 @@ falha(){ TESTES=$((TESTES+1)); FALHAS=$((FALHAS+1)); echo "  FALHA $CASO: $*"; }
 afirma(){ if eval "$1"; then ok; else falha "$2  (cond: $1)"; fi; }
 md5(){ md5sum "$1" | cut -d' ' -f1; }
 
-# ---------------------------------------------------------------------------
-# cenario
-# ---------------------------------------------------------------------------
 stub(){ printf '#!/bin/sh\n%s\n' "$2" > "$T/bin/$1"; chmod +x "$T/bin/$1"; }
 novo_cenario(){
   CASO="$1"
@@ -51,20 +36,17 @@ novo_cenario(){
   echo up > "$R/sys/class/net/wlan0/operstate"
   echo 1793400000 > "$R/sys/class/rtc/rtc0/since_epoch"
   printf 'pm_state: normal\nwakeup: power\n' > "$R/proc/msp/pm"
-  # aparelho com a correcao termica aplicada (o que o kit deixa)
   cp "$KIT/ZYCustom.ini" "$R/vendor/etc/ZYCustom.ini"
   cp "$ROOT/artifacts/build.prop.STOCK" "$R/vendor/build.prop"
   sed -i 's/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/' "$R/vendor/build.prop"
   cp "$ROOT/artifacts/init.bigfish.rc.STOCK" "$R/vendor/etc/init/hw/init.bigfish.rc"
   sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$R/vendor/etc/init/hw/init.bigfish.rc"
-  # painel: perfil 69, VESA
   printf 'panel_name   | %s\ncut_idx      : 69\nlvds_fmt     | vesa\n' "$PNOME" > "$R/proc/msp/panel"
   head -c 8388608 /dev/zero | tr '\0' 'A' > "$R/dev/block/by-name/panelparam"
   printf '%s\0' "$PNOME" | dd of="$R/dev/block/by-name/panelparam" bs=1 seek=$(( 168 + 69 * 768 )) conv=notrunc 2>/dev/null
   printf '\000' | dd of="$R/dev/block/by-name/panelparam" bs=1 seek="$OFF" conv=notrunc 2>/dev/null
   cp "$R/dev/block/by-name/panelparam" "$T/pp-original.img"
   : > "$T/calls.log"; : > "$T/keys"
-  # propriedades (getprop/setprop leem e gravam aqui); o sufixo do sensor e o do aparelho (U+2103)
   local c; c="$(printf '\342\204\203')"
   cat > "$T/props" <<FIM
 ro.product.model=PFL7560
@@ -100,10 +82,6 @@ exit 0'
 f=$(echo "$*" | sed "s#.*-d file://\([^ ]*\).*#\1#")
 [ -f "$PFL_ROOT$f" ] || echo "AM_ARQUIVO_AUSENTE $f" >> "$T/calls.log"
 exit 0'
-  # query-services: o descanso do app (bloco 16B), ausente com $T/sem-descanso
-  # bloco 14: "cmd overlay list|enable|disable" sobre $T/overlay.db (linhas "[ ] pacote" / "[x] pacote");
-  # overlay-demora = N consultas do list que ainda saem vazias (o PackageManager processando);
-  # overlay-enable-falha = pacotes (um por linha) cujo enable falha
   stub cmd 'echo "cmd $*" >> "$T/calls.log"
 case "$1 $2" in
   "overlay list") n=$(cat "$T/overlay-demora" 2>/dev/null || echo 0)
@@ -116,12 +94,6 @@ esac
 case "$*" in *query-services*) [ -f "$T/sem-descanso" ] || echo "com.pfl7560.verificar/.Descanso"; exit 0 ;; esac
 echo "priority=0 isDefault=false"; echo "com.hisilicon.higallery/.NetworkHiGallery"'
   stub logcat 'echo "logcat $*" >> "$T/calls.log"; [ -f "$T/logcat-saida" ] && cat "$T/logcat-saida"; exit 0'
-  # hidebug: registra os argumentos e a entrada (o gtt chegaria por ela); saida de mentira.
-  # Bloco 11: o motor de foco (gfd, gfdr, sfd <pos>). foco-pos = a posicao (sem ele, o gfd nao
-  # responde num formato conhecido); foco-trava = o motor recusa andar ("Motor is too hot!");
-  # foco-mudo-apos = N respostas do gfd e depois silencio.
-  # Bloco 15: "sbl N" guarda N em $T/bl (salvo com $T/bl-trava, o fabricante que atrasa) e "gbl"
-  # devolve "backlight:N" (100 sem nada guardado)
   stub hidebug 'in=$(cat 2>/dev/null | tr "\n" " ")
 echo "HIDEBUG $* $in" >> "$T/calls.log"
 case "$in" in *"sbl "*) n=${in##*sbl }; n=${n%% *}; [ -f "$T/bl-trava" ] || echo "$n" > "$T/bl" ;; esac
@@ -139,10 +111,6 @@ case "$in" in *"custom gfd quit"*|*"custom gfdr quit"*|*"custom sfd "*)
 esac
 if [ -f "$T/hidebug-saida" ]; then cat "$T/hidebug-saida"; else printf "fan speed : 3000\nfan speed : 2950\nbacklight brightness : 1000\n"; fi'
   cp "$b/hidebug" "$R/vendor/bin/hidebug"
-  # nl_camcheck: faixas acha 16; niveis olha o byte lvds_fmt (como no test-kit-pendrive);
-  # geometria devolve $T/geo-<n> (n-esima chamada), $T/geo ou uma geometria boa; com foco-otimo, a
-  # borda do centro sai da distancia entre foco-pos e foco-otimo (1,8 px no otimo, +1 px a cada 40) e
-  # a da esquerda soma foco-lado (0,3 px sem ele). Bloco 11: nitidez devolve $T/nit ou um mapa bom.
   stub nl_camcheck 'echo "nl_camcheck $*" >> "$T/calls.log"
 JEIDA="235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63"
 VESA="235 235 235 231 192 148 105 86 220 212 156 90 185 116 195 128"
@@ -177,7 +145,6 @@ case "$1" in
     exit 0 ;;
 esac
 exit 2'
-  # nl_tela (C-tela): guarda o campos.txt de cada tela e escreve um PNG de mentira
   stub nl_tela 'n=$(cat "$T/n-tela" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-tela"
 nome=$(basename "$3" .png)
 echo "nl_tela $1 $nome" >> "$T/calls.log"
@@ -188,26 +155,19 @@ printf "PNGDEMENTIRA" > "$3"; exit 0'
 pp="$PFL_ROOT/dev/block/by-name/panelparam"
 if [ "$2" = "1" ]; then printf "\001"; else printf "\000"; fi | dd of="$pp" bs=1 seek='"$OFF"' conv=notrunc 2>/dev/null
 exit 0'
-  # sleep: registra; com $T/mata-no-sleep = N, o "sleep N" manda TERM para quem chamou
   stub sleep 'echo "sleep $*" >> "$T/calls.log"
 if [ -f "$T/mata-no-sleep" ] && [ "$1" = "$(cat "$T/mata-no-sleep")" ]; then rm -f "$T/mata-no-sleep"; kill -TERM "$PPID"; fi
-# sleep-cria: caminhos (um por linha) que o "sleep 30" do laco do vigia cria (um pedido que chega depois do boot)
 if [ -f "$T/sleep-cria" ] && [ "$1" = 30 ]; then while IFS= read -r f; do : > "$f"; done < "$T/sleep-cria"; rm -f "$T/sleep-cria"; fi
-# o PackageManager grava o package-restrictions.xml com atraso: restr-atraso = quantos sleeps ate gravar
 if [ -f "$T/restr-pendente" ]; then
   n=$(cat "$T/restr-atraso" 2>/dev/null || echo 0)
   if [ "$n" -le 1 ]; then cat "$T/restr-pendente" >> "$PFL_ROOT/data/system/users/0/package-restrictions.xml"; rm -f "$T/restr-pendente"; else echo $((n-1)) > "$T/restr-atraso"; fi
 fi
 exit 0'
   stub input 'echo "input $*" >> "$T/calls.log"'
-  # alerta de sistema do firmware: "$T/alerta" = quantas consultas ainda o mostram focado
   stub dumpsys 'case "$1" in package) [ -f "$T/dumpsys-descanso" ] && echo "  1a2b com.pfl7560.verificar/.Descanso filter 3c4d"; exit 0 ;; esac
 n=$(cat "$T/alerta" 2>/dev/null || echo 0)
 p=$(cat "$T/alerta-pacote" 2>/dev/null || echo com.newlink.nlprovision)
 if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 $p}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
-  # bloco 14: pm sobre arquivos de estado. pm-instalados = pacotes (um por linha, alem do "android");
-  # pm-desligados = os desligados; pm-fora = o pm ainda nao responde; pm-disable-falha; restr-nunca =
-  # o xml nunca e gravado; restr-atraso = N (o stub sleep grava o xml depois de N sleeps)
   stub pm 'echo "pm $*" >> "$T/calls.log"
 case "$1 $2" in
   "list packages")
@@ -229,8 +189,6 @@ exit 0'
   stub wm 'echo "Physical size: 1920x1080"'
   stub dmesg '[ -f "$T/dmesg" ] && cat "$T/dmesg"; exit 0'
   stub inotifyd 'echo "inotifyd $*" >> "$T/calls.log"; exit 0'
-  # settings (bloco 16B): "$T/settings.db" guarda "ns chave=valor"; get de chave ausente = "null"
-  # (como o do aparelho); put falha com $T/settings-falha
   cat > "$b/settings" <<'FIM'
 #!/bin/sh
 echo "settings $*" >> "$T/calls.log"
@@ -251,7 +209,6 @@ FIM
   stub chown 'echo "chown $*" >> "$T/calls.log"; exit 0'
   stub reboot 'echo "reboot" >> "$T/calls.log"'
   stub gtt 'echo "GTT $*" >> "$T/calls.log"'
-  # setsid: registra; so executa com $T/setsid-roda (a suite em si e testada chamando direto)
   stub setsid 'echo "setsid $*" >> "$T/calls.log"; [ -f "$T/setsid-roda" ] && "$@"; exit 0'
   ln -sf "$(command -v dash)" "$b/sh"
   export T
@@ -269,7 +226,6 @@ amb(){
       PFL_APP_UID_MIN="${APP_UID_MIN_TESTE:-0}" \
       PFL_MODO_AUTO="$MODO_AUTO_TESTE" PFL_VIGIA_VOLTAS=2 PFL_ESPERA_OK_VOLTAS=2 PATH="$T/bin:$PATH" "$@"
 }
-# a pasta da suite como o newlink_update.sh deixa (so do root, os arquivos do kit)
 instala_suite(){
   ( umask 077; mkdir -p "$S/kit" "$S/fontes" )
   chmod 700 "$S" "$S/kit" "$S/fontes"
@@ -292,24 +248,17 @@ ult_hist(){ tail -1 "$S/historico-boot.txt" 2>/dev/null; }
 tem_chamada(){ grep -qF -- "$1" "$T/calls.log" 2>/dev/null; }
 chamadas(){ grep -c "^$1" "$T/calls.log" 2>/dev/null || true; }
 telas(){ grep '^am start' "$T/calls.log" 2>/dev/null | sed 's#.*/\([a-z0-9-]*\)\.png.*#\1#' | sed 's/-[0-9]\{6,\}$//' | tr '\n' ' '; }
-campos(){ local f r=""; for f in "$T"/campos-*-"$1"-"$2".txt; do [ -e "$f" ] && r="$f"; done; echo "$r"; }   # $1 = aviso|resumo, $2 = nome
+campos(){ local f r=""; for f in "$T"/campos-*-"$1"-"$2".txt; do [ -e "$f" ] && r="$f"; done; echo "$r"; }
 pp_md5(){ md5 "$R/dev/block/by-name/panelparam"; }
-# corredor feliz da rampa: o firmware reage ao override
 rampa_reage(){ printf '%s\n' "10-30 19:40:01.000 I/ZYThermalManager( 1): Overheat Warning" \
   "10-30 19:40:02.000 I/ZYThermalManager( 1): Level Change 1000 => 850!" \
   "10-30 19:40:30.000 I/ZYThermalManager( 1): Level Change 850 => 1000!" > "$T/logcat-saida"; }
-# uma saida de geometria (C-geo); $1..$6 = inclinacao trapezio borda_c borda_e borda_d contraste
 geo(){ printf 'inclinacao_graus=%s\ntrapezio_pct=%s\nborda_centro_px=%s\nborda_esq_px=%s\nborda_dir_px=%s\ncontraste_centro=%s\nquadro=1280x720\n' "$@"; }
-# valores de item com mais de 18 caracteres (\uXXXX conta como um) em todas as telas
 valores_longos(){ sed -n 's/^item=[^|]*|\([^|]*\)|.*/\1/p' "$TODAS_CAMPOS" | sed 's/\\u[0-9a-f]\{4\}/X/g' | awk 'length($0) > 18' | sort -u; }
 item_de(){ grep -F "item=$1|" "$(campos resumo resumo)" 2>/dev/null | head -1 | sed 's/^item=//'; }
 
-# ---------------------------------------------------------------------------
-# B2 - gatilho (suite-boot.sh)
-# ---------------------------------------------------------------------------
 c_gatilho_matriz(){
   local caso ano br gat dec mot
-  # ano do relogio no boot | sys.boot.reason | gatilho | decisao esperada | motivo esperado
   while IFS='|' read -r ano br gat dec mot; do
     [ -n "$ano" ] || continue
     novo_cenario "gatilho: ano=$ano motivo='$br' gatilho=$gat = $dec ($mot)"
@@ -340,7 +289,6 @@ c_gatilho_matriz(){
 1970|shutdown,userrequested|auto|sim|relogio_zerado
 MATRIZ
 
-  # criterio (m): a marca gravada no boot anterior sobreviveu = a energia caiu ligado
   novo_cenario "gatilho: marca pfl7560,ligado no motivo = queda_de_energia, roda"
   instala_suite
   awk '!/^(sys|persist\.sys)\.boot\.reason=/' "$T/props" > "$T/p" && printf '%s\n' "sys.boot.reason=pfl7560,ligado" "persist.sys.boot.reason=pfl7560,ligado" >> "$T/p" && mv "$T/p" "$T/props"
@@ -419,7 +367,6 @@ c_gatilho_bloqueios(){
   instala_suite
   echo "[    1.2] rtc-hisi rtc0: setting system clock to 2026-10-30 22:00:05 UTC (1793411205)" > "$T/dmesg"
   local i=0
-  # entre um boot e outro, um desligamento limpo (o sistema sobrescreve a marca)
   while [ "$i" -lt 35 ]; do
     awk '!/^persist\.sys\.boot\.reason=/' "$T/props" > "$T/p" && echo "persist.sys.boot.reason=shutdown,userrequested" >> "$T/p" && mv "$T/p" "$T/props"
     roda_boot; i=$((i+1))
@@ -535,7 +482,6 @@ c_vigia(){
   fi
 }
 
-# descanso de tela MeowCast (bloco 16B): o suite-boot.sh aponta o sistema para o .Descanso
 sdb(){ awk -v k="secure $1" 'index($0, k "=") == 1 { print substr($0, length(k) + 2) }' "$T/settings.db" 2>/dev/null; }
 c_descanso(){
   local D="com.pfl7560.verificar/.Descanso" FAB="com.newlink.screensaver/com.newlink.screensaver.ScreenService"
@@ -589,9 +535,8 @@ c_descanso(){
   limpa
 }
 
-# bloco 14: o suite-boot.sh liga as sobreposicoes de tema (a do android por ultimo) e desliga os apps do fabricante
 OVL_PKGS="zysetting nlprovision tvsettings android"
-overlays_cenario(){ # pastas em /vendor/overlay e o estado do sistema (todas desligadas)
+overlays_cenario(){
   local x
   mkdir -p "$R/vendor/overlay"
   : > "$T/overlay.db"
@@ -763,8 +708,6 @@ c_pedido(){
   limpa
 }
 
-# bloco 15: o atalho Luz da home. $PED/luz e o pedido do app; a resposta do root e a prop
-# vendor.pfl7560.luz (o root nao escreve na pasta do app)
 luz_prop(){ awk -F= '$1=="vendor.pfl7560.luz"{v=$2} END{print v}' "$T/props"; }
 hb(){ grep -c "^HIDEBUG" "$T/calls.log" 2>/dev/null || true; }
 modo(){ stat -c %a "$1" 2>/dev/null; }
@@ -783,7 +726,6 @@ c_luz(){
   afirma 'grep -q "luz 60% aplicada" "$S/vigia.log"' "log sem a confirmacao: $(tail -3 "$S/vigia.log")"
   limpa
 
-  # a luz nao tem a protecao de 10 min
   novo_cenario "luz: a suite terminou ha 1 min = aplica mesmo assim (sem a protecao de 10 min)"
   instala_suite; echo $(( $(date +%s) - 60 )) > "$S/ultimo-fim"; printf '80\n' > "$PEDH/luz"
   roda_pedido w "$PEDH" luz
@@ -860,7 +802,6 @@ c_luz(){
   afirma 'tem_chamada "setsid sh $S/suite.sh pedido" && [ ! -e "$PED/pedir-verificacao" ] && [ "$(luz_prop)" = 60 ]' "a verificacao ou a luz quebrou"
   limpa
 
-  # ---- descanso de tela: luz a 10% e volta ----
   novo_cenario "descanso: inicio = luz a 10% sem mexer no nivel guardado; fim = volta ao guardado"
   instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"; echo 60 > "$T/bl"; : > "$PED/descanso-inicio"
   roda_pedido w "$PED" descanso-inicio
@@ -929,7 +870,6 @@ c_luz(){
   afirma '[ ! -e "$S/luz-antes-descanso" ]' "o nivel de antes de um descanso velho sobrou no boot"
   limpa
 
-  # ---- boot ----
   novo_cenario "luz: boot reaplica o nivel guardado e atualiza a prop da luz"
   instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"
   roda_boot
@@ -977,9 +917,6 @@ c_luz(){
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# B1 - instalacao pelo newlink_update.sh
-# ---------------------------------------------------------------------------
 c_instalacao(){
   local rc="$R/vendor/etc/init/pfl7560-suite.rc"
   novo_cenario "instalacao: arquivos, servico de boot e a suite lancada (a pasta do app nao e do kit)"
@@ -1004,14 +941,12 @@ c_instalacao(){
   afirma '[ ! -e "$PED" ] && ! tem_chamada "chown media_rw" && [ ! -e "$R/data/media/0/pfl7560" ]' "o kit mexeu na pasta do app ou criou pasta de pedido compartilhada"
   afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "o autorun nao lancou a suite: $(grep setsid "$T/calls.log")"
   afirma '! grep -q "setsid sh .*cor.sh" "$T/calls.log"' "o autorun lancou o cor.sh direto"
-  # o .rc tem exatamente o servico do spec
   afirma 'grep -qx "service pfl7560_suite /vendor/bin/sh /data/vendor/pfl7560-suite/suite-boot.sh" "$rc" && grep -qx "    seclabel u:r:vendor_shell:s0" "$rc" && grep -qx "on property:sys.boot_completed=1" "$rc" && grep -qx "    start pfl7560_suite" "$rc" && grep -qx "    oneshot" "$rc" && grep -qx "    disabled" "$rc" && grep -qx "    user root" "$rc" && grep -qx "    group root" "$rc"' "o .rc nao tem o servico do spec"
 
-  # 2a execucao: nada regravado, nada remontado
   local m1 v1
   m1="$(stat -c %Y.%i "$rc")"
   v1="$(cd "$S" && find . -type f -name '*.sh' -exec stat -c '%n %Y %i' {} + | sort)"
-  : "$m1" "$v1"   # usadas dentro das condicoes do afirma (eval)
+  : "$m1" "$v1"
   : > "$T/calls.log"
   sleep 1.1
   roda_kit
@@ -1020,7 +955,6 @@ c_instalacao(){
   afirma '[ "$(cd "$S" && find . -type f -name "*.sh" -exec stat -c "%n %Y %i" {} + | sort)" = "$v1" ]' "2a execucao regravou scripts da suite"
   afirma 'grep -q "suite: arquivos ja estavam em dia" "$T/kit.out" && grep -q "servico de boot ja estava instalado" "$T/kit.out"' "log da 2a sem 'em dia'"
 
-  # arquivo adulterado na pasta da suite: o kit refaz so ele
   echo "# x" >> "$S/nl_camcheck"; : > "$T/calls.log"
   roda_kit
   afirma 'cmp -s "$KIT/nl_camcheck" "$S/nl_camcheck"' "o nl_camcheck adulterado ficou"
@@ -1101,15 +1035,12 @@ c_desinstalar(){
   afirma 'tem_chamada "mount -o rw,remount /vendor" && tem_chamada "mount -o ro,remount /vendor"' "removeu o .rc sem remount"
   afirma 'tem_chamada "setsid sh $W/cor.sh $MP" && ! tem_chamada "suite.sh pendrive"' "deveria rodar so o cor.sh: $(grep setsid "$T/calls.log")"
   afirma 'grep -q "suite removida" "$T/kit.out"' "log sem a remocao"
-  # desinstalar de novo: nada a remover, nao falha
   : > "$T/calls.log"
   roda_kit
   afirma '[ "$RC" = 0 ] && [ "$(chamadas mount)" = 0 ]' "2o desinstalar remontou ou falhou (rc=$RC)"
   limpa
 }
 
-# desinstalar leva o bloco 14 de volta: desliga as sobreposicoes (a do android primeiro) e apaga as pastas,
-# tira a prop do gerenciador, religa os apps e restaura a marca
 c_desinstalar14(){
   local d
   novo_cenario "desinstalar: sobreposicoes desligadas (android primeiro) e removidas, prop do gerenciador tirada, apps religados, marca restaurada"
@@ -1128,17 +1059,12 @@ c_desinstalar14(){
   afirma '[ ! -s "$T/pm-desligados" ] && [ "$(grep -c "^pm enable --user 0 " "$T/calls.log")" = 3 ]' "apps nao religados: $(tr '\n' ' ' < "$T/pm-desligados")"
   afirma '[ "$(cat "$R/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && [ "$(cat "$R/atv/bootvideo/bootanimation.zip")" = "animacao de fabrica" ] && [ ! -e "$S" ]' "marca nao restaurada ou pasta da suite ficou"
   afirma 'grep -q "marca: logo.jpg de fabrica restaurado" "$T/kit.out"' "log sem a restauracao da marca"
-  # desinstalar de novo: nada a remover, nao remonta, nao religa
   : > "$T/calls.log"
   roda_kit
   afirma '[ "$RC" = 0 ] && [ "$(chamadas mount)" = 0 ] && [ "$(chamadas "pm enable")" = 0 ]' "2o desinstalar mexeu de novo (rc=$RC)"
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# B3 - etapas (suite.sh chamado direto, pasta da suite pronta)
-# ---------------------------------------------------------------------------
-# cenario de etapas: tudo bem (cor certa pela camera, geometria boa, rampa reage)
 etapa_feliz(){ instala_suite; MODO_AUTO_TESTE=1; echo 0 > "$T/cam-certo"; rampa_reage; }
 
 c_etapas_cor(){
@@ -1164,7 +1090,6 @@ c_etapas_cor(){
       corrigido|manual_trocado)
         afirma '[ "$(item_de "Formato do painel")" = "Formato do painel|VESA \u2192 JEIDA|corrigido" ]' "item: $(item_de "Formato do painel")"
         afirma 'grep -qx "titulo=Tudo certo." "$(campos resumo resumo)" && grep -qxF "destaque=1 corre\u00e7\u00e3o feita." "$(campos resumo resumo)" && grep -qx "destaque_estado=corrigido" "$(campos resumo resumo)"' "titulo/destaque da correcao: $(grep -E '^(titulo|destaque)' "$(campos resumo resumo)" | tr '\n' '|')"
-        # sem pendrive, a copia do backup fica na pasta da suite (persistente, so do root)
         afirma 'cmp -s "$S/panelparam-backup-SER123.img" "$T/pp-original.img"' "backup sem pendrive nao ficou na pasta da suite"
         afirma '[ ! -e "$W/journal" ] && [ ! -e "$R/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram" ;;
       manual_mantido)
@@ -1175,7 +1100,6 @@ c_etapas_cor(){
         afirma 'grep -q "^titulo=Aten" "$(campos resumo resumo)" && grep -qx "destaque_estado=atencao" "$(campos resumo resumo)"' "titulo de atencao"
         afirma '[ "$(pp_md5)" = "$(md5 "$T/pp-original.img")" ]' "mexeu na panelparam" ;;
     esac
-    # no modo suite o cor.sh nao mostra "aguarde" nem a tela final dele
     afirma '! grep -q "pfl7560-kit/aguarde.png\|pfl7560-kit/pronto.png\|pfl7560-kit/erro.png" "$T/calls.log"' "o cor.sh mostrou a tela dele no modo suite"
     afirma '[ "$caso" = erro ] || [ "$(res cor_formato_antes)" = VESA ]' "cor_formato_antes='$(res cor_formato_antes)'"
     limpa
@@ -1245,7 +1169,6 @@ c_etapas_geometria(){
   afirma '[ "$(grep -c "^am startservice -n com.zhiying.autofocus/.AutoFocusService -a com.zhiying.AUTO_FOCUS_SERVICE --ei auto_focus_keystone 0$" "$T/calls.log")" = 2 ]' "esperava 2 autofocos (so foco): $(grep startservice "$T/calls.log" | tr '\n' '|')"
   afirma '[ "$(res foco_tentativas)" = 2 ] && [ "$(item_de Foco)" = "Foco|refeito (2x)|corrigido" ]' "foco: $(res foco_tentativas) $(item_de Foco)"
   afirma '[ "$(grep -c "^nl_camcheck geometria" "$T/calls.log")" = 3 ]' "esperava 3 medicoes"
-  # 1 da leitura antes do cor.sh + 3 medicoes da geometria
   afirma '[ "$(grep -c "^am start.*pfl7560-suite/calibracao.png" "$T/calls.log")" = 4 ]' "a calibracao deveria voltar a cada medicao"
   limpa
 
@@ -1312,7 +1235,6 @@ c_etapas_geometria(){
 
   novo_cenario "geometria: nl_camcheck adulterado = nao executa"
   etapa_feliz; MODO_AUTO_TESTE=0; echo nokey > "$T/keys"
-  # o md5 que a suite espera e o do binario original; o do PATH muda depois
   cp "$T/bin/nl_camcheck" "$T/nlcam.orig"; echo "# x" >> "$T/bin/nl_camcheck"
   env PFL_TESTE=1 PFL_DONO="$(id -u)" PFL_RAPIDO=1 PFL_ROOT="$R" PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" \
       PFL_NLCAMCHECK="$T/bin/nl_camcheck" PFL_NLCAMCHECK_MD5="$(md5 "$T/nlcam.orig")" PFL_NLTELA="$T/bin/nl_tela" PFL_NLTELA_MD5="$(md5 "$T/bin/nl_tela")" \
@@ -1330,7 +1252,6 @@ c_etapas_geometria(){
   limpa
 }
 
-# bloco 11: mapa de nitidez 3x3 e varredura fina de foco pelo hidebug
 nit(){ printf 'nitidez_r1c1=%s\nnitidez_r1c2=%s\nnitidez_r1c3=%s\nnitidez_r2c1=%s\nnitidez_r2c2=%s\nnitidez_r2c3=%s\nnitidez_r3c1=%s\nnitidez_r3c2=%s\nnitidez_r3c3=%s\nquadro=1280x720\n' "$@"; }
 sfds(){ grep "^HIDEBUG  custom sfd " "$T/calls.log" | sed 's/^HIDEBUG  custom sfd \([0-9]*\) quit $/\1/' | tr '\n' ' '; }
 dicas_de(){ grep "^dica=" "$(campos resumo resumo)" 2>/dev/null; }
@@ -1401,7 +1322,6 @@ c_etapas_foco(){
   afirma '[ "$(res foco_borda_antes)" = 3.80 ] && [ "$(res foco_borda_depois)" = 1.80 ] && [ "$(res geo_borda_centro_px)" = 1.80 ]' "bordas: $(res foco_borda_antes) $(res foco_borda_depois) $(res geo_borda_centro_px)"
   afirma '[ "$(item_de Foco)" = "Foco|ajuste fino|corrigido" ]' "foco: $(item_de Foco)"
   afirma '[ "$(chamadas "am startservice")" = 2 ]' "a varredura deveria vir depois dos 2 autofocos"
-  # cada movimento espera VARRE_PAUSA antes de ler o gfd: sfd, sleep 2, gfd
   afirma '[ -z "$(awk "/^HIDEBUG  custom sfd /{s=1; next} s==1 && /^HIDEBUG/{print; s=0; next} s==1 && /^sleep 2\$/{s=0}" "$T/calls.log")" ]' "leu o gfd sem a pausa depois do sfd"
   afirma '[ -z "$(grep "^HIDEBUG" "$T/calls.log" | grep -vE "^HIDEBUG  custom (gfs 0 gfs 1 gbri 0|gfd|gfdr|sfd [0-9]+) quit $")" ]' "outro comando no hidebug: $(grep "^HIDEBUG" "$T/calls.log" | grep -vE "custom (gfs 0 gfs 1 gbri 0|gfd|gfdr|sfd [0-9]+) quit" | head -2)"
   limpa
@@ -1535,8 +1455,6 @@ c_etapas_rampa(){
 
   novo_cenario "rampa: .ini corrigido mas WARNING/EMERGENCY ilegiveis = nao injeta"
   etapa_feliz
-  # um .ini sem as linhas de limiar, com o md5 de um corrigido? impossivel; a trava do
-  # md5 vem antes. Aqui o EMERGENCY some do .ini efetivo em /atv/ini (md5 diferente)
   mkdir -p "$R/atv/ini"; grep -av EMERGENCY_VALUE "$KIT/ZYCustom.ini" > "$R/atv/ini/ZYCustom_390.ini"
   roda_suite tomada
   afirma '[ "$(res rampa)" = pulada ] && ! tem_chamada "setprop $PROP_OV 71000"' "injetou sem EMERGENCY"
@@ -1544,9 +1462,6 @@ c_etapas_rampa(){
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# telas, resumo e modos
-# ---------------------------------------------------------------------------
 c_telas(){
   local modo
   for modo in tomada pedido; do
@@ -1570,7 +1485,6 @@ c_telas(){
       afirma 'grep -qxF "titulo=Verifica\u00e7\u00e3o pedida.\nConferindo o projetor." "$(campos aviso abertura)"' "titulo da abertura do pedido"
     fi
     afirma '[ "$(grep -c "^passo=" "$(campos aviso abertura)")" = 4 ] && [ "$(grep -c "^passo=.*|fila$" "$(campos aviso abertura)")" = 4 ]' "abertura sem os 4 passos em fila"
-    # C-res: resultados.txt e ultimo.log
     afirma '[ "$(res modo)" = "$modo" ] && [ "$(res itens)" = 19 ] && [ -n "$(res fim)" ] && [ -z "$(LC_ALL=C grep -nP "[^\x20-\x7E]" "$S/resultados.txt")" ]' "resultados.txt"
     afirma 'grep -q "suite terminada" "$S/ultimo.log" && [ ! -e "$S/resultados.txt.new" ] && [ ! -d "$R/dev/pfl7560-suite.lock" ]' "fim sujo"
     limpa
@@ -1676,9 +1590,6 @@ c_ambiente(){
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# achados do conferente (bloco 9B)
-# ---------------------------------------------------------------------------
 c_conferente(){
   local rc
 
@@ -1701,8 +1612,6 @@ c_conferente(){
 
   novo_cenario "conferente: rotulo do .rc preparado fora do padrao = nao entra em /vendor/etc/init"
   pendrive; rc="$R/vendor/etc/init/pfl7560-suite.rc"
-  # ls -Z de mentira: o init.bigfish.rc tem o rotulo de fabrica; o resto, um rotulo errado
-  # (o chcon nao pegou)
   stub ls 'if [ "$1" = "-Z" ]; then case "$2" in *init.bigfish.rc) echo "u:object_r:vendor_configs_file:s0 $2" ;; *) echo "u:object_r:vendor_file:s0 $2" ;; esac; exit 0; fi
 exec '"$(command -v ls)"' "$@"'
   roda_kit
@@ -1807,9 +1716,6 @@ exec '"$(command -v ls)"' "$@"'
   limpa
 }
 
-# ---------------------------------------------------------------------------
-# estaticos
-# ---------------------------------------------------------------------------
 c_estaticos(){
   CASO="estaticos"
   local f
@@ -1834,40 +1740,29 @@ c_estaticos(){
     echo "  (shellcheck ausente: etapa pulada)"
   fi
   afirma 'bash "$ROOT/tests/atualizar-md5-kit.sh" --check >/dev/null' "listas md5 desatualizadas"
-  # cada md5 da SUITE_LISTA e o do arquivo do kit
   afirma '( cd "$KIT" && sed -n "/^# SUITE_LISTA_INICIO/,/^# SUITE_LISTA_FIM/p" suite.sh | sed -n "s/^\(SUITE_LISTA=\"\)\{0,1\}\([0-9a-f]\{32\}  .*\)\$/\2/p" | md5sum -c --quiet - )' "SUITE_LISTA nao confere com os arquivos"
   afirma '[ "$(sed -n "s/^SUITE_MD5=\"\(.*\)\"$/\1/p" "$KIT/suite-boot.sh")" = "$(md5 "$KIT/suite.sh")" ] && [ "$(sed -n "s/^SUITE_MD5=\"\(.*\)\"$/\1/p" "$KIT/suite-pedido.sh")" = "$(md5 "$KIT/suite.sh")" ] && [ "$(sed -n "s/^PEDIDO_MD5=\"\(.*\)\"$/\1/p" "$KIT/suite-boot.sh")" = "$(md5 "$KIT/suite-pedido.sh")" ]' "md5 do suite.sh/suite-pedido.sh embutidos errados"
   for f in INI_MD5_OK INI_MD5_OK_NOTYPEC; do
     afirma '[ "$(grep "^$f=" "$KIT/suite.sh" | cut -d\" -f2)" = "$(grep "^$f=" "$KIT/newlink_update.sh" | cut -d\" -f2)" ]' "$f da suite difere do newlink_update.sh"
   done
-  # o override: so 71000, literal, nunca configuravel; 75000 nunca (fora de comentario)
   afirma '[ "$(grep -c "^INJETADO=71000$" "$KIT/suite.sh")" = 1 ] && ! grep -q "INJETADO=.*\\\$" "$KIT/suite.sh"' "INJETADO nao e o 71000 literal"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -q 75000' "suite.sh cita 75000 fora de comentario"
   afirma '[ "$(grep -c "setprop \"\$PROP_OVERRIDE\"" "$KIT/suite.sh")" = 2 ] && grep -q "setprop \"\$PROP_OVERRIDE\" \"\$INJETADO\"$" "$KIT/suite.sh" && grep -q "setprop \"\$PROP_OVERRIDE\" '"''"'" "$KIT/suite.sh"' "setprop do override fora do padrao (so 71000 e vazio)"
-  # o hidebug: a unica entrada e gfs/gbri; gtt nunca. Bloco 11: o foco so por hb_foco, que so
-  # deixa passar gfd, gfdr e sfd <numero> (nada de sfd2/sfd3/saps nem GPIO)
   afirma '[ "$(grep -c "| timeout 15 \"\$HIDEBUG\"" "$KIT/suite.sh")" = 2 ] && grep -q "^    gfd|gfdr) ;;$" "$KIT/suite.sh" && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qE "sfd2|sfd3|saps|/proc/msp/gpio"' "o hidebug recebe algo fora de gfs/gbri e gfd/gfdr/sfd"
   afirma '[ "$(grep -c "HIDEBUG" "$KIT/suite.sh")" -ge 1 ] && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qiE "gtt"' "suite.sh cita gtt fora de comentario"
-  # (bloco 15: o suite-pedido.sh passa a falar com o hidebug so para a luz, "sbl" e "gbl"; gtt nunca)
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "gtt"' "boot/pedido citam gtt"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" | grep -qi "hidebug"' "o boot fala com o hidebug direto (deve chamar o suite-pedido.sh)"
   afirma '[ -z "$(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")" ]' "o suite-pedido.sh manda ao hidebug algo alem de sbl/gbl: $(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")"
-  # os 4 pontos e o modo de projecao: so leitura
-  # o servico de boot sobe com o PATH do /vendor: os scripts fixam o PATH com /system/bin
   for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh newlink_update.sh; do
     afirma 'grep -q "^  PATH=\"/system/bin:/system/xbin:/vendor/bin:/vendor/xbin\"; export PATH$" "$KIT/$f"' "$f sem o PATH fixo com /system/bin"
   done
   MVS_BOOT=$(grep -hE 'mv "[$](BP|INI|RC)[.]new" "[$](BP|INI|RC)"' "$KIT/newlink_update.sh" "$KIT/suite.sh")
   afirma '[ "$(printf "%s\n" "$MVS_BOOT" | grep -c .)" = 7 ] && [ -z "$(printf "%s\n" "$MVS_BOOT" | grep -vF "sync && mv ")" ]' "troca de arquivo de boot no /vendor sem sync antes do mv: $(printf "%s\n" "$MVS_BOOT" | grep -vF "sync && mv " | head -2)"
-  # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa
   afirma '! grep -n "exit !" "$KIT"/*.sh' "script do kit com exit !(...) no awk: $(grep -n "exit !" "$KIT"/*.sh | head -3)"
-  # (a unica prop persist que a suite toca e a marca do gatilho, so no desinstalar)
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -v "setprop persist.sys.boot.reason \"\"" | grep -qE "setprop (persist|\"?persist)|ProjectionService|nlhotkey|FourPointActivity"' "a suite escreve 4 pontos/modo ou abre telas do sistema"
-  # o .rc: 0644 no git tambem nao importa (o kit faz chmod); conteudo do servico
   afirma 'grep -qx "service pfl7560_suite /vendor/bin/sh /data/vendor/pfl7560-suite/suite-boot.sh" "$KIT/pfl7560-suite.rc"' ".rc sem o servico"
 }
 
-# ---------------------------------------------------------------------------
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
@@ -1877,10 +1772,7 @@ for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vig
   "$c"
 done
 
-# globais: em TODOS os cenarios
 CASO="global"
-# o valor de cada item cabe na coluna do resumo (medido no nl_tela do 9A: 18 caracteres
-# de Mono 34 px; \uXXXX conta como um)
 afirma '[ -z "$(valores_longos)" ]' "valor de item longo demais: $(valores_longos | tr '\n' '|')"
 afirma '[ "$(grep -c "^item=" "$TODAS_CAMPOS")" -ge 300 ]' "poucos resumos gerados nos cenarios ($(grep -c "^item=" "$TODAS_CAMPOS"))"
 afirma '! grep -q "^GTT" "$TODAS" && ! grep -q "^HIDEBUG.*gtt" "$TODAS"' "gtt chamado em algum cenario"

@@ -1,23 +1,4 @@
 #!/usr/bin/env python3
-# tests/test-builder-bin.py - bloco 6 (T6.2): o build_fix_bin.py le o offset e o
-# tamanho do vendor (record 14) da tabela do container, nao de uma constante.
-#
-# Monta containers LOAD SINTETICOS e pequenos (um ext4 de 4 MiB com os 3 arquivos que o
-# builder edita, empacotado em sparse, dentro de um LOAD com o record 14 em offsets
-# diferentes) e roda o builder REAL contra eles. Nao depende dos .bin de 1,3 GB.
-# Opcional, com os stocks de verdade (so leitura): PFL_STOCK_ANTIGO (V1.0.0.9) e
-# PFL_STOCK_NOVO (V1.0.0.1, sem USB-C) rodam o builder com cada um: o antigo tem de sair
-# com md5 eae3a83d e o novo (com ZYCustom_390.NOTYPEC.ini) com 0d294cb3, CRC do vendor 0xe2cad2f5.
-#
-# Bloco 12: o manifesto (--conteudo, artifacts/bin-build/conteudo.txt) grava arquivos e pastas
-# novos com os metadados carimbados; conferido aqui por fora, com debugfs, entrada por entrada,
-# e as recusas (sem espaco no ext4, sem folga no slot, modo com escrita para grupo, pasta-mae
-# ausente, destino fora do /vendor ou derivado, metadado diferente do stock, origem ausente).
-# Com PFL_STOCK_ANTIGO roda tambem o conteudo.txt de verdade no stock e confere so o record
-# 14 mudado, cabecalho intacto, checksum1, CRC e cada entrada; o .bin de teste e apagado.
-#
-# Precisa de: python3, mke2fs, debugfs, e2fsck. NUNCA fala com o aparelho.
-#   python3 tests/test-builder-bin.py
 import hashlib
 import os
 import re
@@ -34,12 +15,10 @@ sys.path.insert(0, BB)
 import build_fix_bin as B   # noqa: E402  (importa o builder real: so funcoes)
 import sparse               # noqa: E402
 
-# layout do container LOAD (doc 42 s2): escrito aqui, de proposito, e nao importado do builder
 TABLE_OFF, TABLE_ENTRY, N_RECORDS, VENDOR_REC = 0x40, 32, 19, 14
 
 FALHAS = 0
 TESTES = 0
-
 
 def afirma(cond, msg):
     global FALHAS, TESTES
@@ -48,7 +27,6 @@ def afirma(cond, msg):
         FALHAS += 1
         print(f"  FALHA {CASO}: {msg}")
 
-
 def md5(path):
     h = hashlib.md5()
     with open(path, 'rb') as f:
@@ -56,14 +34,10 @@ def md5(path):
             h.update(b)
     return h.hexdigest()
 
-
 def ler(path):
     return open(path, 'rb').read()
 
-
 def ext4_com_os_3_arquivos(d, ini, bp, rc):
-    """ext4 de 4 MiB com /etc/ZYCustom.ini, /build.prop e /etc/init/hw/init.bigfish.rc,
-    com os metadados do stock (mode, uid/gid e security.selinux), como o vendor real."""
     raw = os.path.join(d, 'stock.raw')
     with open(raw, 'wb') as f:
         f.truncate(4 * 1024 * 1024)
@@ -77,13 +51,7 @@ def ext4_com_os_3_arquivos(d, ini, bp, rc):
     B.dfs(raw, os.path.join(d, 'cmds'))
     return raw
 
-
 def monta_load(d, payload, pfx, nome='stock.bin', crc_errado=(5,)):
-    """LOAD sintetico e coerente, como o stock (doc 15 s3): cabecalho de 0x2b4 (checksum1,
-    header_len, file_len u64, 19 imagens em 0x54 + 32*i), blob [len][crc] em 0x2b4 e os 19
-    records contiguos com prefixo [len][crc]. O record 14 e o `payload` e o prefixo dele cai em
-    `pfx` (o blob absorve a diferenca). Os records em crc_errado guardam um CRC que nao confere,
-    como o deviceinfo (record 5) do stock. Devolve (caminho, size do 14)."""
     outros = {i: bytes([0x30 + i]) * (16 + 4 * i) for i in range(N_RECORDS) if i != VENDOR_REC}
     blob_len = pfx - 0x2bc - sum(8 + len(outros[i]) for i in range(VENDOR_REC))
     assert blob_len >= 0, "pfx pequeno demais para os 14 records antes do vendor"
@@ -112,33 +80,23 @@ def monta_load(d, payload, pfx, nome='stock.bin', crc_errado=(5,)):
     assert tabela[VENDOR_REC][1] == pfx
     return out, size
 
-
 def monta_stock(d, raw, pfx, folga=0, nome='stock.bin'):
-    """Stock sintetico com o ext4 `raw` no record 14, empacotado em sparse so com RAW e DONTCARE e
-    ocupando o slot exato, como no stock real (folga 0). Com folga > 0, zeros soltos depois do
-    ultimo chunk (a forma das builds antigas, que o gate recusa)."""
     payload = os.path.join(d, 'vendor.sparse')
     sparse.pack(raw, payload)
     with open(payload, 'ab') as f:
         f.write(b'\x00' * folga)
     return monta_load(d, payload, pfx, nome)
 
-
 def tabela(path):
-    """[(img_length, offset)] das 19 imagens e o file_len, lidos por conta propria."""
     with open(path, 'rb') as f:
         h = f.read(0x2b4)
     return [struct.unpack('>II', h[0x54 + 32 * i:0x54 + 32 * i + 8]) for i in range(N_RECORDS)], \
         struct.unpack('>Q', h[0x0c:0x14])[0]
 
-
 def layout(sp):
-    """Layout de chunks do sparse: [(tipo, bloco de saida, blocos, offset no sparse)]."""
     return [c[:4] for c in sparse.parse(sp)[2]]
 
-
 def meta_de(raw, path):
-    """(tipo, modo, uid, gid, rotulo com o NUL do stock) lidos por fora, pelo debugfs stat."""
     st = subprocess.run(['debugfs', '-R', f'stat {path}', raw], capture_output=True, text=True).stdout
     m = re.search(r'Type:\s+(\S+)\s+Mode:\s+(\d+)', st)
     u = re.search(r'User:\s+(\d+)\s+Group:\s+(\d+)', st)
@@ -147,9 +105,7 @@ def meta_de(raw, path):
         return None
     return (m.group(1), m.group(2).zfill(4)[-4:], u.group(1), u.group(2), r.group(1))
 
-
 def ler_manifesto(path):
-    """Leitura propria (independente do builder): [(origem|None, destino na imagem, meta esperada)]."""
     out = []
     for linha in open(path, encoding='utf-8'):
         c = linha.split('#', 1)[0].split()
@@ -160,16 +116,13 @@ def ler_manifesto(path):
         out.append((origem, c[1][len('/vendor'):], (tipo, c[2], c[3], c[4], c[5] + '\\000')))
     return out
 
-
 def confere_manifesto(raw, manifesto):
     for origem, img, esperado in ler_manifesto(manifesto):
         afirma(meta_de(raw, img) == esperado, f"{img}: metadados {meta_de(raw, img)} != {esperado}")
         if origem:
             afirma(cat(raw, img) == ler(origem), f"{img}: conteudo difere da origem")
 
-
 def iguais_fora(a, b, ini, fim):
-    """Os dois arquivos sao iguais fora de [ini, fim) (lido em pedacos: 1,3 GB cada)."""
     with open(a, 'rb') as fa, open(b, 'rb') as fb:
         pos = 0
         while True:
@@ -187,22 +140,18 @@ def iguais_fora(a, b, ini, fim):
                 return False
             pos += n
 
-
 def roda_builder(stock, ini, out, *extra):
     r = subprocess.run([sys.executable, os.path.join(BB, 'build_fix_bin.py'), stock, ini, out, *extra],
                        capture_output=True, text=True)
     return r.returncode, r.stdout + r.stderr
 
-
 def cat(raw, path):
     return subprocess.run(['debugfs', '-R', f'cat {path}', raw], capture_output=True).stdout
-
 
 def verificar(out, stock, *extra):
     r = subprocess.run([sys.executable, os.path.join(BB, 'build_fix_bin.py'), '--verificar', out, stock, *extra],
                        capture_output=True, text=True)
     return r.returncode, r.stdout + r.stderr
-
 
 def payload14(path, d, nome):
     recs, _ = tabela(path)
@@ -213,9 +162,7 @@ def payload14(path, d, nome):
         open(pl, 'wb').write(f.read(size))
     return pl
 
-
 def confere_saida(stock, out, pfx, size, ini):
-    """Confere o .bin de saida (mesmos blocos) de forma independente do builder."""
     s, o = ler(stock), ler(out)
     afirma(len(s) == len(o), "tamanho do .bin mudou")
     afirma(s[:0x2b4] == o[:0x2b4], "cabecalho/tabela LOAD (checksum1 inclusive) mudou")
@@ -247,7 +194,6 @@ def confere_saida(stock, out, pfx, size, ini):
     rc, log = verificar(out, stock)
     afirma(rc == 0 and 'APROVADO' in log, f"--verificar reprovou a saida: {log.strip().splitlines()[-3:]}")
 
-
 def caso_layout(rotulo, stock_ini, ini_dado, pfx):
     global CASO
     CASO = rotulo
@@ -269,9 +215,7 @@ def caso_layout(rotulo, stock_ini, ini_dado, pfx):
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
-
 def caso_recusa(rotulo, mexe, stock_ini, ini_dado, pfx, trecho, folga=0):
-    """O builder tem de recusar (rc != 0, mensagem) e NAO gerar o .bin de saida (nem o .tmp)."""
     global CASO
     CASO = rotulo
     d = tempfile.mkdtemp(prefix='testbin_')
@@ -287,15 +231,12 @@ def caso_recusa(rotulo, mexe, stock_ini, ini_dado, pfx, trecho, folga=0):
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
-
 def poe(stock, pos, dados):
     with open(stock, 'r+b') as f:
         f.seek(pos)
         f.write(dados)
 
-
 def sparse_com_fill(sp, out):
-    """Copia do sparse com um bloco do primeiro DONTCARE de 3+ blocos trocado por um chunk FILL."""
     blk, total, chunks = sparse.parse(sp)
     raw = ler(sp)
     corpo, n = b'', 0
@@ -316,9 +257,7 @@ def sparse_com_fill(sp, out):
     open(out, 'wb').write(struct.pack('<IHHHHIIII', sparse.SPARSE_MAGIC, 1, 0, 28, 12, blk, total, n, 0) + corpo)
     return feito
 
-
 def caso_gate(rotulo, estraga, trecho):
-    """--verificar recusa um .bin estragado de proposito a partir de uma saida boa."""
     global CASO
     CASO = rotulo
     d = tempfile.mkdtemp(prefix='testbin_')
@@ -337,23 +276,18 @@ def caso_gate(rotulo, estraga, trecho):
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
-
 def com_payload(d, out, mexe):
-    """Remonta o LOAD da saida com o payload do 14 trocado por mexe(sparse) -> sparse novo."""
     pl = payload14(out, d, 'bom.vendor')
     novo = mexe(pl)
     return monta_load(d, novo, tabela(out)[0][VENDOR_REC][1], 'ruim.bin')[0]
-
 
 def zeros_soltos(pl):
     open(pl, 'ab').write(b'\x00' * 4096)
     return pl
 
-
 def com_fill(pl):
     afirma(sparse_com_fill(pl, pl + '.fill'), "o sparse do teste nao tinha DONTCARE de 3+ blocos")
     return pl + '.fill'
-
 
 def outro_arquivo(pl):
     raw = pl + '.raw'
@@ -364,17 +298,13 @@ def outro_arquivo(pl):
     sparse.pack(raw, pl + '.novo')
     return pl + '.novo'
 
-
 def copia_mexida(out, pos, dados):
     ruim = out + '.ruim'
     shutil.copyfile(out, ruim)
     poe(ruim, pos, dados)
     return ruim
 
-
 def caso_real(rotulo, stock, ini, md5_saida=None):
-    """Com o stock de verdade (1,3 GB), nos mesmos blocos: so o record 14 muda, layout de chunks
-    igual ao do stock, CRC e checksum1 conferidos, --verificar aprova; md5 de saida esperado."""
     global CASO
     CASO = rotulo
     d = tempfile.mkdtemp(prefix='testbin_')
@@ -404,8 +334,6 @@ def caso_real(rotulo, stock, ini, md5_saida=None):
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
-
-# md5 da saida nos mesmos blocos com os stocks de verdade (doc 15 s3, firmware/README.md)
 MD5_S4A_ANTIGO = 'a6e5da14cb3f53b42a457eb92bd91814'
 MD5_S4A_NOVO = 'e3e3e87ce08a625c83c3824eafd26d9b'
 CASO = ''
@@ -424,7 +352,6 @@ for n in (0, 1, 7, 4096, 100003):
     os.remove(t.name)
 
 print("== builder: offset e tamanho do vendor lidos da tabela (containers sinteticos) ==")
-# dois offsets diferentes entre si e do antigo fixo (o do V1.0.0.1 e 0xac00 depois do V1.0.0.9)
 caso_layout("modelo com USB-C, vendor em 0x1000", ANTIGO_INI, FIX_ANTIGO, 0x1000)
 caso_layout("modelo com USB-C, vendor em 0x1000+0xac00", ANTIGO_INI, FIX_ANTIGO, 0x1000 + 0xac00)
 caso_layout("modelo sem USB-C, vendor em 0x1000+0xac00", NOVO_INI, FIX_NOVO, 0x1000 + 0xac00)
@@ -451,15 +378,12 @@ shutil.rmtree(os.path.dirname(INI_GRANDE), ignore_errors=True)
 caso_recusa("stock com zeros soltos no slot: o gate recusa a saida", lambda s, p, z: None, ANTIGO_INI,
             FIX_ANTIGO, 0x1000, "soltos depois do ultimo chunk", folga=65536)
 
-
 def stock_com_fill(s, p, z):
-    """Troca o payload do stock por um com FILL, mantendo o LOAD coerente (o gate e quem recusa)."""
     d = os.path.dirname(s)
     pl = payload14(s, d, 'stock-fill.vendor')
     sparse_com_fill(pl, pl + '.fill')
     novo, _ = monta_load(d, pl + '.fill', p, 'stock-fill.bin')
     os.replace(novo, s)
-
 
 caso_recusa("stock com chunk FILL: o gate recusa a saida", stock_com_fill, ANTIGO_INI, FIX_ANTIGO, 0x1000,
             "chunk 0xcac2")
@@ -479,15 +403,11 @@ caso_gate("checksum1 errado", lambda d, s, o: copia_mexida(o, 4, b'\x00\x00\x00\
 caso_gate("file_len errado", lambda d, s, o: copia_mexida(o, 0x13, b'\x01'), "file_len @0x0c")
 caso_gate("blob do loader mudado", lambda d, s, o: copia_mexida(o, 0x2c0, b'\x00'), "blob do loader")
 
-# ---- bloco 12: manifesto (--conteudo) ----------------------------------------------------
 ROTULO_CFG = 'u:object_r:vendor_configs_file:s0'
 ROTULO_APP = 'u:object_r:vendor_app_file:s0'
 CONTEUDO = os.path.join(BB, 'conteudo.txt')
 
-
 def stock_com_app(d, pfx):
-    """Stock sintetico com /app (como o vendor: 0755 root:shell, vendor_app_file) e um arquivo
-    /etc/existente.txt (0644, vendor_configs_file) para o caso de troca de conteudo."""
     raw = ext4_com_os_3_arquivos(d, ANTIGO_INI, os.path.join(ART, 'build.prop.STOCK'),
                                  os.path.join(ART, 'init.bigfish.rc.STOCK'))
     ex = os.path.join(d, 'existente.txt')
@@ -499,17 +419,12 @@ def stock_com_app(d, pfx):
     B.dfs(raw, os.path.join(d, 'cmds2'))
     return monta_stock(d, raw, pfx)
 
-
 def apk_falso(d, tamanho):
-    p = os.path.join(d, 'app falso.apk')   # com espaco: o builder copia antes de dar ao debugfs
+    p = os.path.join(d, 'app falso.apk')
     open(p, 'wb').write(hashlib.sha256(b'pfl').digest() * (tamanho // 32))
     return p
 
-
 def confere_realocado(stock, out):
-    """O LOAD realocado, conferido por conta propria: record 14 com o tamanho novo, offsets dos
-    15 a 18 deslocados do mesmo delta, file_len = tamanho do arquivo, checksum1, os outros records
-    byte a byte iguais aos do stock (com o prefixo) e o sparse ocupando o img_length exato."""
     rs, fs = tabela(stock)
     ro, fo = tabela(out)
     delta = ro[VENDOR_REC][0] - rs[VENDOR_REC][0]
@@ -545,7 +460,6 @@ def confere_realocado(stock, out):
     afirma(consumido == os.path.getsize(pl), f"o sparse ocupa {consumido} B e o img_length e {os.path.getsize(pl)}")
     return pl
 
-
 def caso_conteudo(rotulo):
     global CASO
     CASO = rotulo
@@ -566,8 +480,6 @@ def caso_conteudo(rotulo):
         out = os.path.join(d, 'saida.bin')
         rc, log = roda_builder(stock, FIX_ANTIGO, out, '--realocar', '--conteudo', man)
         afirma(rc != 0 and 'nao e um arquivo' in log, "origem com '?' devia ser recusada (nome literal)")
-        # agora com o nome de verdade (com espaco: o manifesto separa por espaco, entao o teste
-        # usa um link sem espaco para a origem)
         link = os.path.join(d, 'app_falso.apk')
         os.symlink(apk_falso(d, 96000), link)
         texto = open(man).read().replace(apk_falso(d, 96000).replace(' ', '?'), link)
@@ -606,9 +518,7 @@ def caso_conteudo(rotulo):
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
-
 def caso_recusa_conteudo(rotulo, linhas, trecho, tamanho_apk=20000):
-    """Manifesto invalido ou sem espaco (com --realocar): rc != 0, a mensagem, e nenhum .bin."""
     global CASO
     CASO = rotulo
     d = tempfile.mkdtemp(prefix='testbin_')
@@ -625,9 +535,7 @@ def caso_recusa_conteudo(rotulo, linhas, trecho, tamanho_apk=20000):
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
-
 def kit_lista():
-    """{nome no kit: md5} da KIT_LISTA e as pastas de KIT_APPS/KIT_OVERLAYS do newlink_update.sh."""
     sh = open(os.path.join(ROOT, 'pendrive-autorun', 'newlink_update.sh'), encoding='ascii').read()
     lista = dict((n, m) for m, n in re.findall(r'(?m)^([0-9a-f]{32})  (\S+)$', sh))
     pastas = {}
@@ -638,10 +546,7 @@ def kit_lista():
             pastas[n] = f'{base}/{pasta}/{pasta}.apk'
     return lista, pastas
 
-
 def caso_manifesto_e_kit(rotulo):
-    """Sem stock: cada origem do conteudo.txt no pendrive-autorun tem o md5 da KIT_LISTA, e os apps e
-    as sobreposicoes vao para as pastas em que o kit os instala (o kit acha 'ja estava')."""
     global CASO
     CASO = rotulo
     lista, pastas = kit_lista()
@@ -659,7 +564,6 @@ def caso_manifesto_e_kit(rotulo):
             afirma(esperado == ('regular', '0644', '0', '0', f'u:object_r:{rotulo_kit}:s0\\000'),
                    f"{rel}: metadados {esperado} diferentes dos do kit")
     afirma(vistos == set(pastas), f"conteudo.txt sem {sorted(set(pastas) - vistos)}")
-
 
 print("== builder: manifesto --conteudo com --realocar (containers sinteticos) ==")
 caso_conteudo("manifesto com .rc, pasta e app novos, troca de conteudo e pastas aninhadas")
@@ -689,11 +593,7 @@ caso_recusa_conteudo("linha sem 6 campos", '{apk} /vendor/app/x.apk 0644 0 0\n',
 print("== conteudo.txt contra o kit (sem stock) ==")
 caso_manifesto_e_kit("conteudo.txt: md5 da KIT_LISTA e pastas do kit")
 
-
 def caso_real_conteudo(rotulo, stock, ini, manifesto):
-    """Stock de verdade + manifesto, realocado: LOAD coerente (confere_realocado), cada entrada do
-    manifesto com modo, dono, rotulo e conteudo, os 3 fixes no lugar, e2fsck limpo, --verificar
-    aprova e saida deterministica. Imprime o md5; o .bin e apagado."""
     global CASO
     CASO = rotulo
     d = tempfile.mkdtemp(prefix='testbin_')
@@ -729,7 +629,6 @@ def caso_real_conteudo(rotulo, stock, ini, manifesto):
         afirma(rc2 == 0 and md5(out) == m1, "saida com manifesto nao e deterministica")
     finally:
         shutil.rmtree(d, ignore_errors=True)
-
 
 ANT = os.environ.get('PFL_STOCK_ANTIGO')
 NOV = os.environ.get('PFL_STOCK_NOVO')
