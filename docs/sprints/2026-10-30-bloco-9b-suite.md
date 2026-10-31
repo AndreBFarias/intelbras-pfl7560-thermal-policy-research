@@ -133,3 +133,45 @@ Casos mínimos:
 1. Os testes acima verdes, com a contagem no relatório.
 2. Relatório final: o que ficou PROVISÓRIO (constantes e premissas) e o que o teste no aparelho precisa
    confirmar, em lista.
+
+## Estado (implementação, 2026-10-30)
+
+Feito no branch `bloco-9b/suite`. Nada rodou no aparelho: tudo abaixo é harness com stubs.
+
+- **B1:** o `newlink_update.sh` instala a suíte em `/data/vendor/pfl7560-suite`, só os arquivos com md5 diferente,
+  por uma pasta de preparo dentro dela. Grava também o `.rc` dentro da janela rw do `/vendor`: é montado em
+  `/vendor/etc/pfl7560-suite.rc.new`, fora da pasta que o init lê, e só entra nela por `mv`, com `chmod 0644`,
+  `chown root:root` e `chcon` com o rótulo do `init.bigfish.rc` vizinho. Cria a pasta do pedido e lança
+  `suite.sh pendrive` no lugar do `cor.sh`. O `DESINSTALAR-SUITE.txt` remove a suíte e roda só o `cor.sh`.
+  Se a suíte não instalar, o kit roda só o `cor.sh`, como antes.
+- **B2:** o `suite-boot.sh` cuida do histórico (30 linhas), do gatilho `auto|sempre|nunca`, dos 10 min, do
+  pendrive, da trava e do vigia (`inotifyd`, ou um laço de 30 s). O processo do serviço fica vivo com `wait`
+  enquanto o vigia vive. O `suite-pedido.sh` trata o pedido do app.
+- **B3:** o `suite.sh` faz as 5 etapas e o resumo de 19 itens. O `cor.sh` ganhou o modo `suite`: sem as telas
+  dele, sem a espera do autofoco, com o resultado em `cor-resultado.txt` e, sem pendrive, a cópia do backup
+  na pasta da suíte. O autofoco agora é lido por `sys.newlink.auto` (doc 43 §2.3), no `cor.sh` e na suíte.
+- **B4:** `tests/test-suite.sh` (novo) e `tests/test-kit-pendrive.sh` (adaptado ao fluxo da suíte), os dois no
+  `make check-kit`. O `tests/atualizar-md5-kit.sh` gera em cadeia `SUITE_LISTA` → `SUITE_MD5` → `KIT_LISTA` e
+  inclui `nl_tela` e `fontes/` quando existirem.
+
+Desvios do texto do spec:
+
+1. A etapa 2 espera `sys.newlink.auto` (1 e depois 0, teto de 70 s), não `is_focused=true` (doc 43 §8).
+2. Com os 4 pontos ligados, a inclinação vira o conselho de zerar os 4 pontos, e não a dica de nivelar.
+   Motivo: a câmera é presa ao projetor e não vê o projetor girado; o que ela vê inclinado vem da correção.
+3. Nos modos tomada e pedido, as telas estáticas de reserva são só `aguarde` e `calibracao`: `pronto` e
+   `erro` falam de pendrive. Sem o `nl_tela`, o resumo não aparece; o resultado fica no `resultados.txt`.
+4. Travas da rampa além das do spec: o `.ini` efetivo tem de ter o md5 de um corrigido, e o LED tem de estar
+   abaixo de 66 °C (o override mascara o sensor por 40 s).
+5. No modo pendrive, com a trava ocupada por outra suíte, a suíte espera até 10 min, para que a última tela
+   ainda peça para tirar o pendrive.
+
+PROVISÓRIO (o teste no aparelho confirma):
+
+- os critérios do gatilho `auto` (`ANO_MIN=2020`, prefixos `shutdown,`/`reboot,`) e o `ESPERA_MONTAGEM=20`;
+- `SINAL_INCLINACAO=1` e se a câmera vê alguma inclinação real (teste 4 do bloco 9);
+- `LIMIAR_BORDA_PX_1280=3.5`, proporcional à largura (o 640x480 real passaria dele);
+- `AUTOFOCO_FOLGA=5` (antes 30 s, com o sinal errado);
+- a leitura de `persist.sys.mountingmode` (rótulo do menu não provado) e a unidade do `fan speed` (0 = parada);
+- o `inotifyd` no toybox do Android 9 e a escrita do app vista pelo inotify no `/data/media`;
+- `logcat -T 1` no Android 9 (sem ele, "não reagiu" falso, nunca injeção sem limpeza).
