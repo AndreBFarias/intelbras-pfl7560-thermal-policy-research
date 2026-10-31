@@ -7,7 +7,9 @@
 # Tambem exige que pendrive-autorun/lvdsctl seja byte-identico ao binario
 # versionado em artifacts/lcd-color-fix/lvdsctl (md5 178d8128...), e que o
 # pendrive-autorun/nl_camcheck (binario ARM da camera, bloco 7) seja byte-identico ao
-# versionado em artifacts/camcheck/nl_camcheck. Nao toca no aparelho.
+# versionado em artifacts/camcheck/nl_camcheck, e o pendrive-autorun/nl_tela (telas da suite, bloco
+# 9A) ao de artifacts/tela/nl_tela. As fontes (pendrive-autorun/fontes/) entram na lista tambem.
+# Nao toca no aparelho.
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
@@ -23,8 +25,11 @@ fi
 if ! cmp -s "$ROOT/artifacts/camcheck/nl_camcheck" "$KIT/nl_camcheck"; then
   echo "FALHA: pendrive-autorun/nl_camcheck difere de artifacts/camcheck/nl_camcheck"; exit 1
 fi
+if ! cmp -s "$ROOT/artifacts/tela/nl_tela" "$KIT/nl_tela"; then
+  echo "FALHA: pendrive-autorun/nl_tela difere de artifacts/tela/nl_tela"; exit 1
+fi
 
-lista="$(cd "$KIT" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck kit/*.png; do md5sum "$f"; done)"
+lista="$(cd "$KIT" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck nl_tela kit/*.png fontes/*; do md5sum "$f"; done)"
 novo="$(mktemp)"
 awk -v lista="$lista" '
   /^# KIT_LISTA_INICIO/ { print; print "KIT_LISTA=\"" lista; print "\""; pula=1; next }

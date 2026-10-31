@@ -34,6 +34,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <linux/videodev2.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -365,6 +366,180 @@ static int niveis_cmd(const char *dev, const char *arq, int skip) {
   return 0;
 }
 
+/* ---- bloco 9A: geometria da tela de calibracao (so le o quadro) --------------- */
+
+/* tres janelas de colunas: esquerda, centro (a mesma do perfil) e direita */
+static const int GEO_JAN[3][2] = { {15, 21}, {COL_INI_PCT, COL_FIM_PCT}, {79, 85} };
+static const char *const GEO_NOME[3] = { "esquerda", "centro", "direita" };
+
+/* luma da coluna x na linha y fracionaria (interpolacao linear entre linhas vizinhas) */
+static double luma_xy(const struct quadro *q, int x, double y) {
+  if (y < 0) y = 0;
+  if (y > q->alt - 1) y = q->alt - 1;
+  int y0 = (int)y, y1 = y0 + 1 < q->alt ? y0 + 1 : y0;
+  double f = y - y0;
+  return q->dados[(size_t)y0 * q->stride + 2 * x] * (1 - f)
+       + q->dados[(size_t)y1 * q->stride + 2 * x] * f;
+}
+
+/* perfil de linhas das colunas [c0,c1). Cada coluna e lida deslocada de inc*(x - centro):
+ * com inc = inclinacao local (px por px) as faixas ficam retas na janela e a borda medida
+ * nao soma o escorrimento da inclinacao. inc = 0 e o perfil simples. */
+static void perfil_janela(const struct quadro *q, int c0, int c1, double inc, double *p) {
+  double xc = (c0 + c1 - 1) / 2.0;
+  for (int y = 0; y < q->alt; y++) {
+    double s = 0;
+    for (int x = c0; x < c1; x++) s += luma_xy(q, x, y + inc * (x - xc));
+    p[y] = s / (c1 - c0);
+  }
+}
+
+/* faixas claras do perfil no trecho [ya,yb): limiar no meio entre o minimo e o maximo do
+ * trecho. Devolve quantas achou (grava ate MAXFAIXAS ini/fim, fim exclusivo) e o centro de
+ * cada uma: media das linhas ponderada pelo quanto a luma passa do limiar. */
+static int achar_faixas(const double *p, int ya, int yb, int *ini, int *fim, double *cen) {
+  double mn = 1e9, mx = -1e9;
+  for (int y = ya; y < yb; y++) { if (p[y] < mn) mn = p[y]; if (p[y] > mx) mx = p[y]; }
+  double lim = (mn + mx) / 2;
+  int achou = 0, dentro = 0;
+  double sp = 0, spy = 0;
+  for (int y = ya; y <= yb; y++) {
+    int acima = y < yb && p[y] > lim;
+    if (acima) {
+      if (!dentro) { dentro = 1; sp = spy = 0; if (achou < MAXFAIXAS) ini[achou] = y; }
+      sp += p[y] - lim; spy += (p[y] - lim) * y;
+    } else if (dentro) {
+      dentro = 0;
+      if (achou < MAXFAIXAS) { fim[achou] = y; cen[achou] = spy / sp; }
+      achou++;
+    }
+  }
+  return achou;
+}
+
+/* media do miolo (metade central) da faixa [a,b) */
+static double miolo(const double *p, int a, int b) {
+  int borda = (b - a) / 4, y0 = a + borda, y1 = b - borda;
+  if (y1 <= y0) { y0 = a; y1 = b; }
+  double s = 0;
+  for (int y = y0; y < y1; y++) s += p[y];
+  return s / (y1 - y0);
+}
+
+/* largura 10-90% das duas bordas do vao entre a faixa k e a k+1 (perfil endireitado).
+ * Anda a partir do fundo do vao para cada lado ate cruzar 10% e 90% da subida (fracao
+ * de linha por interpolacao). Soma as larguras em *soma e o numero de bordas em *nb;
+ * devolve o fundo do vao. */
+static double bordas_vao(const double *p, const int *ini, const int *fim, int k,
+                         double *soma, int *nb) {
+  int g = fim[k] - 1;
+  for (int y = fim[k] - 1; y <= ini[k + 1]; y++) if (p[y] < p[g]) g = y;
+  double lo = p[g];
+  for (int lado = 0; lado < 2; lado++) {
+    /* lado 0: descida da faixa k (anda para cima); lado 1: subida da faixa k+1 (para baixo) */
+    int f = k + lado, passo = lado ? 1 : -1, lim = lado ? fim[f] - 1 : ini[f];
+    double hi = miolo(p, ini[f], fim[f]);
+    if (hi - lo < 1) continue;          /* sem subida que se meca */
+    double l10 = lo + 0.1 * (hi - lo), l90 = lo + 0.9 * (hi - lo), t10 = -1, t90 = -1;
+    for (int y = g + passo; lado ? y <= lim : y >= lim; y += passo) {
+      int ant = y - passo;     /* vizinho do lado do vao, abaixo do nivel */
+      if (t10 < 0 && p[y] >= l10) t10 = y - passo * (p[y] - l10) / (p[y] - p[ant]);
+      if (p[y] >= l90) { t90 = y - passo * (p[y] - l90) / (p[y] - p[ant]); break; }
+    }
+    if (t10 >= 0 && t90 >= 0) { *soma += (t90 - t10) * passo; (*nb)++; }
+  }
+  return lo;
+}
+
+static double zero_limpo(double v, double res) { return fabs(v) < res / 2 ? 0 : v; }
+
+static int geometria_cmd(const char *dev, const char *arq, int skip) {
+  int fini[MAXFAIXAS], ffim[MAXFAIXAS], n = 0;
+  FILE *f = fopen(arq, "r");
+  if (!f) { fprintf(stderr, "open %s: %s\n", arq, strerror(errno)); return 1; }
+  while (n < MAXFAIXAS && fscanf(f, "%d %d", &fini[n], &ffim[n]) == 2) n++;
+  fclose(f);
+  if (n < 3) { fprintf(stderr, "%s: faixas insuficientes (%d)\n", arq, n); return 1; }
+
+  struct quadro q = {0};
+  if (obter_quadro(dev, skip, &q)) return 1;
+  for (int i = 0; i < n; i++)
+    if (fini[i] < 0 || ffim[i] > q.alt || ffim[i] <= fini[i] || (i && fini[i] < ffim[i - 1])) {
+      fprintf(stderr, "faixa %d fora do quadro ou fora de ordem (%d..%d, altura %d)\n",
+              i, fini[i], ffim[i], q.alt);
+      free(q.dados); return 1;
+    }
+  double *p = malloc(sizeof(double) * q.alt);
+  if (!p) { free(q.dados); return 1; }
+
+  /* trecho de busca: a pilha do faixas.txt com folga de 1/8 da altura para cada lado (a
+   * inclinacao e o trapezio deslocam a pilha nas colunas de fora) */
+  int ya = fini[0] - q.alt / 8, yb = ffim[n - 1] + q.alt / 8;
+  if (ya < 0) ya = 0;
+  if (yb > q.alt) yb = q.alt;
+
+  int ini[3][MAXFAIXAS], fim[3][MAXFAIXAS], c0[3], c1[3], rc = 0;
+  double cen[3][MAXFAIXAS], xc[3];
+  for (int j = 0; j < 3; j++) {
+    c0[j] = q.larg * GEO_JAN[j][0] / 100; c1[j] = q.larg * GEO_JAN[j][1] / 100;
+    xc[j] = (c0[j] + c1[j] - 1) / 2.0;
+    perfil_janela(&q, c0[j], c1[j], 0, p);
+    int k = achar_faixas(p, ya, yb, ini[j], fim[j], cen[j]);
+    if (k != n) {
+      fprintf(stderr, "coluna %s (%d a %d%%): %d faixas, esperadas %d\n",
+              GEO_NOME[j], GEO_JAN[j][0], GEO_JAN[j][1], k, n);
+      rc = 3;
+    }
+  }
+  if (rc) { free(p); free(q.dados); return rc; }
+
+  /* inclinacao: reta (minimos quadrados) do centro de cada faixa nas tres colunas; media das
+   * faixas. Positiva = as faixas descem para a direita no quadro (y do quadro cresce para baixo).
+   * Inclinacao local de cada janela (para endireitar o perfil): esquerda-centro, a media, centro-direita. */
+  double xm = (xc[0] + xc[1] + xc[2]) / 3, sxx = 0, incl = 0, inc_loc[3] = {0, 0, 0};
+  for (int j = 0; j < 3; j++) sxx += (xc[j] - xm) * (xc[j] - xm);
+  for (int i = 0; i < n; i++) {
+    double ym = (cen[0][i] + cen[1][i] + cen[2][i]) / 3, sxy = 0;
+    for (int j = 0; j < 3; j++) sxy += (xc[j] - xm) * (cen[j][i] - ym);
+    incl += sxy / sxx;
+    inc_loc[0] += (cen[1][i] - cen[0][i]) / (xc[1] - xc[0]);
+    inc_loc[2] += (cen[2][i] - cen[1][i]) / (xc[2] - xc[1]);
+  }
+  incl /= n; inc_loc[0] /= n; inc_loc[2] /= n; inc_loc[1] = incl;
+  double alt_esq = cen[0][n - 1] - cen[0][0], alt_dir = cen[2][n - 1] - cen[2][0];
+
+  /* bordas e contraste no perfil endireitado de cada janela */
+  double borda[3], claro = 0, vao = 0;
+  for (int j = 0; j < 3 && !rc; j++) {
+    perfil_janela(&q, c0[j], c1[j], inc_loc[j], p);
+    if (achar_faixas(p, ya, yb, ini[j], fim[j], cen[j]) != n) {
+      fprintf(stderr, "coluna %s: as faixas nao se separam no perfil endireitado\n", GEO_NOME[j]);
+      rc = 3; break;
+    }
+    double soma = 0; int nb = 0;
+    for (int k = 0; k + 1 < n; k++) {
+      double lo = bordas_vao(p, ini[j], fim[j], k, &soma, &nb);
+      if (j == 1) vao += lo;
+    }
+    if (j == 1) for (int k = 0; k < n; k++) claro += miolo(p, ini[j][k], fim[j][k]);
+    if (nb == 0) { fprintf(stderr, "coluna %s: nenhuma borda medida\n", GEO_NOME[j]); rc = 1; break; }
+    borda[j] = soma / nb;
+  }
+  free(p); free(q.dados);
+  if (rc) return rc;
+  claro /= n; vao /= n - 1;
+  if (alt_esq <= 0 || claro <= 0) { fprintf(stderr, "pilha de faixas degenerada\n"); return 1; }
+
+  printf("inclinacao_graus=%.2f\n", zero_limpo(atan(incl) * 180 / M_PI, 0.01));
+  printf("trapezio_pct=%.1f\n", zero_limpo((alt_dir / alt_esq - 1) * 100, 0.1));
+  printf("borda_centro_px=%.2f\n", borda[1]);
+  printf("borda_esq_px=%.2f\n", borda[0]);
+  printf("borda_dir_px=%.2f\n", borda[2]);
+  printf("contraste_centro=%.2f\n", (claro - vao) / claro);
+  printf("quadro=%dx%d\n", q.larg, q.alt);
+  return 0;
+}
+
 int main(int argc, char **argv) {
   if (argc >= 2 && strcmp(argv[1], "info") == 0)
     return info(argc >= 3 ? argv[2] : "/dev/video0");
@@ -375,7 +550,10 @@ int main(int argc, char **argv) {
     return faixas_cmd(argv[2], atoi(argv[3]), argv[4], argc >= 6 ? atoi(argv[5]) : 15);
   if (argc >= 4 && strcmp(argv[1], "niveis") == 0)
     return niveis_cmd(argv[2], argv[3], argc >= 5 ? atoi(argv[4]) : 15);
+  if (argc >= 4 && strcmp(argv[1], "geometria") == 0)
+    return geometria_cmd(argv[2], argv[3], argc >= 5 ? atoi(argv[4]) : 15);
   fprintf(stderr, "uso: nl_camcheck info [dev] | grab dev MJPG|YUYV larg alt saida [descarte]\n"
-                  "     | faixas dev N saida.txt [descarte] | niveis dev faixas.txt [descarte]\n");
+                  "     | faixas dev N saida.txt [descarte] | niveis dev faixas.txt [descarte]\n"
+                  "     | geometria dev faixas.txt [descarte]\n");
   return 2;
 }

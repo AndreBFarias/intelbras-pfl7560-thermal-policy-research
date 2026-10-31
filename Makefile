@@ -3,11 +3,12 @@
 check:
 	bash tests/check-stock-md5.sh
 
-# kit universal de pendrive (blocos 5 e 7): padroes, nl_camcheck do host sobre quadros reais,
-# md5 embutido e harness com stubs
+# kit universal de pendrive (blocos 5, 7 e 9A): padroes, nl_camcheck do host sobre quadros reais,
+# nl_tela do host (telas de exemplo em tests/saida/telas/), md5 embutido e harness com stubs
 check-kit:
 	python3 -I tests/simula-padroes-kit.py
 	bash tests/test-camcheck.sh
+	bash tests/test-tela.sh
 	bash tests/atualizar-md5-kit.sh --check
 	bash tests/test-kit-pendrive.sh
 
