@@ -916,6 +916,8 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     fi
     if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then LOG "[ERRO] nao consegui remover $RC_SUITE."; _drc=1; else LOG "[OK] servico de boot removido"; fi
   fi
+  # a marca de "ligado" do suite-boot.sh nao fica para tras
+  [ "$(getprop persist.sys.boot.reason 2>/dev/null)" = "pfl7560,ligado" ] && setprop persist.sys.boot.reason ""
   for _dd in "$SUITE" "$TELA_DIR"; do
     if [ -L "$_dd" ]; then rm -f "$_dd"; elif [ -e "$_dd" ]; then rm -rf "$_dd"; fi
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi

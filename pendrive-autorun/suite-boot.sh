@@ -52,16 +52,24 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="329255a12b87e13eb689e2bb95905928"
-PEDIDO_MD5="4b24fceb968cb4744e2d57261bb3be78"
+SUITE_MD5="fce57d8b09d1ff2c9f614bfa0960ca37"
+PEDIDO_MD5="f0cbed4ee20ee3d1920d955ae07ae7b0"
 # SUITE_MD5_FIM
 
-# PROVISORIO (teste final no aparelho, bloco 9 item 2): os dois criterios do gatilho
-# "auto". Nao foi medido o que o aparelho mostra depois de faltar energia com ele
-# ligado; o historico-boot.txt registra os sinais de cada boot para calibrar.
-#  (a) o relogio no boot (dmesg) com ano < ANO_MIN = o RTC zerou = ficou sem energia;
+# Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
+#  (m) MARCA. O aparelho nao tem RTC (sem /sys/class/rtc/rtc0) e o motivo do boot
+#      repete o do ultimo desligamento limpo, entao nem o relogio nem o motivo contam
+#      sozinhos que a energia caiu. A cada boot este script grava MARCA_LIGADO em
+#      persist.sys.boot.reason; um desligamento ou reboot limpo a sobrescreve
+#      (shutdown,userrequested / reboot,shell). Se ela sobrevive ate o boot seguinte, a
+#      energia caiu com o projetor ligado. Provado no aparelho em 2026-10-30: reset sem
+#      desligamento (sysrq b) = sys/persist/ro.boot.bootreason "pfl7560,ligado"; reboot
+#      limpo com a marca gravada = "reboot,shell" (evidencias/boot-tomada/).
+#  (a) o relogio no boot (dmesg) com ano < ANO_MIN = o RTC zerou (sem efeito neste
+#      aparelho, que nao tem RTC; mantido para outro hardware);
 #  (b) sys.boot.reason sem "shutdown," nem "reboot," = o desligamento nao foi limpo
-#      (botao = shutdown,userrequested; adb reboot -p = shutdown,shell).
+#      (kernel_panic, vazio, ...).
+MARCA_LIGADO="pfl7560,ligado"
 ANO_MIN=2020
 INTERVALO_MIN=600     # protecao contra laco: a suite terminou ha menos de 10 min = nao roda
 INCOMPLETAS_MAX=2     # protecao contra laco: 2 suites seguidas sem chegar ao fim (queda,
@@ -142,6 +150,7 @@ decidir(){
     sleep 2; _t=$(( _t + 2 ))
   done
   if [ "$GATILHO" = "sempre" ]; then DECISAO=sim; MOTIVO=gatilho_sempre; return 0; fi
+  case "$S_PBR|$S_BR" in *"$MARCA_LIGADO"*) DECISAO=sim; MOTIVO=queda_de_energia; return 0 ;; esac
   if [ -n "$S_ANO" ] && [ "$S_ANO" -lt "$ANO_MIN" ]; then DECISAO=sim; MOTIVO=relogio_zerado; return 0; fi
   case "$S_BR" in
     shutdown,*|reboot,*) MOTIVO=desligamento_limpo ;;
@@ -211,6 +220,11 @@ LOG "==== boot $(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null) ===="
 ler_sinais
 decidir
 registrar
+# a marca do criterio (m), DEPOIS de ler os sinais deste boot (gatilho nunca = nao mexe)
+if [ "$GATILHO" != "nunca" ]; then
+  setprop persist.sys.boot.reason "$MARCA_LIGADO"
+  LOG "marca $MARCA_LIGADO gravada em persist.sys.boot.reason"
+fi
 LOG "sys.boot.reason='$S_BR' ano_boot='$S_ANO' gatilho=$GATILHO decisao=$DECISAO motivo=$MOTIVO"
 
 ligar_vigia

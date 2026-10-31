@@ -241,6 +241,36 @@ c_gatilho_matriz(){
 1970|shutdown,userrequested|auto|sim|relogio_zerado
 MATRIZ
 
+  # criterio (m): a marca gravada no boot anterior sobreviveu = a energia caiu ligado
+  novo_cenario "gatilho: marca pfl7560,ligado no motivo = queda_de_energia, roda"
+  instala_suite
+  awk '!/^(sys|persist\.sys)\.boot\.reason=/' "$T/props" > "$T/p" && printf '%s\n' "sys.boot.reason=pfl7560,ligado" "persist.sys.boot.reason=pfl7560,ligado" >> "$T/p" && mv "$T/p" "$T/props"
+  roda_boot
+  afirma 'ult_hist | grep -q "persist_boot_reason=pfl7560,ligado; .*decisao=sim; motivo=queda_de_energia$"' "historico: '$(ult_hist)'"
+  afirma 'tem_chamada "setsid sh $S/suite.sh tomada queda_de_energia"' "a suite nao foi lancada"
+  afirma 'tem_chamada "setprop persist.sys.boot.reason pfl7560,ligado"' "a marca nao foi regravada"
+  limpa
+
+  novo_cenario "gatilho: marca so no persist (bootstat limpou o sys) = queda_de_energia"
+  instala_suite
+  awk '!/^(sys|persist\.sys)\.boot\.reason=/' "$T/props" > "$T/p" && printf '%s\n' "sys.boot.reason=reboot" "persist.sys.boot.reason=pfl7560,ligado" >> "$T/p" && mv "$T/p" "$T/props"
+  roda_boot
+  afirma 'ult_hist | grep -q "decisao=sim; motivo=queda_de_energia$"' "historico: '$(ult_hist)'"
+  limpa
+
+  novo_cenario "gatilho: desligamento limpo = nao roda, mas a marca e gravada para o proximo boot"
+  instala_suite
+  roda_boot
+  afirma 'ult_hist | grep -q "decisao=nao; motivo=desligamento_limpo$"' "historico: '$(ult_hist)'"
+  afirma 'tem_chamada "setprop persist.sys.boot.reason pfl7560,ligado"' "a marca nao foi gravada"
+  limpa
+
+  novo_cenario "gatilho: nunca = a marca nao e gravada"
+  instala_suite; echo nunca > "$S/gatilho"
+  roda_boot
+  afirma '! grep -q "^setprop persist.sys.boot.reason" "$T/calls.log"' "gravou a marca com gatilho nunca"
+  limpa
+
   novo_cenario "gatilho: sem a linha do relogio no dmesg vale so o motivo"
   instala_suite
   roda_boot
@@ -290,7 +320,11 @@ c_gatilho_bloqueios(){
   instala_suite
   echo "[    1.2] rtc-hisi rtc0: setting system clock to 2026-10-30 22:00:05 UTC (1793411205)" > "$T/dmesg"
   local i=0
-  while [ "$i" -lt 35 ]; do roda_boot; i=$((i+1)); done
+  # entre um boot e outro, um desligamento limpo (o sistema sobrescreve a marca)
+  while [ "$i" -lt 35 ]; do
+    awk '!/^persist\.sys\.boot\.reason=/' "$T/props" > "$T/p" && echo "persist.sys.boot.reason=shutdown,userrequested" >> "$T/p" && mv "$T/p" "$T/props"
+    roda_boot; i=$((i+1))
+  done
   afirma '[ "$(grep -c "" "$S/historico-boot.txt")" = 30 ]' "historico com $(grep -c "" "$S/historico-boot.txt") linhas"
   afirma 'ult_hist | grep -q "boot_reason=shutdown,userrequested; persist_boot_reason=shutdown,userrequested; ro_bootreason=shutdown,userrequested; relogio_boot=2026-10-30 22:00:05 UTC (1793411205); ano_boot=2026; rtc_epoch=1793400000; pm=pm_state: normal wakeup: power"' "sinais faltando: '$(ult_hist)'"
   afirma '[ -z "$(LC_ALL=C grep -nP "[^\x20-\x7E]" "$S/historico-boot.txt")" ]' "historico com byte fora de ASCII imprimivel"
@@ -531,9 +565,11 @@ c_desinstalar(){
   sh -c 'sleep 30; :' pfl7560-vigia-teste & local vp=$!
   echo "$vp" > "$R/dev/pfl7560-suite.vigia"
   mkdir -p "$R/sdcard/pfl7560-suite" "$PED"; : > "$PED/pedir-verificacao"; : > "$PED/do-app"
+  printf '%s\n' "persist.sys.boot.reason=pfl7560,ligado" >> "$T/props"
   : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
   roda_kit
   wait "$vp" 2>/dev/null; local vrc=$?
+  afirma 'tem_chamada "setprop persist.sys.boot.reason "' "desinstalar deixou a marca pfl7560,ligado"
   afirma '[ ! -e "$R/vendor/etc/init/pfl7560-suite.rc" ]' "o .rc ficou"
   afirma '[ ! -e "$S" ] && [ ! -e "$PED/pedir-verificacao" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, o pedido ou a pasta das telas ficou"
   afirma '[ -f "$PED/do-app" ]' "desinstalar apagou arquivo do app (a pasta e dele)"
@@ -1100,7 +1136,8 @@ c_estaticos(){
   afirma '[ "$(grep -c "HIDEBUG" "$KIT/suite.sh")" -ge 1 ] && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qiE "gtt"' "suite.sh cita gtt fora de comentario"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "hidebug|gtt"' "boot/pedido citam hidebug/gtt"
   # os 4 pontos e o modo de projecao: so leitura
-  afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qE "setprop (persist|\"?persist)|ProjectionService|nlhotkey|FourPointActivity"' "a suite escreve 4 pontos/modo ou abre telas do sistema"
+  # (a unica prop persist que a suite toca e a marca do gatilho, so no desinstalar)
+  afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -v "setprop persist.sys.boot.reason \"\"" | grep -qE "setprop (persist|\"?persist)|ProjectionService|nlhotkey|FourPointActivity"' "a suite escreve 4 pontos/modo ou abre telas do sistema"
   # o .rc: 0644 no git tambem nao importa (o kit faz chmod); conteudo do servico
   afirma 'grep -qx "service pfl7560_suite /vendor/bin/sh /data/vendor/pfl7560-suite/suite-boot.sh" "$KIT/pfl7560-suite.rc"' ".rc sem o servico"
 }
