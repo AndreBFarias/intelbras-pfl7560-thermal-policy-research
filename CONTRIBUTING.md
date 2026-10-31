@@ -58,8 +58,11 @@ aqui primeiro, com o motivo.
 
 ## Código e docs
 
-- **Código sem comentário** (shell, Python, C, Java, Makefile). O porquê vai para os docs. Ficam só os
-  funcionais: shebang, diretivas do `shellcheck`, `# noqa` e afins.
+- **Código sem comentário** (shell, Python, C, Java, Makefile, `.bat`, `.ps1`). O porquê vai para as notas do
+  código da área ([`docs/codigo/`](docs/codigo/)) e o que é provisório, para a tabela "Provisório" delas. Ficam só os
+  funcionais: shebang, diretivas do `shellcheck`, `# noqa` e afins, os marcadores `# NOME_INICIO`/`# NOME_FIM` das
+  listas de md5 e o cabeçalho que a opção de ajuda imprime com `sed -n '2,Np' "$0"`.
+- **Mapa:** arquivo novo, ponto de entrada novo ou caminho novo no aparelho entra no [`docs/MAPA.md`](docs/MAPA.md).
 - **Docs em pt-BR com acento.** Um assunto, um lugar: o estado em [`docs/ESTADO.md`](docs/ESTADO.md), a instalação
   no [`INSTALL.md`](INSTALL.md), o `.bin` no doc 47, os painéis no doc 33; os outros docs apontam com um link.
 - Fato que mudou: troque o texto, não empilhe uma "correção" por cima. O histórico fica no git.

@@ -11,7 +11,21 @@ Tudo o que o repositório documenta, por tipo. Os números dos docs são únicos
 | [`../INSTALL.md`](../INSTALL.md) | o passo a passo: instalar, verificar, acompanhar, reverter, cor depois de trocar o painel |
 | [`ESTADO.md`](ESTADO.md) | o que está provado, o que falta e o que é provisório (o único lugar) |
 | [`glossario.md`](glossario.md) | siglas, comandos do `hidebug`, termos do projeto e prefixos de ID |
+| [`MAPA.md`](MAPA.md) | cada pasta e arquivo de código: o que é, quem chama, teste, doc; pontos de entrada; fluxo de dados no aparelho |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | regras de quem mexe no código |
+
+## Notas do código
+
+O código não tem comentário; o porquê das decisões dele fica aqui, uma nota por área.
+
+| Doc | Área |
+|---|---|
+| [`codigo/kit.md`](codigo/kit.md) | `pendrive-autorun/`: autorun, cor, suíte, gatilho, pedidos; tabela do que é provisório |
+| [`codigo/pc.md`](codigo/pc.md) | comandos `pfl7560-*.sh`, instaladores e `Makefile` |
+| [`codigo/apps.md`](codigo/apps.md) | app, home, tema e sobreposições (Java, `build.sh`, Python) |
+| [`codigo/binarios.md`](codigo/binarios.md) | `nl_tela`, `nl_camcheck` e `lvdsctl` (C) |
+| [`codigo/bin.md`](codigo/bin.md) | gerador do `.bin` (`build_fix_bin.py`, `sparse.py`) |
+| [`codigo/testes.md`](codigo/testes.md) | harnesses de `tests/` |
 
 ## Guias
 

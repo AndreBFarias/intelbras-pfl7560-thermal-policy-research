@@ -66,6 +66,9 @@ verificação e o que você precisa no PC: [`INSTALL.md`](INSTALL.md).
 | `media/` | fotos do aparelho aberto |
 | raiz | `install.sh`/`install.bat`/`install-firmware-pendrive.ps1` e os comandos `pfl7560-*.sh` |
 
+Cada arquivo de código, quem o chama, o teste que o cobre, o fluxo de dados no aparelho e onde ficam as medições:
+[`docs/MAPA.md`](docs/MAPA.md).
+
 ## Onde está cada coisa
 
 | Quero... | Vá em |
@@ -78,7 +81,7 @@ verificação e o que você precisa no PC: [`INSTALL.md`](INSTALL.md).
 | entender por que a proteção cega | [doc 37](docs/research/37-mecanismo-lsadc-defasagem-dos-aneis.md) |
 | a build `.bin` | [doc 47](docs/research/47-build-completa.md) e [`firmware/README.md`](firmware/README.md) |
 | a divulgação à fabricante | [`docs/disclosure/STATUS.md`](docs/disclosure/STATUS.md) |
-| mexer no código | [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| mexer no código | [`CONTRIBUTING.md`](CONTRIBUTING.md) e o [mapa](docs/MAPA.md) |
 
 Comandos do PC (todos por adb no Wi-Fi, com `PFL_IP=<ip>`):
 
