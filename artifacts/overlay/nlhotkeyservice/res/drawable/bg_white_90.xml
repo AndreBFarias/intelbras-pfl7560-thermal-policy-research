@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 18. Painel do MyDialog (my_dialog: restaurar padrao de fabrica, modo de envelhecimento).
+     Texto preto fixo (color/black e #333333 no layout, #000000 no codigo): o painel continua claro.
+     De fabrica branco 90% -> texto 90%. Mesmo raio (20 px). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="20px" />
+    <solid android:color="#E6F8F8F2" />
+</shape>

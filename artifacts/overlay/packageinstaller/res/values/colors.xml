@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Bloco 18. As telas de instalar (PackageInstallerActivity, InstallInstalling, InstallSuccess,
+     InstallFailed) usam o tema claro do framework (DialogWhenLarge = Theme.DeviceDefault.Light):
+     fundo e texto sao cores globais do sistema e ficam (painel claro). Daqui so sai o icone. -->
+<resources>
+    <!-- icone grande das telas de instalar e da desinstalacao (install_*, uninstall_progress).
+         De fabrica cinza #FFC8CCCE -> comentario (4,7:1 sobre o branco) -->
+    <color name="bigIconColor">#FF6272A4</color>
+    <!-- painel das opcoes da desinstalacao no modo TV (UninstallAlertFragment, GuidedStep do
+         Leanback: guidedActionsBackground). De fabrica #FF111111 -> fundo, como no TvSettings (16A) -->
+    <color name="lb_guidedactions_background">#FF282A36</color>
+</resources>

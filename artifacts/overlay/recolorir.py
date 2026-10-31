@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # artifacts/overlay/recolorir.py - troca as cores das imagens do fabricante pela paleta Dracula,
-# sem mudar o desenho (blocos 13A, 16A e 17A).
+# sem mudar o desenho (blocos 13A, 16A, 17A e 18).
 #
 #   python3 -I artifacts/overlay/recolorir.py <app desmontado pelo apktool> <res da sobreposicao> [tabela]
 #
 #   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery, zyspeakermodel,
-#   ijkplayer, hivideoplayer, himusic. Ex.:
+#   ijkplayer, hivideoplayer, himusic, hipinyinime, zycustomui. Ex.:
 #   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado> artifacts/overlay/zysetting/res
 #   python3 -I artifacts/overlay/recolorir.py <ZYBluetooth desmontado> artifacts/overlay/zybluetooth/res zybluetooth
 #
@@ -21,6 +21,11 @@
 # tabela pede). Num .9.png a borda de 1 px (marcacao de estica e de margem) fica intacta.
 # O destino de uma ancora e um token da paleta ou, desde o 17A, uma cor literal '#RRGGBB'
 # (ex.: o preto do desenho continua preto).
+# Bloco 18: um .gif (animado) e recolorido na PALETA de cada quadro (a global e as locais), com a
+# mesma mistura de ancoras; o resto do arquivo (quadros, tempos, transparencia) fica byte a byte.
+# Ancoras cinzentas sao colineares: um cinza cai em cheio (distancia 0) no PRIMEIRO par que o
+# contem, na ordem da tabela. Por isso, nas tabelas de cinza, os tons do corpo vem antes do preto
+# (ver as teclas do hipinyinime).
 import os, sys, glob
 from PIL import Image
 
@@ -135,9 +140,50 @@ HIMUSIC = {
     'hisil_yuandian_selected': ({'#31AEDC': 'rosa', '#B0EAFF': 'texto'}, 1),
 }
 
+# Bloco 18. Teclado na tela (com.hisilicon.android.inputmethod.remote). As teclas sao cinza com
+# sombra preta translucida; a tecla em foco (SoftKeyboardView.drawSoftKey: a de foco usa a
+# imagem "hl" com a cor normal do rotulo, branco) e cinza-claro. Corpo parado -> linha (rotulo
+# branco 9,2:1), a sombra continua preta; corpo em foco -> comentario (rotulo branco 4,7:1) e a
+# sombra vira a moldura rosa. O ponto do Shift: apagado continua escuro, aceso (verde) -> verde.
+# Ordem: os cinzas do corpo antes do preto (ver o cabecalho).
+TECLA = {'#464646': 'linha', '#6B6B6B': 'linha', '#BABABA': 'linha', '#000000': '#000000'}
+TECLA_FOCO = {'#787878': 'comentario', '#AFAFAF': 'comentario', '#DADADA': 'comentario', '#000000': 'rosa'}
+SHIFT_ACESO = {'#B7E74B': 'verde', '#E4F9B2': 'texto'}
+HIPINYINIME = {
+    'skb_bg': ({'#272727': 'fundo'}, 1),
+    'skb_container_bg': ({'#272727': 'fundo', '#848A90': 'comentario', '#000000': '#000000'}, 1),
+    'normal_key_bg': (TECLA, 1),
+    'light_key_bg': (TECLA, 1),
+    'light_key_up_bg': (dict(TECLA, **SHIFT_ACESO), 1),
+    'normal_key_hl_bg': (TECLA_FOCO, 1),
+    'light_key_hl_bg': (TECLA_FOCO, 1),
+    'light_key_up_hl_bg': (dict(TECLA_FOCO, **SHIFT_ACESO), 1),
+    # barra de candidatos (modo pinyin): branca -> linha, o fio de cima -> comentario
+    'cands_container_bg': ({'#FAFAFA': 'linha', '#636163': 'comentario'}, 1),
+    'candidates_area_bg': ({'#FFFFFF': 'linha', '#F3F3F3': 'linha', '#777C81': 'comentario',
+                            '#474C52': 'fundo'}, 1),
+    'candidates_vertical_line': ({'#D8D8D8': 'comentario'}, 1),
+    'arrow_left': ({'#333333': 'texto'}, 1),
+    'arrow_right': ({'#333333': 'texto'}, 1),
+    # candidato em foco e texto sendo composto: laranja -> rosa (texto em cima: color/*, -> fundo)
+    'candidate_hl_bg': ({'#FFA61A': 'rosa', '#FF8A1E': 'rosa', '#000000': '#000000'}, 1),
+    'composing_area_bg': ({'#FFFFFF': 'linha', '#909398': 'comentario', '#000000': '#000000'}, 1),
+    'composing_hl_bg': ({'#FFA335': 'rosa', '#FF9030': 'rosa', '#000000': '#000000'}, 1),
+    'composing_area_cursor': ({'#FF7E00': 'rosa', '#E57100': 'rosa'}, 1),
+}
+
+# Bloco 18. Pareamento do controle (com.zhiying.sourceui, MatchIRUIYuYinActivity): GIF animado de
+# tela cheia. Fundo azul em degrade -> fundo, linha e comentario (texto branco 4,7:1 no mais
+# claro); o brilho dos aneis -> roxo; o controle (cinza-escuro), o branco e o vermelho do LED ficam.
+PAREAMENTO = ({'#1F1F1F': '#1F1F1F', '#000000': '#000000', '#FFFFFF': '#FFFFFF',
+               '#002060': 'fundo', '#0052BD': 'linha', '#006BEF': 'comentario',
+               '#76C8FB': 'roxo', '#D82E2E': '#D82E2E'}, 1)
+ZYCUSTOMUI = {'match_ir_yuyin1280x800': PAREAMENTO, 'match_ir_jinju': PAREAMENTO}
+
 TABELAS = {'zysetting': ZYSETTING, 'zybluetooth': ZYBLUETOOTH, 'zyfilemanager': ZYFILEMANAGER,
            'higallery': HIGALLERY, 'zyspeakermodel': ZYSPEAKERMODEL, 'ijkplayer': IJKPLAYER,
-           'hivideoplayer': HIVIDEOPLAYER, 'himusic': HIMUSIC}
+           'hivideoplayer': HIVIDEOPLAYER, 'himusic': HIMUSIC, 'hipinyinime': HIPINYINIME,
+           'zycustomui': ZYCUSTOMUI}
 
 def melhor(px, ancoras):
     """(i, j, t): px ~ ancora i misturada com j na fracao t (j=None: so i)."""
@@ -157,9 +203,51 @@ def melhor(px, ancoras):
                 best = (d, i, j, t)
     return best[1:]
 
+def ancoras(mapa):
+    return [hexrgb(k) for k in mapa], [PAL[v] if v in PAL else hexrgb(v) for v in mapa.values()]
+
+def nova_cor(k, orig, novo):
+    i, j, t = melhor(k, orig)
+    if j is None:
+        return novo[i]
+    return tuple(round(novo[i][c] + t * (novo[j][c] - novo[i][c])) for c in range(3))
+
+def recolorir_gif(src, dst, mapa):
+    """Recolore so as tabelas de cor (global e locais) de um GIF; o resto fica byte a byte."""
+    orig, novo = ancoras(mapa)
+    b = bytearray(open(src, 'rb').read())
+    if b[:6] not in (b'GIF87a', b'GIF89a'):
+        raise SystemExit(f'nao e GIF: {src}')
+    def tabela(pos, flags):
+        n = 3 * (2 << (flags & 7))
+        for p in range(pos, pos + n, 3):
+            b[p:p + 3] = bytes(nova_cor(tuple(b[p:p + 3]), orig, novo))
+        return pos + n
+    def blocos(pos):
+        while b[pos]:
+            pos += b[pos] + 1
+        return pos + 1
+    pos = 13
+    if b[10] & 0x80:
+        pos = tabela(pos, b[10])
+    while b[pos] != 0x3B:
+        if b[pos] == 0x21:                      # extensao: rotulo + sub-blocos
+            pos = blocos(pos + 2)
+        elif b[pos] == 0x2C:                    # quadro: descritor, tabela local, LZW
+            flags = b[pos + 9]
+            pos += 10
+            if flags & 0x80:
+                pos = tabela(pos, flags)
+            pos = blocos(pos + 1)
+        else:
+            raise SystemExit(f'GIF com bloco desconhecido 0x{b[pos]:02x} em {pos}: {src}')
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    open(dst, 'wb').write(b)
+
 def recolorir(src, dst, mapa, malfa):
-    orig = [hexrgb(k) for k in mapa]
-    novo = [PAL[v] if v in PAL else hexrgb(v) for v in mapa.values()]
+    if src.endswith('.gif'):
+        return recolorir_gif(src, dst, mapa)
+    orig, novo = ancoras(mapa)
     im = Image.open(src).convert('RGBA')
     w, h = im.size
     nove = src.endswith('.9.png')
@@ -174,11 +262,7 @@ def recolorir(src, dst, mapa, malfa):
                 continue
             k = (r, g, b)
             if k not in cache:
-                i, j, t = melhor(k, orig)
-                if j is None:
-                    cache[k] = novo[i]
-                else:
-                    cache[k] = tuple(round(novo[i][c] + t * (novo[j][c] - novo[i][c])) for c in range(3))
+                cache[k] = nova_cor(k, orig, novo)
             nr, ng, nb = cache[k]
             px[x, y] = (nr, ng, nb, min(255, a * malfa))
     os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -189,7 +273,7 @@ def main():
     tabela = TABELAS[sys.argv[3] if len(sys.argv) > 3 else 'zysetting']
     n = 0
     for nome, (mapa, malfa) in sorted(tabela.items()):
-        fontes = sorted(f for pasta in ('drawable*', 'mipmap*') for ext in ('.png', '.9.png')
+        fontes = sorted(f for pasta in ('drawable*', 'mipmap*') for ext in ('.png', '.9.png', '.gif')
                         for f in glob.glob(os.path.join(alvo, 'res', pasta, nome + ext)))
         if not fontes:
             raise SystemExit(f'FALTA no alvo: {nome}')

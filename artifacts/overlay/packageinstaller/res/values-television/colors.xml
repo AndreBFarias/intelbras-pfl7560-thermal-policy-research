@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Bloco 18. Pedido de permissao no modo TV (GrantPermissionsActivity, layout-television/
+     grant_permissions): aparece quando um app novo pede acesso (ex.: armazenamento). Estas duas cores
+     so existem na configuracao television do alvo; a sobreposicao usa a mesma. -->
+<resources>
+    <!-- painel do pedido. De fabrica #FF263238 -> fundo (texto #EEEEEE e #B2EEEEEE do app) -->
+    <color name="grant_permissions_background_color">#FF282A36</color>
+    <!-- botao em foco (grant_permissions_action_item_shape). De fabrica branco 15% -> comentario
+         (texto #EEEEEE 4,1:1) -->
+    <color name="grant_permissions_focus_highlight">#FF6272A4</color>
+</resources>

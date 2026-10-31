@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Bloco 18. Lista de entradas (SourceUIActivity: botao de entrada do controle, VIEW_INPUTS, e o
+     comando de voz do NewLinkService). Com vendor.newlink.rgtp_ui.style=1 (isPTStyle) o painel
+     (GridLayout) pinta pt_grey_white no primeiro foco e cada entrada usa edit_text_large_green
+     (pt_green em foco, pt_green_black parada), com texto branco (localitemview_pt). -->
+<resources>
+    <!-- entrada em foco. De fabrica #FF00B26B -> comentario (texto branco 4,7:1) -->
+    <color name="pt_green">#FF6272A4</color>
+    <!-- entrada parada. De fabrica #FF163134 -> linha (texto branco 9,2:1) -->
+    <color name="pt_green_black">#FF44475A</color>
+    <!-- painel da lista. De fabrica verde-claro #FFE1EFE9 -> fundo (o titulo, sem cor no codigo, sai com
+         a cor de texto do tema escuro do Theme.Translucent, clara: 13,4:1; INFERIDO) -->
+    <color name="pt_grey_white">#FF282A36</color>
+</resources>
