@@ -53,7 +53,8 @@ FIM_ARQ="$SUITE/ultimo-fim"
 INCOMPLETAS_ARQ="$SUITE/incompletas"
 GERA_DIR="$SUITE/tela"
 TELA_DIR="$R/sdcard/pfl7560-suite"
-PEDIDO_DIR="$R/data/media/0/pfl7560"
+# pasta privada do app "Verificar projetor" (dele; a suite so apaga o pedido la dentro)
+PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
 RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
 VIDEO="$R/dev/video0"
 INI_VENDOR="$R/vendor/etc/ZYCustom.ini"
@@ -915,10 +916,12 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     fi
     if [ -e "$RC_SUITE" ] || [ -L "$RC_SUITE" ]; then LOG "[ERRO] nao consegui remover $RC_SUITE."; _drc=1; else LOG "[OK] servico de boot removido"; fi
   fi
-  for _dd in "$SUITE" "$PEDIDO_DIR" "$TELA_DIR"; do
+  for _dd in "$SUITE" "$TELA_DIR"; do
     if [ -L "$_dd" ]; then rm -f "$_dd"; elif [ -e "$_dd" ]; then rm -rf "$_dd"; fi
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done
+  # a pasta do app e dele: so o pedido pendente sai (num link, nada e seguido)
+  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"
 }

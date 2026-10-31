@@ -39,7 +39,7 @@ novo_cenario(){
   MODO_AUTO_TESTE=0
   T="$(mktemp -d)"
   R="$T/root"; S="$R/data/vendor/pfl7560-suite"; W="$R/data/vendor/pfl7560-kit"; MP="$R/mnt/media_rw/USB1"
-  PED="$R/data/media/0/pfl7560"
+  PED="$R/data/data/com.pfl7560.verificar"
   local b="$T/bin"
   mkdir -p "$R/vendor/etc/init/hw" "$R/vendor/lib" "$R/vendor/bin" "$R/atv" "$R/proc/msp" "$R/dev/block/by-name" \
            "$R/data/local/tmp" "$R/data/vendor" "$R/data/media/0" "$R/sdcard" "$R/mnt/media_rw" \
@@ -167,6 +167,7 @@ amb(){
       PFL_LVDSCTL="$T/bin/lvdsctl" PFL_LVDSCTL_MD5="$(md5 "$T/bin/lvdsctl")" \
       PFL_NLCAMCHECK="$T/bin/nl_camcheck" PFL_NLCAMCHECK_MD5="$(md5 "$T/bin/nl_camcheck")" \
       PFL_NLTELA="$T/bin/nl_tela" PFL_NLTELA_MD5="${NLTELA_MD5_TESTE:-$(md5 "$T/bin/nl_tela")}" \
+      PFL_APP_UID_MIN="${APP_UID_MIN_TESTE:-0}" \
       PFL_MODO_AUTO="$MODO_AUTO_TESTE" PFL_VIGIA_VOLTAS=2 PATH="$T/bin:$PATH" "$@"
 }
 # a pasta da suite como o newlink_update.sh deixa (so do root, os arquivos do kit)
@@ -393,20 +394,33 @@ c_pedido(){
     limpa
   done
 
+  novo_cenario "pedido: pasta que nao e de app (UID abaixo do minimo) = apaga e ignora"
+  instala_suite; : > "$PED/pedir-verificacao"
+  APP_UID_MIN_TESTE=99999999 roda_pedido w "$PED" pedir-verificacao
+  afirma '[ "$(chamadas setsid)" = 0 ] && grep -q "nao veio do app" "$S/vigia.log"' "lancou um pedido que nao veio do app"
+  afirma '[ ! -e "$PED/pedir-verificacao" ]' "o pedido recusado nao foi apagado"
+  limpa
+
+  novo_cenario "pedido: o pedido e um LINK = apaga o link e ignora"
+  instala_suite; : > "$T/alvo-pedido"; ln -s "$T/alvo-pedido" "$PED/pedir-verificacao"
+  roda_pedido w "$PED" pedir-verificacao
+  afirma '[ "$(chamadas setsid)" = 0 ] && [ -f "$T/alvo-pedido" ] && [ ! -L "$PED/pedir-verificacao" ]' "seguiu ou lancou por um link"
+  limpa
+
   novo_cenario "pedido: a suite terminou ha 2 min = ignorado"
-  instala_suite; echo $(( $(date +%s) - 120 )) > "$S/ultimo-fim"
+  instala_suite; echo $(( $(date +%s) - 120 )) > "$S/ultimo-fim"; : > "$PED/pedir-verificacao"
   roda_pedido w "$PED" pedir-verificacao
   afirma '[ "$(chamadas setsid)" = 0 ] && grep -q "ha menos de 10 min" "$S/vigia.log"' "lancou dentro dos 10 min"
   limpa
 
   novo_cenario "pedido: trava ocupada = ignorado"
-  instala_suite; mkdir "$R/dev/pfl7560-suite.lock"
+  instala_suite; mkdir "$R/dev/pfl7560-suite.lock"; : > "$PED/pedir-verificacao"
   roda_pedido w "$PED" pedir-verificacao
-  afirma '[ "$(chamadas setsid)" = 0 ]' "lancou com a trava ocupada"
+  afirma '[ "$(chamadas setsid)" = 0 ] && grep -q "trava" "$S/vigia.log"' "lancou com a trava ocupada"
   limpa
 
   novo_cenario "pedido: suite.sh adulterado = NAO executa"
-  instala_suite; echo "# x" >> "$S/suite.sh"
+  instala_suite; echo "# x" >> "$S/suite.sh"; : > "$PED/pedir-verificacao"
   roda_pedido y "$PED" pedir-verificacao
   afirma '[ "$(chamadas setsid)" = 0 ] && grep -q "NAO executado" "$S/vigia.log"' "lancou o suite.sh adulterado"
   limpa
@@ -417,7 +431,7 @@ c_pedido(){
 # ---------------------------------------------------------------------------
 c_instalacao(){
   local rc="$R/vendor/etc/init/pfl7560-suite.rc"
-  novo_cenario "instalacao: arquivos, pasta do pedido, servico de boot e a suite lancada"
+  novo_cenario "instalacao: arquivos, servico de boot e a suite lancada (a pasta do app nao e do kit)"
   pendrive; rc="$R/vendor/etc/init/pfl7560-suite.rc"
   roda_kit
   afirma '[ "$RC" = 0 ]' "newlink_update.sh saiu com $RC: $(tail -3 "$T/kit.out")"
@@ -436,7 +450,7 @@ c_instalacao(){
   afirma '[ ! -e "$R/vendor/etc/pfl7560-suite.rc.new" ] && [ ! -e "$R/vendor/etc/init/pfl7560-suite.rc.new" ]' ".new sobrou"
   afirma 'tem_chamada "mount -o rw,remount /vendor" && tem_chamada "mount -o ro,remount /vendor"' "o .rc foi gravado sem o remount rw/ro"
   afirma 'grep -q "servico de boot instalado em .*rotulo" "$T/kit.out"' "log sem o rotulo final"
-  afirma '[ -d "$PED" ] && ls -ld "$PED" | grep -q "^drwxrwxr-x" && tem_chamada "chown media_rw:media_rw $PED"' "pasta do pedido: $(ls -ld "$PED" 2>&1)"
+  afirma '[ ! -e "$PED" ] && ! tem_chamada "chown media_rw" && [ ! -e "$R/data/media/0/pfl7560" ]' "o kit mexeu na pasta do app ou criou pasta de pedido compartilhada"
   afirma 'tem_chamada "setsid sh $S/suite.sh pendrive $MP"' "o autorun nao lancou a suite: $(grep setsid "$T/calls.log")"
   afirma '! grep -q "setsid sh .*cor.sh" "$T/calls.log"' "o autorun lancou o cor.sh direto"
   # o .rc tem exatamente o servico do spec
@@ -501,10 +515,10 @@ c_instalacao(){
   afirma 'grep -q "suite.sh" "$T/kit.out" && grep -q "adulterado" "$T/kit.out"' "log nao aponta o suite.sh"
   limpa
 
-  novo_cenario "instalacao: pasta do pedido e LINK = recusada, alvo intacto, suite segue"
-  pendrive; mkdir -p "$T/alvo"; ln -s "$T/alvo" "$PED"
+  novo_cenario "instalacao: pasta do app e LINK = o kit nao toca nela, suite segue"
+  pendrive; mkdir -p "$R/data/data" "$T/alvo"; ln -s "$T/alvo" "$PED"
   roda_kit
-  afirma '[ -L "$PED" ] && [ -z "$(ls -A "$T/alvo")" ] && ! tem_chamada "chown media_rw"' "mexeu no link do pedido"
+  afirma '[ -L "$PED" ] && [ -z "$(ls -A "$T/alvo")" ] && ! tem_chamada "chown media_rw"' "mexeu no link da pasta do app"
   afirma 'tem_chamada "setsid sh $S/suite.sh pendrive"' "a suite deveria seguir"
   limpa
 }
@@ -516,12 +530,13 @@ c_desinstalar(){
   afirma '[ -d "$S" ] && [ -f "$R/vendor/etc/init/pfl7560-suite.rc" ]' "preparo: a suite nao foi instalada"
   sh -c 'sleep 30; :' pfl7560-vigia-teste & local vp=$!
   echo "$vp" > "$R/dev/pfl7560-suite.vigia"
-  mkdir -p "$R/sdcard/pfl7560-suite"
+  mkdir -p "$R/sdcard/pfl7560-suite" "$PED"; : > "$PED/pedir-verificacao"; : > "$PED/do-app"
   : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
   roda_kit
   wait "$vp" 2>/dev/null; local vrc=$?
   afirma '[ ! -e "$R/vendor/etc/init/pfl7560-suite.rc" ]' "o .rc ficou"
-  afirma '[ ! -e "$S" ] && [ ! -e "$PED" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, do pedido ou das telas ficou"
+  afirma '[ ! -e "$S" ] && [ ! -e "$PED/pedir-verificacao" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, o pedido ou a pasta das telas ficou"
+  afirma '[ -f "$PED/do-app" ]' "desinstalar apagou arquivo do app (a pasta e dele)"
   afirma '[ "$vrc" = 143 ]' "o vigia nao foi encerrado com TERM (wait=$vrc)"
   afirma '[ ! -e "$R/dev/pfl7560-suite.vigia" ]' "pid do vigia ficou"
   afirma 'tem_chamada "setprop ctl.stop pfl7560_suite"' "nao parou o servico"

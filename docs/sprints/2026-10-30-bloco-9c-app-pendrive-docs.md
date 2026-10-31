@@ -9,11 +9,15 @@ e caminhos deles). Branch `bloco-9c/app-pendrive-docs`, worktree `/home/andrefar
   local (fato 10 do bloco 9: `aapt2`, `javac --release 8` contra `platforms/android-34/android.jar`, `d8`,
   `zipalign`, `apksigner`). Chave de assinatura própria e estável em `artifacts/app/assinatura.keystore` (não é
   segredo: só garante que a atualização instala por cima); senha documentada no script.
-- Pacote `com.pfl7560.verificar`, `minSdk 28`, `targetSdk 22` (permissão de armazenamento concedida na
-  instalação). Duas atividades com ícone próprio, ambas com `LAUNCHER` **e** `LEANBACK_LAUNCHER` e `banner`
+- Pacote `com.pfl7560.verificar`, `minSdk 28`, `targetSdk 28` (nenhuma permissão: o pedido vai para a pasta
+  privada do app). Duas atividades com ícone próprio, ambas com `LAUNCHER` **e** `LEANBACK_LAUNCHER` e `banner`
   (o launcher do projetor pode usar qualquer um; a pesquisa P item 5 diz qual):
-  - **Verificar projetor**: grava `/sdcard/pfl7560/pedir-verificacao`, mostra por 3 s "Verificação pedida. O
-    projetor começa em instantes." e fecha. Se não conseguir gravar, diz isso e como resolver.
+  - **Verificar projetor**: grava `pedir-verificacao` em `getDataDir()` (`/data/data/com.pfl7560.verificar/`),
+    mostra por 3 s "Verificação pedida. O projetor começa em instantes." e fecha. Se não conseguir gravar, diz
+    isso e como resolver.
+  - Por que a pasta privada (revisão de segurança de 2026-10-30): em `/sdcard` qualquer app grava o arquivo e
+    dispara a suíte (com a rampa ativa). Na pasta privada só o UID do app grava; o vigia root confere que o dono
+    do arquivo é o dono da pasta do app (UID >= 10000). O coordenador ajusta o vigia do 9B na integração.
   - **Wi-Fi**: abre `android.settings.WIFI_SETTINGS`; se não resolver, `com.zhiying.settings/.network.WifiSettingActivity`;
     se nada abrir, mostra a mensagem e fecha.
 - Ícones e banner gerados (PNG) por script, no estilo das telas (fundo `#0E1116`, traço claro); sem emoji.

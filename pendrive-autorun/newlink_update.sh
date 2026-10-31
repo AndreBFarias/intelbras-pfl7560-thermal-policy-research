@@ -65,13 +65,12 @@ RC="$R/vendor/etc/init/hw/init.bigfish.rc"
 ATV_INI_DIR="$R/atv/ini"
 WORK="$R/data/vendor/pfl7560-kit"
 JOURNAL="$WORK/journal"
-# suite (bloco 9B): pasta so do root, servico de boot e pasta do pedido do app. O .rc e
+# suite (bloco 9B): pasta so do root e servico de boot. O .rc e
 # montado FORA da pasta que o init le (/vendor/etc/init) e so entra nela por mv.
 SUITE="$R/data/vendor/pfl7560-suite"
 RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
 RC_SUITE_NOVO="$R/vendor/etc/pfl7560-suite.rc.new"
 ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
-PEDIDO_DIR="$R/data/media/0/pfl7560"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
 DONO_UID=0
@@ -110,9 +109,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 428b7c26fe3afbe67e83fd18d1a88d37  nl_tela
-c0a7d00f58ae5a36eaf5c24da5454b48  suite.sh
-2d330e733d7055001bd594ea4e3c8748  suite-boot.sh
-f0cd6200738b355eb5a7735d9bcd6e7d  suite-pedido.sh
+329255a12b87e13eb689e2bb95905928  suite.sh
+c030703291178eae8384a0d2e8fecb30  suite-boot.sh
+4b24fceb968cb4744e2d57261bb3be78  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
@@ -312,7 +311,7 @@ if ! trabalho_conferir $KIT_COPIA; then
 fi
 COR_MD5=$(kit_md5_esperado cor.sh)
 
-# ---- suite de verificacao (bloco 9B): arquivos e pasta do pedido -----------------
+# ---- suite de verificacao (bloco 9B): arquivos ------------------------------------
 # A suite roda como root a partir de $SUITE: mesmas regras da pasta de trabalho (so do
 # root, 0700; arquivo regular do root com o md5 da lista). Copia a partir de $WORK (ja
 # conferida), so o que tem md5 diferente, por uma pasta de preparo DENTRO de $SUITE,
@@ -363,15 +362,6 @@ instalar_suite_arquivos(){
   # shellcheck disable=SC2046
   conferir_em "$SUITE" $(suite_nomes) || return 1
   if [ -n "$_mud" ]; then LOG "[OK] suite: arquivos atualizados em $SUITE:$_mud"; else LOG "suite: arquivos ja estavam em dia em $SUITE"; fi
-  return 0
-}
-# pasta do pedido do app (/sdcard/pfl7560 para os apps): media_rw, 0775. Um link no
-# lugar dela e recusado (nunca seguido).
-preparar_pedido(){
-  if [ -L "$PEDIDO_DIR" ]; then LOG "[ERRO] $PEDIDO_DIR e um link - pasta do pedido NAO preparada."; return 1; fi
-  if [ ! -d "$PEDIDO_DIR" ]; then mkdir -p "$PEDIDO_DIR" 2>/dev/null || { LOG "[ERRO] nao consegui criar $PEDIDO_DIR."; return 1; }; fi
-  chown media_rw:media_rw "$PEDIDO_DIR" 2>/dev/null || LOG "[AVISO] nao consegui dar $PEDIDO_DIR ao media_rw."
-  chmod 775 "$PEDIDO_DIR" 2>/dev/null
   return 0
 }
 # servico de boot: o .rc igual ao do kit, 0644, do root e com o rotulo SELinux do
@@ -426,7 +416,6 @@ SUITE_OK=0
 if [ "$SUITE_INSTALAR" = "1" ]; then
   if instalar_suite_arquivos; then
     SUITE_OK=1
-    preparar_pedido
   else
     LOG "[ERRO] suite NAO instalada: o kit roda so a fase de cor, como antes."
   fi

@@ -215,3 +215,26 @@ Riscos que ficam (anotados, sem mudança):
 
 Para o 9C documentar: `DESINSTALAR-SUITE.txt` agora leva a cópia do backup para o pendrive
 (`suite-panelparam-backup-<serial>.img`); `incompletas` e o motivo `interrompida_2x_seguidas` no histórico.
+
+## Integração e revisão de segurança (coordenador, 2026-10-30)
+
+- Integrado ao branch da sessão junto com o 9A (merge `782b681`). Os conflitos ficaram em `newlink_update.sh`,
+  `atualizar-md5-kit.sh`, `test-kit-pendrive.sh`, `install.bat` e `Makefile`. Ficou valendo a cópia genérica de
+  subpastas do 9B, e entraram `nl_tela` e `fontes/` nas listas. O harness da suíte passou a copiar `fontes/`:
+  sem elas, `fontes_conferidas` desligava as telas geradas e derrubava 62 asserções.
+- **O pedido do app saiu do `/sdcard`.** A revisão de segurança automática mostrou que, em `/data/media/0/pfl7560`
+  (`media_rw`, 0775), qualquer app gravava `pedir-verificacao` e disparava a suíte como root, com a rampa ativa.
+  O pedido passou a ser lido na pasta privada do app, `/data/data/com.pfl7560.verificar`.
+  - O `suite-pedido.sh` só aceita um arquivo regular cujo dono seja o dono da pasta, e esse dono tem de ser um UID
+    de app (>= 10000). A conferência é feita antes de apagar o arquivo.
+  - O `newlink_update.sh` não cria mais pasta de pedido.
+  - O desinstalar apaga só o pedido pendente, porque a pasta é do app.
+  - Sem o app instalado, o vigia não liga, e isso fica no log. Depois de instalar o app pelo pendrive, o ícone
+    só passa a valer no boot seguinte.
+  - O harness ganhou os casos "UID abaixo do mínimo" e "pedido em link". O caso "dono do arquivo diferente do
+    dono da pasta" não dá para montar sem root no PC, e fica para o teste 6 no aparelho.
+  - Um bônus: o `inotify` numa pasta ext4 de verdade dispensa a dúvida sobre o sdcardfs.
+- Fica como limite conhecido, sem mudança: as telas são mostradas a partir de `/sdcard/pfl7560-suite`, onde um app
+  poderia trocar o PNG entre a gravação e a exibição e mostrar uma tela falsa. O impacto é só visual. O sdcardfs
+  não aceita links simbólicos, então essa troca não vira escrita como root em outro lugar. É o mesmo caminho que
+  o `cor.sh` usa e que foi provado no aparelho.

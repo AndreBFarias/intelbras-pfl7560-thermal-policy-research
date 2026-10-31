@@ -40,7 +40,9 @@ INCOMPLETAS_ARQ="$SUITE/incompletas"
 BOOT_LOG="$SUITE/boot.log"
 LOCK="$R/dev/pfl7560-suite.lock"
 VIGIA_PID="$R/dev/pfl7560-suite.vigia"
-PEDIDO_DIR="$R/data/media/0/pfl7560"
+# pasta privada do app "Verificar projetor": so o UID do app grava nela (revisao de
+# seguranca de 2026-10-30; em /sdcard qualquer app disparava a suite)
+PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
 MIDIA="$R/mnt/media_rw"
 RTC="$R/sys/class/rtc/rtc0/since_epoch"
 PM="$R/proc/msp/pm"
@@ -50,8 +52,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="c0a7d00f58ae5a36eaf5c24da5454b48"
-PEDIDO_MD5="f0cd6200738b355eb5a7735d9bcd6e7d"
+SUITE_MD5="329255a12b87e13eb689e2bb95905928"
+PEDIDO_MD5="4b24fceb968cb4744e2d57261bb3be78"
 # SUITE_MD5_FIM
 
 # PROVISORIO (teste final no aparelho, bloco 9 item 2): os dois criterios do gatilho
@@ -177,7 +179,7 @@ ligar_vigia(){
     return 1
   fi
   if [ ! -d "$PEDIDO_DIR" ] || [ -L "$PEDIDO_DIR" ]; then
-    LOG "[ERRO] pasta do pedido $PEDIDO_DIR ausente ou link - vigia NAO ligado."
+    LOG "[AVISO] pasta do app $PEDIDO_DIR ausente (app nao instalado?) ou link - vigia NAO ligado."
     return 1
   fi
   # inotifyd executa o suite-pedido.sh a cada evento (w = escrita fechada, y = movido
