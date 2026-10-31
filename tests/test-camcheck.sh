@@ -283,6 +283,62 @@ afirma '[ "$rc" = 1 ]' "nitidez com dispositivo ausente deveria sair 1 (saiu $rc
 "$NL" nitidez "$(arq calibracao-f1)" >/dev/null 2>&1; rc=$?
 afirma '[ "$rc" = 2 ]' "nitidez sem faixas.txt: deveria sair 2 (saiu $rc)"
 
+# captura com um driver de mentira (open/ioctl trocados no link): o driver devolve mais buffers que
+# o pedido (o nl_camcheck so mapeia NBUF=4; com ASan, passar disso estoura a pilha), nenhum buffer
+# (sai 1 sem esperar quadro), e a saida em /dev/full (gravacao incompleta tem de dar erro)
+cat > "$T/falso.c" <<'FIM'
+#define _GNU_SOURCE
+#include <errno.h>
+#include <fcntl.h>
+#include <linux/videodev2.h>
+#include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/mman.h>
+#include <unistd.h>
+int __real_open(const char *p, int fl, ...);
+int __real_ioctl(int fd, unsigned long req, ...);
+static int falso = -1, fila = 0;
+#define TAM (640 * 480 * 2)
+int __wrap_open(const char *p, int fl, ...) {
+  if (strcmp(p, "/dev/video-falso") != 0) return __real_open(p, fl, 0);
+  falso = memfd_create("v4l2", 0);
+  if (falso >= 0 && ftruncate(falso, 16L * TAM) != 0) return -1;
+  return falso;
+}
+int __wrap_ioctl(int fd, unsigned long req, ...) {
+  va_list ap; va_start(ap, req); void *arg = va_arg(ap, void *); va_end(ap);
+  if (fd != falso) return __real_ioctl(fd, req, arg);
+  if (req == VIDIOC_ENUM_FRAMESIZES) { errno = EINVAL; return -1; }
+  if (req == VIDIOC_S_FMT) { struct v4l2_format *f = arg; f->fmt.pix.bytesperline = f->fmt.pix.width * 2; return 0; }
+  if (req == VIDIOC_REQBUFS) { ((struct v4l2_requestbuffers *)arg)->count = atoi(getenv("FALSO_COUNT")); return 0; }
+  if (req == VIDIOC_QUERYBUF) { struct v4l2_buffer *b = arg; b->length = TAM; b->m.offset = b->index * TAM; return 0; }
+  if (req == VIDIOC_QBUF) { fila++; return 0; }
+  if (req == VIDIOC_DQBUF) {
+    if (fila == 0) { errno = EINVAL; return -1; }
+    struct v4l2_buffer *b = arg; fila--; b->index = 0; b->bytesused = TAM; b->length = TAM; b->flags = 0; return 0;
+  }
+  return 0;
+}
+FIM
+if cc -O1 -g -fsanitize=address -Wl,--wrap=open,--wrap=ioctl -o "$T/nl_falso" \
+     "$ROOT/artifacts/camcheck/nl_camcheck.c" "$T/falso.c" -lm 2>"$T/falso.err"; then
+  export ASAN_OPTIONS=detect_leaks=0
+  FALSO_COUNT=8 "$T/nl_falso" grab /dev/video-falso YUYV 640 480 "$T/q8.yuyv" 2 >"$T/g8" 2>&1; rc=$?
+  afirma '[ "$rc" = 0 ] && [ "$(wc -c < "$T/q8.yuyv")" = 614400 ]' "grab com 8 buffers do driver: rc=$rc $(grep -m1 -o 'ERROR: AddressSanitizer: [a-z-]*' "$T/g8")"
+  FALSO_COUNT=8 "$T/nl_falso" faixas /dev/video-falso 16 "$T/f8.txt" 2 >"$T/c8" 2>&1; rc=$?
+  afirma '[ "$rc" = 3 ] && ! grep -q AddressSanitizer "$T/c8"' "faixas com 8 buffers do driver: rc=$rc (quadro liso: esperava 3)"
+  FALSO_COUNT=0 "$T/nl_falso" grab /dev/video-falso YUYV 640 480 "$T/q0.yuyv" 2 >"$T/g0" 2>&1; rc=$?
+  afirma '[ "$rc" = 1 ] && grep -q "nenhum buffer" "$T/g0" && [ ! -e "$T/q0.yuyv" ]' "grab sem buffer do driver: rc=$rc $(tail -1 "$T/g0")"
+  FALSO_COUNT=0 "$T/nl_falso" faixas /dev/video-falso 16 "$T/f0.txt" 2 >"$T/c0" 2>&1; rc=$?
+  afirma '[ "$rc" = 1 ] && grep -q "nenhum buffer" "$T/c0"' "faixas sem buffer do driver: rc=$rc $(tail -1 "$T/c0")"
+  FALSO_COUNT=4 "$T/nl_falso" grab /dev/video-falso YUYV 640 480 /dev/full 2 >"$T/gf" 2>&1; rc=$?
+  afirma '[ "$rc" = 1 ] && ! grep -q "^gravado" "$T/gf"' "grab em /dev/full deveria sair 1 (saiu $rc): $(tail -1 "$T/gf")"
+  unset ASAN_OPTIONS
+else
+  echo "  (sem ASan no cc do host: driver de mentira pulado) $(head -1 "$T/falso.err")"
+fi
+
 # so leitura: o fonte nao tem S_CTRL nem escreve controle
 afirma '! grep -q "VIDIOC_S_CTRL\|VIDIOC_S_EXT_CTRLS" "$ROOT/artifacts/camcheck/nl_camcheck.c"' "o nl_camcheck passou a escrever controle da camera"
 # o binario ARM do kit e o versionado em artifacts/ sao o mesmo

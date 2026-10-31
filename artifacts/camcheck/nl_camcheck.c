@@ -112,8 +112,10 @@ static int grab(const char *dev, const char *fmt, int w, int h, const char *out,
   memset(&rb, 0, sizeof rb);
   rb.count = NBUF; rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE; rb.memory = V4L2_MEMORY_MMAP;
   if (xioctl(fd, VIDIOC_REQBUFS, &rb) < 0) { perror("REQBUFS"); close(fd); return 1; }
+  if (rb.count == 0) { fprintf(stderr, "REQBUFS: o driver nao deu nenhum buffer\n"); close(fd); return 1; }
 
   void *mem[NBUF]; size_t len[NBUF];
+  if (rb.count > NBUF) rb.count = NBUF;
   for (unsigned i = 0; i < rb.count; i++) {
     struct v4l2_buffer b;
     memset(&b, 0, sizeof b);
@@ -137,8 +139,9 @@ static int grab(const char *dev, const char *fmt, int w, int h, const char *out,
     if (n == skip) {
       FILE *o = fopen(out, "wb");
       if (!o) { perror(out); break; }
-      fwrite(mem[b.index], 1, b.bytesused, o);
-      fclose(o);
+      int ok = fwrite(mem[b.index], 1, b.bytesused, o) == b.bytesused;
+      if (fclose(o) != 0) ok = 0;
+      if (!ok) { fprintf(stderr, "%s: gravacao incompleta\n", out); break; }
       printf("gravado %s (%u bytes)\n", out, b.bytesused);
       rc = 0;
     }
@@ -212,6 +215,8 @@ static int captura_yuyv(const char *dev, int skip, struct quadro *q) {
   memset(&rb, 0, sizeof rb);
   rb.count = NBUF; rb.type = V4L2_BUF_TYPE_VIDEO_CAPTURE; rb.memory = V4L2_MEMORY_MMAP;
   if (xioctl(fd, VIDIOC_REQBUFS, &rb) < 0) { perror("REQBUFS"); close(fd); return 1; }
+
+  if (rb.count == 0) { fprintf(stderr, "REQBUFS: o driver nao deu nenhum buffer\n"); close(fd); return 1; }
 
   void *mem[NBUF]; size_t len[NBUF];
   if (rb.count > NBUF) rb.count = NBUF;
