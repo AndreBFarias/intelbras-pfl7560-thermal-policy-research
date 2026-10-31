@@ -24,6 +24,7 @@ public final class Icones {
     public static final int NAVEGADOR = 17;
     public static final int LOJA = 18;
     public static final int JOGO = 19;
+    public static final int LUZ = 20;
 
     /** Os cinco acentos do tema para o monograma (o rosa e o do foco, mas tambem entra no sorteio estavel). */
     private static final int[] CORES_MONOGRAMA = {Tema.ROXO, Tema.ROSA, Tema.CIANO, Tema.VERDE, Tema.LARANJA};
@@ -142,6 +143,16 @@ public final class Icones {
                 p.linha(x + 20 * s, y + 28 * s, x + 20 * s, y + 40 * s, e, cor);
                 p.circulo(x + 42 * s, y + 30 * s, 3 * s, cor);
                 p.circulo(x + 48 * s, y + 37 * s, 3 * s, cor);
+                break;
+            case LUZ:
+                // sol: disco com oito raios
+                p.anel(x + 32 * s, y + 32 * s, 11 * s, e, cor);
+                for (int k = 0; k < 8; k++) {
+                    double a = Math.PI / 4 * k;
+                    float c = (float) Math.cos(a);
+                    float sn = (float) Math.sin(a);
+                    p.linha(x + (32 + 19 * c) * s, y + (32 + 19 * sn) * s, x + (32 + 27 * c) * s, y + (32 + 27 * sn) * s, e, cor);
+                }
                 break;
             default:
                 break;

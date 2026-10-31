@@ -10,6 +10,10 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.Collator;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -108,6 +112,36 @@ final class Leitor {
             return String.valueOf(Math.round(f));
         } catch (NumberFormatException e) {
             return null;
+        }
+    }
+
+    /**
+     * Luz atual em %: o numero que o root deixou em luz-atual na pasta do app (ver suite-pedido.sh),
+     * ou 100 se o arquivo nao existe, esta vazio ou fora de 10..100.
+     */
+    static int luzAtual(Context c) {
+        try (FileInputStream in = new FileInputStream(new File(c.getDataDir(), "luz-atual"))) {
+            byte[] b = new byte[8];
+            int n = in.read(b);
+            if (n <= 0) return 100;
+            int v = Integer.parseInt(new String(b, 0, n, "US-ASCII").trim());
+            return v >= 10 && v <= 100 ? v : 100;
+        } catch (IOException | RuntimeException e) {
+            return 100;
+        }
+    }
+
+    /**
+     * Pede a luz: grava so os digitos no arquivo luz da pasta do app. Quem aplica e o vigia root
+     * (suite-pedido.sh); o app nao tem como falar com o hidebug. Devolve false se nao gravou.
+     */
+    static boolean pedirLuz(Context c, int nivel) {
+        try (FileOutputStream out = new FileOutputStream(new File(c.getDataDir(), "luz"))) {
+            out.write(String.valueOf(nivel).getBytes("US-ASCII"));
+            return true;
+        } catch (IOException | RuntimeException e) {
+            Guarda.anotar(c, "pedir luz", e);
+            return false;
         }
     }
 

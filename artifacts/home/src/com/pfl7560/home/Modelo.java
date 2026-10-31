@@ -31,6 +31,16 @@ public final class Modelo {
     /** Aviso curto (ex.: um atalho que nao abriu), ou null. */
     public String aviso;
 
+    /** Os cinco niveis do painel de luz (percentual do hidebug sbl; o ultimo e o "Economico"). */
+    public static final int[] LUZ_NIVEIS = {100, 80, 60, 40, 25};
+    public static final int LUZ_ECONOMICO = 25;
+
+    /** Luz atual em %, como o root deixou em luz-atual; 100 enquanto nao houver arquivo. */
+    public int luz = 100;
+    public boolean luzAberta;
+    /** Indice em LUZ_NIVEIS do nivel sob o foco no painel. */
+    public int luzSel;
+
     public int fileira = ENTRADAS;
     public int coluna = 0;
     public int primeiroApp = 0;
@@ -50,6 +60,7 @@ public final class Modelo {
             new Item("Wi-Fi", Icones.WIFI, Acoes.WIFI),
             new Item("Bluetooth", Icones.BLUETOOTH, Acoes.BLUETOOTH),
             new Item("Imagem", Icones.IMAGEM, Acoes.IMAGEM),
+            new Item("Luz", Icones.LUZ, Acoes.LUZ),
             new Item("Configurações", Icones.CONFIG, Acoes.CONFIG),
             new Item("Espelhamento", Icones.ESPELHAR, Acoes.ESPELHAR),
         });
@@ -67,8 +78,39 @@ public final class Modelo {
         return coluna < apps.size() ? apps.get(coluna) : null;
     }
 
+    /** Abre o painel de luz com o foco no nivel mais perto do atual. */
+    public void abrirLuz() {
+        luzAberta = true;
+        luzSel = 0;
+        int dist = Integer.MAX_VALUE;
+        for (int i = 0; i < LUZ_NIVEIS.length; i++) {
+            int d = Math.abs(LUZ_NIVEIS[i] - luz);
+            if (d < dist) {
+                dist = d;
+                luzSel = i;
+            }
+        }
+    }
+
+    public void fecharLuz() {
+        luzAberta = false;
+    }
+
+    /** Move o foco entre os niveis (-1 esquerda, 1 direita). Devolve true se mudou. */
+    public boolean moverLuz(int dx) {
+        int n = luzSel + dx;
+        if (n < 0 || n >= LUZ_NIVEIS.length) return false;
+        luzSel = n;
+        return true;
+    }
+
+    public int nivelLuz() {
+        return LUZ_NIVEIS[luzSel];
+    }
+
     /** Volta ao comeco (HOME apertado com a home ja aberta). */
     public void inicio() {
+        luzAberta = false;
         fileira = ENTRADAS;
         coluna = 0;
         primeiroApp = 0;

@@ -55,6 +55,27 @@ public final class Previa {
         m.coluna = 0;
         salvar(m, fontes, new File(saida, "home-foco-atalho.png"));
 
+        // 2b. o atalho Luz em foco (nome e valor por baixo)
+        m.coluna = 4;
+        salvar(m, fontes, new File(saida, "home-foco-luz.png"));
+        m.coluna = 0;
+
+        // 2c. o painel de luz aberto: atual 100 %, foco em 60 %
+        Modelo l = base();
+        l.definirApps(firmware);
+        l.wifi = "MinhaRede";
+        l.temperatura = "59";
+        l.abrirLuz();
+        l.moverLuz(1);
+        l.moverLuz(1);
+        salvar(l, fontes, new File(saida, "home-painel-luz.png"));
+
+        // 2d. o painel com a luz em 25 % (Economico atual) e o aviso do pedido
+        l.luz = 25;
+        l.abrirLuz();
+        l.aviso = "Luz 25%: pedido enviado";
+        salvar(l, fontes, new File(saida, "home-painel-luz-economico.png"));
+
         // 3. foco num app, sem rede, sem temperatura legivel, com um aviso
         m.mover(0, 1);
         m.mover(1, 0);
@@ -185,16 +206,29 @@ public final class Previa {
         verdade(m.fileira == Modelo.ENTRADAS && m.coluna == 0, "comeca em HDMI 1");
         verdade(!m.mover(-1, 0) && !m.mover(0, -1), "nada acima nem a esquerda de HDMI 1");
         verdade(m.mover(1, 0) && m.mover(1, 0) && !m.mover(1, 0), "tres entradas");
-        verdade(m.mover(0, 1) && m.fileira == Modelo.ATALHOS && m.coluna == 5, "de USB-C desce para Espelhamento");
+        verdade(m.mover(0, 1) && m.fileira == Modelo.ATALHOS && m.coluna == 6, "de USB-C desce para Espelhamento");
         verdade(m.mover(0, 1) && m.fileira == Modelo.APPS, "desce para os apps");
         verdade(!m.mover(0, 1), "nada abaixo dos apps");
         m.inicio();
         verdade(m.fileira == Modelo.ENTRADAS && m.coluna == 0 && m.primeiroApp == 0, "HOME volta ao comeco");
+        Modelo z = base();
+        z.luz = 100;
+        verdade(!z.luzAberta, "o painel de luz comeca fechado");
+        z.abrirLuz();
+        verdade(z.luzAberta && z.nivelLuz() == 100, "abre em 100");
+        verdade(!z.moverLuz(-1) && z.moverLuz(1) && z.nivelLuz() == 80, "100 -> 80, sem passar do inicio");
+        for (int i = 0; i < 6; i++) z.moverLuz(1);
+        verdade(z.nivelLuz() == Modelo.LUZ_ECONOMICO && !z.moverLuz(1), "termina em 25 (Economico)");
+        z.luz = 70;
+        z.abrirLuz();
+        verdade(z.nivelLuz() == 60 || z.nivelLuz() == 80, "abre no nivel mais perto do atual");
+        z.inicio();
+        verdade(!z.luzAberta, "HOME fecha o painel de luz");
         Modelo v = base();
         v.definirApps(new ArrayList<Item>());
         v.mover(0, 1);
         verdade(!v.mover(0, 1) && v.fileira == Modelo.ATALHOS, "sem apps, a fileira vazia nao pega foco");
-        System.out.println("navegacao: 9 conferencias ok");
+        System.out.println("navegacao: 15 conferencias ok");
     }
 
     private static void verdade(boolean b, String o) {

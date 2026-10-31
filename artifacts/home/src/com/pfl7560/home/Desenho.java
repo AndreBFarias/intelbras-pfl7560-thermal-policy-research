@@ -42,7 +42,7 @@ public final class Desenho {
     static final float ATA_TITULO = 432f;
     static final float ATA_Y = 456f;
     static final float ATA_H = 172f;
-    static final float ATA_W = (CONTEUDO - 5 * VAO) / 6f;
+    static final float ATA_W = (CONTEUDO - 6 * VAO) / 7f;
 
     // Apps
     public static final int APPS_VISIVEIS = 7;
@@ -72,6 +72,7 @@ public final class Desenho {
         atalhos(p, m);
         apps(p, m);
         estado(p, m);
+        if (m.luzAberta) painelLuz(p, m);
     }
 
     private static void relogio(Pintor p, Modelo m) {
@@ -116,7 +117,13 @@ public final class Desenho {
             cartao(p, x, ATA_Y, ATA_W, ATA_H, f);
             int cf = f ? Tema.LINHA : Tema.CARTAO;
             Icones.desenhar(p, m.atalhos[i].icone, x + 22, ATA_Y + 20, 56, f ? Tema.ROSA : Tema.TEXTO_2, cf);
-            rotulo(p, m.atalhos[i].rotulo, x + 24, ATA_Y + ATA_H - 24, ATA_W - 48, Pintor.SANS_SEMI, 30, 34, Pintor.ESQ);
+            if (Acoes.LUZ.equals(m.atalhos[i].acao)) {
+                // o nome e, por baixo, o valor atual
+                p.texto(m.atalhos[i].rotulo, x + 20, ATA_Y + ATA_H - 24 - 34, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+                p.texto(m.luz + "%", x + 20, ATA_Y + ATA_H - 24, Pintor.MONO, 28, Tema.TEXTO_2, Pintor.ESQ);
+            } else {
+                rotulo(p, m.atalhos[i].rotulo, x + 20, ATA_Y + ATA_H - 24, ATA_W - 40, Pintor.SANS_SEMI, 30, 34, Pintor.ESQ);
+            }
         }
     }
 
@@ -175,6 +182,44 @@ public final class Desenho {
         }
         if (m.aviso != null) {
             p.texto(m.aviso, DIREITA, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
+        }
+    }
+
+    /** O painel "Luz do projetor": tela cheia no tema, cinco niveis, foco em rosa. */
+    private static void painelLuz(Pintor p, Modelo m) {
+        p.gradiente(0, 0, LARGURA, ALTURA, Tema.FUNDO, Tema.FUNDO_BASE);
+        titulo(p, "Luz do projetor", MX, ENT_TITULO);
+        p.texto(m.luz + "%", MX, RELOGIO_BASE, Pintor.MONO_SEMI, RELOGIO_TAM, Tema.TEXTO, Pintor.ESQ);
+        p.texto("Luz atual do LED", MX + 6, DATA_BASE, Pintor.SANS, DATA_TAM, Tema.TEXTO_2, Pintor.ESQ);
+        titulo(p, "Escolha o nível", MX, ATA_TITULO);
+        int n = Modelo.LUZ_NIVEIS.length;
+        float w = (CONTEUDO - (n - 1) * VAO) / n;
+        float y = ATA_Y;
+        float h = 300;
+        for (int i = 0; i < n; i++) {
+            int nivel = Modelo.LUZ_NIVEIS[i];
+            float x = MX + i * (w + VAO);
+            boolean f = m.luzSel == i;
+            cartao(p, x, y, w, h, f);
+            p.texto(nivel + "%", x + 30, y + 112, Pintor.MONO_SEMI, 64, Tema.TEXTO, Pintor.ESQ);
+            // a barra mostra o quanto da luz fica ligado
+            float bw = w - 60;
+            p.retangulo(x + 30, y + 148, bw, 14, 7, f ? Tema.FUNDO : Tema.LINHA);
+            p.retangulo(x + 30, y + 148, bw * nivel / 100f, 14, 7, f ? Tema.ROSA : Tema.TEXTO_2);
+            if (nivel == Modelo.LUZ_ECONOMICO) {
+                p.texto("Econômico", x + 30, y + 222, Pintor.SANS_SEMI, 28, Tema.TEXTO_2, Pintor.ESQ);
+            }
+            if (nivel == m.luz) {
+                p.texto("Atual", x + 30, y + 264, Pintor.SANS_SEMI, 28, Tema.VERDE, Pintor.ESQ);
+            }
+        }
+        p.texto("Se o LED esquentar demais, a proteção térmica baixa a luz por conta própria.",
+                MX, 840, Pintor.SANS, 30, Tema.TEXTO_2, Pintor.ESQ);
+        p.texto("O nível escolhido volta sozinho toda vez que o projetor liga.",
+                MX, 884, Pintor.SANS, 30, Tema.TEXTO_2, Pintor.ESQ);
+        p.texto("Setas: escolher    OK: aplicar    Voltar: fechar", MX, ESTADO_BASE, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        if (m.aviso != null) {
+            p.texto(m.aviso, DIREITA, ESTADO_BASE, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
         }
     }
 
