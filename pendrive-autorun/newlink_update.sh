@@ -127,7 +127,7 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 e5f9bc20459fd2d44cc0ffbba648d9a6  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 a339b061efc6e6a8e0421dc9f1eb9e8d  pfl7560.apk
-95aa6e9ba83551e17a9300c0df136e95  pfl7560-home.apk
+51739968fe2cb8a066a54d2166a43b7e  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
