@@ -117,16 +117,32 @@ case "$*" in *query-services*) [ -f "$T/sem-descanso" ] || echo "com.pfl7560.ver
 echo "priority=0 isDefault=false"; echo "com.hisilicon.higallery/.NetworkHiGallery"'
   stub logcat 'echo "logcat $*" >> "$T/calls.log"; [ -f "$T/logcat-saida" ] && cat "$T/logcat-saida"; exit 0'
   # hidebug: registra os argumentos e a entrada (o gtt chegaria por ela); saida de mentira.
+  # Bloco 11: o motor de foco (gfd, gfdr, sfd <pos>). foco-pos = a posicao (sem ele, o gfd nao
+  # responde num formato conhecido); foco-trava = o motor recusa andar ("Motor is too hot!");
+  # foco-mudo-apos = N respostas do gfd e depois silencio.
   # Bloco 15: "sbl N" guarda N em $T/bl (salvo com $T/bl-trava, o fabricante que atrasa) e "gbl"
   # devolve "backlight:N" (100 sem nada guardado)
   stub hidebug 'in=$(cat 2>/dev/null | tr "\n" " ")
 echo "HIDEBUG $* $in" >> "$T/calls.log"
 case "$in" in *"sbl "*) n=${in##*sbl }; n=${n%% *}; [ -f "$T/bl-trava" ] || echo "$n" > "$T/bl" ;; esac
 case "$in" in *gbl*) echo "backlight:$(cat "$T/bl" 2>/dev/null || echo 100)"; exit 0 ;; esac
+case "$in" in *"custom gfd quit"*|*"custom gfdr quit"*|*"custom sfd "*)
+  if [ ! -f "$T/foco-pos" ]; then echo "unknown command"; exit 0; fi
+  case "$in" in
+    *"sfd "*) n=${in##*sfd }; n=${n%% *}; [ -f "$T/foco-trava" ] || echo "$n" > "$T/foco-pos"; echo "Focus Distance Align to $n" ;;
+    *gfdr*) echo "focus distance range : [0, 12000]" ;;
+    *) c=$(cat "$T/n-gfd" 2>/dev/null || echo 0); c=$((c+1)); echo $c > "$T/n-gfd"
+       [ -f "$T/foco-mudo-apos" ] && [ "$c" -gt "$(cat "$T/foco-mudo-apos")" ] && exit 0
+       echo "focus distance : $(cat "$T/foco-pos")" ;;
+  esac
+  exit 0 ;;
+esac
 if [ -f "$T/hidebug-saida" ]; then cat "$T/hidebug-saida"; else printf "fan speed : 3000\nfan speed : 2950\nbacklight brightness : 1000\n"; fi'
   cp "$b/hidebug" "$R/vendor/bin/hidebug"
   # nl_camcheck: faixas acha 16; niveis olha o byte lvds_fmt (como no test-kit-pendrive);
-  # geometria devolve $T/geo-<n> (n-esima chamada), $T/geo ou uma geometria boa
+  # geometria devolve $T/geo-<n> (n-esima chamada), $T/geo ou uma geometria boa; com foco-otimo, a
+  # borda do centro sai da distancia entre foco-pos e foco-otimo (1,8 px no otimo, +1 px a cada 40) e
+  # a da esquerda soma foco-lado (0,3 px sem ele). Bloco 11: nitidez devolve $T/nit ou um mapa bom.
   stub nl_camcheck 'echo "nl_camcheck $*" >> "$T/calls.log"
 JEIDA="235 235 235 235 235 232 222 210 197 181 164 141 114 91 72 63"
 VESA="235 235 235 231 192 148 105 86 220 212 156 90 185 116 195 128"
@@ -146,8 +162,18 @@ case "$1" in
   geometria)
     n=$(cat "$T/n-geo" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-geo"
     [ -f "$T/geo-rc" ] && { echo "faixas nao aparecem nas tres colunas"; exit "$(cat "$T/geo-rc")"; }
+    if [ -f "$T/foco-otimo" ]; then
+      awk -v p="$(cat "$T/foco-pos" 2>/dev/null || echo 0)" -v o="$(cat "$T/foco-otimo")" -v l="$(cat "$T/foco-lado" 2>/dev/null || echo 0.3)" \
+        "BEGIN{d=p-o; if (d<0) d=-d; c=1.8+d/40; printf \"inclinacao_graus=0.40\\ntrapezio_pct=1.2\\nborda_centro_px=%.2f\\nborda_esq_px=%.2f\\nborda_dir_px=%.2f\\ncontraste_centro=0.93\\nquadro=1280x720\\n\", c, c+l, c+0.1}"
+      exit 0
+    fi
     if [ -f "$T/geo-$n" ]; then cat "$T/geo-$n"; elif [ -f "$T/geo" ]; then cat "$T/geo"; else
       printf "inclinacao_graus=0.40\ntrapezio_pct=1.2\nborda_centro_px=1.80\nborda_esq_px=2.10\nborda_dir_px=1.95\ncontraste_centro=0.93\nquadro=1280x720\n"; fi
+    exit 0 ;;
+  nitidez)
+    [ -f "$T/nit-rc" ] && { echo "a imagem projetada nao aparece no quadro"; exit "$(cat "$T/nit-rc")"; }
+    if [ -f "$T/nit" ]; then cat "$T/nit"; else
+      printf "nitidez_r1c1=2.05\nnitidez_r1c2=1.85\nnitidez_r1c3=1.95\nnitidez_r2c1=1.95\nnitidez_r2c2=1.80\nnitidez_r2c3=1.90\nnitidez_r3c1=2.10\nnitidez_r3c2=1.85\nnitidez_r3c3=2.00\nquadro=1280x720\n"; fi
     exit 0 ;;
 esac
 exit 2'
@@ -1095,7 +1121,10 @@ c_etapas_geometria(){
   etapa_feliz
   roda_suite tomada
   afirma '[ "$(item_de "\u00c2ngulo")" = "\u00c2ngulo|0,4\u00b0|ok" ]' "angulo: $(item_de "\u00c2ngulo")"
-  afirma '[ "$(item_de Foco)" = "Foco|bom|ok" ] && [ "$(item_de Nitidez)" = "Nitidez|boa (1,8 px)|ok" ]' "foco/nitidez: $(item_de Foco) $(item_de Nitidez)"
+  afirma '[ "$(item_de Foco)" = "Foco|bom|ok" ] && [ "$(item_de Nitidez)" = "Nitidez|1,8 \u00b7 canto 2,1 px|ok" ]' "foco/nitidez: $(item_de Foco) $(item_de Nitidez)"
+  afirma '[ "$(res nitidez_r2c2)" = 1.80 ] && [ "$(res nitidez_pior_canto_px)" = 2.10 ] && [ "$(res nitidez_causa)" = nenhuma ]' "nitidez: $(res nitidez_r2c2) $(res nitidez_pior_canto_px) $(res nitidez_causa)"
+  afirma '[ "$(chamadas "nl_camcheck nitidez")" -ge 1 ] && [ "$(res foco_varredura)" = nao_precisou ]' "mapa/varredura: $(chamadas "nl_camcheck nitidez") $(res foco_varredura)"
+  afirma '! grep -q "^HIDEBUG.* \(gfd\|gfdr\|sfd\) " "$T/calls.log"' "mexeu no motor de foco com o foco bom"
   afirma '[ "$(item_de "4 pontos")" = "4 pontos|zerada|ok" ]' "4 pontos: $(item_de "4 pontos")"
   afirma '[ "$(item_de "C\u00e2mera")" = "C\u00e2mera|funcionando|ok" ]' "camera: $(item_de "C\u00e2mera")"
   afirma '[ "$(item_de Painel)" = "Painel|RX058B_4300|info" ] && [ "$(res cor_painel)" = "$PNOME" ]' "painel: $(item_de Painel) / $(res cor_painel)"
@@ -1215,6 +1244,118 @@ c_etapas_geometria(){
   afirma '[ "$(item_de "Modo de proje\u00e7\u00e3o")" = "Modo de proje\u00e7\u00e3o|girada 180\u00b0 (3)|info" ]' "modo: $(item_de "Modo de proje\u00e7\u00e3o")"
   afirma '[ "$(item_de "Resolu\u00e7\u00e3o")" = "Resolu\u00e7\u00e3o|1920x1080|info" ]' "resolucao: $(item_de "Resolu\u00e7\u00e3o")"
   afirma '! grep -q "^setprop persist.sys.mountingmode\|ProjectionService" "$T/calls.log"' "mexeu no modo de projecao"
+  limpa
+}
+
+# bloco 11: mapa de nitidez 3x3 e varredura fina de foco pelo hidebug
+nit(){ printf 'nitidez_r1c1=%s\nnitidez_r1c2=%s\nnitidez_r1c3=%s\nnitidez_r2c1=%s\nnitidez_r2c2=%s\nnitidez_r2c3=%s\nnitidez_r3c1=%s\nnitidez_r3c2=%s\nnitidez_r3c3=%s\nquadro=1280x720\n' "$@"; }
+sfds(){ grep "^HIDEBUG  custom sfd " "$T/calls.log" | sed 's/^HIDEBUG  custom sfd \([0-9]*\) quit $/\1/' | tr '\n' ' '; }
+dicas_de(){ grep "^dica=" "$(campos resumo resumo)" 2>/dev/null; }
+c_etapas_foco(){
+  novo_cenario "nitidez: cantos da esquerda com 4 pontos ligados = zere e alinhe (uma dica so)"
+  etapa_feliz; geo 2.82 12.5 1.90 2.24 1.95 0.93 > "$T/geo"
+  sed -i 's/^persist.sys.keystone.lt=.*/persist.sys.keystone.lt=95,915/' "$T/props"
+  nit 3.10 1.95 2.00 2.30 1.90 1.95 2.95 1.90 2.05 > "$T/nit"
+  roda_suite tomada
+  afirma '[ "$(item_de Nitidez)" = "Nitidez|1,9 \u00b7 canto 3,1 px|atencao" ]' "nitidez: $(item_de Nitidez)"
+  afirma '[ "$(res nitidez_causa)" = lado_esquerdo ] && [ "$(res nitidez_r1c1)" = 3.10 ] && [ "$(res nitidez_r3c3)" = 2.05 ]' "res: $(res nitidez_causa) $(res nitidez_r1c1) $(res nitidez_r3c3)"
+  afirma 'dicas_de | grep -qxF "dica=Cantos do lado esquerdo borrados (3,1 px; centro 1,9 px): zere os 4 pontos e alinhe o projetor de frente."' "dica: $(dicas_de)"
+  afirma '[ "$(dicas_de | grep -c "zere os 4 pontos")" = 1 ]' "dica dos 4 pontos repetida: $(dicas_de)"
+  afirma '[ "$(item_de "4 pontos")" = "4 pontos|ligada|atencao" ] && ! grep -q "^setprop persist.sys.keystone" "$T/calls.log"' "4 pontos: $(item_de "4 pontos")"
+  limpa
+
+  novo_cenario "nitidez: cantos da direita com 4 pontos zerados = alinhar de frente"
+  etapa_feliz; nit 1.95 1.85 3.40 1.95 1.80 2.60 2.00 1.85 3.20 > "$T/nit"
+  roda_suite tomada
+  afirma '[ "$(res nitidez_causa)" = lado_direito ] && [ "$(item_de Nitidez)" = "Nitidez|1,8 \u00b7 canto 3,4 px|atencao" ]' "nitidez: $(res nitidez_causa) $(item_de Nitidez)"
+  afirma 'dicas_de | grep -qxF "dica=Cantos do lado direito borrados (3,4 px; centro 1,8 px): alinhe o projetor de frente para a parede."' "dica: $(dicas_de)"
+  afirma '! dicas_de | grep -q "4 pontos"' "falou dos 4 pontos com eles zerados"
+  limpa
+
+  novo_cenario "nitidez: cantos dos dois lados um pouco piores = sem dica, ok abaixo do limiar"
+  etapa_feliz; nit 3.00 1.85 3.10 2.10 1.80 2.10 3.05 1.85 3.00 > "$T/nit"
+  roda_suite tomada
+  afirma '[ "$(res nitidez_causa)" = cantos ] && [ "$(item_de Nitidez)" = "Nitidez|1,8 \u00b7 canto 3,1 px|ok" ] && [ -z "$(dicas_de)" ]' "nitidez: $(res nitidez_causa) $(item_de Nitidez) $(dicas_de)"
+  limpa
+
+  novo_cenario "nitidez: borda de 2 digitos = valor sem px (cabe na coluna)"
+  etapa_feliz; nit 12.34 1.85 1.95 1.95 1.80 1.90 2.10 1.85 2.00 > "$T/nit"
+  roda_suite tomada
+  afirma '[ "$(item_de Nitidez)" = "Nitidez|1,8 \u00b7 canto 12,3|atencao" ]' "nitidez: $(item_de Nitidez)"
+  limpa
+
+  local rc
+  for rc in 1 3; do
+    novo_cenario "nitidez: nl_camcheck nitidez falhou (rc=$rc) = item pela geometria, suite segue"
+    etapa_feliz; echo "$rc" > "$T/nit-rc"
+    roda_suite tomada
+    afirma '[ "$(item_de Nitidez)" = "Nitidez|boa (1,8 px)|ok" ] && [ "$(res camera)" = ok ] && [ -z "$(res nitidez_causa)" ]' "nitidez: $(item_de Nitidez) camera=$(res camera)"
+    limpa
+  done
+
+  novo_cenario "foco: centro borrado sem motor no hidebug = 2 autofocos, nada mexido, dica de foco refeito"
+  etapa_feliz; geo 0.4 1.0 3.90 4.10 4.00 0.93 > "$T/geo"
+  nit 4.10 3.95 4.00 4.00 3.90 4.05 4.20 3.95 4.10 > "$T/nit"
+  roda_suite tomada
+  afirma '[ "$(chamadas "am startservice")" = 2 ] && [ "$(res foco_varredura)" = sem_hidebug ] && [ -z "$(sfds)" ]' "varredura: $(res foco_varredura) sfd=$(sfds)"
+  afirma '[ "$(grep -c "^HIDEBUG  custom gfd quit $" "$T/calls.log")" -ge 1 ]' "nem perguntou a posicao do foco"
+  afirma '[ "$(res nitidez_causa)" = centro ] && dicas_de | grep -qxF "dica=Centro borrado (3,9 px): foco refeito. Se continuar, limpe a lente e confira a dist\u00e2ncia at\u00e9 a parede."' "dica: $(dicas_de)"
+  afirma '! dicas_de | grep -q "Foco irregular"' "dica generica junto com a da causa: $(dicas_de)"
+  afirma '[ "$(item_de Foco)" = "Foco|irregular|atencao" ]' "foco: $(item_de Foco)"
+  limpa
+
+  novo_cenario "nitidez: centro borrado so no mapa (geometria boa) = refaca o foco pela tecla"
+  etapa_feliz; nit 4.10 3.95 4.00 4.00 3.90 4.05 4.20 3.95 4.10 > "$T/nit"
+  roda_suite tomada
+  afirma 'dicas_de | grep -qxF "dica=Centro borrado (3,9 px): refa\u00e7a o foco pela tecla do controle."' "dica: $(dicas_de)"
+  limpa
+
+  novo_cenario "foco: varredura acha a posicao melhor = fica nela, ajuste fino"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1080 > "$T/foco-otimo"
+  roda_suite tomada
+  afirma '[ "$(sfds)" = "880 920 960 1000 1040 1080 1120 1040 1080 " ]' "posicoes: $(sfds)"
+  afirma '[ "$(cat "$T/foco-pos")" = 1080 ] && [ "$(res foco_varredura)" = melhorou ] && [ "$(res foco_pos_inicial)" = 1000 ] && [ "$(res foco_pos_final)" = 1080 ]' "fim: pos=$(cat "$T/foco-pos") $(res foco_varredura) $(res foco_pos_inicial) $(res foco_pos_final)"
+  afirma '[ "$(res foco_borda_antes)" = 3.80 ] && [ "$(res foco_borda_depois)" = 1.80 ] && [ "$(res geo_borda_centro_px)" = 1.80 ]' "bordas: $(res foco_borda_antes) $(res foco_borda_depois) $(res geo_borda_centro_px)"
+  afirma '[ "$(item_de Foco)" = "Foco|ajuste fino|corrigido" ]' "foco: $(item_de Foco)"
+  afirma '[ "$(chamadas "am startservice")" = 2 ]' "a varredura deveria vir depois dos 2 autofocos"
+  # cada movimento espera VARRE_PAUSA antes de ler o gfd: sfd, sleep 2, gfd
+  afirma '[ -z "$(awk "/^HIDEBUG  custom sfd /{s=1; next} s==1 && /^HIDEBUG/{print; s=0; next} s==1 && /^sleep 2\$/{s=0}" "$T/calls.log")" ]' "leu o gfd sem a pausa depois do sfd"
+  afirma '[ -z "$(grep "^HIDEBUG" "$T/calls.log" | grep -vE "^HIDEBUG  custom (gfs 0 gfs 1 gbri 0|gfd|gfdr|sfd [0-9]+) quit $")" ]' "outro comando no hidebug: $(grep "^HIDEBUG" "$T/calls.log" | grep -vE "custom (gfs 0 gfs 1 gbri 0|gfd|gfdr|sfd [0-9]+) quit" | head -2)"
+  limpa
+
+  novo_cenario "foco: varredura sem ganho (o borrao e do lado) = volta a posicao inicial por baixo"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1000 > "$T/foco-otimo"; echo 2.0 > "$T/foco-lado"
+  roda_suite tomada
+  afirma '[ "$(sfds)" = "880 920 960 1000 1040 1080 1120 960 1000 " ]' "posicoes: $(sfds)"
+  afirma '[ "$(cat "$T/foco-pos")" = 1000 ] && [ "$(res foco_varredura)" = sem_ganho ] && [ "$(res foco_pos_final)" = 1000 ]' "fim: pos=$(cat "$T/foco-pos") $(res foco_varredura) $(res foco_pos_final)"
+  afirma '[ "$(item_de Foco)" = "Foco|irregular|atencao" ] && grep -q "nada melhorou (sem_ganho): o foco voltou a 1000" "$S/ultimo.log"' "foco: $(item_de Foco)"
+  limpa
+
+  novo_cenario "foco: motor recusa andar (Motor is too hot) = para no 1o passo e devolve"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1080 > "$T/foco-otimo"; : > "$T/foco-trava"
+  roda_suite tomada
+  afirma '[ "$(sfds)" = "880 960 1000 " ] && [ "$(res foco_varredura)" = falhou ] && [ "$(res foco_pos_final)" = 1000 ]' "posicoes: $(sfds) $(res foco_varredura) $(res foco_pos_final)"
+  afirma '[ "$(chamadas "nl_camcheck geometria")" = 3 ]' "mediu com o motor parado: $(chamadas "nl_camcheck geometria") geometrias"
+  limpa
+
+  novo_cenario "foco: hidebug para de responder no meio = manda voltar a posicao inicial e avisa"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1080 > "$T/foco-otimo"; echo 4 > "$T/foco-mudo-apos"
+  roda_suite tomada
+  afirma '[ "$(sfds | awk "{print \$NF}")" = 1000 ] && [ "$(cat "$T/foco-pos")" = 1000 ]' "nao mandou voltar: $(sfds) pos=$(cat "$T/foco-pos")"
+  afirma '[ "$(res foco_varredura)" = nao_voltou ] && grep -q "NAO confirmei a volta do foco a 1000" "$S/ultimo.log"' "varredura: $(res foco_varredura)"
+  limpa
+
+  novo_cenario "foco: autofoco ainda em curso = a varredura nao mexe no motor"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1080 > "$T/foco-otimo"
+  sed -i 's/^sys.newlink.auto=.*/sys.newlink.auto=1/' "$T/props"
+  roda_suite tomada
+  afirma '[ -z "$(sfds)" ] && [ "$(res foco_varredura)" = pulada ]' "mexeu: $(sfds) $(res foco_varredura)"
+  limpa
+
+  novo_cenario "foco: suite morta no meio da varredura = o trap devolve o motor"
+  etapa_feliz; echo 1000 > "$T/foco-pos"; echo 1080 > "$T/foco-otimo"; echo 2 > "$T/mata-no-sleep"
+  roda_suite tomada
+  afirma '[ "$(cat "$T/foco-pos")" = 1000 ] && [ "$(res foco_varredura)" = interrompida ] && grep -q "saindo no meio da varredura de foco: devolvendo o motor a 1000" "$S/ultimo.log"' "pos=$(cat "$T/foco-pos") $(res foco_varredura) sfd=$(sfds)"
   limpa
 }
 
@@ -1604,7 +1745,9 @@ c_estaticos(){
   afirma '[ "$(grep -c "^INJETADO=71000$" "$KIT/suite.sh")" = 1 ] && ! grep -q "INJETADO=.*\\\$" "$KIT/suite.sh"' "INJETADO nao e o 71000 literal"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -q 75000' "suite.sh cita 75000 fora de comentario"
   afirma '[ "$(grep -c "setprop \"\$PROP_OVERRIDE\"" "$KIT/suite.sh")" = 2 ] && grep -q "setprop \"\$PROP_OVERRIDE\" \"\$INJETADO\"$" "$KIT/suite.sh" && grep -q "setprop \"\$PROP_OVERRIDE\" '"''"'" "$KIT/suite.sh"' "setprop do override fora do padrao (so 71000 e vazio)"
-  # o hidebug: a unica entrada e gfs/gbri; gtt nunca
+  # o hidebug: a unica entrada e gfs/gbri; gtt nunca. Bloco 11: o foco so por hb_foco, que so
+  # deixa passar gfd, gfdr e sfd <numero> (nada de sfd2/sfd3/saps nem GPIO)
+  afirma '[ "$(grep -c "| timeout 15 \"\$HIDEBUG\"" "$KIT/suite.sh")" = 2 ] && grep -q "^    gfd|gfdr) ;;$" "$KIT/suite.sh" && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qE "sfd2|sfd3|saps|/proc/msp/gpio"' "o hidebug recebe algo fora de gfs/gbri e gfd/gfdr/sfd"
   afirma '[ "$(grep -c "HIDEBUG" "$KIT/suite.sh")" -ge 1 ] && ! grep -vE "^[[:space:]]*#" "$KIT/suite.sh" | grep -qiE "gtt"' "suite.sh cita gtt fora de comentario"
   # (bloco 15: o suite-pedido.sh passa a falar com o hidebug so para a luz, "sbl" e "gbl"; gtt nunca)
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" "$KIT/suite-pedido.sh" | grep -qiE "gtt"' "boot/pedido citam gtt"
@@ -1628,7 +1771,7 @@ echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
 for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot \
-         c_etapas_cor c_etapas_geometria c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente}; do
+         c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente}; do
   echo "  $c"
   "$c"
 done
@@ -1640,6 +1783,8 @@ CASO="global"
 afirma '[ -z "$(valores_longos)" ]' "valor de item longo demais: $(valores_longos | tr '\n' '|')"
 afirma '[ "$(grep -c "^item=" "$TODAS_CAMPOS")" -ge 300 ]' "poucos resumos gerados nos cenarios ($(grep -c "^item=" "$TODAS_CAMPOS"))"
 afirma '! grep -q "^GTT" "$TODAS" && ! grep -q "^HIDEBUG.*gtt" "$TODAS"' "gtt chamado em algum cenario"
+afirma '[ -z "$(grep "^HIDEBUG.* \(gfd\|gfdr\|sfd\)" "$TODAS" | grep -vE "^HIDEBUG  custom (gfd|gfdr|sfd [0-9]+) quit $")" ]' "o motor de foco recebeu outro comando: $(grep "^HIDEBUG.* \(gfd\|gfdr\|sfd\)" "$TODAS" | grep -vE "custom (gfd|gfdr|sfd [0-9]+) quit" | head -2)"
+afirma '[ "$(grep -c "^HIDEBUG  custom sfd " "$TODAS")" -ge 10 ]' "a varredura quase nao rodou nos cenarios"
 afirma '[ -z "$(grep "^setprop $PROP_OV" "$TODAS" | grep -v "^setprop $PROP_OV 71000$" | grep -v "^setprop $PROP_OV $")" ]' "o override recebeu outro valor: $(grep "^setprop $PROP_OV" "$TODAS" | sort -u | tr '\n' '|')"
 afirma '! grep -q 75000 "$TODAS"' "75000 apareceu em alguma chamada"
 afirma '[ "$(grep -c "^setprop $PROP_OV 71000$" "$TODAS")" -ge 5 ]' "a rampa quase nao rodou nos cenarios ($(grep -c "^setprop $PROP_OV 71000$" "$TODAS"))"
