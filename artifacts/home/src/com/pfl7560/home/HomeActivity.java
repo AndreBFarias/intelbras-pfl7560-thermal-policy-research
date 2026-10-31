@@ -82,7 +82,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                 return;
             }
         }
-        modelo = Modelo.padrao();
+        modelo = Modelo.padrao(Leitor.temUsbC());
         modelo.relogio(Calendar.getInstance());
         vista = new HomeView(this, modelo, this);
         setContentView(vista);
@@ -182,12 +182,13 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             @Override
             public void run() {
                 final boolean ok = Leitor.pedirLuz(app, nivel);
+                final int atual = ok ? nivel : Leitor.luzAtual(app);
                 principal.post(new Runnable() {
                     @Override
                     public void run() {
                         if (isDestroyed()) return;
                         if (!ok) {
-                            modelo.luz = Leitor.luzAtual(app);
+                            modelo.luz = atual;
                             modelo.aviso = "Não consegui pedir a luz";
                         }
                         vista.invalidate();
