@@ -49,6 +49,8 @@ Fotos da sessão de abertura do aparelho. Usadas no dossiê [`docs/dossie-teardo
 
 ## Auditoria de privacidade pré-publicação (sprint REPO-S2)
 
+Os outros pré-requisitos para publicar estão em [`docs/disclosure/STATUS.md`](../docs/disclosure/STATUS.md).
+
 Revisão visual das 8 fotos: **2 publicáveis como estão, 6 exigem redação/crop antes de tornar o repo
 público, nenhuma precisa ser expurgada por completo.** Guarde as cópias **não** redigidas (com serial)
 fora do Git, só para o destino jurídico/CDC.
