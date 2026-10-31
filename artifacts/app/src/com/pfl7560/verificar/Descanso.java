@@ -18,6 +18,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Descanso de tela MeowCast (bloco 16B): fundo da marca, o nome em Plex Condensed Bold e, menor e
@@ -33,6 +35,9 @@ public class Descanso extends DreamService {
     private static final float[][] LUGARES = {
         {0f, 0f}, {-0.7f, -0.6f}, {0.7f, 0.5f}, {-0.6f, 0.6f}, {0.6f, -0.5f},
     };
+
+    /** Uma thread so para os pedidos: descanso-inicio sempre chega antes do descanso-fim. */
+    private static final ExecutorService PEDIDOS = Executors.newSingleThreadExecutor();
 
     private final Handler maos = new Handler(Looper.getMainLooper());
     private final SimpleDateFormat formato = new SimpleDateFormat("HH:mm", Locale.US);
@@ -110,10 +115,10 @@ public class Descanso extends DreamService {
         super.onDreamingStopped();
     }
 
-    /** Grava o pedido $nome na pasta privada do app, fora da thread da interface. */
+    /** Grava o pedido $nome na pasta privada do app, fora da thread da interface e em ordem. */
     private void pedir(final String nome) {
         final File f = new File(getDataDir(), nome);
-        new Thread(new Runnable() {
+        PEDIDOS.execute(new Runnable() {
             @Override
             public void run() {
                 try (FileOutputStream o = new FileOutputStream(f)) {
@@ -122,7 +127,7 @@ public class Descanso extends DreamService {
                     // sem o pedido a luz so nao muda; o descanso segue igual
                 }
             }
-        }).start();
+        });
     }
 
     @Override
