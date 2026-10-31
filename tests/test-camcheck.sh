@@ -191,6 +191,14 @@ afirma '! grep -q "VIDIOC_S_CTRL\|VIDIOC_S_EXT_CTRLS" "$ROOT/artifacts/camcheck/
 # o binario ARM do kit e o versionado em artifacts/ sao o mesmo
 afirma 'cmp -s "$ROOT/artifacts/camcheck/nl_camcheck" "$ROOT/pendrive-autorun/nl_camcheck"' "pendrive-autorun/nl_camcheck difere de artifacts/camcheck/nl_camcheck"
 afirma 'file "$ROOT/pendrive-autorun/nl_camcheck" | grep -q "ELF 32-bit LSB.*ARM"' "pendrive-autorun/nl_camcheck nao e um ELF ARM"
+# e e o binario deste .c (bloco 9A mudou o fonte): recompila com o NDK, se houver, e compara
+NDK_CC="${ANDROID_NDK:-$HOME/Android/android-ndk-r27c}/toolchains/llvm/prebuilt/linux-x86_64/bin/armv7a-linux-androideabi24-clang"
+if [ -x "$NDK_CC" ]; then
+  ( cd "$ROOT" && "$NDK_CC" -O2 -Wall -o "$T/nl_camcheck.arm" artifacts/camcheck/nl_camcheck.c -lm ) 2>"$T/ndk.err"
+  afirma 'cmp -s "$T/nl_camcheck.arm" "$ROOT/artifacts/camcheck/nl_camcheck"' "artifacts/camcheck/nl_camcheck nao e o binario deste nl_camcheck.c: $(head -3 "$T/ndk.err")"
+else
+  echo "  (NDK ausente em $NDK_CC: binario ARM nao recompilado para comparar)"
+fi
 
 echo "----"
 echo "$TESTES verificacoes, $FALHAS falha(s)"
