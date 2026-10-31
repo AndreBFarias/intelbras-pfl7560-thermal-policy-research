@@ -10,7 +10,6 @@ public final class Acoes {
     public static final String BLUETOOTH = "bluetooth";
     public static final String IMAGEM = "imagem";
     public static final String CONFIG = "config";
-    public static final String ESPELHAR = "espelhar";
     /** Abre o painel de luz do proprio app (nao passa pelo Abridor). */
     public static final String LUZ = "luz";
 

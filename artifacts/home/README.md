@@ -1,7 +1,7 @@
 # Home PFL7560 (`com.pfl7560.home`, bloco 10A)
 
 Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1,
-HDMI 2, USB-C), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Imagem, Luz, Configurações, Espelhamento),
+HDMI 2, USB-C), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Imagem, Luz, Configurações),
 **Apps** e uma linha de estado (rede e temperatura do LED). Só D-pad, com o foco em rosa. Pesquisa, intents,
 riscos e desenho: [doc 45](../../docs/research/45-home-pfl7560.md).
 
@@ -17,6 +17,11 @@ valor em `luz-atual` (lido de volta pelo app). O nível escolhido fica guardado 
 boot (`suite-boot.sh`). Doc 44 (vigia) e doc 45 (home).
 
 ![painel de luz](previa/home-painel-luz.png)
+
+## Sem Espelhamento nem os apps desligados (bloco 16B)
+
+O atalho Espelhamento saiu e a fileira Apps nunca mostra o Office, o iOSCast nem o Espelhamento (`Modelo.OCULTOS`),
+que o dono mandou desligar. Doc 45 §12.
 
 ## Ligar e desligar (sem exceção, nesta ordem)
 
@@ -45,7 +50,7 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 3`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
+`minSdk 28`, `targetSdk 28`, `versionCode 4`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
 ambas normais.
 
 ## Código

@@ -38,8 +38,6 @@ final class Abridor {
                         || iniciar(a, acao(Settings.ACTION_SETTINGS));
             case Acoes.CONFIG:
                 return iniciar(a, acao(Settings.ACTION_SETTINGS));
-            case Acoes.ESPELHAR:
-                return iniciar(a, lancador(a, "com.hisilicon.miracast")) || iniciar(a, lancador(a, "com.newlink.cast"));
             default:
                 return false;
         }
@@ -86,15 +84,6 @@ final class Abridor {
 
     private static Intent componente(String pacote, String classe) {
         return new Intent().setComponent(new ComponentName(pacote, classe)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    }
-
-    private static Intent lancador(Activity a, String pacote) {
-        try {
-            Intent i = a.getPackageManager().getLaunchIntentForPackage(pacote);
-            return i == null ? null : i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        } catch (RuntimeException e) {
-            return null;
-        }
     }
 
     private static boolean iniciar(Activity a, Intent i) {

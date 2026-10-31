@@ -28,7 +28,7 @@ BT="$SDK/build-tools/${BUILD_TOOLS:-35.0.0}"
 JAR="$SDK/platforms/${PLATAFORMA:-android-34}/android.jar"
 APKSIGNER="${APKSIGNER:-$(command -v apksigner || echo "$BT/apksigner")}"
 
-VERSAO_CODIGO=2          # inteiro; sobe a cada APK novo (o kit instala por cima quando muda)
+VERSAO_CODIGO=3          # inteiro; sobe a cada APK novo (o kit instala por cima quando muda)
 VERSAO_NOME="1.0"
 MIN_SDK=28
 TARGET_SDK=28
@@ -36,23 +36,28 @@ KS="$AQUI/assinatura.keystore"
 KS_ALIAS="pfl7560"
 KS_SENHA="pfl7560app"    # nao e segredo (ver acima)
 SAIDA="$AQUI/pfl7560.apk"
+FONTES="$RAIZ/pendrive-autorun/fontes"
 COPIA_KIT="$RAIZ/pendrive-autorun/pfl7560.apk"
 
-for f in "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER"; do
+for f in "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER" \
+         "$FONTES/IBMPlexSansCondensed-Bold.ttf" "$FONTES/OFL.txt"; do
   [ -e "$f" ] || { echo "FALTA: $f" >&2; exit 1; }
 done
 for c in javac zip; do command -v "$c" >/dev/null || { echo "FALTA o comando $c" >&2; exit 1; }; done
 
 B="$(mktemp -d)"
 trap 'rm -rf "$B"' EXIT
-mkdir -p "$B/gen" "$B/classes" "$B/dex"
+mkdir -p "$B/gen" "$B/classes" "$B/dex" "$B/assets/fontes"
+# so o Bold do nome do descanso (bloco 16B), com a licenca
+cp "$FONTES/IBMPlexSansCondensed-Bold.ttf" "$FONTES/OFL.txt" "$B/assets/fontes/"
+touch -d '2026-01-01 00:00:00' "$B/assets/fontes/"*
 
 echo ">> recursos (aapt2 compile + link)"
 "$BT/aapt2" compile --dir "$AQUI/res" -o "$B/res.zip"
 "$BT/aapt2" link -o "$B/base.apk" -I "$JAR" --manifest "$AQUI/AndroidManifest.xml" \
   --min-sdk-version "$MIN_SDK" --target-sdk-version "$TARGET_SDK" \
   --version-code "$VERSAO_CODIGO" --version-name "$VERSAO_NOME" \
-  --java "$B/gen" "$B/res.zip"
+  -A "$B/assets" --java "$B/gen" "$B/res.zip"
 
 echo ">> java (javac --release 8)"
 find "$AQUI/src" "$B/gen" -name '*.java' | sort > "$B/fontes.txt"

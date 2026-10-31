@@ -119,7 +119,7 @@ public final class Previa {
     /** 4 do firmware + um exemplo de cada desenho + monogramas de letras e cores diferentes. */
     private static List<Item> completo(List<Item> firmware) {
         List<Item> l = new ArrayList<Item>(firmware);
-        l.add(Item.app("Office (exemplo)", "com.mobisystems.office", ""));
+        l.add(Item.app("Office (oculto)", "com.mobisystems.editor.office_registered", ""));
         l.add(Item.app("Galeria (exemplo)", "com.hisilicon.higallery", ""));
         l.add(Item.app("Navegador (exemplo)", "com.android.browser", ""));
         l.add(Item.app("Loja (exemplo)", "com.android.vending", ""));
@@ -206,7 +206,8 @@ public final class Previa {
         verdade(m.fileira == Modelo.ENTRADAS && m.coluna == 0, "comeca em HDMI 1");
         verdade(!m.mover(-1, 0) && !m.mover(0, -1), "nada acima nem a esquerda de HDMI 1");
         verdade(m.mover(1, 0) && m.mover(1, 0) && !m.mover(1, 0), "tres entradas");
-        verdade(m.mover(0, 1) && m.fileira == Modelo.ATALHOS && m.coluna == 6, "de USB-C desce para Espelhamento");
+        verdade(m.mover(0, 1) && m.fileira == Modelo.ATALHOS && m.coluna == 5, "de USB-C desce para Configuracoes");
+        verdade(m.atalhos.length == 6 && !m.mover(1, 0), "seis atalhos, Configuracoes e o ultimo");
         verdade(m.mover(0, 1) && m.fileira == Modelo.APPS, "desce para os apps");
         verdade(!m.mover(0, 1), "nada abaixo dos apps");
         m.inicio();
@@ -224,11 +225,17 @@ public final class Previa {
         verdade(z.nivelLuz() == 60 || z.nivelLuz() == 80, "abre no nivel mais perto do atual");
         z.inicio();
         verdade(!z.luzAberta, "HOME fecha o painel de luz");
+        Modelo o = base();
+        List<Item> com = new ArrayList<Item>(apps);
+        for (String pk : Modelo.OCULTOS) com.add(Item.app("Oculto " + pk, pk, ""));
+        o.definirApps(com);
+        verdade(o.apps.size() == m.apps.size() && !m.apps.isEmpty(), "a fileira Apps nao traz Office, iOSCast nem Espelhamento");
+        for (Item it : o.apps) verdade(!Modelo.OCULTOS.contains(it.pacote), "oculto na fileira: " + it.pacote);
         Modelo v = base();
         v.definirApps(new ArrayList<Item>());
         v.mover(0, 1);
         verdade(!v.mover(0, 1) && v.fileira == Modelo.ATALHOS, "sem apps, a fileira vazia nao pega foco");
-        System.out.println("navegacao: 15 conferencias ok");
+        System.out.println("navegacao: conferencias ok");
     }
 
     private static void verdade(boolean b, String o) {

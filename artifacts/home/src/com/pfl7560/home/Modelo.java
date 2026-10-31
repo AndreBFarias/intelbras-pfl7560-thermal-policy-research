@@ -1,6 +1,7 @@
 package com.pfl7560.home;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
@@ -16,6 +17,14 @@ public final class Modelo {
 
     public static final int APPS_CARREGANDO = 0;
     public static final int APPS_PRONTOS = 1;
+
+    /**
+     * Apps que o dono mandou desligar (pm disable-user, 2026-10-31): Office, iOSCast e Espelhamento.
+     * O PackageManager ja nao os lista; a lista aqui garante a fileira Apps sem eles mesmo que um
+     * volte a ligar (atualizacao de firmware, redefinicao).
+     */
+    public static final List<String> OCULTOS = Collections.unmodifiableList(Arrays.asList(
+            "com.mobisystems.editor.office_registered", "com.newlink.cast", "com.hisilicon.miracast"));
 
     public final Item[] entradas;
     public final Item[] atalhos;
@@ -62,7 +71,6 @@ public final class Modelo {
             new Item("Imagem", Icones.IMAGEM, Acoes.IMAGEM),
             new Item("Luz", Icones.LUZ, Acoes.LUZ),
             new Item("Configurações", Icones.CONFIG, Acoes.CONFIG),
-            new Item("Espelhamento", Icones.ESPELHAR, Acoes.ESPELHAR),
         });
     }
 
@@ -117,7 +125,12 @@ public final class Modelo {
     }
 
     public void definirApps(List<Item> lista) {
-        apps = lista == null ? Collections.<Item>emptyList() : new ArrayList<Item>(lista);
+        apps = new ArrayList<Item>();
+        if (lista != null) {
+            for (Item it : lista) {
+                if (it.pacote == null || !OCULTOS.contains(it.pacote)) apps.add(it);
+            }
+        }
         estadoApps = APPS_PRONTOS;
         if (apps.isEmpty()) {
             primeiroApp = 0;

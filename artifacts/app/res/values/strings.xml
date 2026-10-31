@@ -3,6 +3,7 @@
     <string name="app_nome">PFL7560</string>
     <string name="verificar_nome">Verificar projetor</string>
     <string name="wifi_nome">Wi-Fi</string>
+    <string name="descanso_nome">MeowCast</string>
     <string name="verificar_ok_titulo">Verificação pedida.</string>
     <string name="verificar_ok_texto">O projetor começa em instantes.</string>
     <string name="verificar_erro_titulo">Não consegui pedir a verificação.</string>

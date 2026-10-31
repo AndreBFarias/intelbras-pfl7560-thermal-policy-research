@@ -99,7 +99,9 @@ exit 0'
 f=$(echo "$*" | sed "s#.*-d file://\([^ ]*\).*#\1#")
 [ -f "$PFL_ROOT$f" ] || echo "AM_ARQUIVO_AUSENTE $f" >> "$T/calls.log"
 exit 0'
+  # query-services: o descanso do app (bloco 16B), ausente com $T/sem-descanso
   stub cmd 'echo "cmd $*" >> "$T/calls.log"
+case "$*" in *query-services*) [ -f "$T/sem-descanso" ] || echo "com.pfl7560.verificar/.Descanso"; exit 0 ;; esac
 echo "priority=0 isDefault=false"; echo "com.hisilicon.higallery/.NetworkHiGallery"'
   stub logcat 'echo "logcat $*" >> "$T/calls.log"; [ -f "$T/logcat-saida" ] && cat "$T/logcat-saida"; exit 0'
   # hidebug: registra os argumentos e a entrada (o gtt chegaria por ela); saida de mentira.
@@ -154,12 +156,30 @@ if [ -f "$T/mata-no-sleep" ] && [ "$1" = "$(cat "$T/mata-no-sleep")" ]; then rm 
 exit 0'
   stub input 'echo "input $*" >> "$T/calls.log"'
   # alerta de sistema do firmware: "$T/alerta" = quantas consultas ainda o mostram focado
-  stub dumpsys 'n=$(cat "$T/alerta" 2>/dev/null || echo 0)
+  stub dumpsys 'case "$1" in package) [ -f "$T/dumpsys-descanso" ] && echo "  1a2b com.pfl7560.verificar/.Descanso filter 3c4d"; exit 0 ;; esac
+n=$(cat "$T/alerta" 2>/dev/null || echo 0)
 p=$(cat "$T/alerta-pacote" 2>/dev/null || echo com.newlink.nlprovision)
 if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 $p}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
   stub wm 'echo "Physical size: 1920x1080"'
   stub dmesg '[ -f "$T/dmesg" ] && cat "$T/dmesg"; exit 0'
   stub inotifyd 'echo "inotifyd $*" >> "$T/calls.log"; exit 0'
+  # settings (bloco 16B): "$T/settings.db" guarda "ns chave=valor"; get de chave ausente = "null"
+  # (como o do aparelho); put falha com $T/settings-falha
+  cat > "$b/settings" <<'FIM'
+#!/bin/sh
+echo "settings $*" >> "$T/calls.log"
+case "$1" in
+  get)
+    v=$(awk -v k="$2 $3" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2) } END { print v }' "$T/settings.db" 2>/dev/null)
+    if [ -n "$v" ]; then echo "$v"; else echo null; fi ;;
+  put)
+    [ -f "$T/settings-falha" ] && exit 1
+    awk -v k="$2 $3" 'index($0, k "=") != 1' "$T/settings.db" > "$T/settings.novo" 2>/dev/null
+    echo "$2 $3=$4" >> "$T/settings.novo"; mv "$T/settings.novo" "$T/settings.db" ;;
+esac
+exit 0
+FIM
+  chmod +x "$b/settings"
   stub mount 'echo "mount $*" >> "$T/calls.log"; exit 0'
   stub chcon 'echo "chcon $*" >> "$T/calls.log"; exit 0'
   stub chown 'echo "chown $*" >> "$T/calls.log"; exit 0'
@@ -438,6 +458,60 @@ c_vigia(){
   else
     echo "  (o host tem inotifyd: caso do laco pulado)"
   fi
+}
+
+# descanso de tela MeowCast (bloco 16B): o suite-boot.sh aponta o sistema para o .Descanso
+sdb(){ awk -v k="secure $1" 'index($0, k "=") == 1 { print substr($0, length(k) + 2) }' "$T/settings.db" 2>/dev/null; }
+c_descanso(){
+  local D="com.pfl7560.verificar/.Descanso" FAB="com.newlink.screensaver/com.newlink.screensaver.ScreenService"
+  novo_cenario "descanso: do fabricante = o boot aponta as duas chaves para o MeowCast"
+  instala_suite
+  printf 'secure screensaver_components=%s\nsecure screensaver_default_component=%s\n' "$FAB" "$FAB" > "$T/settings.db"
+  roda_boot
+  afirma '[ "$(sdb screensaver_components)" = "$D" ] && [ "$(sdb screensaver_default_component)" = "$D" ]' "chaves: $(tr '\n' '|' < "$T/settings.db")"
+  afirma 'grep -q "descanso: screensaver_components era" "$S/boot.log"' "log sem a troca"
+  limpa
+
+  novo_cenario "descanso: chaves vazias (null) tambem sao apontadas; segundo boot nao regrava"
+  instala_suite
+  roda_boot
+  afirma '[ "$(sdb screensaver_components)" = "$D" ] && [ "$(sdb screensaver_default_component)" = "$D" ]' "chaves: $(tr '\n' '|' < "$T/settings.db")"
+  : > "$T/calls.log"
+  roda_boot
+  afirma '! grep -q "^settings put" "$T/calls.log" && grep -q "screensaver_components ja e" "$S/boot.log"' "regravou o que ja estava certo: $(grep '^settings' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso: so uma chave errada = so ela e regravada"
+  instala_suite
+  printf 'secure screensaver_components=%s\nsecure screensaver_default_component=%s\n' "$D" "$FAB" > "$T/settings.db"
+  roda_boot
+  afirma '[ "$(chamadas "settings put")" = 1 ] && [ "$(sdb screensaver_default_component)" = "$D" ]' "puts: $(grep '^settings put' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso: servico ausente (cmd e dumpsys nao o veem) = nao mexe em nada"
+  instala_suite; : > "$T/sem-descanso"
+  printf 'secure screensaver_components=%s\n' "$FAB" > "$T/settings.db"
+  roda_boot
+  afirma '[ "$(chamadas "settings put")" = 0 ] && [ "$(sdb screensaver_components)" = "$FAB" ]' "mexeu sem o servico: $(cat "$T/settings.db")"
+  afirma 'grep -q "descanso: o servico $D nao existe" "$S/boot.log"' "log sem o aviso"
+  limpa
+
+  novo_cenario "descanso: o cmd nao responde mas o dumpsys package ve o servico = aponta"
+  instala_suite; : > "$T/sem-descanso"; : > "$T/dumpsys-descanso"
+  roda_boot
+  afirma '[ "$(sdb screensaver_components)" = "$D" ]' "reserva do dumpsys nao funcionou: $(cat "$T/settings.db" 2>/dev/null)"
+  limpa
+
+  novo_cenario "descanso: com qualquer gatilho (nunca) o boot tambem aponta; falha do put so avisa"
+  instala_suite; echo nunca > "$S/gatilho"
+  roda_boot
+  afirma '[ "$(sdb screensaver_components)" = "$D" ] && [ "$RC" = 0 ]' "gatilho nunca nao ligou o descanso (rc=$RC)"
+  limpa
+  novo_cenario "descanso: put que falha = aviso no log, o boot segue (vigia ligado)"
+  instala_suite; : > "$T/settings-falha"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && grep -q "AVISO.*nao consegui gravar screensaver_components" "$S/boot.log" && tem_chamada "inotifyd $S/suite-pedido.sh $PED:wwy"' "o boot parou no put (rc=$RC): $(tail -4 "$S/boot.log" | tr '\n' '|')"
+  limpa
 }
 
 c_pedido(){
@@ -748,9 +822,11 @@ c_desinstalar(){
   echo "$vp" > "$R/dev/pfl7560-suite.vigia"
   mkdir -p "$R/sdcard/pfl7560-suite" "$PED"; : > "$PED/pedir-verificacao"; : > "$PED/do-app"
   printf '%s\n' "persist.sys.boot.reason=pfl7560,ligado" >> "$T/props"
+  printf 'secure screensaver_components=com.pfl7560.verificar/.Descanso\nsecure screensaver_default_component=com.pfl7560.verificar/.Descanso\n' > "$T/settings.db"
   : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
   roda_kit
   wait "$vp" 2>/dev/null; local vrc=$?
+  afirma '[ "$(grep "^secure screensaver_components=" "$T/settings.db" | cut -d= -f2)" = "com.newlink.screensaver/com.newlink.screensaver.ScreenService" ] && [ "$(grep "^secure screensaver_default_component=" "$T/settings.db" | cut -d= -f2)" = "com.newlink.screensaver/com.newlink.screensaver.ScreenService" ]' "o desinstalar nao devolveu o descanso do fabricante: $(tr '\n' '|' < "$T/settings.db")"
   afirma 'tem_chamada "setprop persist.sys.boot.reason "' "desinstalar deixou a marca pfl7560,ligado"
   afirma '[ ! -e "$R/vendor/etc/init/pfl7560-suite.rc" ]' "o .rc ficou"
   afirma '[ ! -e "$S" ] && [ ! -e "$PED/pedir-verificacao" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, o pedido ou a pasta das telas ficou"
@@ -1365,7 +1441,7 @@ c_estaticos(){
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
-for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_pedido c_luz c_instalacao c_desinstalar \
+for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar \
          c_etapas_cor c_etapas_geometria c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente}; do
   echo "  $c"
   "$c"

@@ -6,6 +6,11 @@
     <color name="texto">#FFF8F8F2</color>
     <color name="secundario">#FFB4BCCF</color>
     <color name="atencao">#FFFF5555</color>
+    <!-- descanso de tela MeowCast (bloco 16B): fundo e nome sao os da marca (artifacts/tema/gerar-marca.py);
+         a hora e o nome a 65% sobre o fundo, mais apagada -->
+    <color name="marca_fundo">#FF120B1A</color>
+    <color name="marca_nome">#FF9D7AD0</color>
+    <color name="marca_hora">#FF6C5390</color>
     <style name="Tema" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/fundo</item>
         <item name="android:windowFullscreen">true</item>
