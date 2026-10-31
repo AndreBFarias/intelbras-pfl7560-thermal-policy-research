@@ -278,4 +278,5 @@ def main():
     print(SAIDA)
 
 
-main()
+if __name__ == "__main__":
+    main()
