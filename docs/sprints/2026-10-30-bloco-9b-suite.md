@@ -238,3 +238,17 @@ Para o 9C documentar: `DESINSTALAR-SUITE.txt` agora leva a cópia do backup para
   poderia trocar o PNG entre a gravação e a exibição e mostrar uma tela falsa. O impacto é só visual. O sdcardfs
   não aceita links simbólicos, então essa troca não vira escrita como root em outro lugar. É o mesmo caminho que
   o `cor.sh` usa e que foi provado no aparelho.
+
+## Estado (fechamento, 9C, 2026-10-30)
+
+O que o 9B pediu ao 9C está feito: o `DESINSTALAR-SUITE.txt` (com a cópia do backup para o pendrive como
+`suite-panelparam-backup-<serial>.img`), o arquivo `incompletas` e o motivo `interrompida_2x_seguidas`, o limite das
+telas mostradas a partir de `/sdcard/pfl7560-suite` e o instalador (`install.sh`, `install.bat`, `INSTALL.md` e
+`LEIA-ME.txt` listam o kit inteiro, com `nl_tela`, `fontes/` e o APK) estão em
+[`docs/research/44-suite-de-boot.md`](../research/44-suite-de-boot.md) (seções 3, 8 e 9) e no `LEIA-ME.txt` do kit.
+O app que escreve o pedido na pasta privada existe (`artifacts/app/`), e o `newlink_update.sh` o instala antes de
+lançar a suíte (`pm install -r`, falha não para o kit; versionCode conferido).
+
+Provas na árvore do 9C: `tests/test-suite.sh` com 373 verificações e `tests/test-kit-pendrive.sh` com 547 (inclui os
+casos novos do app), sem falha. **Só o aparelho confirma:** todas as linhas PROVISÓRIO acima, reunidas na seção 11 do
+doc 44, e o caso "dono do arquivo diferente do dono da pasta" (passo 6 do roteiro).

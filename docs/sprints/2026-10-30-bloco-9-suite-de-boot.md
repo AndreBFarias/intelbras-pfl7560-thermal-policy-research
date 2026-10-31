@@ -157,3 +157,26 @@ caixa. 9C entrega a ferramenta de medida; a medida é do teste final.
 4. Inclinar o projetor de propósito: confirmar o sinal de `inclinacao_graus` e a dica.
 5. Ícone "Verificar projetor" e "Wi-Fi" na tela inicial.
 6. Ferramenta de processos em repouso; 7. `pfl7560-saude.sh --vivacidade` verde depois de tudo.
+
+## Estado (fechamento do bloco, 9C, 2026-10-30)
+
+Tudo o que o bloco pedia está **em código e provado só em simulação**. Nada rodou no aparelho: os testes dele
+são o roteiro único da seção 12 de [`docs/research/44-suite-de-boot.md`](../research/44-suite-de-boot.md), que
+é também a documentação final da suíte.
+
+| Parte | Estado | Onde |
+|---|---|---|
+| P, pesquisa | feita ([doc 43](../research/43-pesquisa-autofoco-keystone-teclas.md)) | autofoco e `sys.newlink.auto`, 4 pontos, tecla (não há caminho), modo de projeção, launcher |
+| 9A, `nl_tela` e `nl_camcheck geometria` | feita, integrada | [9A](2026-10-30-bloco-9a-tela-e-geometria.md) |
+| 9B, a suíte, o serviço e os gatilhos | feita, integrada (com a revisão de segurança do pedido do app) | [9B](2026-10-30-bloco-9b-suite.md) |
+| 9C, app, pendrive, processos e documentos | feita | [9C](2026-10-30-bloco-9c-app-pendrive-docs.md) |
+
+Das decisões do dono, ficaram **fora** (com o porquê no doc 44, seção 10): a tecla do controle (o mapa de teclas
+é fixo e a única ação configurável é de teclas que o controle comum provavelmente não tem), o item no menu de
+configurações (menu do fabricante, sem ponto de extensão) e o ajuste automático dos 4 pontos (a suíte mede e
+aconselha). A pergunta dos processos em segundo plano ganhou a ferramenta de medida (`pfl7560-processos.sh`); a
+medida é do teste final (passo 14).
+
+O que falta, tudo no aparelho: a seção 12 do doc 44 inteira, em especial o gatilho da tomada (os sinais de
+`sys.boot.reason` e do relógio depois de faltar energia), o sinal da inclinação, o `pm install` do app, o
+`inotifyd` e as telas do `nl_tela` na galeria. O que ficou PROVISÓRIO está na seção 11 do doc 44.
