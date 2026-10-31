@@ -1560,7 +1560,7 @@ c_telas(){
     afirma '[ "$(chamadas getevent)" = 1 ] && tem_chamada "input keyevent KEYCODE_HOME"' "resumo sem a espera de tecla ou sem voltar ao inicio"
     afirma '[ "$(tail -2 "$T/calls.log" | head -1)" = "am force-stop com.hisilicon.higallery" ]' "a galeria nao foi fechada antes do HOME"
     afirma '[ -z "$(grep "^am start" "$T/calls.log" | grep -v "file:///sdcard/pfl7560-")" ] && ! grep -q AM_ARQUIVO_AUSENTE "$T/calls.log"' "tela fora de /sdcard ou ausente"
-    afirma 'grep -qF "rodape=$( [ "$modo" = tomada ] && echo "queda de energia" || echo "verifica\u00e7\u00e3o pedida") \u00b7 " "$(campos resumo resumo)"' "rodape do resumo"
+    afirma 'grep -qF "rodape=$( [ "$modo" = tomada ] && echo "rel\u00f3gio zerado" || echo "verifica\u00e7\u00e3o pedida") \u00b7 " "$(campos resumo resumo)"' "rodape do resumo"
     if [ "$modo" = tomada ]; then
       afirma 'grep -qxF "titulo=Voltou a energia.\nConferindo o projetor." "$(campos aviso abertura)"' "titulo da abertura da tomada"
     else
@@ -1572,6 +1572,22 @@ c_telas(){
     afirma 'grep -q "suite terminada" "$S/ultimo.log" && [ ! -e "$S/resultados.txt.new" ] && [ ! -d "$R/dev/pfl7560-suite.lock" ]' "fim sujo"
     limpa
   done
+
+  local mot tit mtxt
+  # shellcheck disable=SC2034
+  while IFS='|' read -r mot tit mtxt; do
+    novo_cenario "tomada com motivo $mot: abertura e motivo do resumo proprios"
+    etapa_feliz
+    roda_suite tomada "$mot"
+    afirma 'grep -qxF "titulo=$tit\nConferindo o projetor." "$(campos aviso abertura)"' "titulo da abertura: $(grep "^titulo=" "$(campos aviso abertura)")"
+    afirma '[ "$(item_de "Motivo do boot")" = "Motivo do boot|$mtxt|info" ]' "item: $(item_de "Motivo do boot")"
+    limpa
+  done <<'MOTIVOS'
+queda_de_energia|Voltou a energia.|queda de energia
+gatilho_sempre|Verifica\u00e7\u00e3o de todo boot.|gatilho sempre
+desligamento_nao_limpo|N\u00e3o desligou direito.|n\u00e3o desligou bem
+relogio_zerado|Voltou a energia.|rel\u00f3gio zerado
+MOTIVOS
 
   novo_cenario "modo pendrive: a ultima tela pede para tirar o pendrive; log no pendrive"
   etapa_feliz; pendrive

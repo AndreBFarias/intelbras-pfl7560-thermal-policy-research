@@ -447,8 +447,17 @@ etapa_abertura(){
   novos_campos abertura
   case "$MODO" in
     tomada)
-      campo titulo "Voltou a energia.\nConferindo o projetor."
-      campo texto "O projetor ficou sem energia. Antes de voc\u00ea usar, ele confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+      case "$MOTIVO_BOOT" in
+        gatilho_sempre)
+          campo titulo "Verifica\u00e7\u00e3o de todo boot.\nConferindo o projetor."
+          campo texto "Antes de voc\u00ea usar, o projetor confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+        desligamento_nao_limpo)
+          campo titulo "N\u00e3o desligou direito.\nConferindo o projetor."
+          campo texto "O projetor n\u00e3o desligou direito. Antes de voc\u00ea usar, ele confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+        *)
+          campo titulo "Voltou a energia.\nConferindo o projetor."
+          campo texto "O projetor ficou sem energia. Antes de voc\u00ea usar, ele confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+      esac ;;
     pendrive)
       campo titulo "Pendrive do kit encontrado.\nConferindo o projetor."
       campo texto "A corre\u00e7\u00e3o do kit foi conferida. Agora o projetor confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
@@ -1043,6 +1052,8 @@ ler_sistema(){
     tomada)
       case "$MOTIVO_BOOT" in
         gatilho_sempre) _mb="gatilho sempre" ;;
+        desligamento_nao_limpo) _mb="n\u00e3o desligou bem" ;;
+        relogio_zerado) _mb="rel\u00f3gio zerado" ;;
         *) _mb="queda de energia" ;;
       esac ;;
     pendrive) _mb="pendrive do kit" ;;

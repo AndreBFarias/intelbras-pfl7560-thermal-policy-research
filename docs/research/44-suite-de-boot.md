@@ -188,6 +188,10 @@ o resumo não aparece e o resultado fica só no `resultados.txt`. Visual: fundo 
 estados ok `#6FD6A6`, corrigido `#F2B451`, atenção `#F07560`; margem de 110 px; nada passa da margem (corta com
 reticências e avisa). Detalhes em [`artifacts/tela/README.md`](../../artifacts/tela/README.md).
 
+No modo `tomada`, o título da abertura e o "Motivo do boot" do resumo seguem o motivo do `suite-boot.sh`:
+`queda_de_energia` e `relogio_zerado` abrem com "Voltou a energia.", `gatilho_sempre` com "Verificação de todo boot."
+e `desligamento_nao_limpo` com "Não desligou direito." (bloco 21).
+
 ## 6. Arquivos
 
 No aparelho:

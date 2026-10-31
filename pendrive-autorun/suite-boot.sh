@@ -67,8 +67,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="19d13737cd8db7ec26b53ef5dbb2ebb7"
-PEDIDO_MD5="043fc364a195795daa02a8a8eb59acf6"
+SUITE_MD5="07ef9ae4b8a086cbf339af9698bb3a97"
+PEDIDO_MD5="f04915c87ca4287eb2c003beffca013f"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
