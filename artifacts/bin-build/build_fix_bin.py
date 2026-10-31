@@ -746,7 +746,7 @@ def main(stock, zy, out, manifesto=None, realocar=False):
         os.replace(parcial, out)
         extra = f" + {len(entradas)} entradas do manifesto" if entradas else ''
         modo = 'realocado' if realocar else 'nos mesmos blocos do stock'
-        print(f"[8] verificar_bin: cabecalho, 19 records, sparse so RAW/DONTCARE no img_length e arvore do vendor OK")
+        print("[8] verificar_bin: cabecalho, 19 records, sparse so RAW/DONTCARE no img_length e arvore do vendor OK")
         print(f"[done] {out}  VALIDO ({modo}; conteudo + metadados stock nos 3 arquivos{extra})")
         print("       AVISO: ainda teste em hardware com pendrive de resgate oficial ao lado.")
     finally:
