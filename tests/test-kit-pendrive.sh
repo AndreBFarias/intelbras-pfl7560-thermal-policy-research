@@ -25,6 +25,7 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
+APP_VC="$(sed -n 's/^APP_VERSION_CODE="\([0-9]*\)"$/\1/p' "$KIT/newlink_update.sh")"   # versionCode do app no kit
 OFF=$(( 168 + 69 * 768 + 92 ))     # byte lvdsctl_fmt do perfil 69 (53252, 0-based; 53253 no cmp -l)
 PNOME="RX058B_4300_5010E_1080P_M"
 REAL_CMP="$(command -v cmp)"
@@ -141,6 +142,23 @@ exit 2'
   stub chcon 'echo "chcon $*" >> "$T/calls.log"'
   stub dmesg 'exit 0'
   stub gtt 'echo "GTT $*" >> "$T/calls.log"'
+  # bloco 9C: pm e dumpsys do app. $T/app-versao = versionCode instalado (vazio = ausente);
+  # pm-falha = o install falha; pm-sem-versioncode = o pm list nao mostra a versao (cai no dumpsys)
+  stub pm 'echo "pm $*" >> "$T/calls.log"
+case "$1" in
+  list)
+    v=$(cat "$T/app-versao" 2>/dev/null); [ -n "$v" ] || exit 0
+    if [ -f "$T/pm-sem-versioncode" ]; then echo "package:com.pfl7560.verificar"; else echo "package:com.pfl7560.verificar versionCode:$v minSdk:28 targetSdk:28"; fi
+    exit 0 ;;
+  install)
+    [ -f "$T/pm-falha" ] && { echo "Failure [INSTALL_FAILED_UPDATE_INCOMPATIBLE]"; exit 1; }
+    md5sum "$3" | cut -d" " -f1 > "$T/apk-instalado-md5"   # o que o pm leu (a copia do root some no fim da suite)
+    echo '"$APP_VC"' > "$T/app-versao"; echo Success; exit 0 ;;
+esac
+exit 1'
+  stub dumpsys 'echo "dumpsys $*" >> "$T/calls.log"
+v=$(cat "$T/app-versao" 2>/dev/null); [ -n "$v" ] && echo "    versionCode=$v minSdk=28 targetSdk=28"
+exit 0'
   # md5sum que, uma vez, troca o cor.sh da pasta de trabalho quando le o ZYCustom.ini
   # do /vendor (isso acontece DEPOIS da copia conferida e ANTES de executar o cor.sh)
   stub md5sum 'if [ -f "$T/troca-cor" ]; then case "$*" in *vendor/etc/ZYCustom.ini)
@@ -1127,7 +1145,7 @@ c_instalador(){
   local d x f n
   d="$(mktemp -d)"
   afirma 'bash "$ROOT/install.sh" --pendrive "$d" >"$d.log" 2>&1' "install.sh --pendrive falhou: $(tail -3 "$d.log" 2>/dev/null | tr '\n' ' ')"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png fontes/IBMPlexMono-Regular.ttf fontes/IBMPlexMono-SemiBold.ttf fontes/IBMPlexSansCondensed-Bold.ttf fontes/IBMPlexSansCondensed-Regular.ttf fontes/IBMPlexSansCondensed-SemiBold.ttf fontes/OFL.txt; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk kit/aguarde.png kit/calibracao.png kit/corrigida.png kit/erro.png kit/escada-1.png kit/escada-2.png kit/pronto.png kit/reiniciando.png fontes/IBMPlexMono-Regular.ttf fontes/IBMPlexMono-SemiBold.ttf fontes/IBMPlexSansCondensed-Bold.ttf fontes/IBMPlexSansCondensed-Regular.ttf fontes/IBMPlexSansCondensed-SemiBold.ttf fontes/OFL.txt; do
     afirma 'cmp -s "$KIT/$f" "$d/$f"' "pendrive sem $f ou com copia diferente"
   done
   n="$(cd "$d" && find . -type f | wc -l)"
@@ -1154,7 +1172,7 @@ c_instalador(){
   CASO="install.bat"
   local b="$ROOT/install.bat"
   afirma '[ "$(grep -c $'"'"'\r'"'"' "$b")" = 0 ]' "install.bat ganhou CRLF (tinha so LF)"
-  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc 'kit\*.png' 'fontes\*'; do
+  for f in newlink_update.sh cor.sh lvdsctl nl_camcheck nl_tela ZYCustom.ini LEIA-ME.txt suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc pfl7560.apk 'kit\*.png' 'fontes\*'; do
     afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -qF "$f"' "install.bat nao copia/lista $f"
   done
   afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$b" | grep -q "Get-FileHash -Algorithm MD5"' "install.bat nao confere o md5 depois da copia"
@@ -1212,6 +1230,66 @@ c_sem_suite_legado(){
   limpa
 }
 
+# bloco 9C: o kit instala o app (pm install -r) antes de lancar a suite; falha nao para o kit
+c_app(){
+  local W; novo_cenario "app: ausente = instala da copia do root, antes da suite; 2a vez nao reinstala"; aparelho_ok
+  W="$(W)"
+  roda nokey
+  afirma '[ "$(chamadas "pm install")" = 1 ] && tem_chamada "^pm install -r $W/pfl7560.apk\$"' "pm install: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  afirma '! grep -q "^pm install.*media_rw" "$T/calls.log"' "instalou direto do pendrive"
+  afirma '[ "$(grep -n "^pm install" "$T/calls.log" | head -1 | cut -d: -f1)" -lt "$(grep -n "^am start" "$T/calls.log" | head -1 | cut -d: -f1)" ]' "o app nao foi instalado antes da primeira tela da suite"
+  afirma 'log_tudo | grep -q "\[OK\] app: com.pfl7560.verificar instalado" && log_tudo | grep -q "boot SEGUINTE"' "log sem a instalacao ou sem o aviso do boot seguinte"
+  afirma '[ "$(cat "$T/apk-instalado-md5")" = "$(md5 "$KIT/pfl7560.apk")" ] && [ ! -e "$T/root/data/vendor/pfl7560-suite/pfl7560.apk" ]' "o pm nao leu o apk do kit ou o apk foi parar na pasta da suite"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "o app mudou o fluxo do kit: telas '$(telas)'"
+  roda nokey
+  afirma '[ "$(chamadas "pm install")" = 1 ] && log_tudo | grep -q "ja estava instalado"' "2a execucao reinstalou: $(chamadas "pm install") install(s)"
+  limpa
+
+  novo_cenario "app: mesma versao instalada = nao instala"; aparelho_ok
+  echo "$APP_VC" > "$T/app-versao"
+  roda nokey
+  afirma '[ "$(chamadas "pm install")" = 0 ] && log_tudo | grep -q "ja estava instalado"' "reinstalou a mesma versao"
+  limpa
+
+  novo_cenario "app: versao diferente = atualiza"; aparelho_ok
+  echo 0 > "$T/app-versao"
+  roda nokey
+  afirma '[ "$(chamadas "pm install")" = 1 ] && log_tudo | grep -q "versao instalada 0, a do kit e $APP_VC - atualizando"' "nao atualizou"
+  afirma '[ "$(cat "$T/app-versao")" = "$APP_VC" ]' "versao final: $(cat "$T/app-versao")"
+  limpa
+
+  novo_cenario "app: pm list sem versionCode cai no dumpsys"; aparelho_ok
+  echo "$APP_VC" > "$T/app-versao"; : > "$T/pm-sem-versioncode"
+  roda nokey
+  afirma 'tem_chamada "^dumpsys package com.pfl7560.verificar" && [ "$(chamadas "pm install")" = 0 ]' "nao usou o dumpsys ou reinstalou"
+  limpa
+
+  novo_cenario "app: pm install falha = o kit segue (cor, suite e telas como sempre)"; aparelho_ok
+  : > "$T/pm-falha"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && log_tudo | grep -q "\[AVISO\] app: pm install falhou" && log_tudo | grep -q "o resto do kit segue"' "rc=$RC; sem aviso de falha do app"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ "$(pp_md5)" = "$PP0" ]' "a falha do app mudou o fluxo: telas '$(telas)'"
+  limpa
+
+  novo_cenario "app: sem o comando pm = o kit segue"; aparelho_ok
+  rm -f "$T/bin/pm"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && log_tudo | grep -q "sem o comando pm" && [ "$(telas)" = "aguarde escada-1 calibracao pronto " ]' "rc=$RC; telas '$(telas)'"
+  limpa
+
+  novo_cenario "app: DESINSTALAR-SUITE = nao instala o app"; aparelho_ok
+  : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ "$(chamadas "pm ")" = 0 ]' "mexeu no app ao desinstalar a suite: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "app: apk adulterado no pendrive = o kit aborta antes de instalar"; aparelho_ok
+  printf 'X' >> "$T/root/mnt/media_rw/USB1/pfl7560.apk"
+  roda nokey
+  afirma '[ "$RC" != 0 ] && [ "$(chamadas "pm ")" = 0 ] && log_tudo | grep -q "pfl7560.apk.*md5 diferente"' "rc=$RC; instalou apk adulterado"
+  limpa
+}
+
 c_estaticos(){
   CASO="estaticos"; SHELL_NOME="-"
   local f
@@ -1240,13 +1318,24 @@ c_estaticos(){
   afirma '[ "$(grep ^INI_MD5_FABRICA= "$KIT/newlink_update.sh" | cut -d\" -f2)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.ORIGINAL")" ]' "INI_MD5_FABRICA difere do ini de fabrica antigo versionado"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/newlink_update.sh" | grep -qw awk' "o newlink_update.sh usa awk (o shell do aparelho so garante sed/grep/head/tail)"
   afirma '[ "$(md5 "$KIT/lvdsctl")" = 178d812872cb9306c0ae6faeed07184a ]' "lvdsctl do kit com md5 errado"
+  # bloco 9C: o apk do kit e o de artifacts/app; o versionCode do kit e o do build.sh (e o do apk, se ha aapt2)
+  afirma 'cmp -s "$KIT/pfl7560.apk" "$ROOT/artifacts/app/pfl7560.apk"' "pfl7560.apk do kit difere do de artifacts/app"
+  afirma '[ -n "$APP_VC" ] && [ "$APP_VC" = "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\) .*/\1/p" "$ROOT/artifacts/app/build.sh")" ]' "APP_VERSION_CODE do newlink_update.sh difere do VERSAO_CODIGO do build.sh"
+  local aapt2; aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
+  if [ -n "$aapt2" ]; then
+    afirma '"$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^package: name='"'"'com.pfl7560.verificar'"'"' versionCode='"'"'$APP_VC'"'"'"' "versionCode do apk difere do APP_VERSION_CODE"
+    afirma '[ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^launchable-activity")" = 2 ] && [ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^leanback-launchable-activity")" = 2 ]' "o apk nao tem as duas atividades com LAUNCHER e LEANBACK_LAUNCHER"
+    afirma '[ -z "$("$aapt2" dump permissions "$KIT/pfl7560.apk" | grep "^uses-permission")" ] && "$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^targetSdkVersion:.28."' "o apk pede permissao ou nao tem targetSdk 28"
+  else
+    echo "  (aapt2 ausente: conferencia do versionCode do apk pulada)"
+  fi
   afirma '[ "$(sed -n "s/^LVDSCTL_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/lvdsctl")" ]' "LVDSCTL_MD5 do cor.sh difere do md5 do lvdsctl"
   afirma '[ "$(sed -n "s/^NLCAM_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/nl_camcheck")" ]' "NLCAM_MD5 do cor.sh difere do md5 do nl_camcheck do kit"
   afirma 'cmp -s "$KIT/nl_camcheck" "$ROOT/artifacts/camcheck/nl_camcheck"' "nl_camcheck do kit difere do versionado em artifacts/camcheck"
   afirma '[ ! -e "$KIT/kit/metades-1.png" ] && [ ! -e "$KIT/kit/metades-2.png" ]' "metades-*.png ainda no kit"
   afirma '! grep -q "data/local/tmp/pfl7560-kit" "$KIT/cor.sh" "$KIT/newlink_update.sh"' "script ainda usa a pasta gravavel pelo shell"
   afirma 'git -C "$ROOT" diff --quiet HEAD -- artifacts/lcd-color-fix/lvdsctl artifacts/lcd-color-fix/lvdsctl.c' "lvdsctl/lvdsctl.c de artifacts foram alterados"
-  for f in cor.sh newlink_update.sh LEIA-ME.txt lvdsctl nl_camcheck kit/escada-1.png kit/calibracao.png kit/corrigida.png; do
+  for f in cor.sh newlink_update.sh LEIA-ME.txt lvdsctl nl_camcheck pfl7560.apk kit/escada-1.png kit/calibracao.png kit/corrigida.png; do
     afirma 'git -C "$ROOT" check-attr byte-exact -- "pendrive-autorun/$f" | grep -q "byte-exact: set"' "$f nao esta como byte-exact no .gitattributes"
   done
   afirma 'python3 -I "$ROOT/tests/simula-padroes-kit.py" >/dev/null' "simulacao dos padroes falhou"
@@ -1273,7 +1362,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
-           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado}; do
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app}; do
     echo "  $c"
     "$c"
   done
