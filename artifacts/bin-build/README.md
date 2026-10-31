@@ -1,8 +1,15 @@
 # bin-build — reconstruir o PFL7560.bin com a correção embutida
 
-Gera um firmware `.bin` com os fixes no default, editando **apenas a partição vendor** e
-mantendo o tamanho do payload no container LOAD — o `checksum1` permanece válido; só o CRC da
-partição é recalculado. Fundamentação: [`../../docs/research/15-bin-definitivo.md`](../../docs/research/15-bin-definitivo.md).
+Gera um firmware `.bin` com os fixes no default, editando **apenas a partição vendor**. O sparse de saída só
+tem chunks RAW e DONTCARE e ocupa exatamente o `img_length` do record, a forma do stock. Dois modos:
+
+- **padrão, nos mesmos blocos (gate BIN-S4a):** os 3 fixes vão nos blocos que os arquivos já ocupam e só o
+  `i_size` do inode muda; slot, cabeçalho e `checksum1` iguais aos do stock;
+- **`--realocar` (BIN-S4b):** grava pelo `debugfs`, re-empacota e muda o tamanho do record 14 no container
+  (`img_length`, offsets dos records 15 a 18, `file_len`, `checksum1`); é o único que aceita `--conteudo`.
+
+Toda saída passa pelo `verificar_bin` antes de ganhar o nome final. Fundamentação:
+[doc 15](../../docs/research/15-bin-definitivo.md) (formato LOAD) e [doc 47](../../docs/research/47-build-completa.md) §10.
 
 ## Requisitos
 
@@ -30,25 +37,26 @@ vendor em outro offset (`0x4b0bc954`) e outro `CONFIG_MODEL`. O builder lê offs
 record 14 da tabela do container (em `0x40`, big-endian: tamanho em `+0x14`, offset em `+0x18`) e
 **recusa** um `.ini` de outro modelo que o do stock (para não rebaixar o `CONFIG_MODEL`):
 
-| stock | `.ini` a usar | md5 da saída |
+| stock | `.ini` a usar | md5 da saída (padrão, nos mesmos blocos) |
 |---|---|---|
-| V1.0.0.9, com USB-C (`28a2f280…`) | `../ZYCustom_390.ini` (`252ab7a7…`) | `eae3a83d…` |
-| V1.0.0.1, sem USB-C (`89f82720…`) | `../ZYCustom_390.NOTYPEC.ini` (`bdf5c464…`) | `0d294cb3…` (CRC do vendor `0xe2cad2f5`) |
+| V1.0.0.9, com USB-C (`28a2f280…`) | `../ZYCustom_390.ini` (`252ab7a7…`) | `a6e5da14…` (CRC do vendor `0x883b40d6`) |
+| V1.0.0.1, sem USB-C (`89f82720…`) | `../ZYCustom_390.NOTYPEC.ini` (`bdf5c464…`) | `e3e3e87c…` (CRC do vendor `0xe5b1294a`) |
 
 O `ZYCustom_390.NOTYPEC.ini` é o `.ini` de fábrica do modelo novo (`ed3f314c…`) com só as seções
 térmicas trocadas, a mesma conta que o kit de pendrive faz no aparelho. Provado só em software
 (`make check-bin`); nenhum `.bin` do modelo novo foi gravado em aparelho.
 
-**Build reprodutível (BIN-S3b, fechado em 2026-07-29):** com esse stock e essa config a saída é
-determinística — md5 `eae3a83db44f790b64b9a5838a27a977`, CRC da vendor `0x832a0731`. Rodar 2× dá o mesmo
-md5. Se der outro valor, algo mudou no stock, na config ou no builder — investigue antes de usar.
+**Build reprodutível (BIN-S3b, fechado em 2026-07-29; números do bloco 21):** com esse stock e essa config a
+saída é determinística — md5 `a6e5da14cb3f53b42a457eb92bd91814`. Rodar 2× dá o mesmo md5. Se der outro valor,
+algo mudou no stock, na config ou no builder — investigue antes de usar.
 
 O `build.prop` e o `init.bigfish.rc` são derivados do stock dentro da imagem.
 
 ## Manifesto: o que a build leva além dos 3 fixes (bloco 12)
 
 ```bash
-python3 build_fix_bin.py <stock_PFL7560.bin> ../ZYCustom_390.ini <saida.bin> --conteudo conteudo.txt
+python3 build_fix_bin.py <stock_PFL7560.bin> ../ZYCustom_390.ini <saida.bin> --realocar --conteudo conteudo.txt
+python3 build_fix_bin.py --verificar <saida.bin> <stock_PFL7560.bin> --conteudo conteudo.txt
 ```
 
 O [`conteudo.txt`](conteudo.txt) lista, uma entrada por linha, `origem destino modo uid gid rotulo`. A origem
@@ -64,16 +72,16 @@ basta rodar de novo. O gerador:
   vendor tem 128 bytes);
 - carimba modo, dono, rótulo (com o NUL do stock) e horários fixos, e confere tipo, metadados e conteúdo byte a
   byte depois do `e2fsck` e de novo depois do re-pack;
-- aborta se o sparse não couber no slot do record 14 (`maior que o slot stock`).
+- recusa `--conteudo` sem `--realocar`: sem FILL o slot do stock não tem folga (doc 47 §10).
 
-**A folga do slot é o limite real.** O ext4 do vendor tem 213 MiB livres, mas o sparse dele vai num slot de
-tamanho fixo no container: no V1.0.0.9 sobram 65312 bytes (53024 depois dos 3 fixes). Cabe o `.rc` da suíte;
-o app (95577 B) não cabe, e a suíte inteira (1,2 MB) muito menos. Ver o
-[doc 47](../../docs/research/47-build-completa.md). Sem `--conteudo`, a saída é a de sempre (`eae3a83d…`).
+O `conteudo.txt` leva o `.rc` da suíte, o app, a home e as 20 sobreposições, nas pastas e com os metadados que o
+kit usa (o `make check-bin` confere contra a `KIT_LISTA` e a `KIT_APPS`/`KIT_OVERLAYS` do `newlink_update.sh`).
+A suíte fica no kit, porque mora no `/data`.
 
 ## Metadados (obrigatório — causa do brick antigo)
 
-Após cada `debugfs write`, o script **lê e reaplica** do stock:
+No modo padrão nenhum inode é reescrito (só o `i_size`). Com `--realocar`, após cada `debugfs write`, o script
+**lê e reaplica** do stock:
 
 | Arquivo | mode (perm) | sif mode (com S_IFREG) | security.selinux |
 |---|---|---|---|
@@ -91,13 +99,13 @@ Notas críticas:
 ## O que o script faz
 
 1. Extrai vendor (record 14, offset e tamanho lidos da tabela do container)
-2. Expande sparse → ext4 raw
+2. Expande sparse → ext4 raw; confere o `CONFIG_MODEL` do ini contra o do stock
 3. Lê metadados stock dos 3 arquivos
-4. Substitui conteúdo (`ZYCustom` / wifi / xiri disabled) + carimba mode/uid/gid/xattr
-5. `e2fsck` + reaplica metadados + fixa superbloco (determinismo de timestamps)
-6. **Re-pack sparse** (`sparse.pack`) + pad com zeros até o size stock (slot do container)
-7. Recalcula CRC-32/MPEG-2 da partição; `checksum1` do LOAD permanece
-8. Revalida metadados no sparse empacotado
+4. Padrão: escreve os 3 arquivos nos mesmos blocos do sparse e ajusta o `i_size`. `--realocar`: `debugfs write`
+   + carimbo de mode/uid/gid/xattr, `e2fsck`, superbloco fixo e re-pack (RAW/DONTCARE)
+5. Expande o sparse novo e confere metadados e conteúdo (ZYCustom = o ini dado, wifi, xiri, manifesto)
+6. Recalcula CRC-32/MPEG-2 da partição e monta a saída em `<saída>.tmp` (com o tamanho novo do record 14, se mudou)
+7. `verificar_bin` relê o arquivo pronto; só então ele vira `<saída>`, e numa falha nada fica no disco
 
 ## Verificação / flash
 
