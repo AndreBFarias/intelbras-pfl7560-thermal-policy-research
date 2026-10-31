@@ -55,16 +55,23 @@
 #define MAX_DICAS 3
 #define MAX_FONTE (16 << 20)
 
-/* paleta do C-tela */
-#define C_FUNDO  0x0E1116
-#define C_CARTAO 0x171B21
-#define C_REALCE 0x242A33      /* cartao do passo em andamento */
-#define C_TEXTO  0xF2F3F5
-#define C_SEC    0xA9AFB8
-#define C_FIO    0x2A3038
-#define C_OK     0x6FD6A6
-#define C_CORR   0xF2B451
-#define C_ATEN   0xF07560
+/* paleta Dracula (bloco 10B, artifacts/tema/dracula.txt). Dois tons derivados, por contraste
+ * (artifacts/tema/README.md): C_SEC e o comentario #6272A4 clareado (55% de texto), porque o
+ * comentario puro da 3,0:1 sobre o fundo e 1,9:1 sobre o cartao; C_ATEN_CART e o vermelho
+ * clareado (20% de texto), so para texto e ponto sobre o cartao, onde o puro da 2,9:1. */
+#define C_FUNDO  0x282A36      /* fundo */
+#define C_CARTAO 0x44475A      /* linha */
+#define C_TEXTO  0xF8F8F2      /* texto */
+#define C_SEC    0xB4BCCF      /* comentario clareado: 7,5:1 no fundo, 4,8:1 no cartao */
+#define C_FIO    0x6272A4      /* comentario: fio dentro do cartao */
+#define C_OK     0x50FA7B      /* verde */
+#define C_CORR   0xFFB86C      /* laranja */
+#define C_ATEN   0xFF5555      /* vermelho, sobre o fundo (4,5:1) */
+#define C_ATEN_CART 0xFE7674   /* vermelho clareado, sobre o cartao (3,5:1; texto de 24 px ou mais) */
+#define C_INFO   0x8BE9FD      /* ciano */
+#define C_PEND   0xF1FA8C      /* amarelo */
+#define C_ROSA   0xFF79C6      /* destaque: o passo em andamento */
+#define C_ROXO   0xBD93F9      /* marca: etapa e titulo de grupo */
 
 /* ---- imagem e mistura de cor ------------------------------------------------- */
 
@@ -530,12 +537,14 @@ static int ler_campos(const char *arq, int resumo) {
 
 #define MARGEM 110
 
-static uint32_t cor_estado(int est) {
+/* cor do estado; cartao=1 quando o texto ou o ponto fica sobre o cartao (linha) */
+static uint32_t cor_estado(int est, int cartao) {
   switch (est) {
     case S_OK: return C_OK;
     case S_CORR: return C_CORR;
-    case S_ATEN: return C_ATEN;
-    case S_INFO: return C_TEXTO;
+    case S_ATEN: return cartao ? C_ATEN_CART : C_ATEN;
+    case S_INFO: return C_INFO;
+    case S_PEND: return C_PEND;
     default: return C_SEC;
   }
 }
@@ -562,7 +571,7 @@ static void tela_aviso(void) {
   float wc = C.canto.n ? largura(E_MONO, 26, 0, C.canto.c, C.canto.n) : 0;
   if (wc > larg_util / 2 - 24) wc = larg_util / 2 - 24;
   if (C.canto.n) linha(E_MONO, 26, 0, LARG - MARGEM, b0, C_SEC, C.canto.c, C.canto.n, wc, 1, "canto");
-  if (C.etapa.n) linha(E_MONO, 26, 0, MARGEM, b0, C_SEC, C.etapa.c, C.etapa.n,
+  if (C.etapa.n) linha(E_MONO, 26, 0, MARGEM, b0, C_ROXO, C.etapa.c, C.etapa.n,
                        larg_util - wc - (C.canto.n ? 48 : 0), 0, "etapa");
 
   /* titulo: ate 3 linhas (\n), Bold 92; tom=alerta pinta na cor de atencao */
@@ -601,18 +610,23 @@ static void tela_aviso(void) {
       int xc = MARGEM + (int)lroundf(i * (wcart + gap));
       int wc_i = (int)lroundf((i + 1) * (wcart + gap) - gap) - (xc - MARGEM);
       int fase = C.passo[i].fase, res = C.passo[i].res;
-      retangulo(xc, yc, wc_i, hcart, 10, fase == F_AGORA ? C_REALCE : C_CARTAO);
+      /* o passo em andamento leva contorno rosa (destaque); um cartao mais claro que a linha
+       * sairia da paleta */
+      if (fase == F_AGORA) {
+        retangulo(xc, yc, wc_i, hcart, 10, C_ROSA);
+        retangulo(xc + 3, yc + 3, wc_i - 6, hcart - 6, 7, C_CARTAO);
+      } else retangulo(xc, yc, wc_i, hcart, 10, C_CARTAO);
       char num[8]; snprintf(num, sizeof num, "%d", i + 1);
       struct txt tn = fixo(num);
       corrida(E_MONO, 24, 0, xc + pad, yc + b_est, C_SEC, tn.c, tn.n, 1);
       /* estado a direita: ponto + palavra */
       const char *pal; uint32_t cor; int anel = 0;
       if (fase == F_FILA) { pal = "na fila"; cor = C_SEC; anel = 1; }
-      else if (fase == F_AGORA) { pal = "agora"; cor = C_TEXTO; }
+      else if (fase == F_AGORA) { pal = "agora"; cor = C_ROSA; }
       else if (res == S_NADA) { pal = "feito"; cor = C_OK; }
       else {
         static const char *const pr[] = { "OK", "corrigido", "aten\\u00e7\\u00e3o", "", "pendente" };
-        pal = pr[res]; cor = cor_estado(res); anel = res == S_PEND;
+        pal = pr[res]; cor = cor_estado(res, 1); anel = res == S_PEND;
       }
       struct txt te = fixo(pal);
       float we = largura(E_MONO, 24, 0, te.c, te.n);
@@ -666,7 +680,7 @@ static void tela_resumo(void) {
   float wt = linha(E_BOLD, ph, 0, MARGEM, bt, C_TEXTO, C.titulo.c, C.titulo.n, maxt, 0, "titulo");
   if (C.destaque.n) {
     float esp = 0.28f * ph;
-    linha(E_BOLD, ph, 0, MARGEM + wt + esp, bt, cor_estado(C.dest_estado), C.destaque.c, C.destaque.n,
+    linha(E_BOLD, ph, 0, MARGEM + wt + esp, bt, cor_estado(C.dest_estado, 0), C.destaque.c, C.destaque.n,
           maxt - wt - esp, 0, "destaque");
   }
 
@@ -703,7 +717,7 @@ static void tela_resumo(void) {
     float wint = wc_g - 2 * pad;
     retangulo(xc, topo_cart, wc_g, hcart, 10, C_CARTAO);
     sem_quebra(&C.grupo[g].nome);
-    linha(E_SEMI, pg, 0.08f * pg, xc + pad, base_em(E_SEMI, pg, topo_cart + pad), C_SEC,
+    linha(E_SEMI, pg, 0.08f * pg, xc + pad, base_em(E_SEMI, pg, topo_cart + pad), C_ROXO,
           C.grupo[g].nome.c, C.grupo[g].nome.n, wint, 0, "grupo");
     for (int i = 0; i < C.grupo[g].nitens; i++) {
       int yi = topo_cart + hcab + i * passo_i;
@@ -716,8 +730,8 @@ static void tela_resumo(void) {
       linha(E_REG, pr, 0, xc + pad, yi + b_rot, C_SEC, C.grupo[g].item[i].rot.c, C.grupo[g].item[i].rot.n,
             wint - 2 * r - 16, 0, "item (rotulo)");
       float meio = yi + b_rot - altura_maiuscula(E_REG, pr) / 2;
-      disco(xc + pad + wint - r, meio, r, est == S_INFO ? C_SEC : cor_estado(est), est == S_PEND);
-      linha_ajustada(E_MONO_SEMI, pv, 28, xc + pad, yi + b_val, cor_estado(est), C.grupo[g].item[i].val.c,
+      disco(xc + pad + wint - r, meio, r, cor_estado(est, 1), est == S_PEND);
+      linha_ajustada(E_MONO_SEMI, pv, 28, xc + pad, yi + b_val, cor_estado(est, 1), C.grupo[g].item[i].val.c,
                      C.grupo[g].item[i].val.n, wint, "item (valor)");
     }
   }
@@ -729,7 +743,7 @@ static void tela_resumo(void) {
     int b = base_em(E_REG, pd, yd + pad_d + 4);
     for (int i = 0; i < C.ndicas; i++, b += passo_d) {
       sem_quebra(&C.dica[i]);
-      disco(MARGEM + pad + 6, b - altura_maiuscula(E_REG, pd) / 2, 6, C_ATEN, 0);
+      disco(MARGEM + pad + 6, b - altura_maiuscula(E_REG, pd) / 2, 6, C_ATEN_CART, 0);
       linha(E_REG, pd, 0, MARGEM + pad + 32, b, C_TEXTO, C.dica[i].c, C.dica[i].n,
             larg_util - 2 * pad - 32, 0, "dica");
     }

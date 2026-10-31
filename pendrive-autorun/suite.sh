@@ -74,7 +74,7 @@ DONO_UID=0
 SUITE_LISTA="56dd74f1e2e7d04ad3236b818c587f52  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
-a5a6751858ad3ff528a3aa04b29da746  nl_tela
+662acb7ac307699a389e892047f0d883  nl_tela
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
