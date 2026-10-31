@@ -14,7 +14,7 @@ Base técnica já resolvida e documentada em
 > |---|---|
 > | LCD-S1 | **IMPLEMENTADO** (`a9d3fa2`, 2026-07-12; backup obrigatório antes de qualquer gravação no bloco 1, `c7a0bbb`). Falta só a prova (c): o fluxo completo do script rodado no aparelho |
 > | LCD-S2 | **IMPLEMENTADO** (wizard v2, `a9d3fa2`). Falta a prova no aparelho forçando tela preta |
-> | LCD-S3 | **SUBSTITUÍDA** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) ([doc 41](41-auto-pareamento-camera-e-kit-universal.md)): critério "duas metades"; a câmera é a etapa E5, ainda aberta |
+> | LCD-S3 | **SUBSTITUÍDA** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md) ([doc 41](41-auto-pareamento-camera-e-kit-universal.md)): a câmera interna lê a escada de 16 cinzas (blocos 7 e 8, provada no aparelho; o critério "duas metades" foi abandonado) e a suíte de boot a repete a cada volta da tomada ([doc 44](44-suite-de-boot.md)) |
 > | LCD-S4 | **DECIDIDA** (cor fora do `.bin` universal). A premissa da Task 1 caiu: a `panelparam` **provavelmente está** no container (record 4; [doc 41](41-auto-pareamento-camera-e-kit-universal.md) §3, [doc 42](42-firmware-2026-10-modelo-sem-usbc.md) §5); confirmação pendente no aparelho (bloco 5, E1) |
 > | LCD-S5 | **ENTREGUE** (guia 32, reescrito em 2026-10-30 para o kit de pendrive e o diagnóstico por barras puras) |
 > | LCD-S6 | **ENTREGUE** (doc 33; em 2026-10-30 ganhou o painel da 2ª troca e os perfis 83-86 do firmware de outubro) |
@@ -176,8 +176,9 @@ sozinho dentro do timeout (comprovar forçando um `swap` que dê tela preta e n�
 ### LCD-S3 — Auto-pareamento via câmera interna (a "forma inteligente")
 > **SUBSTITUÍDA (2026-10-29)** pelo [bloco 5](../sprints/2026-10-29-bloco-5-kit-universal.md), com a
 > pesquisa no [doc 41](41-auto-pareamento-camera-e-kit-universal.md): a câmera é UVC e se lê por V4L2
-> (§1), e o critério "duas metades" (§4) é diferencial dentro do mesmo quadro. O kit de pendrive já decide
-> com duas teclas; a câmera (modo sem tecla) é a etapa E5, ainda aberta.
+> (§1). O critério "duas metades" (§4) foi trocado pela escada de 16 cinzas no bloco 7, e a câmera decide sem
+> tecla desde o bloco 8 (provado no aparelho); as duas teclas ficaram só como reserva quando a câmera não
+> ajuda. A suíte de boot repete a verificação a cada volta da tomada ([doc 44](44-suite-de-boot.md)).
 **Objetivo:** detectar e aplicar o formato certo **sem input humano**, usando a **câmera de foco/keystone
 do próprio PFL7560** para "ver" a projeção e se auto-calibrar. **Motivação:** painéis LVDS não têm
 EDID — não dá pra "perguntar" ao painel; mas o projetor pode **olhar a própria imagem**.

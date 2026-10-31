@@ -48,3 +48,10 @@ pendrive-autorun/pfl7560-suite.rc   -text byte-exact
 # Quadros crus da camera interna (bloco 7, YUYV 640x480): sem byte 0 nem fim de linha,
 # o git os toma por texto; byte-exact impede que o pre-commit "conserte" algum byte.
 tests/fixtures/camera/*.yuyv        -text byte-exact
+# App "PFL7560" (bloco 9C): APK assinado (md5 na KIT_LISTA), chave de assinatura estavel e a copia do kit
+artifacts/app/pfl7560.apk           -text byte-exact
+artifacts/app/assinatura.keystore   -text byte-exact
+artifacts/app/res/**/*.png          -text byte-exact
+pendrive-autorun/pfl7560.apk        -text byte-exact
+# texto que acompanha o nosso .bin no pendrive (--com-firmware, bloco 9C): ASCII puro, copiado byte a byte
+firmware/LEIA-ME-nosso-NAO-GRADUADO.txt  -text byte-exact

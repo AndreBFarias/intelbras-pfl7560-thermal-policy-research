@@ -105,3 +105,95 @@ Isto vale por cima do texto acima quando os dois discordarem.
    do 9A e do 9B, que estão nas seções "Estado" das tarefas 9A e 9B e na seção de integração da 9B. O doc 44
    ganha uma seção "Teste no aparelho" com um roteiro único, em ordem, com o comando de cada passo e o que se
    espera ver. É a lista que o coordenador vai seguir com o dono.
+
+## Estado (2026-10-30)
+
+Feito no branch `bloco-9c/app-pendrive-docs`. Nada rodou no aparelho nem num disco de verdade: tudo é harness com
+stubs e arquivos falsos.
+
+- **C1, app:** `artifacts/app/` (fonte Java, manifest, recursos, `build.sh` sem Gradle, `gerar-icones.py`, chave
+  estável `assinatura.keystore`, README), APK em `artifacts/app/pfl7560.apk` e a cópia em
+  `pendrive-autorun/pfl7560.apk`, na lista de md5 do kit. `com.pfl7560.verificar`, `minSdk 28`, `targetSdk 28`,
+  nenhuma permissão. O `newlink_update.sh` instala o APK (`pm install -r`, da cópia conferida em
+  `/data/vendor/pfl7560-kit`) antes de lançar a suíte, se ausente ou de versionCode diferente; falha só avisa.
+- **C2, pendrive:** `install.sh --pendrive DIR --com-firmware` (usb_update.bin oficial V1.0.0.9 conferido por md5
+  e o nosso `.bin` em `firmware-nosso-NAO-GRADUADO/` com `LEIA-ME.txt`; origens conferidas antes de copiar; pasta
+  por `PFL_FIRMWARE_DIR`), a pergunta do firmware na opção 5 do `install.bat` (via `install-firmware-pendrive.ps1`),
+  `tests/preparar-pendrive.sh` e o `LEIA-ME.txt` do kit (suíte, gatilhos, ícone, `DESINSTALAR-SUITE.txt`, firmware
+  de resgate e o risco do arranjo).
+- **C3, processos:** `pfl7560-processos.sh` (só leitura, por adb; `top -b -n 2 -d 60` mais uma amostra a cada 5 s de
+  `/proc/loadavg`, das props e dos processos em D), com resumo e dados brutos em `evidencias/processos/<data>.txt`.
+- **C4, documentos:** `docs/research/44-suite-de-boot.md` (com a seção "Teste no aparelho" em roteiro único e
+  ordenado), `README.md`, `docs/README.md`, `INSTALL.md`, guia 32, os `artifacts/*/README.md` e esta seção e as dos
+  blocos 9, 9A e 9B. Frases velhas sobre o kit de cor corrigidas fora de `docs/sprints` e do doc 43 (guia 32 com as
+  "metades", `INSTALL.md` com o "PRONTO", docs 29 e 31, a linha do bloco 7 no `docs/README.md`).
+
+Provas (2026-10-30): `make check` (9 artefatos byte-exatos), `make check-fix` (48 verificações) e `make check-kit`
+verdes, sem falha: `test-camcheck` 95, `test-tela` 94, `test-kit-pendrive` 547 (131 numa execução só dos estáticos,
+do instalador e dos casos do app), `test-suite` 373, `test-preparar-pendrive` 78, `test-processos` 35, listas de md5 em dia. `bash -n` e
+`dash -n` limpos nos `.sh` mexidos; `shellcheck` sem aviso novo (`-s sh` limpo no `newlink_update.sh`; no
+`test-kit-pendrive.sh` só entraram notas SC2016 do padrão `afirma '...'`, como as 320 de antes).
+`artifacts/app/build.sh` gera o APK do zero (md5 igual a cada execução), `apksigner verify` passa e
+`aapt2 dump badging` mostra as duas atividades com `LAUNCHER` e `LEANBACK_LAUNCHER`. `install.sh --com-firmware` rodou
+uma vez com os arquivos **de verdade** (zip oficial do repo e o `.bin` nosso do repositório principal) numa pasta
+temporária: `usb_update.bin` com o md5 `28a2f280…` e a pasta do nosso com o md5 `eae3a83d…`, em 29 s.
+
+Desvios do texto do spec:
+
+1. **Tecla do controle e item no menu de configurações:** não feitos, com o porquê no doc 44 seção 10 (como mandam as
+   entradas da integração).
+2. **`install.bat` chama um `.ps1`** (`install-firmware-pendrive.ps1`) em vez de embutir o PowerShell: o escape do
+   `cmd` para aquele código seria frágil. Nem o `.bat` nem o `.ps1` rodaram (não há Windows aqui); o harness confere
+   só o texto, a ordem (origens conferidas antes de copiar o kit) e que os md5 do `.ps1` e do `install.sh` são os mesmos.
+3. **`tests/preparar-pendrive.sh` formata exatamente o dispositivo informado** (disco inteiro, sem tabela, ou a
+   partição): não cria tabela MBR. É o `mkfs.vfat -F 32 -n PFL7560` literal do spec.
+4. **O APK vai na `KIT_LISTA` mas não na `SUITE_LISTA`** nem na pasta da suíte (a suíte não o executa); o
+   `newlink_update.sh` o instala da pasta de trabalho do kit. O `APP_VERSION_CODE` do `newlink_update.sh` é uma constante
+   à mão, igual ao `VERSAO_CODIGO` do `build.sh` (o harness confere os dois e o `aapt2 dump badging`).
+5. **`LEANBACK_LAUNCHER` e banner ficaram** (custaram pouco), como o texto original do 9C pedia e a integração
+   permitia.
+6. **Assinatura:** o APK leva os esquemas v1, v2 e v3. O `apksigner verify` sem opções mostra só o v3 porque, com
+   `minSdk 28`, só confere o que o Android 9 exige; `apksigner verify -v --min-sdk-version 23` mostra os três
+   (correção do conferente: a primeira versão desta linha dizia "só v3"). A instalação no aparelho é o teste.
+7. **A saída de `top` do harness do `pfl7560-processos.sh` foi escrita à mão**, no formato do toybox do Android 9 que
+   o parser espera (`S[%CPU]` no cabeçalho), e **não gravada do aparelho**, que não pode ser tocado neste bloco. O
+   parser acha as colunas pelo cabeçalho, mas o formato real é PROVISÓRIO (passo 14 do roteiro).
+8. O `pfl7560-processos.sh` aceita `PFL_INTERVALO` (intervalo das amostras) só para o harness: é ferramenta do PC,
+   fora do kit, então a regra do `PFL_TESTE` do kit não se aplica.
+
+PROVISÓRIO (depende do aparelho): `pm install -r` como root dentro do `exec` do init e os dois ícones na lista de apps;
+o pedido do app chegando ao vigia e a recusa do arquivo de outro dono (o harness não monta); o formato real do `top`;
+`tests/preparar-pendrive.sh` num pendrive de verdade e o `install.bat` com o `.ps1` no Windows; o gatilho da tomada e
+tudo o que está na seção 11 do doc 44.
+
+Anotado para o próximo bloco, sem fazer: o `DESINSTALAR-SUITE.txt` não desinstala o app (`adb uninstall` está no
+doc 44); o piso `$n -lt 14` do `install.bat` ficou velho (a lista tem mais entradas) e não protege mais.
+Pendente: o roteiro "Teste no aparelho" (doc 44, seção 12), pelo coordenador com o dono.
+
+## Conferência (2026-10-30)
+
+Conferido arquivo por arquivo contra o texto acima e as entradas da integração. App, `newlink_update.sh`,
+`install.sh --com-firmware`, `install.bat`/`.ps1` e `pfl7560-processos.sh` conferem com o pedido. Achados, cada um
+com o teste que falhava antes da correção:
+
+1. **`tests/preparar-pendrive.sh` formatava antes de conferir o md5 do firmware.** O cabeçalho prometia "o md5 não
+   bate = nada é formatado", mas o código só olhava se os arquivos existiam: com um `.bin` de md5 errado o pendrive
+   era apagado e só depois o `install.sh` recusava. Agora o `install.sh --conferir-firmware` (novo: só confere as
+   origens, sem copiar) roda antes do `mkfs.vfat`. Teste: md5 errado do oficial e do nosso, `mkfs` zero vezes.
+2. **Dispositivo mapeado sobre o pendrive era aceito.** Um `crypt`/LVM com `PKNAME` do pendrive passava, porque só o
+   disco pai era conferido. Agora o próprio dispositivo tem de ser o disco inteiro (sem pai) ou uma partição dele.
+3. **O resgate do `--com-firmware` é só do modelo com USB-C**, e o kit serve aos dois modelos: o `LEIA-ME.txt`
+   (arranjo B), o `INSTALL.md` e o doc 44 passam a dizer isso.
+4. **Assinatura:** o desvio 6 dizia "só v3"; o APK leva v1, v2 e v3 (o `verify` sem opções mostra só o que o
+   `minSdk 28` exige). Linha corrigida acima e no README do app.
+5. Documentos: o README do app ganhou a acentuação (regra dos documentos do bloco); o guia 12 listava um kit velho
+   (sem `nl_camcheck`, suíte, `nl_tela`, `fontes/` e APK).
+
+Provas da conferência: `make check` (9 artefatos byte-exatos), `make check-fix` (48) e `make check-kit` verdes:
+`test-camcheck` 95, `test-tela` 94, listas md5 em dia, `test-kit-pendrive` 547, `test-suite` 373,
+`test-preparar-pendrive` 86 (eram 78), `test-processos` 35. `artifacts/app/build.sh` refeito do zero dá o mesmo md5
+(`5e177ab5…`); `apksigner verify` passa; `aapt2 dump badging` com as duas atividades em `LAUNCHER` e
+`LEANBACK_LAUNCHER`. `install.sh --conferir-firmware` rodou uma vez com os arquivos de verdade (12 s, rc 0).
+
+Fica para o aparelho, além do que já estava acima: se o `pm install` aceita ler o APK de `/data/vendor` (o
+`system_server` lê pelo descritor que o `pm` abre, e o SELinux pode negar; hipótese anotada no doc 44, seção 11).

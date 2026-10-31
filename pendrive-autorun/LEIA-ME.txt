@@ -18,13 +18,20 @@ PARA QUE SERVE
     - acertar a cor depois de trocar o micro-painel (VESA ou JEIDA).
   O MESMO pendrive serve para qualquer aparelho. Nao tem serial, nao tem
   arquivo para editar.
+  Alem disso o kit instala a SUITE DE VERIFICACAO (secao propria mais abaixo): uma
+  conferencia completa da imagem (cor, angulo, foco, nitidez, temperatura) que
+  termina numa tela de resumo, e que depois roda sozinha quando o projetor volta
+  da tomada ou quando voce toca no icone "Verificar projetor".
 
 COMO USAR (5 passos)
   1. Formate um pendrive em FAT32 (MBR). Copie TUDO o que esta nesta pasta para
      a RAIZ do pendrive (nao deixe dentro de outra pasta):
-        newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   ZYCustom.ini   pasta kit
-        suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc
-     (a pasta "kit" tem as telas .png; este LEIA-ME e opcional).
+        newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   nl_tela   ZYCustom.ini
+        suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc   pfl7560.apk
+        pasta kit   pasta fontes
+     (a pasta "kit" tem as telas .png e a pasta "fontes" as letras das telas geradas;
+     pfl7560.apk e o app dos icones; este LEIA-ME e opcional). Pelo PC, o jeito mais
+     seguro e ./install.sh --pendrive <pasta do pendrive> (copia e confere tudo).
   2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
      Se aparecer "AJUSTANDO", espere: ele reinicia sozinho uma vez (~1 min).
      Se NENHUMA tela do kit aparecer em 2 minutos, desligue e ligue de novo
@@ -42,7 +49,9 @@ COMO USAR (5 passos)
      - NAO: aperte qualquer tecla do controle. A tela volta no outro formato
        ("TESTE DE COR 2 de 2"); se agora esta em ordem, aperte qualquer tecla de
        novo para MANTER. Sem tecla em 30 segundos o kit volta ao formato de antes.
-  5. Quando aparecer "PRONTO - pode retirar o pendrive", tire o pendrive.
+  5. Depois da cor vem o resto da suite (secao abaixo), um RESUMO em tela cheia por
+     20 segundos e, por fim, "Pode tirar o pendrive" (ou "PRONTO - pode retirar o
+     pendrive", se a tela gerada nao estiver disponivel): tire o pendrive.
      Rodar de novo e inofensivo: com a cor certa, nada e mexido nem reiniciado.
      Se aparecer "ALGO NAO DEU CERTO", tire o pendrive, ligue de novo e, se
      repetir, veja o arquivo newlink_update.log que ficou no pendrive.
@@ -60,11 +69,49 @@ COMO USAR (5 passos)
   segunda diante de uma imagem visivelmente pior; no automatico, uma tecla em 30
   segundos desfaz.
 
+A SUITE DE VERIFICACAO (o que ela faz, quando roda, como desligar)
+  O QUE FAZ, em ordem: (1) cor, como acima; (2) angulo, foco e nitidez da imagem,
+  olhando a tela de faixas pela camera (foco ruim: o projetor refaz o autofoco ate
+  2 vezes; imagem torta ou borrada: a tela de resumo diz o que ajustar); (3)
+  temperatura, so leitura; (4) um teste da protecao de temperatura, em que a imagem
+  ESCURECE por cerca de 1 minuto e depois volta sozinha - e proposital; (5) o
+  RESUMO em tela cheia, com 19 itens (cor, imagem, temperatura e sistema), que
+  fecha sozinho em 20 segundos ou com qualquer tecla do controle.
+  QUANDO RODA:
+    - com o pendrive plugado ao ligar (o fluxo dos 5 passos acima);
+    - sozinha, SEM pendrive, quando o projetor liga depois de ficar sem energia
+      (queda ou tomada tirada). Nesse caso nenhuma tela fala de pendrive;
+    - quando voce abre o icone "Verificar projetor" na lista de apps: a tela diz
+      "Verificacao pedida" por 3 segundos e o projetor comeca em instantes. O app
+      tambem traz o icone "Wi-Fi", que abre a tela de Wi-Fi.
+  ATENCAO: o icone SO PASSA A VALER NO BOOT SEGUINTE a instalacao do app (quem
+  escuta o pedido liga no boot): depois de rodar este pendrive pela primeira vez,
+  desligue e ligue o projetor uma vez. Se tocar no icone e nada acontecer, pode ser
+  que outra verificacao tenha terminado ha menos de 10 minutos (ha uma protecao
+  contra repeticao) ou que ainda esteja rodando; espere e toque de novo.
+  Se o projetor for desligado NO MEIO da verificacao 2 vezes seguidas, ela deixa
+  de rodar sozinha ao voltar da tomada, ate que uma termine (pelo pendrive ou pelo
+  icone). Tecnicamente: o contador e o arquivo "incompletas" na pasta da suite, e o
+  historico-boot.txt registra o motivo "interrompida_2x_seguidas".
+  ONDE FICA O RESULTADO: no pendrive, "newlink_suite.log" (e "newlink_cor.log");
+  no projetor, em /data/vendor/pfl7560-suite/ (ultimo.log, resultados.txt e
+  historico-boot.txt, com os sinais de cada boot).
+  COMO DESLIGAR A SUITE: crie um arquivo VAZIO chamado DESINSTALAR-SUITE.txt na
+  raiz do pendrive e ligue o projetor com ele plugado. O kit remove o servico de
+  boot, a pasta da suite e o pedido, e roda so a fase de cor, como antes. Se a suite
+  tinha um backup da cor guardado no projetor (quando rodou sem pendrive), ele vem
+  para o pendrive como suite-panelparam-backup-<serial>.img (com .md5). O app
+  continua instalado, mas sem efeito: para tira-lo use, no PC,
+  adb uninstall com.pfl7560.verificar
+  LIMITE: a suite e o app foram provados so em SIMULACAO; o teste no aparelho esta
+  marcado para o fim (docs/research/44-suite-de-boot.md, "Teste no aparelho").
+
 COMO SABER QUE FUNCIONOU (3 sinais)
   - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos;
-    no fim aparece a tela PRONTO.
+    no fim aparece o resumo e "Pode tirar o pendrive" (ou a tela PRONTO).
   - LOG: ficam na raiz do pendrive "newlink_update.log" (parte termica; procure
-    "CORRECAO APLICADA COM SUCESSO") e "newlink_cor.log" (parte da cor).
+    "CORRECAO APLICADA COM SUCESSO"), "newlink_cor.log" (parte da cor) e
+    "newlink_suite.log" (a suite).
   - adb (se tiver PC): ./pfl7560-saude.sh -> 12 checagens de uma vez, e diz
     tambem se a protecao esta ENXERGANDO neste boot, que e coisa diferente de
     "o arquivo esta certo". Prova ativa: ./pfl7560-saude.sh --vivacidade
@@ -143,9 +190,15 @@ OBSERVACOES
       sem nenhum .bin junto. Nao ha como um power-hold acidental reflashear.
 
   (B) KIT DE EMERGENCIA pessoal - um pendrive so, com o kit E o usb_update.bin de
-      fabrica. E um arranjo legitimo: cobre tanto "liguei e a correcao sumiu"
-      (plugar, ligar, deixar aplicar, tirar) quanto "brickei e preciso
-      reflashear" (power-hold). O preco e conhecer o risco abaixo.
+      fabrica (pelo PC: ./install.sh --pendrive <pasta> --com-firmware, ou
+      tests/preparar-pendrive.sh <dispositivo> para formatar e preparar do zero;
+      alem do usb_update.bin oficial vai a pasta firmware-nosso-NAO-GRADUADO, com o
+      nosso .bin e um LEIA-ME dizendo que ele NAO esta ativo e so vale com a palavra
+      do dono). SO para o aparelho COM entrada USB-C (V1.0.0.9): no modelo sem
+      USB-C (V1.0.0.1) este usb_update.bin NAO serve. E um arranjo legitimo:
+      cobre tanto "liguei e a correcao sumiu" (plugar, ligar, deixar aplicar,
+      tirar) quanto "brickei e preciso reflashear" (power-hold). O preco e
+      conhecer o risco abaixo.
 
   ATENCAO - o risco do arranjo (B), e como conviver com ele:
   - Com o pendrive plugado, LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de

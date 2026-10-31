@@ -23,9 +23,15 @@
 #  cor.sh direto. Com DESINSTALAR-SUITE.txt na raiz do pendrive, remove a suite e
 #  roda so a fase de cor, como antes. Sem a suite instalada, idem.
 #
+#  APP (bloco 9C): antes de lancar a suite, o kit instala o pfl7560.apk (pm install -r, da copia
+#  conferida em /data/vendor/pfl7560-kit) se o app nao estiver instalado ou se a versao for outra.
+#  Falha de instalacao nunca para o kit. O app grava o pedido de verificacao na pasta privada dele
+#  e o vigia do pedido (suite-boot.sh) so liga no boot: o icone passa a valer no boot SEGUINTE.
+#
 #  Coloque na RAIZ do pendrive (FAT32) tudo o que esta na pasta pendrive-autorun:
 #      newlink_update.sh  cor.sh  lvdsctl  nl_camcheck  ZYCustom.ini  LEIA-ME.txt  kit/*.png
 #      suite.sh  suite-boot.sh  suite-pedido.sh  pfl7560-suite.rc  (e nl_tela, fontes/ do 9A)
+#      pfl7560.apk  (app dos icones "Verificar projetor" e "Wi-Fi", bloco 9C)
 #  Mesmo pendrive para qualquer PFL7560: sem serial, sem arquivo para editar.
 #
 #  IDEMPOTENTE:
@@ -71,6 +77,10 @@ SUITE="$R/data/vendor/pfl7560-suite"
 RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
 RC_SUITE_NOVO="$R/vendor/etc/pfl7560-suite.rc.new"
 ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
+# app "PFL7560" (bloco 9C): pacote e versionCode do pfl7560.apk da lista (build.sh tem o mesmo
+# VERSAO_CODIGO; o harness confere os dois)
+APP_PKG="com.pfl7560.verificar"
+APP_VERSION_CODE="1"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
 DONO_UID=0
@@ -113,6 +123,7 @@ fce57d8b09d1ff2c9f614bfa0960ca37  suite.sh
 c534ebfbbb8defa8c9c38631ec3e3645  suite-boot.sh
 f0cbed4ee20ee3d1920d955ae07ae7b0  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
+5e177ab534186fc7b0b2b68f6fba1b2c  pfl7560.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -316,7 +327,7 @@ COR_MD5=$(kit_md5_esperado cor.sh)
 # root, 0700; arquivo regular do root com o md5 da lista). Copia a partir de $WORK (ja
 # conferida), so o que tem md5 diferente, por uma pasta de preparo DENTRO de $SUITE,
 # conferida la, e mv para o lugar; no fim confere tudo. Idempotente: 2a vez nada grava.
-suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$'; }
+suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$'; }
 # a pasta e as subpastas dela (kit/, fontes/): um arquivo "regular" dentro de uma
 # subpasta que e link passaria pelo arq_seguro
 suite_dir_ok(){
@@ -410,6 +421,49 @@ instalar_rc(){
 }
 suite_pronta(){ suite_dir_ok && conferir_em "$SUITE" suite.sh; }
 
+# ---- app "PFL7560" (bloco 9C) ---------------------------------------------------------
+# O APK ja passou pelo md5 da lista e esta em $WORK (pasta so do root): o pm le DE LA, nunca do
+# pendrive. versionCode instalado: pm list packages --show-versioncode; sem ele, dumpsys package.
+app_versao_instalada(){
+  _av=$(pm list packages --show-versioncode "$APP_PKG" 2>/dev/null | sed -n "s/^package:$APP_PKG versionCode:\([0-9][0-9]*\).*/\1/p" | head -1)
+  if [ -z "$_av" ]; then
+    _av=$(dumpsys package "$APP_PKG" 2>/dev/null | sed -n 's/^ *versionCode=\([0-9][0-9]*\).*/\1/p' | head -1)
+  fi
+  echo "$_av"
+}
+# instala (pm install -r) quando ausente ou com versao diferente; falha so avisa (devolve !=0)
+instalar_app(){
+  if ! command -v pm >/dev/null 2>&1; then
+    LOG "[AVISO] app: sem o comando pm - o app NAO foi instalado (o resto do kit segue)."
+    return 1
+  fi
+  if ! trabalho_ok || ! trabalho_conferir pfl7560.apk; then
+    LOG "[AVISO] app: pfl7560.apk em $WORK nao confere - o app NAO foi instalado (o resto do kit segue)."
+    return 1
+  fi
+  _ai=$(app_versao_instalada)
+  if [ "$_ai" = "$APP_VERSION_CODE" ]; then
+    LOG "app: $APP_PKG versao $_ai ja estava instalado"
+    return 0
+  fi
+  if [ -n "$_ai" ]; then
+    LOG "app: versao instalada $_ai, a do kit e $APP_VERSION_CODE - atualizando"
+  else
+    LOG "app: $APP_PKG ausente - instalando"
+  fi
+  if command -v timeout >/dev/null 2>&1; then
+    _ao=$(timeout 120 pm install -r "$WORK/pfl7560.apk" 2>&1); _arc=$?
+  else
+    _ao=$(pm install -r "$WORK/pfl7560.apk" 2>&1); _arc=$?
+  fi
+  if [ "$_arc" = "0" ] && echo "$_ao" | grep -q Success; then
+    LOG "[OK] app: $APP_PKG instalado (versao $APP_VERSION_CODE). O icone Verificar projetor so passa a valer no boot SEGUINTE (o vigia do pedido liga no boot)."
+    return 0
+  fi
+  LOG "[AVISO] app: pm install falhou (rc=$_arc: $(echo "$_ao" | tail -1)) - o app NAO foi instalado (o resto do kit segue)."
+  return 1
+}
+
 SUITE_INSTALAR=1
 if [ -e "$MP/DESINSTALAR-SUITE.txt" ]; then SUITE_INSTALAR=0; fi
 SUITE_OK=0
@@ -420,6 +474,9 @@ if [ "$SUITE_INSTALAR" = "1" ]; then
     LOG "[ERRO] suite NAO instalada: o kit roda so a fase de cor, como antes."
   fi
 fi
+# o app entra ANTES de lancar a suite (e antes do reboot da fase termica: o vigia do pedido
+# liga no boot, entao o proximo boot ja o encontra). So com a suite instalada: o app so serve a ela.
+if [ "$SUITE_OK" = "1" ]; then instalar_app; fi
 
 # ---- estados-alvo (idempotencia) ---------------------------------------------
 # termico: o ini em uso tem de ser IDENTICO ao corrigido (md5). Um .ini anterior

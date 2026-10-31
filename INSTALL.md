@@ -38,16 +38,36 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    - `pendrive-autorun/ZYCustom.ini`
    - `pendrive-autorun/LEIA-ME.txt`
    - `pendrive-autorun/suite.sh`, `suite-boot.sh`, `suite-pedido.sh` e `pfl7560-suite.rc` (a suíte de verificação, bloco 9B)
+   - `pendrive-autorun/nl_tela` (gera as telas da suíte) e `pendrive-autorun/fontes/*` (as fontes dela, na subpasta `fontes/` do pendrive)
+   - `pendrive-autorun/pfl7560.apk` (o app dos ícones "Verificar projetor" e "Wi-Fi", bloco 9C)
    - `pendrive-autorun/kit/*.png` (oito imagens, na subpasta `kit/` do pendrive)
 
    O jeito certo é pelo instalador, que copia tudo e **confere o md5 de cada arquivo depois da cópia**
    contra a lista embutida no `newlink_update.sh`: no Linux/macOS `./install.sh --pendrive /caminho/do/pendrive`,
    no Windows `install.bat` opção 5 (pede a letra do pendrive). Se um arquivo não conferir, não use o pendrive.
+   Para formatar e preparar um pendrive do zero (FAT32, com o kit e o firmware de resgate), no Linux:
+   `sudo bash tests/preparar-pendrive.sh /dev/sdX`: só aceita pendrive removível por USB (o disco inteiro ou uma
+   partição dele), confere o md5 do firmware **antes** de formatar, pede para digitar o dispositivo e confere o
+   md5 de tudo no fim (ver "Firmware de resgate" abaixo).
    O aparelho faz a mesma conferência e **aborta sem escrever nada** se faltar ou divergir qualquer arquivo.
 3. Com o projetor **desligado**, plugue o pendrive numa porta USB dele.
 4. **Ligue.** Se aparecer "AJUSTANDO", espere: a parte térmica é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se nenhuma tela do kit aparecer em 2 minutos, desligue e ligue de novo (o pendrive montou tarde).
 5. **Teste de cor.** O projetor projeta uma escada de 16 cinzas e olha com a **câmera interna**: escada em ordem = cor certa, nada é gravado (é o caso do painel de fábrica); fora de ordem = ele troca o formato sozinho, confere de novo e mostra "COR CORRIGIDA AUTOMATICAMENTE" (qualquer tecla em 30 s desfaz). Se a câmera não ajudar, ele pergunta olhando a tela: escada fora de ordem, aperte qualquer tecla; ele mostra no outro formato, e só **mantém** se você apertar de novo diante de uma escada em ordem. Sem a segunda tecla, volta sozinho ao formato de antes.
-6. Quando aparecer "PRONTO", tire o pendrive. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive ficam `newlink_update.log` (procure `CORRECAO APLICADA COM SUCESSO`) e `newlink_cor.log`.
+6. **A suíte de verificação.** Depois da cor o kit roda o resto da suíte: ângulo, foco e nitidez pela câmera,
+   temperatura (só leitura) e um teste da proteção térmica em que a imagem **escurece por cerca de 1 minuto** (é
+   proposital), e termina num **resumo** em tela cheia (20 s; qualquer tecla fecha) e na tela "Pode tirar o
+   pendrive". Tire o pendrive. Confirme: ventiladores mais audíveis + imagem estável em brilho; no pendrive ficam
+   `newlink_update.log` (procure `CORRECAO APLICADA COM SUCESSO`), `newlink_cor.log` e `newlink_suite.log`.
+   O mesmo pendrive instala o app `pfl7560.apk` (`pm install -r`, antes da suíte; uma falha só avisa no log) e o
+   serviço de boot da suíte. **Daí em diante a suíte roda sozinha, sem pendrive,** quando o projetor volta da
+   tomada, e a pedido pelo ícone **"Verificar projetor"** (o app também tem o ícone "Wi-Fi"). O ícone só passa a
+   valer no **boot seguinte** à instalação (o vigia do pedido liga no boot): desligue e ligue uma vez. Um pedido
+   até 10 minutos depois do fim de outra suíte é ignorado. Detalhes, arquivos e limites:
+   [`docs/research/44-suite-de-boot.md`](docs/research/44-suite-de-boot.md).
+7. **Para desligar a suíte:** crie um arquivo vazio `DESINSTALAR-SUITE.txt` na raiz do pendrive e ligue com ele
+   plugado: remove o serviço, a pasta da suíte e o pedido, leva a cópia do backup da cor para o pendrive
+   (`suite-panelparam-backup-<serial>.img`) e roda só a fase de cor. O app fica instalado, sem efeito; para tirá-lo,
+   `adb uninstall com.pfl7560.verificar`.
 
 É **idempotente** (rodar de novo não muda nada nem reinicia) e só age se o modelo for `PFL7560`. A parte
 térmica reconhece o `.ini` de fábrica **dos dois modelos** (e as versões anteriores nossas) e troca **só as
@@ -58,6 +78,15 @@ simulação** (`make check-kit`); a bancada no aparelho ainda não foi feita (et
 [bloco 5](docs/sprints/2026-10-29-bloco-5-kit-universal.md)).
 
 **Atenção:** o recomendado é **não** colocar `usb_update.bin` no mesmo pendrive do autorun: o pendrive de **resgate** (firmware de fábrica) fica **separado** e desconectado no dia a dia. O `LEIA-ME.txt` descreve também um "kit de emergência" pessoal com os dois juntos (arranjo B), aceitável só para quem conhece o risco: ligar segurando o power com ele plugado reflasha o aparelho.
+
+**Firmware de resgate no pendrive (arranjo B, opcional).** `./install.sh --pendrive /caminho/do/pendrive --com-firmware`
+(Windows: `install.bat` opção 5, resposta `s` à pergunta do firmware) copia, além do kit, o `usb_update.bin`
+**oficial V1.0.0.9** (tirado do `firmware/Software PFL7560.zip` e conferido pelo md5 `28a2f280eee313a4b115567926b2ba4f`;
+**nunca** o `Firmware PFL7560.zip`, que é do modelo sem USB-C) na raiz e o nosso `.bin` em
+`firmware-nosso-NAO-GRADUADO/`, com um `LEIA-ME.txt`: ele **não está ativo**, não foi provado no hardware e só vale
+com a palavra do dono. O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/`, ou aponte outra
+pasta com `PFL_FIRMWARE_DIR=<pasta>`. Faltou um arquivo ou o md5 não bate: a opção falha e não copia nada.
+Só serve para o aparelho **com USB-C** (V1.0.0.9): no modelo sem USB-C (V1.0.0.1) não use este pendrive de resgate.
 
 Instruções resumidas: `pendrive-autorun/LEIA-ME.txt`.
 

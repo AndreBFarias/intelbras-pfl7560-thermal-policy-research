@@ -101,4 +101,7 @@ caberem 6 itens e 3 dicas.
 
 ## Pendente (aparelho)
 
+A suite que usa este programa esta em `docs/research/44-suite-de-boot.md`; o teste dele no
+aparelho e o passo 13 do roteiro "Teste no aparelho" la.
+
 - Rodar o binario ARM no projetor (galeria abrindo o PNG gerado; tempo de geracao).

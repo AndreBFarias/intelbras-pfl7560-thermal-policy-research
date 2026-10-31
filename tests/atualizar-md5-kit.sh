@@ -14,7 +14,9 @@
 # pendrive-autorun/nl_camcheck (binario ARM da camera, bloco 7) seja byte-identico ao
 # versionado em artifacts/camcheck/nl_camcheck. O nl_tela e as fontes (bloco 9A) entram
 # nas listas quando existirem em pendrive-autorun/ (e o nl_tela tem de ser igual ao de
-# artifacts/tela/nl_tela). Nao toca no aparelho.
+# artifacts/tela/nl_tela). O pfl7560.apk (app, bloco 9C) entra so na KIT_LISTA (a suite nao o
+# executa; o newlink_update.sh o instala) e tem de ser igual ao de artifacts/app/pfl7560.apk.
+# Nao toca no aparelho.
 set -u
 export LC_ALL=C   # ordem dos nomes (glob) igual em qualquer maquina
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -41,6 +43,13 @@ if [ -e "$KIT/nl_tela" ]; then
     echo "FALHA: pendrive-autorun/nl_tela difere de artifacts/tela/nl_tela"; exit 1
   fi
   NLTELA="nl_tela"
+fi
+APK=""
+if [ -e "$KIT/pfl7560.apk" ]; then
+  if ! cmp -s "$ROOT/artifacts/app/pfl7560.apk" "$KIT/pfl7560.apk"; then
+    echo "FALHA: pendrive-autorun/pfl7560.apk difere de artifacts/app/pfl7560.apk (rode artifacts/app/build.sh)"; exit 1
+  fi
+  APK="pfl7560.apk"
 fi
 FONTES=""
 for f in "$KIT"/fontes/*; do [ -f "$f" ] && FONTES="$FONTES fontes/${f##*/}"; done
@@ -77,7 +86,7 @@ mkdir -p "$TMP/kit"
 cp -r "$KIT"/. "$TMP/kit/"
 cp "$TMP/suite.sh" "$TMP/suite-boot.sh" "$TMP/suite-pedido.sh" "$TMP/kit/"
 # shellcheck disable=SC2086
-lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc kit/*.png $FONTES; do md5sum "$f"; done)"
+lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh pfl7560-suite.rc $APK kit/*.png $FONTES; do md5sum "$f"; done)"
 { printf 'KIT_LISTA="%s\n' "$lista"; echo '"'; } > "$TMP/b3"
 troca_bloco "$SH" KIT_LISTA_INICIO KIT_LISTA_FIM "$TMP/b3" "$TMP/newlink_update.sh"
 

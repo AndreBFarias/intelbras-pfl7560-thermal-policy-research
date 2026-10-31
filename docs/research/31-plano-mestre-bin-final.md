@@ -121,7 +121,8 @@ Checklist completo de pré-condições e recuperação: doc 18, seção "Pré-re
 - **A correção de cor LCD** — resolvida (byte `0x5c`: JEIDA na 1ª troca, VESA na 2ª, doc 40 §1), aplicada
   e persistente; ferramenta `pfl7560-lcd-color.sh` com os 9 subcomandos (doc 28), backup/restore
   endurecidos e integrada ao menu e ao `install.bat` (LCD-S1, `a9d3fa2`), backup obrigatório antes de
-  gravar (bloco 1), e o kit de pendrive com o teste das "duas metades" (bloco 5) — trilha B, fora do
+  gravar (bloco 1), e o kit de pendrive com o teste da escada de 16 cinzas pela câmera (blocos 5, 7 e 8) e a suíte de verificação de
+  boot ([doc 44](44-suite-de-boot.md)) — trilha B, fora do
   caminho crítico.
 - **A higiene do repo** — 4 dos 5 checks da REPO-S1 já passam; `make check` 6/6 (doc 30); desde
   2026-10-30, 9 OK (os 3 artefatos do modelo sem USB-C, bloco 6).

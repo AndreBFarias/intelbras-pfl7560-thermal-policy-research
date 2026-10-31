@@ -80,3 +80,25 @@ Branch `bloco-9a/tela-e-geometria`, worktree `/home/andrefarias/Desenvolvimento/
 3. `file artifacts/tela/nl_tela` = ELF 32-bit ARM; `nl_camcheck` ARM refeito e igual nas duas pastas.
 4. Relatório final com: os valores de `geometria` de cada quadro real, os caminhos dos PNG de exemplo, e
    qualquer desvio do contrato (se houve, por quê).
+
+## Estado (reunido pelo 9C, 2026-10-30)
+
+Feito e integrado (merge `1d2224d`): `nl_tela` (C, NDK r27c; ARM em `artifacts/tela/nl_tela` e `pendrive-autorun/nl_tela`,
+iguais; `stb_truetype` e `stb_image_write` em `artifacts/tela/terceiros/`; as cinco fontes IBM Plex e a `OFL.txt` em
+`pendrive-autorun/fontes/`), o modo `geometria` do `nl_camcheck` (contrato C-geo) e os dois harnesses, ambos no
+`make check-kit`. Os dois entram nas listas de md5 do kit (`nl_tela` e `fontes/*`).
+
+Provas (na árvore do 9C, 2026-10-30): `tests/test-tela.sh` com 94 verificações e `tests/test-camcheck.sh` com 95,
+sem falha; `make check`, `check-kit` e `check-fix` verdes. Valores de `geometria` nos quadros reais (inclinação,
+trapézio, bordas centro/esq/dir, contraste): na tabela de
+[`artifacts/camcheck/README.md`](../../artifacts/camcheck/README.md); o 9B usou o 1280×720 bom (borda 1,77 / 2,24 /
+1,95 px) para `LIMIAR_BORDA_PX_1280`.
+
+Desvios do texto do spec, todos por legibilidade e descritos no `artifacts/tela/README.md`: título do `aviso` em 100 px
+(o 72 do contrato é o do resumo); canto do resumo em Mono 24; margens de cima e de baixo do resumo de 72 e 66 px; byte
+não ASCII cru vira `?` com aviso (não recusa a tela inteira).
+
+**Só o aparelho confirma** (reunido no doc 44, seção 12): o binário ARM do `nl_tela` rodando no projetor e o tempo
+de geração (passo 13); a galeria abrindo o PNG gerado sem cortar nada (passo 13); o sinal de `inclinacao_graus` com
+uma inclinação proposital, e os valores reais de borda, trapézio e contraste no 1280×720 do aparelho (passo 10);
+a câmera ocupada pelo `AutoFocusService` (a suíte espera o autofoco antes; passo 11).
