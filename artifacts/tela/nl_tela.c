@@ -607,7 +607,7 @@ static void tela_aviso(void) {
   /* texto: paragrafo Regular 38 secundario, ate onde couber acima dos passos */
   if (C.texto.n) {
     const float px = 40; const int passo_l = 58;
-    int b = base_em(E_REG, px, fim_titulo + 60);
+    int b = base_em(E_REG, px, fim_titulo + 80);   /* ar sob o titulo: a descendente dele nao encosta */
     int maxl = (topo_passos - 56 - b) / passo_l + 1;
     if (maxl > 8) maxl = 8;
     if (maxl < 1) maxl = 1;
