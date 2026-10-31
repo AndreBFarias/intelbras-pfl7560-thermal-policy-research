@@ -20,7 +20,7 @@ Uma conferência completa da imagem que roda **como root, no aparelho**, sem PC:
 |---|---|
 | 0. Abertura | tela de aviso de 5 s com os 4 passos; depois espera o autofoco de boot (uma vez) |
 | 1. Cor | o `cor.sh` no modo `suite`: lê a escada de 16 cinzas pela câmera interna e, se estiver fora de ordem, troca o formato (VESA/JEIDA) com backup e journal |
-| 2. Ângulo, foco e nitidez | projeta a tela de calibração e roda `nl_camcheck faixas` e `geometria` (inclinação, trapézio, bordas, contraste). Foco ruim: refaz o autofoco, até 2 vezes. Imagem torta: dica de nivelar. Borda larga com os 4 pontos ligados: conselho de zerá-los |
+| 2. Ângulo, foco e nitidez | projeta a tela de calibração e roda `nl_camcheck faixas`, `geometria` (inclinação, trapézio, bordas, contraste) e `nitidez` (mapa 3x3). Foco ruim: refaz o autofoco, até 2 vezes, e depois a varredura fina do motor pelo `hidebug` (§16). Imagem torta: dica de nivelar. Borda larga com os 4 pontos ligados: conselho de zerá-los; cantos de um lado borrados: dica pela causa |
 | 3. Temperatura | só leitura: `zysys.env_temp` (LED), `zysys.light_temp` (placa), ventoinha e brilho pelo `hidebug` **sem `gtt`**, `.ini` efetivo, escada presente. LED a partir de 66 °C: atenção e dica de ventilação |
 | 4. Rampa | teste ativo, fiel ao `--vivacidade` do `pfl7560-saude.sh`: injeta 71000 mC por 40 s, a imagem escurece por cerca de 1 min e volta; limpeza em trap |
 | 5. Resumo | tela cheia com 19 itens (cor, imagem, temperatura, sistema), 20 s ou qualquer tecla |
@@ -147,7 +147,8 @@ qualquer modo, porque o app não sabe).
    auto_focus_keystone 0`, doc 43 §2.1), espera `sys.newlink.auto` ir a 1 (até 5 s) e a 0 (até 70 s) e mede de
    novo, até 2 vezes. Inclinação maior que 1,5° ou trapézio maior que 3 %: dica de nivelar; **com os 4 pontos
    ligados** (`persist.sys.keystone.*`), vira o conselho de zerá-los, porque a câmera é presa ao projetor e o
-   que ela vê inclinado vem da correção. Câmera falhou: itens `pendente`, a suíte segue.
+   que ela vê inclinado vem da correção. Câmera falhou: itens `pendente`, a suíte segue. Bloco 11 (§16): o mapa
+   de nitidez 3x3 a cada medida e, com o foco ainda ruim depois dos autofocos, a varredura fina do motor.
 4. **Temperatura:** ver seção 1. Sem `hidebug gtt` (o `gtt` força o mux e é suspeito do "LSADC Error": doc 35).
 5. **Rampa:** só injeta se o `WARNING_VALUE` e o `EMERGENCY_VALUE` do `.ini` efetivo, lidos agora, deixam 71000
    entre os dois; exige o `.ini` com o md5 de um corrigido e o LED abaixo de 66 °C (o override mascara o
@@ -564,3 +565,79 @@ reinicia. Os dois valores fixados foram lidos do `.sha256` publicado e do APK ba
    bloco `logo` no toybox do aparelho; `adb exec-out dd` entregar os 40 MiB sem alteração.
 6. `pfl7560-vlc.sh`: o `df -k /vendor` com a coluna "Available" por último; o PackageManager registrar o
    `org.videolan.vlc` com as `.so` de `lib/arm`; o espaço do `/vendor` para ~90 MB.
+
+## 16. Bloco 11: mapa de nitidez 3x3 e varredura fina de foco (2026-10-31)
+
+Pesquisa no [doc 46](46-foco-e-qualidade.md); tarefa em
+[bloco 11](../sprints/2026-10-31-bloco-11-qualidade-e-foco.md). Feito no PC, sem o aparelho.
+
+**Mapa 3x3.** A cada `medir_geo`, depois da geometria, `nl_camcheck nitidez <dev> faixas.txt` (contrato no
+`artifacts/camcheck/README.md`): a largura de borda 10-90 % em 9 regiões, com as colunas tiradas da imagem
+achada no quadro (não das janelas fixas da geometria). Se a nitidez falhar, a geometria vale e o item usa a
+borda do centro, como antes. O quadro vem espelhado de cima para baixo: `r1` é a linha de baixo na parede; as
+colunas não se espelham (`c1` = esquerda).
+
+**Item "Nitidez" e a dica.** O valor é o centro (`r2c2`) e o pior canto (`r1`/`r3` de `c1` e `c3`):
+"1,9 · canto 3,1 px" (a coluna do resumo cabe 18 caracteres; com números de 2 dígitos sai sem o "px"). A
+causa (`nitidez_causa`):
+
+| Causa | Quando | Item | Dica |
+|---|---|---|---|
+| `centro` | o centro passa do limiar da borda | atenção | "Centro borrado (X px): foco refeito. Se continuar, limpe a lente e confira a distância até a parede." (sem foco refeito: "refaça o foco pela tecla do controle") |
+| `lado_esquerdo` / `lado_direito` | só o pior canto de um lado passa de `RAZAO_BORDA` (1,6) x o centro | atenção | 4 pontos ligados: "Cantos do lado X borrados (C px; centro Y px): zere os 4 pontos e alinhe o projetor de frente." (substitui o conselho genérico dos 4 pontos). Zerados: "... alinhe o projetor de frente para a parede." |
+| `cantos` | os dois lados | atenção só acima do limiar | nenhuma (a borda da lente ou da câmera; o mapa se compara contra ele mesmo) |
+| `nenhuma` | | ok, ou atenção acima do limiar | nenhuma |
+
+Com uma dica de causa, a dica genérica "Foco irregular ..." não sai.
+
+**Varredura fina de foco.** Só quando o foco continua ruim (os limiares de sempre: `RAZAO_BORDA` e
+`LIMIAR_BORDA_PX_1280`) depois dos `FOCO_TENTATIVAS` autofocos, e nunca com `sys.newlink.auto=1`. Pelo
+`hidebug`, módulo `custom`, só `gfd` (posição), `gfdr` (faixa) e `sfd <pos>` (vai à posição); `hb_foco`
+recusa qualquer outra coisa (nada de `sfd2`, `sfd3`, `saps` ou GPIO; `gtt` nunca):
+
+1. `p0 = gfd`; sem número reconhecido, não mexe no motor (`foco_varredura=sem_hidebug`, saída crua no log).
+2. Anda de `p0 - 3 x 40` a `p0 + 3 x 40` em passos de 40, sempre subindo (folga de direção do motor, doc 46
+   §7), dentro do `gfdr` quando ele responde. Depois de cada `sfd`, pausa de 2 s e o `gfd` relido (até 3
+   vezes) tem de estar a até 20 da posição pedida; senão para (o "Motor is too hot!" recusa o movimento).
+3. Em cada posição, a borda do **centro** pela geometria. Fica com a menor, se melhorar pelo menos 0,15 px.
+4. Vai à melhor (chegando por baixo) e mede de novo. Confirmou: fica (`melhorou`, item "Foco" = "ajuste
+   fino", corrigido) e a geometria e o mapa são medidos de novo. Senão, ou se algo falhou: volta a `p0`
+   chegando por baixo e confere pelo `gfd` (`sem_ganho`, `falhou`; sem confirmação, `nao_voltou` e o log manda
+   refazer o foco pela tecla). A suíte morta no meio (TERM, INT, HUP): o trap manda `sfd p0`
+   (`interrompida`).
+
+Constantes no `suite.sh` (todas PROVISÓRIO): `VARRE_PASSO=40`, `VARRE_LADO=3`, `VARRE_PAUSA=2`,
+`VARRE_CHEGADA=3`, `VARRE_TOLERANCIA=20`, `VARRE_GANHO=0.15`.
+
+**Chaves novas em `resultados.txt`:** `nitidez_r1c1` ... `nitidez_r3c3`, `nitidez_centro_px`,
+`nitidez_pior_canto_px`, `nitidez_causa`, `foco_varredura` (`nao_precisou`, `melhorou`, `sem_ganho`,
+`falhou`, `sem_hidebug`, `pulada`, `nao_voltou`, `interrompida`) e, quando a varredura roda,
+`foco_pos_inicial`, `foco_pos_final`, `foco_borda_antes`, `foco_borda_depois`.
+
+**`pfl7560-qualidade.sh` (PC, adb).** Lê pelo `hidebug` (módulo `picture`) o modo de imagem, a nitidez, o NR,
+o MEMC, o DCI e o overscan, e pelas props e `wm size` a saída para o painel, e compara com o "máximo" do doc 46
+§3.2. Só muda com `--aplicar <ajuste>` (vai ao sugerido) e a palavra MUDAR digitada; o valor antigo fica em
+`backups-projetor/qualidade/<ajuste>.txt` (o de antes da primeira mudança, nunca sobrescrito) e `--voltar
+<ajuste>` o devolve. Relê depois de cada mudança.
+
+### Provas no PC
+
+- `tests/test-camcheck.sh`: o mapa nos 5 quadros reais (`calibracao-hd-f1`, o caso do dono: esquerda ~1,5x o
+  meio, pior em `r1c1`), sintéticos de borda conhecida por coluna e por linha, e as saídas de erro.
+- `tests/test-suite.sh`, caso `c_etapas_foco`: as quatro causas e as dicas (sem a dica repetida dos 4 pontos),
+  o valor de 2 dígitos, a nitidez que falha (o item volta à geometria), a varredura que acha a melhor posição
+  (as 9 posições pedidas, a pausa antes de cada leitura, só `gfd`/`gfdr`/`sfd`), a que não ganha (volta por
+  baixo), o motor que recusa, o `hidebug` que para de responder, o autofoco em curso e a suíte morta no meio.
+- `tests/test-qualidade.sh` (no `make check-kit`): leitura só de leitura, `--aplicar` e `--voltar`, a palavra
+  errada, o valor que não se lê, o aparelho que não muda, sem root, `errno = 13`, outro modelo.
+
+### PROVISÓRIO (só o aparelho confirma)
+
+1. O formato da saída do `gfd` e do `gfdr` (a suíte procura "focus" ou "distance" e o último número; "[" e os
+   dois primeiros números na faixa). Se não bater, a varredura nunca mexe no motor e o log mostra a resposta.
+2. A unidade do `gfd`/`sfd` e se 40 é um passo pequeno; se o `sfd` alinha a posição (a tolerância de 20).
+3. O critério do "Motor is too hot!" contra a pausa de 2 s.
+4. O mapa 3x3 no aparelho, sobre a calibração de agora, e se o lado esquerdo cai para perto do centro com os 4
+   pontos zerados (doc 46 §7, passo 2).
+5. O formato da saída do `hidebug` no módulo `picture` (o `pfl7560-qualidade.sh` lê o último número de cada
+   resposta) e se o `s...` persiste e relê igual.

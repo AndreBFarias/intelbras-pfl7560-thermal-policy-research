@@ -390,3 +390,19 @@ passo 5, nitidez artificial estreita a borda e cria halo; medir os dois.
 4. Que os ajustes `gshr`, `gnr`, `gmemc`, `gdci`, `gsrl`, `govs`, `gasp` respondem e com que valores.
 5. Que zerar os 4 pontos muda (ou não) a borda do lado esquerdo (§7, passo 2).
 6. Que a câmera ocupada pelo `nl_camcheck` reproduz o "não começou" do autofoco.
+
+## 10. O que virou código (bloco 19A, 2026-10-31)
+
+Feito no PC, sem o aparelho; detalhes e provas no [doc 44 §16](44-suite-de-boot.md).
+
+| Achado daqui | Onde virou código | Como |
+|---|---|---|
+| §5.4 e §7 passo 2: o mapa 3x3 com a grade **achada** no quadro | `nl_camcheck nitidez` (`artifacts/camcheck/`) | colunas a 10, 50 e 90 % da largura da imagem achada (desvio padrão da luma por coluna), linhas pelos vãos das faixas em três grupos; borda 10-90 % por região |
+| §2.1 e §7 passo 3: varredura fina pelo `hidebug` | `suite.sh`, etapa 2 (`varredura_foco`) | só `gfd`, `gfdr` e `sfd <pos>`; 7 posições de 40 em 40 em volta de `p0`, chegando sempre por baixo; pausa de 2 s (§2.4); mede a borda do centro; volta a `p0` se nada melhorar ou se o `hidebug` não responder; nunca com `sys.newlink.auto=1` |
+| §2.2: o autofoco só olha o centro | o item "Nitidez" e a dica | centro e pior canto separados; cantos de um lado = alinhar e zerar os 4 pontos; centro = foco |
+| §3.1, §3.2 e §4: ajustes de imagem e a saída 1080p | `pfl7560-qualidade.sh` (PC) | lê e compara; muda um por vez com `--aplicar` e a palavra MUDAR, guarda o antigo para `--voltar` |
+
+Escolha que não estava aqui: a varredura usa só posição absoluta (`sfd`), não o passo relativo (`sfd2`),
+porque o sentido de "0 frente" em relação ao número do `gfd` não é conhecido; assim tudo fica na unidade do
+`gfd`. Os itens 1, 2 e 4 da §9 continuam valendo: são eles que confirmam a varredura e o
+`pfl7560-qualidade.sh`.
