@@ -20,8 +20,9 @@
 #  Bloco 15 (atalho Luz da home): o mesmo molde, com o arquivo "luz". O app grava
 #  so digitos (10..100) na pasta dele; este script confere a origem como acima, le SO
 #  digitos (ate 3), recusa o resto, guarda o nivel em $SUITE/luz (root, 0600), aplica
-#  pelo hidebug ("picture", "sbl N"), confere com "gbl" e devolve o valor ao app em
-#  luz-atual (dono = UID do app, 0600). Nao usa a protecao de 10 min; com a trava
+#  pelo hidebug ("picture", "sbl N"), confere com "gbl" e devolve o valor ao app pela
+#  prop vendor.pfl7560.luz (o root nao escreve nada na pasta do app: revisao de
+#  seguranca de 2026-10-31). O pedido e MOVIDO para a pasta so do root antes de ser lido. Nao usa a protecao de 10 min; com a trava
 #  ocupada (rampa no meio) so guarda. suite-boot.sh chama "suite-pedido.sh aplicar-luz"
 #  em todo boot para reaplicar o nivel guardado (a gravacao do sbl pelo fabricante e
 #  atrasada e nao confiavel: um reboot logo depois perde o valor).
@@ -103,20 +104,27 @@ luz_valida(){
 }
 # uma linha ASCII imprimivel e curta, so para o log
 limpo(){ printf '%s' "$1" | tr -cd ' -~' | cut -c1-20; }
-# devolve o valor ao app: luz-atual na pasta dele, dono = o da pasta, 0600. Cria com
-# noclobber (nunca segue um link plantado), chown -h e rename (que substitui, nao segue).
+# devolve o valor ao app pela prop vendor.pfl7560.luz (o app le com getprop). Escrever
+# como root numa pasta que o app controla abria corrida de link (revisao de seguranca).
 escrever_luz_atual(){
-  if ! pasta_do_app; then LOG "[AVISO] pasta do app ausente, link ou de dono invalido - luz-atual nao escrita."; return 1; fi
-  _t="$PEDIDO_DIR/luz-atual.novo"
-  rm -f "$_t"
-  if ! ( set -C; umask 077; printf '%s\n' "$1" > "$_t" ) 2>/dev/null; then
-    LOG "[AVISO] nao consegui criar $_t - luz-atual nao escrita."; return 1
-  fi
-  if ! chown -h "$_du:$_dg" "$_t" 2>/dev/null; then
-    rm -f "$_t"; LOG "[AVISO] chown de luz-atual falhou - nao escrita."; return 1
-  fi
-  [ -L "$PEDIDO_DIR/luz-atual" ] && rm -f "$PEDIDO_DIR/luz-atual"
-  mv -f "$_t" "$PEDIDO_DIR/luz-atual"
+  setprop vendor.pfl7560.luz "$1"
+}
+# le o pedido de luz sem nunca abrir um caminho que o app controla: MOVE (rename, que nao
+# segue link) para a pasta so do root, confere la que e arquivo regular do UID do app e le
+# com prazo (um FIFO nao trava o vigia). Deixa o conteudo em LUZ_BRUTO; !=0 = recusado.
+ler_pedido_luz(){
+  LUZ_BRUTO=""
+  _lp="$SUITE/luz.pedido"
+  rm -f "$_lp"
+  dir_seguro "$SUITE" || return 1
+  mv -f "$PEDIDO_DIR/luz" "$_lp" 2>/dev/null || return 1
+  if [ ! -f "$_lp" ] || [ -L "$_lp" ]; then rm -f "$_lp"; return 1; fi
+  # shellcheck disable=SC2046  # divisao em campos de proposito
+  set -- $(ls -ln "$_lp" 2>/dev/null)
+  if [ "${3:-}" != "$_du" ]; then rm -f "$_lp"; return 1; fi
+  LUZ_BRUTO=$(timeout 2 head -c 16 "$_lp" 2>/dev/null | tr -d '\r\n')
+  rm -f "$_lp"
+  return 0
 }
 # aplica $1 (10..100) pelo hidebug, confere lendo gbl (ate 3 leituras, 1 s entre elas) e
 # devolve ao app o que o aparelho disse
@@ -173,7 +181,7 @@ DO_APP=0
 pedido_do_app "$NOME" && DO_APP=1
 LUZ_BRUTO=""
 if [ "$NOME" = "luz" ] && [ "$DO_APP" = "1" ]; then
-  LUZ_BRUTO=$(head -c 16 "$PEDIDO_DIR/luz" 2>/dev/null | tr -d '\r\n')
+  ler_pedido_luz || DO_APP=0
 fi
 rm -f "$PEDIDO_DIR/$NOME"
 if ! dir_seguro "$SUITE"; then
@@ -190,7 +198,9 @@ fi
 if [ "$DO_APP" != "1" ]; then LOG "[AVISO] o pedido nao veio do app (dono do arquivo nao e o da pasta do app) - ignorado."; exit 0; fi
 if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi
-if terminou_ha_pouco; then LOG "a suite terminou ha menos de 10 min - pedido ignorado."; exit 0; fi
+# o pedido e do dono (tocou no icone): roda mesmo se a suite acabou de rodar. A protecao
+# de 10 min e contra laco no boot (suite-boot.sh), nao contra quem pede (2026-10-31).
+if terminou_ha_pouco; then LOG "a suite terminou ha menos de 10 min, mas o pedido e do dono: roda."; fi
 # ULTIMA conferencia antes de executar
 if ! { arq_seguro "$SUITE/suite.sh" && [ "$(md5_de "$SUITE/suite.sh")" = "$SUITE_MD5" ]; }; then
   LOG "[ERRO] suite.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."

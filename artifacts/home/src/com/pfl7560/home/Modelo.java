@@ -35,7 +35,7 @@ public final class Modelo {
     public static final int[] LUZ_NIVEIS = {100, 80, 60, 40, 25};
     public static final int LUZ_ECONOMICO = 25;
 
-    /** Luz atual em %, como o root deixou em luz-atual; 100 enquanto nao houver arquivo. */
+    /** Luz atual em %, como o root publicou em vendor.pfl7560.luz; 100 enquanto nao houver. */
     public int luz = 100;
     public boolean luzAberta;
     /** Indice em LUZ_NIVEIS do nivel sob o foco no painel. */

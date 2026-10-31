@@ -55,7 +55,7 @@ DONO_UID=0
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
 SUITE_MD5="4ec528651ceb839a2a1350f9f73a9aea"
-PEDIDO_MD5="c58ce0e8a5abd2b5a8600db2d5da58a5"
+PEDIDO_MD5="1412caa0e99ed2c7d165b515f1574d81"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):

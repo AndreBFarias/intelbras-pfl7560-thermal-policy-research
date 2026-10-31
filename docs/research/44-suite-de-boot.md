@@ -313,7 +313,7 @@ e anote o resultado (a linha de base). Espera: tudo verde.
    mensagem "Verificação pedida" por 3 s e a abertura "Verificação pedida. Conferindo o projetor." em instantes;
    `adb shell "tail -5 $S/vigia.log; ls -ln /data/data/com.pfl7560.verificar/"` mostra a linha "pedido de
    verificacao recebido" e a pasta sem o arquivo. Toque de novo **antes de 10 minutos**: nada acontece e o
-   `vigia.log` diz "terminou ha menos de 10 min - pedido ignorado". Se o ícone não aparecer: o launcher não
+   `vigia.log` diz "a suite terminou ha menos de 10 min, mas o pedido e do dono: roda" e a suíte roda de novo (pedido do dono em 2026-10-31: o ícone sempre roda; só a trava de uma suíte em curso segura). Se o ícone não aparecer: o launcher não
    lista por `LAUNCHER`; olhar `dumpsys package com.pfl7560.verificar` (doc 43 §6 diz que lista).
 6. **Pedido que não é do app.** Root: `adb shell "touch /data/data/com.pfl7560.verificar/pedir-verificacao"`
    (o dono é o root, não o app). Esperado: o `vigia.log` diz "o pedido nao veio do app (dono do arquivo nao e o

@@ -116,18 +116,23 @@ final class Leitor {
     }
 
     /**
-     * Luz atual em %: o numero que o root deixou em luz-atual na pasta do app (ver suite-pedido.sh),
-     * ou 100 se o arquivo nao existe, esta vazio ou fora de 10..100.
+     * Luz atual em %: o numero que o root publica na prop vendor.pfl7560.luz (ver suite-pedido.sh),
+     * lido com getprop; 100 se a prop nao existe, esta vazia ou fora de 10..100. O root nao escreve
+     * na pasta do app (revisao de seguranca).
      */
     static int luzAtual(Context c) {
-        try (FileInputStream in = new FileInputStream(new File(c.getDataDir(), "luz-atual"))) {
+        Process p = null;
+        try {
+            p = new ProcessBuilder("getprop", "vendor.pfl7560.luz").redirectErrorStream(true).start();
             byte[] b = new byte[8];
-            int n = in.read(b);
+            int n = p.getInputStream().read(b);
             if (n <= 0) return 100;
             int v = Integer.parseInt(new String(b, 0, n, "US-ASCII").trim());
             return v >= 10 && v <= 100 ? v : 100;
         } catch (IOException | RuntimeException e) {
             return 100;
+        } finally {
+            if (p != null) p.destroy();
         }
     }
 

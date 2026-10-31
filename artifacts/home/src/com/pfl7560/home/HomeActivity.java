@@ -29,7 +29,7 @@ import java.util.List;
  */
 public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static final long AVISO_MS = 5000L;
-    /** Tempo para o root aplicar a luz e gravar luz-atual antes de reler. */
+    /** Tempo para o root aplicar a luz e publicar a prop vendor.pfl7560.luz antes de reler. */
     private static final long LUZ_RELER_MS = 4000L;
 
     private final Handler principal = new Handler(Looper.getMainLooper());
@@ -193,7 +193,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                         vista.invalidate();
                         principal.removeCallbacks(apagarAviso);
                         principal.postDelayed(apagarAviso, AVISO_MS);
-                        // o que vale e o que o root gravou em luz-atual
+                        // o que vale e o que o root publicou em vendor.pfl7560.luz
                         principal.removeCallbacks(reler);
                         principal.postDelayed(reler, LUZ_RELER_MS);
                     }
