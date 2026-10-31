@@ -13,6 +13,12 @@
 #  nunca e executado direto do pendrive.
 #
 #    cor.sh <mountpoint> <termica-falhou|""> <md5 de cor.sh>   teste de cor
+#    cor.sh <mountpoint|""> <aviso> <md5> suite   o mesmo, chamado pela suite (bloco 9B):
+#                                           sem a tela "aguarde", sem a espera do autofoco
+#                                           (a suite ja esperou), sem a tela final; grava
+#                                           o resultado em $SUITE_DIR/cor-resultado.txt.
+#                                           Sem pendrive, a copia do backup vai para
+#                                           $SUITE_DIR (pasta so do root, persistente).
 #    cor.sh --restaurar                     devolve o formato original (journal)
 #    cor.sh --tela <nome>                   mostra kit/<nome>.png e sai
 #
@@ -80,6 +86,12 @@ LIBS="/vendor/lib:/system/lib"
 JOURNAL="$WORK/journal"
 BKP="$WORK/panelparam-original.img"
 LOGF="$WORK/cor.log"
+# modo suite (bloco 9B): a pasta da suite, onde vao o resultado e, sem pendrive, a
+# copia do backup. SUITE_MODO=1 so com o 4o argumento "suite".
+SUITE_DIR="$R/data/vendor/pfl7560-suite"
+SUITE_MODO=0
+COR_RES=erro      # resultado para a suite: ordem|corrigido|manual_mantido|manual_trocado|erro
+COR_FAIXAS="-"    # faixas achadas pela camera na calibracao (ou "falhou", ou "-")
 
 # layout da panelparam (o mesmo do bloco 1 e do wizard do PC)
 PERFIL_TAM=768
@@ -92,11 +104,12 @@ PP_TAM=8388608
 TEMPO_TECLA=30        # sem tecla neste prazo = nao mexe / reverte
 TEMPO_ASSENTAR=2      # tela nova + folga para a 1a tecla nao valer de 2a
 TEMPO_TELA=3          # depois de abrir uma tela: a galeria desenhar e a camera assentar
-AUTOFOCO_MAX=60
-AUTOFOCO_FOLGA=30
+AUTOFOCO_INICIO=60    # ate quanto esperar o autofoco de boot COMECAR (sys.newlink.auto=1)
+AUTOFOCO_MAX=70       # ate quanto esperar ele TERMINAR (sys.newlink.auto=0); o servico desiste em 60 s
+AUTOFOCO_FOLGA=5      # PROVISORIO: folga depois do fim (a tela do kit volta a frente)
 ESPERA_REBOOT=5
 # gancho de teste (so com PFL_TESTE=1): o harness (tests/) zera as esperas
-[ -n "${PFL_RAPIDO:-}" ] && { TEMPO_ASSENTAR=0; TEMPO_TELA=0; AUTOFOCO_MAX=0; AUTOFOCO_FOLGA=0; ESPERA_REBOOT=0; }
+[ -n "${PFL_RAPIDO:-}" ] && { TEMPO_ASSENTAR=0; TEMPO_TELA=0; AUTOFOCO_INICIO=0; AUTOFOCO_MAX=0; AUTOFOCO_FOLGA=0; ESPERA_REBOOT=0; }
 
 # limites do modo automatico (bloco 7)
 FAIXAS_N=16           # faixas da calibracao e da escada
@@ -204,14 +217,22 @@ mostrar(){
   sleep "$TEMPO_TELA"
 }
 
-# PREMISSA NAO CONFIRMADA (doc 41, modos de falha): o autofoco/keystone pode
-# cobrir a tela do kit logo apos o boot e o AutoFocusService some uns 25 s depois
-# de subir. Espera ate AUTOFOCO_MAX a prop dizer que focou e mais AUTOFOCO_FOLGA.
-# Se a prop nao existir, o laco acaba no teto e segue (nunca trava).
+# O autofoco de boot pode cobrir a tela do kit logo apos o boot. Sinal (doc 43
+# s2.3, lido no AutoFocusService): sys.newlink.auto vira 1 no onCreate e volta a 0
+# no fim do foco e no onDestroy. (vendor.focus.camera.is_focused NAO serve: vira
+# true no INICIO do foco e nada a poe em false; serve so para saber que o foco ja
+# COMECOU neste boot.) Espera ate AUTOFOCO_INICIO o foco comecar, depois ate
+# AUTOFOCO_MAX ele terminar, e mais AUTOFOCO_FOLGA. Prop ausente ou presa em 1
+# (processo morto sem onDestroy): os tetos encerram (nunca trava).
 aguardar_autofoco(){
   _t=0
-  while [ "$_t" -lt "$AUTOFOCO_MAX" ]; do
-    [ "$(getprop vendor.focus.camera.is_focused 2>/dev/null)" = "true" ] && break
+  while [ "$_t" -lt "$AUTOFOCO_INICIO" ] && [ "$(getprop sys.newlink.auto 2>/dev/null)" != "1" ] \
+        && [ "$(getprop vendor.focus.camera.is_focused 2>/dev/null)" != "true" ]; do
+    sleep 2
+    _t=$(( _t + 2 ))
+  done
+  _t=0
+  while [ "$_t" -lt "$AUTOFOCO_MAX" ] && [ "$(getprop sys.newlink.auto 2>/dev/null)" = "1" ]; do
     sleep 2
     _t=$(( _t + 2 ))
   done
@@ -486,10 +507,14 @@ preparar_backup(){
   echo "$BKP_MD5  panelparam-original.img" > "$BKP.md5"
   LOG "[OK] backup do panelparam salvo e conferido com cmp em $BKP"
   _s=$(cor_serial); [ -n "$_s" ] || _s="sem-serial"
-  _b="$MP/panelparam-backup-$_s.img"
-  if [ -d "$MP" ] && cp "$BKP" "$_b" 2>/dev/null && sync && cmp -s "$_b" "$PP"; then
+  # modo suite sem pendrive: a copia vai para a pasta da suite (so do root e
+  # persistente; a $WORK some no fim quando nao ha journal)
+  _bd="$MP"
+  if [ -z "$MP" ] && [ "$SUITE_MODO" = "1" ] && dir_seguro "$SUITE_DIR"; then _bd="$SUITE_DIR"; fi
+  _b="$_bd/panelparam-backup-$_s.img"
+  if [ -n "$_bd" ] && [ -d "$_bd" ] && cp "$BKP" "$_b" 2>/dev/null && sync && cmp -s "$_b" "$PP"; then
     md5sum "$_b" > "$_b.md5" 2>/dev/null
-    LOG "[OK] copia do backup no pendrive conferida: $_b"
+    LOG "[OK] copia do backup conferida: $_b"
   else
     rm -f "$_b" "$_b.md5" 2>/dev/null
     LOG "[AVISO] nao consegui copiar o backup para o pendrive (o de $WORK vale)."
@@ -503,13 +528,35 @@ limpar_trabalho(){
   [ -f "$JOURNAL" ] && return 0
   rm -rf "$WORK"
 }
+# nome do formato para a suite (0=VESA, 1=JEIDA; outro valor = "?")
+fmt_nome(){ case "$1" in 0) echo VESA ;; 1) echo JEIDA ;; *) echo "?" ;; esac; }
+# modo suite: grava o resultado (chave=valor, ASCII) que a suite le. So numa pasta
+# da suite que seja so do root; escrita atomica.
+gravar_resultado(){ # tela final
+  [ "$1" = "erro" ] && COR_RES=erro
+  dir_seguro "$SUITE_DIR" || { LOG "[ERRO] $SUITE_DIR nao e pasta so do root: resultado NAO gravado."; return 1; }
+  _depois=""; [ -n "${CIDX:-}" ] && _depois=$(cor_valor "$CIDX")
+  {
+    echo "cor_resultado=$COR_RES"
+    echo "cor_formato_antes=$(fmt_nome "${CVAL:-}")"
+    echo "cor_formato_depois=$(fmt_nome "$_depois")"
+    echo "cor_faixas=$COR_FAIXAS"
+    echo "cor_painel=$(echo "${PNOME:-}" | tr -cd 'A-Za-z0-9_.-')"
+  } > "$SUITE_DIR/cor-resultado.txt.new" && mv -f "$SUITE_DIR/cor-resultado.txt.new" "$SUITE_DIR/cor-resultado.txt"
+  LOG "resultado para a suite: cor_resultado=$COR_RES"
+}
 finalizar(){ # tela
   _t="$1"
-  if [ "$_t" = "pronto" ] && [ -n "$AVISO" ]; then
-    LOG "[AVISO] a fase termica nao ficou efetiva (ver o log): mostrando ERRO em vez de PRONTO."
-    _t="erro"
+  if [ "$SUITE_MODO" = "1" ]; then
+    # a suite mostra as telas dela e decide a final; aqui so o resultado
+    gravar_resultado "$_t"
+  else
+    if [ "$_t" = "pronto" ] && [ -n "$AVISO" ]; then
+      LOG "[AVISO] a fase termica nao ficou efetiva (ver o log): mostrando ERRO em vez de PRONTO."
+      _t="erro"
+    fi
+    mostrar "$_t"
   fi
-  mostrar "$_t"
   if [ -n "$MP" ] && [ -d "$MP" ]; then cp "$LOGF" "$MP/newlink_cor.log" 2>/dev/null; fi
   limpar_trabalho
   exit 0
@@ -565,15 +612,19 @@ decidir_por_camera(){
   mostrar calibracao
   _o=$(nlcam_exec faixas "$VIDEO" "$FAIXAS_N" "$FAIXAS" "$CAM_DESCARTE"); _rc=$?
   if [ "$_rc" != "0" ]; then
+    COR_FAIXAS=falhou
     LOG "[AVISO] calibracao pela camera falhou (rc=$_rc: $_o): fluxo manual."
     return 1
   fi
+  COR_FAIXAS=$(echo "$_o" | sed -n 's/^faixas achadas: \([0-9][0-9]*\).*$/\1/p' | head -1)
+  [ -n "$COR_FAIXAS" ] || COR_FAIXAS="$FAIXAS_N"
   LOG "calibracao: $_o"
 
   escada_medir "formato atual lvds_fmt=$CVAL" || { LOG "modo automatico sem decisao: a pessoa decide"; return 1; }
   case "$ESC_RES" in
     ordem)
       LOG "[OK] escada em ordem com lvds_fmt=$CVAL: formato certo, nada foi escrito"
+      COR_RES=ordem
       finalizar pronto ;;
     duvida)
       LOG "escada com $ESC_INV inversao: sem margem para decidir, nada foi escrito: a pessoa decide"
@@ -603,6 +654,7 @@ decidir_por_camera(){
       if reverter; then
         LOG "[OK] revertido: lvds_fmt=$CVAL"
         [ "$VIVO_OK" = "1" ] || LOG "[AVISO] o lvdsctl nao confirmou a volta ao vivo: o formato original vale a partir do proximo boot."
+        COR_RES=manual_mantido
         finalizar pronto
       fi
       LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
@@ -612,6 +664,7 @@ decidir_por_camera(){
       LOG "[OK] escada em ordem depois da troca, sem tecla para desfazer: lvds_fmt=$NOVO mantido, relido e a particao confere (so o byte 0x5c mudou)"
       rm -f "$JOURNAL"
       remover_gancho
+      COR_RES=corrigido
       finalizar pronto
     fi
     LOG "[ERRO] a releitura nao confirmou (byte ou perfil diferente do esperado) - revertendo."
@@ -663,6 +716,10 @@ modo_teste(){
   MP="$1"
   AVISO="$2"
   COR_MD5="$3"
+  if [ "$4" = "suite" ]; then
+    SUITE_MODO=1
+    LOGF="$SUITE_DIR/cor.log"   # a suite manda a saida deste script para la
+  fi
   # o md5 de si mesmo vem de quem conferiu o kit (newlink_update.sh) e e o que o
   # gancho de boot vai embutir; sem ele ou se nao bater, nada acontece.
   if [ "${#COR_MD5}" != "32" ] || [ "$(md5_de "$0")" != "$COR_MD5" ]; then
@@ -684,8 +741,11 @@ modo_teste(){
   fi
 
   preparar_tela
-  mostrar aguarde
-  aguardar_autofoco
+  if [ "$SUITE_MODO" != "1" ]; then
+    # no modo suite a tela de etapa e a espera do autofoco de boot sao da suite
+    mostrar aguarde
+    aguardar_autofoco
+  fi
 
   # perfil ativo: indice e nome vem do driver, e o nome gravado na particao tem de
   # bater (prova de OFFSET, nao de qual painel esta no motor optico).
@@ -717,6 +777,7 @@ modo_teste(){
   mostrar escada-1
   if ! esperar_tecla; then
     LOG "sem tecla em ${TEMPO_TECLA}s: formato mantido ($CVAL), nada foi escrito"
+    COR_RES=manual_mantido
     finalizar pronto
   fi
   LOG "tecla recebida: a pessoa viu a escada FORA de ordem"
@@ -747,6 +808,7 @@ modo_teste(){
       LOG "[OK] segunda tecla: lvds_fmt=$NOVO mantido, relido e a particao confere (so o byte 0x5c mudou)"
       rm -f "$JOURNAL"
       remover_gancho
+      COR_RES=manual_trocado
       finalizar pronto
     fi
     LOG "[ERRO] a releitura nao confirmou (byte ou perfil diferente do esperado) - revertendo."
@@ -756,6 +818,7 @@ modo_teste(){
   if reverter; then
     LOG "[OK] revertido: lvds_fmt=$CVAL"
     [ "$VIVO_OK" = "1" ] || LOG "[AVISO] o lvdsctl nao confirmou a volta ao vivo: o formato original vale a partir do proximo boot."
+    COR_RES=manual_mantido
     finalizar pronto
   fi
   LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
@@ -765,5 +828,5 @@ modo_teste(){
 case "$1" in
   --restaurar) modo_restaurar ;;
   --tela) trabalho_ok || exit 1; preparar_tela; mostrar "$2"; exit 0 ;;
-  *) modo_teste "$1" "$2" "$3" ;;
+  *) modo_teste "$1" "$2" "$3" "${4:-}" ;;
 esac

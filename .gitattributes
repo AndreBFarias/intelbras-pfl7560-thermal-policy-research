@@ -39,6 +39,12 @@ pendrive-autorun/nl_camcheck        -text byte-exact
 pendrive-autorun/nl_tela            -text byte-exact
 pendrive-autorun/fontes/*           -text byte-exact
 pendrive-autorun/kit/*.png          -text byte-exact
+# Suite de verificacao (bloco 9B): ASCII puro como o autorun; o md5 de cada um esta nas
+# listas embutidas (KIT_LISTA, SUITE_LISTA, SUITE_MD5), entao nenhum byte pode mudar.
+pendrive-autorun/suite.sh           -text byte-exact
+pendrive-autorun/suite-boot.sh      -text byte-exact
+pendrive-autorun/suite-pedido.sh    -text byte-exact
+pendrive-autorun/pfl7560-suite.rc   -text byte-exact
 # Quadros crus da camera interna (bloco 7, YUYV 640x480): sem byte 0 nem fim de linha,
 # o git os toma por texto; byte-exact impede que o pre-commit "conserte" algum byte.
 tests/fixtures/camera/*.yuyv        -text byte-exact

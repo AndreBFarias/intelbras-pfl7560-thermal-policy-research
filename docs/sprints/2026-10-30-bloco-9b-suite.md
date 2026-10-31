@@ -133,3 +133,85 @@ Casos mínimos:
 1. Os testes acima verdes, com a contagem no relatório.
 2. Relatório final: o que ficou PROVISÓRIO (constantes e premissas) e o que o teste no aparelho precisa
    confirmar, em lista.
+
+## Estado (implementação, 2026-10-30)
+
+Feito no branch `bloco-9b/suite`. Nada rodou no aparelho: tudo abaixo é harness com stubs.
+
+- **B1:** o `newlink_update.sh` instala a suíte em `/data/vendor/pfl7560-suite`, só os arquivos com md5 diferente,
+  por uma pasta de preparo dentro dela. Grava também o `.rc` dentro da janela rw do `/vendor`: é montado em
+  `/vendor/etc/pfl7560-suite.rc.new`, fora da pasta que o init lê, e só entra nela por `mv`, com `chmod 0644`,
+  `chown root:root` e `chcon` com o rótulo do `init.bigfish.rc` vizinho. Cria a pasta do pedido e lança
+  `suite.sh pendrive` no lugar do `cor.sh`. O `DESINSTALAR-SUITE.txt` remove a suíte e roda só o `cor.sh`.
+  Se a suíte não instalar, o kit roda só o `cor.sh`, como antes.
+- **B2:** o `suite-boot.sh` cuida do histórico (30 linhas), do gatilho `auto|sempre|nunca`, dos 10 min, do
+  pendrive, da trava e do vigia (`inotifyd`, ou um laço de 30 s). O processo do serviço fica vivo com `wait`
+  enquanto o vigia vive. O `suite-pedido.sh` trata o pedido do app.
+- **B3:** o `suite.sh` faz as 5 etapas e o resumo de 19 itens. O `cor.sh` ganhou o modo `suite`: sem as telas
+  dele, sem a espera do autofoco, com o resultado em `cor-resultado.txt` e, sem pendrive, a cópia do backup
+  na pasta da suíte. O autofoco agora é lido por `sys.newlink.auto` (doc 43 §2.3), no `cor.sh` e na suíte.
+- **B4:** `tests/test-suite.sh` (novo) e `tests/test-kit-pendrive.sh` (adaptado ao fluxo da suíte), os dois no
+  `make check-kit`. O `tests/atualizar-md5-kit.sh` gera em cadeia `SUITE_LISTA` → `SUITE_MD5` → `KIT_LISTA` e
+  inclui `nl_tela` e `fontes/` quando existirem.
+
+Desvios do texto do spec:
+
+1. A etapa 2 espera `sys.newlink.auto` (1 e depois 0, teto de 70 s), não `is_focused=true` (doc 43 §8).
+2. Com os 4 pontos ligados, a inclinação vira o conselho de zerar os 4 pontos, e não a dica de nivelar.
+   Motivo: a câmera é presa ao projetor e não vê o projetor girado; o que ela vê inclinado vem da correção.
+3. Nos modos tomada e pedido, as telas estáticas de reserva são só `aguarde` e `calibracao`: `pronto` e
+   `erro` falam de pendrive. Sem o `nl_tela`, o resumo não aparece; o resultado fica no `resultados.txt`.
+4. Travas da rampa além das do spec: o `.ini` efetivo tem de ter o md5 de um corrigido, e o LED tem de estar
+   abaixo de 66 °C (o override mascara o sensor por 40 s).
+5. No modo pendrive, com a trava ocupada por outra suíte, a suíte espera até 10 min, para que a última tela
+   ainda peça para tirar o pendrive.
+
+PROVISÓRIO (o teste no aparelho confirma):
+
+- os critérios do gatilho `auto` (`ANO_MIN=2020`, prefixos `shutdown,`/`reboot,`) e o `ESPERA_MONTAGEM=20`;
+- `SINAL_INCLINACAO=1` e se a câmera vê alguma inclinação real (teste 4 do bloco 9);
+- `LIMIAR_BORDA_PX_1280=3.5`, proporcional à largura (o 640x480 real passaria dele);
+- `AUTOFOCO_FOLGA=5` (antes 30 s, com o sinal errado);
+- a leitura de `persist.sys.mountingmode` (rótulo do menu não provado) e a unidade do `fan speed` (0 = parada);
+- o `inotifyd` no toybox do Android 9 e a escrita do app vista pelo inotify no `/data/media`;
+- `logcat -T 1` no Android 9 (sem ele, "não reagiu" falso, nunca injeção sem limpeza).
+
+## Conferência (2026-10-30)
+
+Revisão adversária do diff do 9B, com correção. Nada rodou no aparelho. Cada achado virou um commit com
+o caso de teste que o reproduz (`c_conferente` no `tests/test-suite.sh`; `c_sem_suite_legado` no
+`tests/test-kit-pendrive.sh`).
+
+| # | Achado | O que mudou |
+|---|---|---|
+| 1 | Num aparelho já corrigido, só o `.rc` da suíte pedia o remount; se o remount falhasse, o kit saía com `exit 1` e nem a cor rodava (antes do 9B a cor rodava). | O remount pedido só pelo `.rc` não aborta: o kit segue sem o serviço de boot e avisa no log. Com um fix de `/vendor` pendente, aborta como antes. |
+| 2 | Se o `chcon` não pegasse, o `.rc` entrava em `/vendor/etc/init` e ficava lá com o rótulo errado (o `suite_rc_ok` falhava só depois do `mv`). | O `.new` é conferido (conteúdo, 0644, dono, rótulo) antes do `mv`; um `.rc` que não confira depois do `mv` é removido. |
+| 3 | O histórico era gravado com `echo`: no `sh` do aparelho (e no `dash`), um `\c` num sinal cortava a linha no meio. | `printf '%s\n'`. |
+| 4 | Um pedido que não se apaga (uma pasta com o nome) fazia o laço do vigia relançar a suíte a cada 10 min, com a rampa. | O `suite-pedido.sh` ignora o pedido que continua lá depois do `rm`; o laço só olha arquivo regular (`-f`). |
+| 5 | A proteção dos 10 min só conta suítes terminadas: uma suíte que trava ou reinicia o aparelho no meio, com o motivo do boot "sujo", rodava de novo a cada boot. | O `suite.sh` conta o início em `incompletas` e zera no fim (o trap também zera). O `suite-boot.sh` não roda sozinho com 2 seguidas (`motivo=interrompida_2x_seguidas`; o histórico ganhou `incompletas=N`). Uma suíte pelo pedido ou pelo pendrive que termine zera o contador. |
+| 6 | O `timeout` do toybox não repassa o TERM ao filho: o `kill` no fim da rampa deixava o `logcat` órfão, gravando no `rampa-logcat.txt` até o próximo boot. | `parar_logcat`: `pkill -P` no pid do `timeout` e depois `kill` nele (também no `sair`). |
+| 7 | Desinstalar apagava a cópia do backup do panelparam que o `cor.sh` deixa na pasta da suíte nos modos tomada e pedido. | `suite.sh --desinstalar <mp>`: leva `panelparam-backup-*.img` para o pendrive como `suite-panelparam-backup-*.img` (conferido com `cmp`, com `.md5`) antes de apagar a pasta. |
+| 8 | O `ctl.stop` do desinstalar mata o grupo do serviço com SIGKILL: uma suíte no meio da rampa deixaria o 71000 injetado até o reboot. | Depois do `ctl.stop`, se o override está ativo, o desinstalar o limpa e confere (`rampa_limpar`). |
+| 9 | Com `nl_tela`, a tela final do pendrive ficava "normal" mesmo com a fase térmica falhando (antes o `cor.sh` mostrava `erro`). | `tom=alerta` e o texto manda ver o `newlink_update.log` no pendrive (renderizado no `nl_tela` do 9A: cabe sem truncar). |
+| 10 | Todos os casos do `test-kit-pendrive.sh` passaram a ir pela suíte: o caminho sem a suíte (o `cor.sh` lançado direto, com as telas dele) ficou sem cobertura. | 4 casos com `DESINSTALAR-SUITE.txt`: sem tecla, tecla+tecla, `.ini` desconhecido e automático em ordem, com as telas de antes. |
+
+Conferido e mantido (sem mudança): o `.rc` (sintaxe do init do Android 9, `disabled` + `oneshot`, nada que
+bloqueie o boot: é serviço, não `exec`); md5 conferido na hora de cada execução (`suite.sh`, `cor.sh`,
+`nl_camcheck`, `nl_tela`, fontes, PNG); a pasta do pedido como entrada não confiável (só o nome é comparado,
+o conteúdo não é lido, link apagado e nunca seguido); 71000 fixo, 75000 ausente, trap EXIT/INT/TERM/HUP;
+`hidebug` só com `gfs`/`gbri`; telas dos modos tomada e pedido sem "pendrive"; os 19 itens na ordem do dono.
+
+Riscos que ficam (anotados, sem mudança):
+
+- O `suite-boot.sh` é executado pelo init sem conferência de md5 (um `.rc` não confere nada): a garantia é a
+  pasta `/data/vendor/pfl7560-suite` ser só do root, dentro de `/data/vendor` (0771 root). O `inotifyd`
+  executa o `suite-pedido.sh` a cada evento com o md5 conferido só ao ligar o vigia (mesma garantia).
+- O trap da rampa só roda quando o `sleep 40` em primeiro plano acaba: um TERM no meio limpa o override no
+  máximo 40 s depois (o mesmo tempo que ele duraria de qualquer jeito).
+- O `inotifyd`: pelo código do toybox e do busybox, `y` é "movido para dentro" e `m` "movido para fora" (a
+  ajuda de uma das versões diz o contrário). O teste 6 no aparelho confirma.
+- Com o pendrive deixado plugado, a suíte (com a rampa) roda a cada boot pelo fluxo do pendrive, e a
+  proteção de `incompletas` não vale para ele (como o `cor.sh` antes).
+
+Para o 9C documentar: `DESINSTALAR-SUITE.txt` agora leva a cópia do backup para o pendrive
+(`suite-panelparam-backup-<serial>.img`); `incompletas` e o motivo `interrompida_2x_seguidas` no histórico.
