@@ -28,7 +28,9 @@ pendrive-autorun/newlink_update.sh  -text byte-exact
 pendrive-autorun/LEIA-ME.txt        -text byte-exact
 artifacts/*.STOCK               -text byte-exact
 artifacts/*.MOD                 -text byte-exact
+artifacts/historico/*           -text byte-exact
 artifacts/historico/perfis/*    -text byte-exact
+artifacts/firmware-extraido/*   -text byte-exact
 # Kit universal de pendrive (bloco 5): o md5 de CADA arquivo esta numa lista
 # embutida no newlink_update.sh, que aborta antes de escrever se algum divergir.
 # Os PNG e o lvdsctl sao binarios; o cor.sh e ASCII puro como o autorun.
