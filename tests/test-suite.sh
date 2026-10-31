@@ -1857,6 +1857,8 @@ c_estaticos(){
   for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh newlink_update.sh; do
     afirma 'grep -q "^  PATH=\"/system/bin:/system/xbin:/vendor/bin:/vendor/xbin\"; export PATH$" "$KIT/$f"' "$f sem o PATH fixo com /system/bin"
   done
+  MVS_BOOT=$(grep -hE 'mv "[$](BP|INI|RC)[.]new" "[$](BP|INI|RC)"' "$KIT/newlink_update.sh" "$KIT/suite.sh")
+  afirma '[ "$(printf "%s\n" "$MVS_BOOT" | grep -c .)" = 7 ] && [ -z "$(printf "%s\n" "$MVS_BOOT" | grep -vF "sync && mv ")" ]' "troca de arquivo de boot no /vendor sem sync antes do mv: $(printf "%s\n" "$MVS_BOOT" | grep -vF "sync && mv " | head -2)"
   # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa
   afirma '! grep -n "exit !" "$KIT"/*.sh' "script do kit com exit !(...) no awk: $(grep -n "exit !" "$KIT"/*.sh | head -3)"
   # (a unica prop persist que a suite toca e a marca do gatilho, so no desinstalar)

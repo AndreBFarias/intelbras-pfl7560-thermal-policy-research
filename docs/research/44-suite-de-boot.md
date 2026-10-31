@@ -310,6 +310,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 | `logcat -T 1` no Android 9 (sem ele: "não reagiu" falso, nunca injeção sem limpeza) | `suite.sh` | teste 12 |
 | App em `/vendor/app` pelo `exec` do init (pendrive real) | `newlink_update.sh` | o app em `/vendor/app` já foi provado pela instalação por rede em 2026-10-30 (`codePath=/vendor/app/PFL7560`, `flags=[ SYSTEM ]`); falta ver o `[OK] app` no `newlink_update.log` de um pendrive real (testes 1 e 2) |
 | Formato do `top` do Android 9 (toybox, `S[%CPU]`) no `pfl7560-processos.sh` | `pfl7560-processos.sh` | teste 14 |
+| `sync` antes de cada `mv` de `.new` sobre `ZYCustom.ini`, `build.prop` e `init.bigfish.rc` (bloco 21; no ext4 o `auto_da_alloc` costuma cobrir sozinho) | `newlink_update.sh`, `suite.sh` | `mount \| grep vendor`: anotar se o `/vendor` tem `auto_da_alloc` ou `nodelalloc` |
 | Tempo de geração e abertura do PNG do `nl_tela` pela galeria | `nl_tela`, `suite.sh` | teste 13 |
 | `tests/preparar-pendrive.sh` e a opção 5 do `install.bat` com firmware | `tests/`, `install.bat` | teste 15 (o `.bat` e o `.ps1` nunca rodaram: não há Windows aqui) |
 

@@ -1210,11 +1210,11 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     if mount -o rw,remount /vendor; then
       rm -f "$RC_SUITE"
       if [ "$_hl" = "1" ]; then
-        cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$/d' "$BP.new" && mv "$BP.new" "$BP"
+        cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$/d' "$BP.new" && sync && mv "$BP.new" "$BP"
         rm -f "$BP.new"
       fi
       if [ "$_fl" = "1" ]; then
-        cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=1$/d' "$BP.new" && mv "$BP.new" "$BP"
+        cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=1$/d' "$BP.new" && sync && mv "$BP.new" "$BP"
         rm -f "$BP.new"
       fi
       for _od in $_ov; do rm -rf "$_od"; done

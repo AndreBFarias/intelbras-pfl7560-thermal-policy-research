@@ -55,7 +55,7 @@ APP_UID_MIN=10000
 
 # md5 do suite.sh. Gerado por tests/atualizar-md5-kit.sh. NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="9bd845399cf1578b9e78d1961d337e7e"
+SUITE_MD5="cb410c3c471e0dfc32723fdcd04d018d"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
