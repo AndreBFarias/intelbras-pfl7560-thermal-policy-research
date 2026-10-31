@@ -17,6 +17,15 @@ Preços e disponibilidade vistos em 2026-10-31. Antes de pagar, confira na pági
 
    Anote qual focal é a da Fresnel 1 (perto do LED) e qual é a da 2. É isso que decide qual anúncio serve.
 
+   Atalho sem Sol, com o projetor aberto e uma régua:
+   - **Fresnel 1:** a focal fica perto da distância do LED até ela.
+   - **Fresnel 2:** a focal fica perto do caminho da luz dela até a lente de projeção, passando pelo espelho.
+
+**O tamanho do LCD não basta.** Ele diz o tamanho da lente: cobrir a área ativa (cerca de 128x72 mm) e caber no
+encaixe, perto dos 136x85 do polarizador. A focal vem das distâncias no chassi. Com a focal errada, os cantos
+escurecem ou o centro fica mais forte, mesmo com a lente do tamanho certo. Se a 140x90 sobrar no encaixe, o PMMA
+corta com estilete: risque e quebre na linha.
+
 Onde fica cada peça: [`media/guia-ordem-pecas-opticas.jpg`](../../media/guia-ordem-pecas-opticas.jpg) e
 [`media/guia-motor-optico-angulo.jpg`](../../media/guia-motor-optico-angulo.jpg).
 
