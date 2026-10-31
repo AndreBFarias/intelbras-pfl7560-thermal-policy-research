@@ -169,3 +169,31 @@ tudo o que está na seção 11 do doc 44.
 Anotado para o próximo bloco, sem fazer: o `DESINSTALAR-SUITE.txt` não desinstala o app (`adb uninstall` está no
 doc 44); o piso `$n -lt 14` do `install.bat` ficou velho (a lista tem mais entradas) e não protege mais.
 Pendente: o roteiro "Teste no aparelho" (doc 44, seção 12), pelo coordenador com o dono.
+
+## Conferência (2026-10-30)
+
+Conferido arquivo por arquivo contra o texto acima e as entradas da integração. App, `newlink_update.sh`,
+`install.sh --com-firmware`, `install.bat`/`.ps1` e `pfl7560-processos.sh` conferem com o pedido. Achados, cada um
+com o teste que falhava antes da correção:
+
+1. **`tests/preparar-pendrive.sh` formatava antes de conferir o md5 do firmware.** O cabeçalho prometia "o md5 não
+   bate = nada é formatado", mas o código só olhava se os arquivos existiam: com um `.bin` de md5 errado o pendrive
+   era apagado e só depois o `install.sh` recusava. Agora o `install.sh --conferir-firmware` (novo: só confere as
+   origens, sem copiar) roda antes do `mkfs.vfat`. Teste: md5 errado do oficial e do nosso, `mkfs` zero vezes.
+2. **Dispositivo mapeado sobre o pendrive era aceito.** Um `crypt`/LVM com `PKNAME` do pendrive passava, porque só o
+   disco pai era conferido. Agora o próprio dispositivo tem de ser o disco inteiro (sem pai) ou uma partição dele.
+3. **O resgate do `--com-firmware` é só do modelo com USB-C**, e o kit serve aos dois modelos: o `LEIA-ME.txt`
+   (arranjo B), o `INSTALL.md` e o doc 44 passam a dizer isso.
+4. **Assinatura:** o desvio 6 dizia "só v3"; o APK leva v1, v2 e v3 (o `verify` sem opções mostra só o que o
+   `minSdk 28` exige). Linha corrigida acima e no README do app.
+5. Documentos: o README do app ganhou a acentuação (regra dos documentos do bloco); o guia 12 listava um kit velho
+   (sem `nl_camcheck`, suíte, `nl_tela`, `fontes/` e APK).
+
+Provas da conferência: `make check` (9 artefatos byte-exatos), `make check-fix` (48) e `make check-kit` verdes:
+`test-camcheck` 95, `test-tela` 94, listas md5 em dia, `test-kit-pendrive` 547, `test-suite` 373,
+`test-preparar-pendrive` 86 (eram 78), `test-processos` 35. `artifacts/app/build.sh` refeito do zero dá o mesmo md5
+(`5e177ab5…`); `apksigner verify` passa; `aapt2 dump badging` com as duas atividades em `LAUNCHER` e
+`LEANBACK_LAUNCHER`. `install.sh --conferir-firmware` rodou uma vez com os arquivos de verdade (12 s, rc 0).
+
+Fica para o aparelho, além do que já estava acima: se o `pm install` aceita ler o APK de `/data/vendor` (o
+`system_server` lê pelo descritor que o `pm` abre, e o SELinux pode negar; hipótese anotada no doc 44, seção 11).
