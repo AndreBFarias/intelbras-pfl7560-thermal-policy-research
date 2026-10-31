@@ -5,82 +5,23 @@
 
 ## Sopradores/ventiladores (troca)
 
-> ## CORREÇÃO (2026-09-03) — NÃO COMPRE PELA LISTA ABAIXO
->
-> **Esta seção inteira parte de uma premissa ERRADA: que o ventilador de fábrica é AXIAL.** Ele é um
-> **soprador CENTRÍFUGO (blower)**, verificado nas fotos do próprio repositório
-> (`media/teardown-04-blower-removido.jpg` e `teardown-05-sopradores-dfh8030s.jpg`): rotor tipo **gaiola de
-> esquilo** com dezenas de pás curtas, **carcaça em voluta** (espiral) e **saída tangencial** lateral. Não
-> há hélice axial nem moldura quadrada de 80×80.
->
-> **Consequência prática:** o Delta **AFB0812SH / AFB0824SH** e o "cooler 8025 nacional" recomendados
-> abaixo, **com link e preço**, são ventiladores axiais e **NÃO montam** neste aparelho. Seguir a
-> recomendação compra 2 peças inúteis (R$ 90–180) mais uma abertura de chassi à toa.
->
-> **Ironia registrada:** o aviso de compatibilidade nº 4 desta mesma seção já dizia *"só considere blower
-> se, ao abrir, você constatar que a peça é realmente centrífuga"*. Abriu-se, e é centrífuga. A ressalva
-> estava certa e a recomendação principal, errada.
->
-> **Modelo:** a etiqueta lida na foto ampliada diz **`DFH8030S`** (não `DFH8025S`), `DC 12V`, `0,45 A`
-> — ou seja, **30 mm de espessura**, não 25, e **5,4 W por unidade**. Leitura de foto ampliada, com
-> **confirmação na etiqueta física pendente** (o dígito 25/30 está no limite da resolução). 25 mm e 30 mm
-> **não são intercambiáveis** no berço.
->
-> **Antes de qualquer compra:** confirmar na etiqueta física o modelo, a tensão e a corrente; e medir o
-> berço. Substituto tem de ser **blower centrífugo** de mesma altura, mesmo diâmetro de voluta e mesma
-> orientação de saída. Ver [`39-sessao-2026-09-02-optica-e-balanco-termico.md`](39-sessao-2026-09-02-optica-e-balanco-termico.md).
->
-> **E antes de trocar qualquer coisa:** o efeito dos ventiladores no sensor quente (`gtt1`)
-> **nunca foi medido** — só na exaustão, e com o sensor ainda cego. Trocar soprador hoje é comprar sem
-> saber se a vazão é o gargalo. Ver doc 39 §4.
->
-> **CORREÇÃO (2026-10-29), [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3 a §5:**
-> 1. **Modelo e contagem fechados.** A etiqueta diz `DFH8030S`, `DC 12V`, `0,45 A` (centrífugo). São **3
->    ventiladores**: os 2 sopradores DFH8030S que a política controla (`gfc` = 2) e 1 axial no exaustor do
->    dissipador do LED, sem controle por software (OPT-S6).
-> 2. **O `gtt1` não é sensor da óptica:** é um NTC no topo do bloco dissipador do LED (OPT-S7). Nenhum
->    sensor mede o polarizador/LCD.
-> 3. **Os números do fan de fábrica abaixo não têm fonte.** Não existe ficha pública do DFH8025S nem do
->    DFH8030S: RPM, CFM e pressão atribuídos a ele são estimativa. E a fonte Amazon citada
->    (`amazon.com/dp/B00BK18KAA`, "8025S 12V 2 fios") é de **outro fabricante** (Skywalking 8025S), não da
->    D-FAN.
+**O fato (fechado em 2026-10-29, OPT-S5 e OPT-S6):** o aparelho tem **3 ventiladores**:
 
-**Peça de fábrica:** Fan de fábrica: D-FAN DFH8025S — ventilador AXIAL 80x80x25 mm (o "8025" = 80x80x25mm), NÃO é um soprador centrífugo (blower). Rotor de plástico PBT, moldura de alumínio, rolamento sleeve ou ball, ~3000 RPM, 2 fios (alimentação apenas), faixa de operação -10 a +70°C. Fabricado pela Dongguan Xingdong Electronics. Existe em 12V E em 24V (ambas as versões são vendidas com o mesmo código) — no eBay aparecem unidades 24V 0,15A e 24V 0,32A; a Amazon lista 12V. Como é fan de 2 fios, o controle "PWM 36 kHz" do PFL7560 é feito chaveando a própria linha de alimentação (não há fio de sinal PWM dedicado). CFM/pressão estática não são publicados pelo fabricante, mas para um 8025 sleeve de ~3000 RPM ficam tipicamente na faixa de ~30-35 CFM e ~1,5-3 mmH2O — ou seja, há folga real para upgrade.
+| Peça | Tipo | Etiqueta | Controle |
+|---|---|---|---|
+| 2 sopradores | **centrífugos** (rotor em gaiola de esquilo, carcaça em voluta, saída tangencial) | D-FAN **`DFH8030S`**, `DC 12V`, `0,45 A` (5,4 W cada; 30 mm de espessura) | pela política térmica (`CoolingFan = 2`, `gfc` = 2), PWM na linha de alimentação, 2 fios |
+| 1 exaustor | axial, no dissipador do LED | sem leitura | nenhum por software |
 
+Fotos: `media/teardown-04-blower-removido.jpg` e `media/teardown-05-sopradores-dfh8030s.jpg`. Prova: [doc 39](39-sessao-2026-09-02-optica-e-balanco-termico.md) §2.1 a §2.3 e [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3.
 
-### Delta AFB0812SH (12V) — MELHOR DROP-IN se o fan de fábrica for 12V
-- **Specs:** 80x80x25,4mm, 12VDC, 4500 RPM, 46,6 CFM, 6,78 mmH2O (~66 Pa) de pressão estática, ~40 dBA, rolamento de esfera. Mesmo footprint 8025.
-- **Por que é melhor:** Sobe de ~3000 para 4500 RPM e ~2x o CFM e a pressão estática vs. o DFH8025S, mantendo exatamente o mesmo 80x80x25mm. Bom para sistema com duto (alta pressão estática).
-- **Compatibilidade:** Escolha a variante certa de fiação: AFB0812SH = 2 fios (igual à fábrica, ideal p/ PWM na alimentação); -F00 = 3 fios (tach); -TP12 = 4 fios PWM. Para o controle 36 kHz na linha, use a de 2 ou 3 fios; a de 4 fios pode conflitar com o chaveamento da alimentação.
-- **Preço:** R$ 45-90 (Fans e Fontes, Net Computadores, Shopee, Mercado Livre)
-- **Onde comprar (BR):** fansefontes.com.br; netcomputadores.com.br; Shopee BR; Mercado Livre (busque 'Delta AFB0812SH 80x80x25')
+**Para trocar um soprador:**
+- o substituto tem de ser **soprador centrífugo** com a mesma altura (30 mm), o mesmo diâmetro de voluta e a mesma orientação de saída; ventilador axial 80x80 não monta neste aparelho;
+- confirme na etiqueta física a tensão e a corrente e meça o berço antes de comprar;
+- 2 fios (só alimentação): o firmware chaveia a própria alimentação, então um ventilador de 4 fios PWM pode se comportar mal;
+- não existe ficha pública do `DFH8030S`: RPM, vazão e pressão de fábrica são desconhecidos;
+- o efeito dos ventiladores no sensor quente (`gtt1`, no dissipador do LED) **nunca foi medido**. Trocar soprador é ganho marginal estimado (2 a 4 °C no filme, doc 39 §4.1 e §5) e custa mais do que baixar o brilho.
 
-### Delta AFB0824SH (24V) — MELHOR DROP-IN se o fan de fábrica for 24V
-- **Specs:** 80x80x25,4mm, 24VDC, 0,16A, 4000 RPM, 46,6 CFM, ~5,5-6,8 mmH2O, ~40 dBA, rolamento de esfera, 2 fios.
-- **Por que é melhor:** Mesmo ganho de vazão/pressão da AFB0812SH, porém em 24V e já em versão 2 fios (idêntica à pinagem de fábrica). Se a etiqueta disser 24V, esta é a troca mais segura.
-- **Compatibilidade:** 2 fios = casa direto com o esquema de alimentação PWM da fábrica. Confirme 24V na etiqueta antes de comprar.
-- **Preço:** R$ 60-120 (importado; nacional é mais raro)
-- **Onde comprar (BR):** Mercado Livre / AliExpress (busque 'Delta AFB0824SH'); Amazon (AFB0824SH-F00)
-
-### Sunon PMD1208PMB1 (12V) — MÁXIMA performance, PORÉM 38mm de espessura
-- **Specs:** 80x80x38mm, 12VDC, 9,1W, 5700 RPM, 84,1 CFM, 0,74 inH2O (~18,8 mmH2O!), 55 dBA, rolamento MagLev.
-- **Por que é melhor:** Pressão estática ~6-10x a do fan original — imbatível para vencer duto restritivo. Linha Sunon PMD é feita justamente para projetores/fontes.
-- **Compatibilidade:** ATENÇÃO: é 80x80x38mm (mais grosso que o 8025 original de 25mm). NÃO é drop-in a menos que haja folga de altura no gabinete. Barulhento a 5700 RPM. Só use se couber e se quiser o máximo de pressão.
-- **Preço:** R$ 80-160 (importado)
-- **Onde comprar (BR):** Mouser/RS Brasil, AliExpress, Mercado Livre (busque 'Sunon PMD1208PMB' ou 'Sunon 80x38 alta pressão')
-
-### Alternativa nacional barata (12V) — cooler 8025 'alta rotação' 5000 RPM
-- **Specs:** 80x80x25mm, 12V, ~5000 RPM, ~37 CFM, ~3,2 mmH2O (ex.: modelos RT-080, Nework, Botto Brazil).
-- **Por que é melhor:** Ganho modesto sobre o original, custo baixíssimo e disponibilidade imediata no Brasil. Menos pressão estática que o Delta.
-- **Compatibilidade:** Confira nº de fios (muitos são 2-3 fios) e sentido de sopro. Qualidade de rolamento inferior à Delta/Sunon.
-- **Preço:** R$ 20-60
-- **Onde comprar (BR):** Mercado Livre, Eletrogate, Botto Brazil, Copel Eletrônica, Ponto da Eletrônica
-
-**Avisos de compatibilidade:** CRÍTICO — confirme ANTES de comprar, abrindo o aparelho e lendo a etiqueta do próprio fan: (1) TENSÃO: o DFH8025S existe em 12V e em 24V com o mesmo código; um fan 12V ligado em 24V queima e um 24V em 12V não gira direito. Leia '12V' ou '24V' na etiqueta. (2) CONECTOR/FIAÇÃO: a fábrica usa 2 fios (só alimentação). Prefira substitutos de 2 fios; se usar 3 ou 4 fios, os fios extras (tach/PWM) ficam sem uso, e um fan 4-fios PWM pode se comportar mal porque o PFL7560 chaveia a PRÓPRIA alimentação a 36 kHz em vez de mandar sinal PWM separado. Confira também o passo/tipo do plugue (JST). (3) SENTIDO DE ROTAÇÃO E DIREÇÃO DO FLUXO: a seta na moldura indica p/ onde sopra; instalar invertido cozinha o light engine. Confirme a seta de fluxo e o sentido de giro na etiqueta. (4) BLOWER x AXIAL: apesar de o projeto chamar de 'soprador', todas as evidências indicam que o DFH8025S é um fan AXIAL 8025, não um blower centrífugo. Um Delta BFB0512/BFB0812 (blower) NÃO é drop-in — tem footprint e saída de ar totalmente diferentes e exigiria refazer o duto. Só considere blower se, ao abrir, você constatar que a peça é realmente centrífuga. (5) DIMENSÃO: drop-in exige 80x80x25mm; opções de 38mm (Sunon PMD) só cabem se houver folga. (6) RUÍDO/VIDA ÚTIL: subir RPM aumenta ruído; prefira rolamento de esfera (Delta/Sunon) para durabilidade.
-
-**Confiança:** Média-alta na identificação do fan (DFH8025S = axial 80x80x25mm, D-FAN/Xingdong) e nas specs dos substitutos Delta/Sunon (dados de datasheet do fabricante). BAIXA na tensão exata do fan no PFL7560 (12V vs 24V) e no tipo de conector/sentido — esses três pontos NÃO foram confirmados e dependem 100% de abrir o aparelho e ler a etiqueta. CFM/pressão do fan original é estimativa (não publicado).
-
-**Notas:** RESUMO PRÁTICO: O fan de fábrica é um AXIAL 8025 (D-FAN DFH8025S), ~3000 RPM, 2 fios, controlado por PWM na linha de alimentação a 36 kHz — não é um blower centrífugo, apesar do nome do projeto. O melhor upgrade drop-in de mesmo footprint (80x80x25) e maior pressão estática é o Delta AFB0812SH (12V) ou AFB0824SH (24V): ~4500/4000 RPM, 46,6 CFM e ~6-7 mmH2O, roughly dobrando vazão e pressão. Para o extremo de pressão estática em sistema com duto restritivo, o Sunon PMD1208PMB (12V, 84 CFM, ~19 mmH2O) é imbatível, MAS tem 38mm de espessura (não drop-in sem folga) e é barulhento. Antes de qualquer compra, ABRA O PROJETOR e leia na etiqueta do fan: tensão (12V/24V), nº de fios/conector e a seta de sentido do fluxo — nenhuma compatibilidade pode ser afirmada sem isso. Como são 2 unidades, troque as duas juntas para manter balanceamento de fluxo. Dica: pegue variante de 2 fios (mesma pinagem da fábrica) para o controle PWM na alimentação funcionar igual ao original.\n\nFontes: delta-fan.com/products/AFB0812SH.html; delta-fan.com/products/AFB0824SH.html; d-fans.en.made-in-china.com (DFH8025S 80x80x25 axial 3000RPM 12V/24V); ebay.com/itm/155976540893 e /386908379522 (DFH8025S 24V 2 fios); amazon.com/dp/B00BK18KAA (8025S 12V 2 fios); rs-online / mouser (Sunon PMD1208PMB1 80x38 84,1CFM 0,74inH2O); fansefontes.com.br e netcomputadores.com.br (Delta AFB0812SH preço BR); mercadolivre.com.br (cooler 80x80x25 12V alta rotação); intelbras.com.br Datasheet PFL7560.
+Antes de 2026-09-03 este doc dizia que o ventilador era um axial `DFH8025S` 80x80x25 e recomendava axiais Delta e Sunon. Isso estava errado (doc 39 §2.1 e §2.2) e saiu daqui; o texto antigo fica no histórico do git.
 
 ## Dissipadores para o polarizador/LCD
 
@@ -194,14 +135,11 @@ Fontes: Rafael Play Mobile (diagnóstico polarizador queimado) https://rafaelpla
 4. LENTE E CÂMERA DE FOCO. Conforme o manual (seção 6.1): com o projetor DESLIGADO, use SOMENTE o pano incluso na caixa OU um pano de limpeza de óculos SECO, de forma cuidadosa. Limpe a lente frontal com movimento leve do centro para a borda. Use O MESMO pano seco para limpar a lente da CÂMERA DE FOCO (o pontinho ao lado da lente, item 2 da Vista frontal - e ela que faz foco/keystone automáticos; suja, o foco automático falha). Nada de água, spray ou solvente na lente. (Nota: guias de fabricantes preferem caneta-lente/microfibra dedicada a pano de óculos comum; sigo aqui a recomendação explícita do manual Intelbras, mas se tiver uma caneta de lente/pano microfibra limpo e macio, e igualmente seguro e ate preferível.)
 5. REMONTAGEM. Passo 1 - Antes de fechar, confirme que nenhum flat cable ficou solto e que o painel/polarizador não foi tocado na área ativa. Passo 2 - Reconecte todos os conectores do soprador e da placa na mesma orientação (use as fotos). Passo 3 - Encaixe as metades do gabinete sem prensar fios; recoloque os 4 parafusos do gabinete em suas posições originais (não troque tamanhos). Passo 4 - RECOLOQUE o parafuso da tampa do FILTRO se você mexeu nele. Passo 5 - Reconecte a energia, ligue e verifique: imagem sem manchas novas, foco automático funcionando, e - importante - confira que os sopradores estão girando e o ar sai quente pela lateral (grade). Passo 6 - Deixe rodar 10-15 min observando se não há desligamento por superaquecimento (o firmware desliga em ~45 C de emergência).
 
-> **CORREÇÃO (2026-10-29):** são 3 ventiladores (2 sopradores DFH8030S controlados + 1 axial no exaustor do
-> LED, sem controle), não 2 DFH8025S ([doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3).
-
-**O que inspecionar:** "DUTO E SOPRADOR (inspeção): o modelo tem 2 sopradores (blowers) DFH8025S puxando ar pela 'Entrada de ar' inferior (onde fica o filtro) e expelindo pela grade lateral. Inspecione: (1) POEIRA ACUMULADA nas pas/rotor de cada blower - poeira nas palhetas desbalanceia e reduz vazão; limpe com pincel seco/aspirador leve, girando o rotor com o dedo, sem forcar o eixo. (2) OBSTRUÇÃO no duto entre a entrada inferior, os sopradores e a saída lateral - cotão/pelos formam 'tampão'. (3) ENTRADA de ar (base) e SAÍDA (grade lateral) desbloqueadas - o manual proibe bloquear as áreas de ventilação; mantenha 15-20 cm livres e nunca sobre superficie macia/móvel que tape a base. (4) Sinais de superaquecimento passado: manchas na tela, perda de brilho - indicam que o polarizador já sofreu (a entrada de ar entupida e a causa-raiz apontada no teardown; os NTCs ficam perto da óptica e o firmware faz dimming a partir de 27 C e desliga em 45 C). (5) Rotor travado/ruído anormal do fan - o firmware desliga por 'fan monitor' se detectar fan anormal; um blower que não gira exige troca."
+**O que inspecionar:** "DUTO E SOPRADOR (inspeção): o modelo tem 2 sopradores centrífugos DFH8030S (mais 1 axial sem controle no exaustor do LED) puxando ar pela 'Entrada de ar' inferior (onde fica o filtro) e expelindo pela grade lateral. Inspecione: (1) POEIRA ACUMULADA nas pas/rotor de cada blower - poeira nas palhetas desbalanceia e reduz vazão; limpe com pincel seco/aspirador leve, girando o rotor com o dedo, sem forcar o eixo. (2) OBSTRUÇÃO no duto entre a entrada inferior, os sopradores e a saída lateral - cotão/pelos formam 'tampão'. (3) ENTRADA de ar (base) e SAÍDA (grade lateral) desbloqueadas - o manual proibe bloquear as áreas de ventilação; mantenha 15-20 cm livres e nunca sobre superficie macia/móvel que tape a base. (4) Sinais de superaquecimento passado: manchas na tela, perda de brilho - indicam que o polarizador já sofreu (a entrada de ar entupida e a causa-raiz apontada no teardown; os NTCs ficam perto da óptica e o firmware faz dimming a partir de 27 C e desliga em 45 C). (5) Rotor travado/ruído anormal do fan - o firmware desliga por 'fan monitor' se detectar fan anormal; um blower que não gira exige troca."
 
 **Notas:** "Guia entregue em 5 blocos (steps): (1) filtro de poeira, (2) abrir a carcaça, (3) caminho óptico LCD/polarizador/prisma, (4) lente e câmera de foco, (5) remontagem; mais a inspeção de duto/soprador (whatToInspect) e a segurança (safety). SUPOSIÇÕES E TRADEOFFS que exponho ao usuário: (a) O manual só cobre oficialmente a limpeza do FILTRO (chave Phillips, sem abrir) e da LENTE/câmera com pano seco - isso e o procedimento SEGURO e recomendado, resolve a maioria dos casos de superaquecimento/manchas e NÃO anula garantia. (b) Abrir o gabinete para limpar o caminho óptico e o soprador e um procedimento AVANCADO que o manual proibe e que ANULA A GARANTIA - só vale a pena se já houver manchas/poeira interna e o aparelho estiver fora de garantia; incluído por pedido explícito, com todos os avisos. (c) O motor óptico foi tratado como LCD TFT com polarizador (spec oficial Intelbras + teardown local); o firmware genérico 'bigfish' também carrega chaves de DLP, mas adotamos LCD. (d) Há um conflito de fontes na limpeza da lente: o manual Intelbras recomenda pano de óculos seco, enquanto guias de fabricantes (XGIMI) desaconselham pano de óculos comum e preferem caneta-lente/microfibra; segui o manual mas sinalizei que microfibra limpa dedicada e igualmente segura. (e) Causa-raiz mais provável de manchas neste modelo, segundo o teardown local: entrada de ar/filtro obstruidos -> superaquecimento do polarizador; por isso a limpeza de filtro + inspeção de fluxo de ar e a ação de maior impacto. Cadência do manual: filtro a cada 6 meses (a cada 3 meses em ambiente muito empoeirado)."
 
-**Fontes:** Manual do usuário Intelbras PFL7560 (local): referencia/Manual_PFL7560_03-26_site_0.pdf - seção 'Cuidados e segurança' (p.3), seção 6 'Limpeza do projetor' 6.1 Lente e 6.2 Filtro de poeira (p.11), Vista inferior/Entrada de ar (p.8), Especificações técnicas (p.5); Teardown de hardware local (específico deste aparelho): docs/01-teardown-tecnico.md e 02-sistema-térmico-atual.md - confirma SoC HiSilicon Hi3751 V553, ODM Newlink, motor LCD TFT com polarizador, 2x soprador DFH8025S, sensores NTC perto da óptica e limiares térmicos; https://lushprojects.com/blog/2010/06/cleaning-a-projector/ - método de abrir e limpar óptica/LCD, marcar orientação, pincel macio melhor que ar comprimido para poeira incrustada; https://www.avsforum.com/threads/attention-lcd-owners-fix-your-color-uniformity-problems-by-cleaning.572889/ - mantra 'less is more', não remover os LCDs, risco de descascar o revestimento do polarizador; https://www.avsforum.com/threads/any-way-to-diy-cleaning-of-dirty-internal-optics.1369211/ - evitar cotonetes (fibras), sem solventes, panos de trama fechada; https://global.xgimi.com/blogs/tips-tutorials/how-to-maintain-and-clean-your-projector - limpeza de filtro, ventilação/fan, evitar toalha de papel e materiais raspantes na lente; https://www.ifixit.com/Guide/Polarizer+Replacement+for+Tri-LCD+Projectors/147913 - referência de parafusos por tamanho e cuidado ao levantar a tampa do bloco óptico sem arranhar polarizadores
+**Fontes:** Manual do usuário Intelbras PFL7560 (local): referencia/Manual_PFL7560_03-26_site_0.pdf - seção 'Cuidados e segurança' (p.3), seção 6 'Limpeza do projetor' 6.1 Lente e 6.2 Filtro de poeira (p.11), Vista inferior/Entrada de ar (p.8), Especificações técnicas (p.5); Teardown de hardware local (específico deste aparelho): docs/research/01-teardown-tecnico.md e 02-sistema-termico-atual.md - confirma SoC HiSilicon Hi3751 V553, ODM Newlink, motor LCD TFT com polarizador, 2 sopradores DFH8030S, sensores NTC perto da óptica e limiares térmicos; https://lushprojects.com/blog/2010/06/cleaning-a-projector/ - método de abrir e limpar óptica/LCD, marcar orientação, pincel macio melhor que ar comprimido para poeira incrustada; https://www.avsforum.com/threads/attention-lcd-owners-fix-your-color-uniformity-problems-by-cleaning.572889/ - mantra 'less is more', não remover os LCDs, risco de descascar o revestimento do polarizador; https://www.avsforum.com/threads/any-way-to-diy-cleaning-of-dirty-internal-optics.1369211/ - evitar cotonetes (fibras), sem solventes, panos de trama fechada; https://global.xgimi.com/blogs/tips-tutorials/how-to-maintain-and-clean-your-projector - limpeza de filtro, ventilação/fan, evitar toalha de papel e materiais raspantes na lente; https://www.ifixit.com/Guide/Polarizer+Replacement+for+Tri-LCD+Projectors/147913 - referência de parafusos por tamanho e cuidado ao levantar a tampa do bloco óptico sem arranhar polarizadores
 
 ## Resfriamento externo (sem abrir)
 

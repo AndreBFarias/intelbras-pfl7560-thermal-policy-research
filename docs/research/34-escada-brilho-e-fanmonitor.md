@@ -178,7 +178,7 @@ O formato de report é `%4.2frpm` com divisor float **100,0** (constante em `0x2
 | `EMERGENCY_VALUE` | 10000 | 100 rpm |
 | `STOP_VALUE` | 0 | parado |
 
-Um DFH8025S a 100% gira ~4.000-6.000 rpm (o modelo é `DFH8030S` e não tem ficha pública: a faixa de rpm é estimativa, doc 40 §5) -> medido 400.000-600.000, com folga entre o WARNING e o teto.
+Um soprador `DFH8030S` a 100% gira ~4.000-6.000 rpm (sem ficha pública: a faixa é estimativa, doc 40 §5) -> medido 400.000-600.000, com folga entre o WARNING e o teto.
 **Numa primeira análise eu supus a escala 0-1000 e previ um loop de desligamento; estava errado.**
 
 **Kill switch provado, útil para observação:** o fim de `RunSimplifyFanMonitor` é
@@ -285,9 +285,7 @@ cabo de **2 condutores** (vermelho/preto). Um brushless de 2 fios não tem saíd
 `hwmon` nem `thermal`; o DTS tem zero nós de pwm/fan/tach; `/proc/interrupts` não tem linha de GPIO e todas
 as linhas que crescem estão explicadas (arch_timer, áudio, GPU, VO, VICAP/VPSS a 60 fps, ehci, mmc).
 
-> A etiqueta parece dizer **`DFH8030S`**, não `DFH8025S` como o doc 27 registra. Não foi possível resolver
-> o dígito na resolução disponível — **confirmar na etiqueta física** antes de corrigir o doc 27. Só
-> importa para spec de RPM num eventual swap. (Fechado em 2026-10-29: `DFH8030S`, 12 V, 0,45 A, doc 40 §4.)
+> O modelo dos sopradores é `DFH8030S`, 12 V, 0,45 A ([doc 07](07-hardware-upgrade.md#sopradoresventiladores-troca)).
 
 **Veredito FAN-S1: não é "desarmado por omissão de config" como o bug do mux. É INARMÁVEL por software
 neste aparelho.** O firmware traz os 3 modos de tacômetro prontos; falta o fio. A via de correção deixa de

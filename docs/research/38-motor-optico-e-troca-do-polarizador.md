@@ -36,7 +36,7 @@ ainda não testada.
 
 | # | Elemento | Observação |
 |---|---|---|
-| 1 | **LED + dissipador aletado** | Fan axial próprio, separado dos dois blowers DFH8025S. **Atualização (2026-10-29):** são 3 ventiladores no total (este + os 2 sopradores, que são `DFH8030S` 12 V 0,45 A); o NTC do `gtt1` fica num olhal no topo deste bloco (OPT-S6 e OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
+| 1 | **LED + dissipador aletado** | Fan axial próprio, separado dos 2 sopradores `DFH8030S` ([doc 07](07-hardware-upgrade.md#sopradoresventiladores-troca)); o NTC do `gtt1` fica num olhal no topo deste bloco (OPT-S7, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3) |
 | 2 | **Placa metálica com pintura branca** | Ao redor do LED; refletor da cavidade (o `光杯` / "light cup" da literatura) |
 | 3 | **Lente Fresnel traseira** | Colima o feixe para o painel |
 | 4 | **Vidro polarizador de isolamento térmico** | **A peça que queima.** Placa de vidro solta, retida por guias |

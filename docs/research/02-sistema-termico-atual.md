@@ -22,12 +22,9 @@ Temperaturas em milésimos de grau C (miliC); velocidades e brilho em por-mil (0
 
 ## Curva dos coolers - `[ThermalPolicy]`
 
-2x soprador **`DFH8025S`**, PWM 36 kHz.
-
-> **CORREÇÃO (2026-10-29):** o modelo é **`DFH8030S`** (12 V, 0,45 A) e o aparelho tem **3 ventiladores**:
-> estes 2 sopradores, que a política controla, e 1 axial no exaustor do dissipador do LED, sem controle
-> por software (OPT-S6, [doc 40](40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) §3 e §4).
- `POLICY_NUM=2`, mas as 2 políticas são idênticas
+2 sopradores, PWM 36 kHz. O `.ini` chama a curva de `FW_DFH8025S`, mas a etiqueta diz `DFH8030S`, e há um
+3º ventilador fora da política ([doc 07](07-hardware-upgrade.md#sopradoresventiladores-troca)).
+`POLICY_NUM=2`, mas as 2 políticas são idênticas
 (`STANDARD` e `2ND_STANDARD`); os modos `COOLING/QUIET/FAST/NONE` que a HAL anuncia NAO estão configurados.
 
 | Temp NTC (C) | 25 | 27 | 29 | 31 | 33 | 35 | 36 |
