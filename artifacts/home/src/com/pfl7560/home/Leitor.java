@@ -28,14 +28,13 @@ import java.util.Set;
 final class Leitor {
     /**
      * Fora da fileira de Apps. Os 4 primeiros e o proprio launcher sao a lista negra do launcher de
-     * fabrica (RGTPLauncher, AppUtils.<clinit>, doc 43 secao 6); depois os nossos e o Miracast, que
-     * ja e o atalho Espelhamento.
+     * fabrica (RGTPLauncher, AppUtils.<clinit>, doc 43 secao 6); depois os nossos. Os apps que o dono
+     * mandou desligar (Office, iOSCast, Espelhamento) ficam em Modelo.OCULTOS.
      */
     static final Set<String> FORA = new HashSet<String>(Arrays.asList(
             "com.qiyivideo.sibichi", "com.jrm.localmm", "com.gitvvideo.shanghaishijiu", "org.mozilla.tv.firefox",
             "com.newlink.hisilauncher",
-            "com.pfl7560.home", "com.pfl7560.verificar",
-            "com.hisilicon.miracast"));
+            "com.pfl7560.home", "com.pfl7560.verificar"));
 
     private Leitor() {
     }
