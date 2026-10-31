@@ -369,12 +369,18 @@ c_gatilho_seguranca(){
 }
 
 c_vigia(){
-  novo_cenario "vigia: inotifyd na pasta do pedido, eventos w e y"
+  novo_cenario "vigia: inotifyd na pasta do pedido, eventos n e y (o toybox nao entrega w de dentro da pasta)"
   instala_suite
   roda_boot
-  afirma 'tem_chamada "inotifyd $S/suite-pedido.sh $PED:wy"' "inotifyd nao foi ligado: $(grep inotifyd "$T/calls.log")"
+  afirma 'tem_chamada "inotifyd $S/suite-pedido.sh $PED:ny"' "inotifyd nao foi ligado: $(grep inotifyd "$T/calls.log")"
   afirma 'grep -q "vigia do pedido ligado: inotifyd" "$S/boot.log"' "log sem o tipo do vigia"
   afirma '[ -s "$R/dev/pfl7560-suite.vigia" ]' "sem o pid do vigia"
+  limpa
+
+  novo_cenario "vigia: pedido pendente de antes do vigia = tratado uma vez ao ligar"
+  instala_suite; : > "$PED/pedir-verificacao"
+  roda_boot
+  afirma 'grep -q "pedido pendente de antes do vigia" "$S/boot.log" && tem_chamada "setsid sh $S/suite.sh pedido" && [ ! -e "$PED/pedir-verificacao" ]' "o pendente nao foi tratado: $(tail -3 "$S/boot.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "vigia: um so por boot (o vivo nao e duplicado)"
@@ -421,6 +427,12 @@ c_pedido(){
   roda_pedido w "$PED" pedir-verificacao
   afirma '[ ! -e "$PED/pedir-verificacao" ]' "o pedido nao foi apagado"
   afirma 'tem_chamada "setsid sh $S/suite.sh pedido"' "nao lancou a suite"
+  limpa
+
+  novo_cenario "pedido: evento n (criado: o que o toybox entrega) = apaga e lanca"
+  instala_suite; : > "$PED/pedir-verificacao"
+  roda_pedido n "$PED" pedir-verificacao
+  afirma '[ ! -e "$PED/pedir-verificacao" ] && tem_chamada "setsid sh $S/suite.sh pedido"' "o evento n nao lancou"
   limpa
 
   local ev

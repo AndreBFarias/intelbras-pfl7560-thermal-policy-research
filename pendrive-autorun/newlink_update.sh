@@ -120,8 +120,8 @@ a8859bfde8c210907811e91d14ae584b  cor.sh
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 a5a6751858ad3ff528a3aa04b29da746  nl_tela
 aafd6ee3704a28d98d9c79abe06b5c7e  suite.sh
-4ef85f19377e4c6eb3a3b9b346549b2d  suite-boot.sh
-c1d49bd0c401c11daf1e81127147aa96  suite-pedido.sh
+22f1b5b0b0d8f580b326fa0efa15537b  suite-boot.sh
+d59307c15a112b7cf1e9156535724531  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 5e177ab534186fc7b0b2b68f6fba1b2c  pfl7560.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png

@@ -73,9 +73,9 @@ terminou_ha_pouco(){
   [ "$_agora" -ge "$_fim" ] && [ $(( _agora - _fim )) -lt "$INTERVALO_MIN" ]
 }
 
-# so o arquivo do pedido, e so escrita fechada (w) ou movido para dentro (y)
+# so o arquivo do pedido, e so criado (n), movido para dentro (y) ou escrita fechada (w)
 [ "${3:-}" = "pedir-verificacao" ] || exit 0
-case "${1:-}" in *w*|*y*) ;; *) exit 0 ;; esac
+case "${1:-}" in *n*|*w*|*y*) ;; *) exit 0 ;; esac
 # a origem e conferida ANTES de apagar; depois apaga (um link e apagado, nunca
 # seguido); o conteudo nao e lido
 DO_APP=0

@@ -53,7 +53,7 @@ DONO_UID=0
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
 SUITE_MD5="aafd6ee3704a28d98d9c79abe06b5c7e"
-PEDIDO_MD5="c1d49bd0c401c11daf1e81127147aa96"
+PEDIDO_MD5="d59307c15a112b7cf1e9156535724531"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -174,7 +174,7 @@ vigia_laco(){
   _v=0
   while :; do
     if [ -f "$PEDIDO_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
-      sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao
+      sh "$SUITE/suite-pedido.sh" n "$PEDIDO_DIR" pedir-verificacao
     fi
     _v=$(( _v + 1 ))
     [ "$VIGIA_VOLTAS" != "0" ] && [ "$_v" -ge "$VIGIA_VOLTAS" ] && break
@@ -191,10 +191,18 @@ ligar_vigia(){
     LOG "[AVISO] pasta do app $PEDIDO_DIR ausente (app nao instalado?) ou link - vigia NAO ligado."
     return 1
   fi
-  # inotifyd executa o suite-pedido.sh a cada evento (w = escrita fechada, y = movido
-  # para dentro); o suite-pedido.sh fica na pasta so do root, conferida acima.
+  # um pedido que ja estava na pasta (feito antes do vigia ligar) nao gera evento de
+  # criacao: e tratado agora, uma vez
+  if [ -f "$PEDIDO_DIR/pedir-verificacao" ]; then
+    LOG "pedido pendente de antes do vigia: tratando agora"
+    sh "$SUITE/suite-pedido.sh" n "$PEDIDO_DIR" pedir-verificacao >>"$SUITE/vigia.log" 2>&1 </dev/null
+  fi
+  # inotifyd executa o suite-pedido.sh a cada evento: n = criado, y = movido para dentro.
+  # O toybox do aparelho NAO entrega "w" (escrita fechada) de arquivo DENTRO da pasta
+  # (visto em 2026-10-30: so n, m e y). O suite-pedido.sh fica na pasta so do root,
+  # conferida acima.
   if command -v inotifyd >/dev/null 2>&1; then
-    inotifyd "$SUITE/suite-pedido.sh" "$PEDIDO_DIR:wy" >>"$SUITE/vigia.log" 2>&1 </dev/null &
+    inotifyd "$SUITE/suite-pedido.sh" "$PEDIDO_DIR:ny" >>"$SUITE/vigia.log" 2>&1 </dev/null &
     _tipo=inotifyd
   else
     vigia_laco >>"$SUITE/vigia.log" 2>&1 </dev/null &
