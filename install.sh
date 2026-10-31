@@ -105,7 +105,7 @@ install_linux(){
   else
     err "nao reconheci o gerenciador de pacotes."
     err "Instale manualmente: adb (android-tools / platform-tools) e, opcional, nmap."
-    err "Veja requirements e REQUIREMENTS.md"
+    err "Veja o INSTALL.md, secao 0"
     return 1
   fi
 }
@@ -451,7 +451,7 @@ if verify; then
   print_next
   exit 0
 else
-  err "setup incompleto — veja requirements e REQUIREMENTS.md"
+  err "setup incompleto — veja o INSTALL.md, secao 0"
   print_next
   exit 1
 fi

@@ -1,7 +1,8 @@
 # Instalação — correção térmica PFL7560
 
-Três formas de aplicar a **mesma** correção. Dependências: [`requirements`](requirements) · [`REQUIREMENTS.md`](REQUIREMENTS.md).
-Nada aqui toca no bootloader; tudo é reversível (métodos 1–3).
+Três formas de aplicar a **mesma** correção; o que você precisa está na seção 0. Este é o único passo a passo:
+instalar, verificar, acompanhar, reverter e acertar a cor depois de trocar o painel. Nada aqui toca no
+bootloader; tudo é reversível (métodos 1–3).
 
 **Alvo:** Intelbras PFL7560 com o firmware de fábrica **V1.0.0.9** (modelo com entrada USB-C) ou
 **V1.0.0.1** (modelo sem USB-C, "NOTYPEC", fabricado a partir de 25/08/2026;
@@ -11,17 +12,43 @@ nos dois, com o mesmo bug do mux.
 
 ---
 
-## 0) Preparar o PC (só se for usar adb — métodos 2/3)
+## 0) O que você precisa
+
+| Método | No PC |
+|---|---|
+| **1. Pendrive autorun** | só um **pendrive FAT32** e um PC para copiar o kit (`./install.sh --pendrive DIR` ou `install.bat` opção 5, que conferem o md5) |
+| **2. Script no PC** | `adb`. No Linux/macOS, `bash` e coreutils (`pfl7560-fix.sh`); no Windows, o `install.bat` (adb puro). `nmap` só para achar o projetor pelo MAC |
+| **3. Manual** | `adb` |
+
+**No aparelho:** Intelbras **PFL7560** com o firmware de fábrica **V1.0.0.9** (com USB-C) ou **V1.0.0.1** (sem
+USB-C, só simulação); outra versão, o kit e o `pfl7560-fix.sh` recusam. Para os métodos 2 e 3, **adb por rede**
+(a build de fábrica é `userdebug`, adb root na porta TCP **5555**), com PC e projetor no **mesmo Wi-Fi**.
+
+**Instalar as dependências do PC** (métodos 2 e 3). Automático, sem gravar nada no projetor:
 
 | SO | Comando |
 |---|---|
-| **Linux / macOS** | `./install.sh` (ou `./install.sh --check`) |
-| **Windows** | duplo-clique em `install.bat` |
+| **Linux / macOS** | `./install.sh` (ou `./install.sh --check`, só confere) |
+| **Windows** | duplo clique em `install.bat` (tem menu para ver estado, aplicar e reverter; baixa o adb em `tools\platform-tools\` se faltar) |
 
-Isso instala/localiza o `adb` (e, no Linux, tenta o `nmap` opcional). **Não grava no projetor.**
-No Windows, o próprio `install.bat` tem menu para ver estado / aplicar / reverter.
+À mão: Debian/Ubuntu/Pop!_OS `sudo apt install android-tools-adb nmap`; Fedora `sudo dnf install android-tools nmap`;
+Arch `sudo pacman -S android-tools nmap`; macOS `brew install android-platform-tools nmap`; Windows,
+[Platform-Tools](https://developer.android.com/tools/releases/platform-tools) no PATH.
 
-Sem PC de jeito nenhum → pule para o **Método 1**.
+Versões de referência: `adb` (platform-tools) 34+, `bash` 5.x, `nmap` 7.x, `git` 2.34+.
+
+**Variáveis de ambiente** (método 2 e os comandos `pfl7560-*.sh`):
+
+| Variável | Para quê | Exemplo |
+|---|---|---|
+| `PFL_IP` | **recomendado**: IP do projetor (`IP` ou `IP:porta`; sem porta, 5555) | `PFL_IP=192.168.0.50` |
+| `PFL_MAC` | achar o projetor pelo MAC, com o `nmap` | `PFL_MAC=aa:bb:cc:dd:ee:ff` |
+| `PFL_SUBNET` | faixa que o `nmap` varre | `PFL_SUBNET=192.168.0.0/24` |
+| `PFL_LVDS_ESPERADO` | `pfl7560-saude.sh`: exige um formato de cor (`vesa`/`jeida`); sem ela, passa quando o em uso bate com o gravado | `PFL_LVDS_ESPERADO=vesa` |
+| `PFL_FIRMWARE_DIR` | outra pasta de firmware para o `install.sh --com-firmware` | `PFL_FIRMWARE_DIR=/mnt/fw` |
+
+Sem `PFL_IP` e sem `PFL_MAC`, o script pede o IP e aborta (não há MAC de aparelho embutido). Sem PC de jeito
+nenhum, pule para o **Método 1**.
 
 ---
 
@@ -48,10 +75,10 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    O jeito certo é pelo instalador, que copia tudo e **confere o md5 de cada arquivo depois da cópia**
    contra a lista embutida no `newlink_update.sh`: no Linux/macOS `./install.sh --pendrive /caminho/do/pendrive`,
    no Windows `install.bat` opção 5 (pede a letra do pendrive). Se um arquivo não conferir, não use o pendrive.
-   Para formatar e preparar um pendrive do zero (FAT32, com o kit e o firmware de resgate), no Linux:
+   Para formatar e preparar um pendrive do zero (FAT32, com o kit e o firmware), no Linux:
    `sudo bash tests/preparar-pendrive.sh /dev/sdX`: só aceita pendrive removível por USB (o disco inteiro ou uma
    partição dele), confere o md5 do firmware **antes** de formatar, pede para digitar o dispositivo e confere o
-   md5 de tudo no fim (ver "Firmware de resgate" abaixo).
+   md5 de tudo no fim (ver "Firmware no pendrive" abaixo).
    O aparelho faz a mesma conferência e **aborta sem escrever nada** se faltar ou divergir qualquer arquivo.
 3. Com o projetor **desligado**, plugue o pendrive numa porta USB dele.
 4. **Ligue.** Se aparecer "AJUSTANDO", espere: a parte térmica é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se nenhuma tela do kit aparecer em 2 minutos, desligue e ligue de novo (o pendrive montou tarde).
@@ -89,25 +116,27 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
 térmica reconhece o `.ini` de fábrica **dos dois modelos** (e as versões anteriores nossas) e troca **só as
 seções térmicas** do `.ini` do próprio aparelho, mantendo o `CONFIG_MODEL`; `.ini` desconhecido = recusa e
 avisa. Antes de mexer na cor, faz backup da `panelparam` conferido com `cmp` e grava um journal: se a
-energia cair no meio do teste, o formato original volta no boot seguinte. No aparelho do dono (V1.0.0.9): a
-cor automática foi provada com o kit rodado por adb e reboot ([bloco 8](docs/sprints/2026-10-30-bloco-8-camera-robusta.md)),
-e a suíte, a home, o tema e a marca estão em uso desde 2026-10-31
-([estado](docs/ESTADO.md)). Seguem abertos: a bancada completa do pendrive (etapa E4 do
-[bloco 5](docs/sprints/2026-10-29-bloco-5-kit-universal.md)), o modelo sem USB-C e a prova com um leigo.
+energia cair no meio do teste, o formato original volta no boot seguinte. O que já está provado no aparelho e o
+que falta: [`docs/ESTADO.md`](docs/ESTADO.md).
 
-**Atenção:** o recomendado é **não** colocar `usb_update.bin` no mesmo pendrive do autorun: o pendrive de **resgate** (firmware de fábrica) fica **separado** e desconectado no dia a dia. O `LEIA-ME.txt` descreve também um "kit de emergência" pessoal com os dois juntos (arranjo B), aceitável só para quem conhece o risco: ligar segurando o power com ele plugado reflasha o aparelho.
+**Firmware no pendrive (opcional).** Para o dia a dia e para dar a outra pessoa, use o pendrive **só com o kit**:
+sem nenhum `.bin`, um power-hold acidental não regrava nada. Com `--com-firmware`
+(`./install.sh --pendrive /caminho/do/pendrive --com-firmware`; no Windows, `install.bat` opção 5, resposta `s`
+à pergunta do firmware), o instalador põe também, pela decisão do dono de 2026-10-31:
 
-**Firmware no pendrive (arranjo B, opcional).** `./install.sh --pendrive /caminho/do/pendrive --com-firmware`
-(Windows: `install.bat` opção 5, resposta `s` à pergunta do firmware) copia, além do kit, o **nosso** `.bin`
-(`PFL7560-COMPLETO-NAO-GRADUADO.bin`, md5 de `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5`) na raiz como
-`usb_update.bin` e o **oficial V1.0.0.9** em `resgate-oficial/PFL7560.bin` (tirado do `firmware/Software PFL7560.zip`
-e conferido pelo md5 `28a2f280eee313a4b115567926b2ba4f`; **nunca** o `Firmware PFL7560.zip`, que é do modelo sem
-USB-C), com um `LEIA-ME.txt` que ensina a troca para o resgate. É a decisão do dono de 2026-10-31: ligar
-**segurando o power** com este pendrive plugado grava o nosso firmware, que **não foi provado no hardware**; tenha o
-oficial à mão. O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/`, ou aponte outra pasta com
-`PFL_FIRMWARE_DIR=<pasta>`. Faltou um arquivo ou o md5 não bate: a opção falha e não copia nada. O pendrive do
-arranjo antigo (oficial na raiz e `firmware-nosso-NAO-GRADUADO/`) é trocado pelo novo.
-Só serve para o aparelho **com USB-C** (V1.0.0.9): no modelo sem USB-C (V1.0.0.1) não use este pendrive de resgate.
+- na raiz, como `usb_update.bin`, o **nosso** `PFL7560-S4a-NAO-GRADUADO.bin` (md5 de
+  `firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5`): os 3 fixes térmicos nos mesmos blocos do stock, **nunca provado
+  no aparelho** (gate BIN-S4a, [doc 47](docs/research/47-build-completa.md) §11). Ligar **segurando o power**
+  com este pendrive plugado grava esse firmware e apaga o `/data`;
+- em `resgate-oficial/PFL7560.bin`, o **oficial V1.0.0.9** (tirado do `firmware/Software PFL7560.zip`, md5
+  `28a2f280eee313a4b115567926b2ba4f`), com um `LEIA-ME.txt`. O loader só lê o `usb_update.bin` da raiz: para o
+  resgate, copie esse arquivo num PC para a raiz de **outro** pendrive, com o nome `usb_update.bin`
+  ([guia 16](docs/guide/16-recuperacao-brick.md)). **Nunca** o `Firmware PFL7560.zip`, que é do modelo sem USB-C.
+
+O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/` ou aponte `PFL_FIRMWARE_DIR=<pasta>`. As
+origens são conferidas antes de copiar e de novo depois; faltou um arquivo ou o md5 não bate, nada é copiado. A
+pasta do arranjo antigo (`firmware-nosso-NAO-GRADUADO/`) sai do pendrive. Só para o aparelho **com USB-C**
+(V1.0.0.9).
 
 O `install.sh --pendrive` recusa, sem copiar nada, um pendrive que tenha `DESINSTALAR-SUITE.txt` (plugado, ele
 desinstalaria a suíte) ou, sem `--com-firmware`, um `usb_update.bin` que ele não conferiu.
