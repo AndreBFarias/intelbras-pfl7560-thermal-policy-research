@@ -66,8 +66,9 @@ kit inteiro (suíte, `nl_tela`, `fontes/`, APK, `kit/*.png`) e confere o md5 de 
 `--com-firmware` (no `.bat`, a pergunta "Incluir o firmware no pendrive?") leva também o firmware, no layout que
 o dono decidiu em 2026-10-31 (bloco 21):
 
-- `usb_update.bin` na raiz = o **nosso** `PFL7560-COMPLETO-NAO-GRADUADO.bin` (md5 de
-  `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5`, local only: não vem no git), não provado no hardware.
+- `usb_update.bin` na raiz = o **nosso** `PFL7560-S4a-NAO-GRADUADO.bin` (md5 de
+  `firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5`, local only: não vem no git), não provado no hardware (gate
+  BIN-S4a, [doc 47](47-build-completa.md) §11).
 - `resgate-oficial/PFL7560.bin` = o **oficial V1.0.0.9**, tirado do `firmware/Software PFL7560.zip` e conferido
   pelo md5 `28a2f280eee313a4b115567926b2ba4f`, com um `LEIA-ME.txt` que ensina a troca. **Nunca** o
   `Firmware PFL7560.zip`, que é do modelo sem USB-C ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md)).
@@ -401,7 +402,7 @@ e anote o resultado (a linha de base). Espera: tudo verde.
     novo (reinstala a suíte) e reinicie uma vez para o vigia voltar.
 16. **O pendrive de resgate (sem ligar segurando o power).** Prepare `sudo bash tests/preparar-pendrive.sh /dev/sdX`
     num pendrive que possa ser apagado (**confira o dispositivo duas vezes**). No PC:
-    `md5sum <ponto>/usb_update.bin` deve dar o md5 de `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5` e
+    `md5sum <ponto>/usb_update.bin` deve dar o md5 de `firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5` e
     `md5sum <ponto>/resgate-oficial/PFL7560.bin`, `28a2f280eee313a4b115567926b2ba4f`, com o `LEIA-ME.txt` ao lado. Plugue-o no projetor **ligado
     normalmente** (sem segurar o power): a suíte roda como no passo 1 e o firmware não é tocado. **Não** teste o
     power-hold. No Windows, repita a opção 5 do `install.bat` com a pergunta do firmware e o mesmo `md5sum`.

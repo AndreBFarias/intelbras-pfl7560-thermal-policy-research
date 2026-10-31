@@ -192,7 +192,7 @@ os dois stocks; a recusa do app "maior que o slot stock" deixou de existir (§10
 
 ## 7. O que fica PROVISÓRIO até o gate BIN-S4a
 
-O [doc 31](../archive/31-plano-mestre-bin-final.md) §3 já fixou a ordem: o BIN-S4a grava o **delta mínimo** (só os 3
+A §11 fixa a ordem: o BIN-S4a grava o **delta mínimo** (só os 3
 fixes), para que um travamento não tenha variável confusa; a build com arquivo novo em `/vendor/etc/init` vem
 numa 2ª gravação (o antigo BIN-S4b). **Bloco 21:** a 1ª é a `PFL7560-S4a` (`a6e5da14`, nos mesmos blocos) e a 2ª
 a `PFL7560-S4b-COMPLETO` (`e6b41856`, realocada, com `.rc`, app, home e sobreposições); a `397698b9` saiu de uso.
@@ -208,7 +208,7 @@ Só o aparelho confirma:
 
 ## 8. Roteiro de gravação seguro (para o dono, no dia do BIN-S4a)
 
-São duas gravações, na ordem do doc 31, cada uma com a mesma disciplina. Na 1ª (BIN-S4a) vai a build de 3
+São duas gravações, na ordem da §11, cada uma com a mesma disciplina. Na 1ª (BIN-S4a) vai a build de 3
 fixes; só se ela subir limpa vem a 2ª, com o `.rc`.
 
 **Antes (no PC):**
@@ -219,11 +219,11 @@ fixes; só se ela subir limpa vem a 2ª, com o `.rc`.
    `--realocar --conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `e6b41856e26add86d0fad8881c0bf145`
    com o kit de hoje; se um APK ou o `.rc` mudar, o md5 muda também). As duas terminam em `VALIDO`, depois do
    `verificar_bin`; `build_fix_bin.py --verificar <saída.bin> <stock.bin>` repete a conferência.
-2. **Pendrive de resgate pronto e separado:** `tests/preparar-pendrive.sh <dispositivo>` ou
-   `./install.sh --pendrive <ponto> --com-firmware`, com o `usb_update.bin` de **fábrica do modelo com USB-C**
+2. **Pendrive de resgate pronto e separado:** um pendrive só com o firmware de **fábrica do modelo com USB-C**
    (md5 `28a2f280eee313a4b115567926b2ba4f`) **na raiz**, como `usb_update.bin`: o loader só procura esse nome na
-   raiz. Uma cópia numa subpasta (`resgate-oficial/`) só serve depois de copiada para a raiz num PC. Confira o md5
-   de novo no pendrive. Nunca o `Firmware PFL7560.zip`.
+   raiz. O `./install.sh --pendrive <ponto> --com-firmware` põe na raiz o **nosso** `.bin` (a S4a) e guarda o
+   oficial em `resgate-oficial/PFL7560.bin`: para o resgate, copie esse arquivo num PC para a raiz de outro
+   pendrive, com o nome `usb_update.bin`. Confira o md5 de novo no pendrive. Nunca o `Firmware PFL7560.zip`.
 3. **Pendrive do kit pronto** (`./install.sh --pendrive <ponto>`), para logo depois da gravação.
 4. Confirme que o aparelho é o **modelo com USB-C** (V1.0.0.9). No sem USB-C, esta build não serve.
 5. Anote o formato de cor atual (JEIDA hoje) e, se quiser, guarde um backup da `panelparam` pelo kit.
@@ -268,7 +268,7 @@ kit de resgate").
 
 - **Aumentar o slot do vendor (opção c)**: feito no bloco 21 (`--realocar`); falta o 1º teste no aparelho, o
   BIN-S4b, só depois de a S4a subir.
-- Gravar em duas etapas (doc 31) ou ir direto à build com o `.rc`: a recomendação é a de duas etapas.
+- Gravar em duas etapas (§11) ou ir direto à build com o `.rc`: a recomendação é a de duas etapas.
 
 ## 10. A forma do sparse e os dois modos do gerador (bloco 21)
 
@@ -312,3 +312,31 @@ espaço no vendor, e o `--realocar` dispensa esse espaço; eles seguem só desli
 **PROVISÓRIO até o aparelho:** que o loader grava a S4a como gravou a de julho (forma do stock) e o Android sobe
 com os 3 fixes; e, só depois disso, que o loader aceita o container realocado da S4b (`file_len`, offsets e
 `checksum1` novos) e que o kit, logo depois, acha app, home e sobreposições "já estava ... (igual ao do kit)".
+
+## 11. Definição de pronto e ordem das gravações (vinda do doc 31)
+
+O plano de julho ([doc 31](../archive/31-plano-mestre-bin-final.md), arquivado) fixou o que continua valendo:
+
+**O `.bin` está pronto quando**, gravado pela "Atualização local do sistema" num PFL7560 com USB-C:
+
+1. sobe até o launcher (não trava na logo, o defeito da build de julho sem metadados);
+2. traz os fixes térmicos ativos por padrão: 2º sensor lido (`HW_VIRTUAL_CHANNEL = 1`), ventiladores a 100 %,
+   escada de brilho, `WARNING` 70 °C e `EMERGENCY` 75 °C, Wi-Fi que reconecta e `xiriservice` desligado;
+3. foi gerado de forma reprodutível (duas builds, o mesmo md5) e passou no `verificar_bin`;
+4. foi testado no aparelho com o pendrive de resgate ao lado.
+
+O serviço de boot da suíte (`.rc`), o app, a home e as sobreposições vêm na S4b; a suíte e o estado em `/data`
+chegam pelo pendrive do kit depois da gravação (§1 e §10).
+
+**O `.bin` não corrige a cor de painel trocado.** O `0x5c` = JEIDA não entra no `.bin` (quebraria a cor de todo
+aparelho com o painel de fábrica, que é VESA). A `panelparam` provavelmente vem no container e volta ao de fábrica
+na gravação (doc 41 §3, inferido): quem tem painel JEIDA refaz a cor pelo kit.
+
+**Ordem das gravações:**
+
+| # | Gate | Build | Por quê |
+|---|---|---|---|
+| 1 | BIN-S4a | `PFL7560-S4a-NAO-GRADUADO.bin` (`a6e5da14…`) | **delta mínimo** (só os 3 fixes, nos mesmos blocos do stock): se travar, não há variável confusa |
+| 2 | BIN-S4b | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`e6b41856…`) | só depois de a 1ª subir limpa: acrescenta arquivo novo em `/vendor` e o container realocado |
+
+Se a 1ª travar, o resgate é o da §8 e a causa entra neste doc antes de outra tentativa (o antigo BIN-S5).

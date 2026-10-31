@@ -1,20 +1,13 @@
-# 15 - O .bin: checksum do container decifrado (build EM QUARENTENA — brica o boot)
+# 15 - O container `.bin` "LOAD": formato e checksums
 
-> **NOTA (2026-08-18) — este documento descreve o protótipo APAGADO.** A build aqui descrita embute a
-> config `1ad641ed` (pré-escada de brilho) e tem CRC de vendor `0x35ca9b46`; ela **não existe mais** no
-> repositório. O que continua válido aqui é o **método** (formato do container, os dois checksums
-> CRC-32/MPEG-2, a edição in-place do sparse) — os números da build, não.
->
-> **Bloco 21 (2026-10-31):** a build **viva** é `PFL7560-S4a-NAO-GRADUADO.bin` (md5 `a6e5da14…`, CRC de vendor
-> `0x883b40d6`), gerada de novo pelo método in-place desta página, agora com o inode intacto (só o `i_size`
-> muda); as builds `eae3a83d…` e `397698b9…` saíram de uso porque o re-pack delas usa chunks FILL e zeros soltos
-> no slot, forma que o loader nunca gravou ([doc 47](47-build-completa.md) §10). Registro em
-> [`../../firmware/README.md`](../../firmware/README.md). Nenhuma delas foi gravada.
+O que vale aqui é o **formato do container** e os **checksums** (CRC-32/MPEG-2), revertidos do loader e usados
+pelo gerador (`artifacts/bin-build/build_fix_bin.py`). O estado da build, o que ela leva e o roteiro de gravação
+estão no [doc 47](47-build-completa.md), o doc único do `.bin`.
 
-O que faltava para gerar um firmware `.bin` flashável com a correção embutida era **entender os checksums
-do container "LOAD"**. Isso foi feito revertendo o loader on-device, e os **checksums estão corretos**. Mas
-o `.bin` resultante **trava o boot** em hardware (rótulo SELinux ausente nos arquivos reescritos) e está
-**em quarentena — não flashe** (detalhes na seção "ATENÇÃO" abaixo e na [`16-recuperacao-brick.md`](../guide/16-recuperacao-brick.md)).
+> **Histórico.** As seções "A build", "Verificação" e "ATENÇÃO" descrevem o protótipo de julho (config
+> `1ad641ed`, CRC de vendor `0x35ca9b46`), apagado: ele travava o boot por falta de rótulo SELinux nos arquivos
+> reescritos ([guia 16](../guide/16-recuperacao-brick.md)). Os números dele não valem; o método (edição in-place
+> do sparse, os dois checksums) continua sendo o do gerador.
 
 ## O formato "LOAD" e seus checksums (revertido do loader)
 

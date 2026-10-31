@@ -123,6 +123,8 @@ O build é de **2026-08-08**. O zip de 2026-10-20 só empacota esse build. "A pa
 
 ## 2. Container "LOAD"
 
+O layout de referência é o do [doc 15](15-bin-definitivo.md#formato-load-layout-medido-no-stock-bloco-21); aqui, só a comparação entre os dois modelos.
+
 ### 2.1 Cabeçalho
 
 - O magic `LOAD` e os campos `0x08..0x40` são idênticos, exceto `checksum1 @0x04` e o tamanho total `@0x10`. Fonte: dump do cabeçalho de 0x40 bytes dos dois arquivos. CONFIRMADO.

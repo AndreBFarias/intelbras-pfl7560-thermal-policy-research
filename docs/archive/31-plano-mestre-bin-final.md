@@ -1,5 +1,8 @@
 # 31 - Plano mestre: do estado atual ao `.bin` final
 
+> **Arquivado em 2026-10-31.** O que ainda vale (a definição de pronto da §1 e a ordem das gravações da §3)
+> está no [doc 47](../research/47-build-completa.md) §11, o doc único do `.bin`.
+
 Documento de orientação (não-executado). Junta todas as sprints pendentes num **único caminho crítico**
 até o objetivo final do projeto: um firmware `.bin` distribuível, que **boota**, traz a correção térmica
 por padrão e avisa o usuário se a proteção não estiver ativa. Escrito para ser seguido por qualquer

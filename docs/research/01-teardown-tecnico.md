@@ -19,6 +19,8 @@ Não dá para cravar o motor óptico só pelo firmware; adotamos **LCD** conform
 
 ## Formato do container `.bin`
 
+O layout medido e os checksums estão no [doc 15](15-bin-definitivo.md#formato-load-layout-medido-no-stock-bloco-21); abaixo, a primeira leitura.
+
 Container proprietário big-endian com magic `LOAD` em `0x00`. Em `0x10` fica o tamanho total
 (`0x531310BC` = 1.393.758.396, confere). A partir de `0x40` há uma tabela de partições (registros de 32 bytes:
 `flashOffset@+8`, `size@+0x14`, `fileOffset@+0x18`). 19 registros. As maiores:
