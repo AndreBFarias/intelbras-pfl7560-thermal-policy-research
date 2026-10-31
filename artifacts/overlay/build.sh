@@ -15,6 +15,9 @@
 #   autofocus     -> com.zhiying.autofocus         PFL7560TemaAutoFocus.apk       (17A)
 #   zyspeakermodel -> com.zhiying.bluetoothmodelservice PFL7560TemaZYSpeakerModel.apk (17A)
 #   newlinkservice -> com.newlink.service          PFL7560TemaNewLinkService.apk  (17A)
+#   ijkplayer     -> com.newlink.isuperred.ijkplayerdemo PFL7560TemaIjkPlayer.apk (17A)
+#   hivideoplayer -> com.hisilicon.android.videoplayer PFL7560TemaHiVideoPlayer.apk (17A)
+#   himusic       -> com.hisilicon.android.music   PFL7560TemaHiMusic.apk         (17A)
 #   android       -> android (framework)           PFL7560TemaAndroid.apk   (por ultimo; ver doc 48)
 # Passos de cada uma: aapt2 compile + link (-I android.jar) -> zipalign -> apksigner sign ->
 # apksigner verify. Saida em artifacts/overlay/apk/. NAO copia para o kit (pendrive-autorun/):
@@ -52,10 +55,12 @@ SAIDA="$AQUI/apk"
 # configuracoes com versao <= 28 na padrao (drawable-v21 -> drawable, hdpi-v4 -> hdpi), e o alvo
 # (compilado com aapt antigo) tem justamente hdpi-v4 e v21. A sobreposicao precisa da MESMA
 # configuracao do alvo, senao a do alvo ganha (conferir.py, item 3). minSdk 1 desliga a fusao.
+# 17A: o mesmo vale para os players HiSilicon (drawable-nodpi-v4, drawable-hdpi-v4).
 SOBREPOSICOES="zysetting:PFL7560TemaZYSetting nlprovision:PFL7560TemaNLProvision
   zybluetooth:PFL7560TemaZYBluetooth zyfilemanager:PFL7560TemaZYFileManager tvsettings:PFL7560TemaTvSettings
   higallery:PFL7560TemaHiGallery:1 nlsource:PFL7560TemaNLSource powerservice:PFL7560TemaPowerService
   autofocus:PFL7560TemaAutoFocus zyspeakermodel:PFL7560TemaZYSpeakerModel newlinkservice:PFL7560TemaNewLinkService
+  ijkplayer:PFL7560TemaIjkPlayer hivideoplayer:PFL7560TemaHiVideoPlayer:1 himusic:PFL7560TemaHiMusic:1
   android:PFL7560TemaAndroid"
 
 for f in "$BT/aapt2" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER"; do

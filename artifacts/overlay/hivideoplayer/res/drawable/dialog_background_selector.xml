@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Fundo das janelas de menu do player (VideoActivity). De fabrica degrade azul-marinho
+     translucido (#88223355 / #88225577 / #88221133) nos dois estados -> fundo e linha com o mesmo
+     alfa (o video continua aparecendo por tras). Mesmo desenho. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="false">
+        <shape>
+            <gradient android:startColor="#88282A36" android:endColor="#88282A36" android:angle="270.0" android:centerY="0.45" android:centerColor="#8844475A" />
+        </shape>
+    </item>
+    <item android:state_focused="true">
+        <shape>
+            <gradient android:startColor="#88282A36" android:endColor="#88282A36" android:angle="270.0" android:centerY="0.45" android:centerColor="#8844475A" />
+        </shape>
+    </item>
+</selector>

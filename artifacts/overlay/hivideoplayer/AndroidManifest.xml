@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do player de video HiSilicon (bloco 17A): barra de controle, botoes em foco e menus. Gerada com minSdk 1: o alvo tem drawable-nodpi-v4 (doc 48). So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.hivideoplayer (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.hivideoplayer">
+    <overlay android:targetPackage="com.hisilicon.android.videoplayer" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>
