@@ -469,6 +469,23 @@ na parede, o deslize sem engasgo; (e) o descanso do fabricante (`ScreenService`)
 (f) o `suite-boot.sh` só roda no boot: com o app novo recém-instalado em `/vendor/app` pelo kit, o descanso liga
 no primeiro boot em que o serviço já existir (a conferência é feita a cada boot).
 
+### 14.1 Luz a 10% enquanto o descanso está na tela (pedido do dono, 2026-10-31)
+
+O descanso (`com.pfl7560.verificar/.Descanso`, `versionCode` 4) grava `descanso-inicio` na pasta privada do app
+ao começar e `descanso-fim` ao terminar, com qualquer tecla ou com um aviso que o acorde. O vigia root
+(`suite-pedido.sh`, com a mesma conferência de origem do pedido de verificação, só pela pasta do Verificar):
+
+| Pedido | O que o vigia faz |
+|---|---|
+| `descanso-inicio` | `sbl 10` |
+| `descanso-fim` | reaplica o nível que o dono escolheu no botão Luz (`/data/vendor/pfl7560-suite/luz`), ou 100 sem escolha |
+
+O nível guardado e a prop `vendor.pfl7560.luz` não mudam. Com a suíte rodando (trava), o vigia não mexe na luz.
+Sinais velhos na pasta são apagados no boot, que já reaplica o nível do dono.
+
+Provado no aparelho em 2026-10-31 (`service call dreams 1`; o `Somnambulator` não existe neste firmware): início
+→ 10%, e um aviso da HDMI acordou o descanso → de volta a 25%, o nível guardado.
+
 ## 15. Bloco 14: o que o kit leva do que foi feito à mão (2026-10-31)
 
 Tudo isto foi feito no projetor do dono por adb em 2026-10-31 e provado lá. Agora o kit do pendrive (e o
