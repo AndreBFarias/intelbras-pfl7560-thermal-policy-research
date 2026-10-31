@@ -1,113 +1,140 @@
-# Documentação técnica — PFL7560 thermal policy research
+# Documentação — índice
 
-Índice da pesquisa e dos guias. Para **aplicar a correção**, comece pelo [`../INSTALL.md`](../INSTALL.md) e pelo [`../README.md`](../README.md) na raiz.
+Tudo o que o repositório documenta, por tipo. Os números dos docs são únicos em todas as pastas: 10, 12, 16, 32 e
+36 ficam em `guide/`; 05, 11, 14, 17 a 25, 29, 30 e 31 em `archive/`; o resto em `research/`.
 
-## Guias (uso prático)
+## Comece aqui
+
+| Doc | Para quê |
+|---|---|
+| [`../README.md`](../README.md) | o que é o projeto, instalar e desfazer em uma página |
+| [`../INSTALL.md`](../INSTALL.md) | o passo a passo: instalar, verificar, acompanhar, reverter, cor depois de trocar o painel |
+| [`ESTADO.md`](ESTADO.md) | o que está provado, o que falta e o que é provisório (o único lugar) |
+| [`glossario.md`](glossario.md) | siglas, comandos do `hidebug`, termos do projeto e prefixos de ID |
+| [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | regras de quem mexe no código |
+
+## Guias
 
 | Doc | Conteúdo |
 |---|---|
 | [`guide/10-guia-replicacao.md`](guide/10-guia-replicacao.md) | Replicar a correção em outro PFL7560 |
 | [`guide/12-seguranca-e-recuperacao.md`](guide/12-seguranca-e-recuperacao.md) | Backups, revert, cenários de pânico |
-| [`guide/16-recuperacao-brick.md`](guide/16-recuperacao-brick.md) | Power-hold + `usb_update.bin` de fábrica |
-| [`guide/32-guia-troca-painel-lcd.md`](guide/32-guia-troca-painel-lcd.md) | Guia leigo: trocar o painel LCD e corrigir a cor (VESA/JEIDA) |
+| [`guide/16-recuperacao-brick.md`](guide/16-recuperacao-brick.md) | Resgate: power-hold com o `usb_update.bin` de fábrica; por que a build de julho travou |
+| [`guide/32-guia-troca-painel-lcd.md`](guide/32-guia-troca-painel-lcd.md) | Trocar o painel LCD e corrigir a cor (VESA/JEIDA) |
 | [`guide/36-lista-de-compras-reparo-optico.md`](guide/36-lista-de-compras-reparo-optico.md) | Lista de compras do reparo óptico (polarizador, painel, peças) |
 
-## Divulgação responsável
-
-| Doc | Conteúdo |
-|---|---|
-| [`disclosure/relatorio-csirt.md`](disclosure/relatorio-csirt.md) | Relatório ≤3 páginas para CSIRT / suporte |
-| [`disclosure/STATUS.md`](disclosure/STATUS.md) | Data de envio, protocolo, follow-up |
-| [`disclosure/roteiro-evidencias.md`](disclosure/roteiro-evidencias.md) | Roteiro de captura de evidências (fotos, medições, redação de dados pessoais) |
-
-## Pesquisa (ordem de leitura)
+## Referência técnica
 
 | Doc | Conteúdo |
 |---|---|
 | [`research/01-teardown-tecnico.md`](research/01-teardown-tecnico.md) | SoC, partições, como o firmware foi aberto |
 | [`research/02-sistema-termico-atual.md`](research/02-sistema-termico-atual.md) | Valores térmicos de fábrica |
-| [`research/03-causa-raiz-e-limites.md`](research/03-causa-raiz-e-limites.md) | Por que a óptica queima; teto do software |
+| [`research/03-causa-raiz-e-limites.md`](research/03-causa-raiz-e-limites.md) | Por que a óptica queima; limites do software |
 | [`research/04-plano-de-build-e-riscos.md`](research/04-plano-de-build-e-riscos.md) | Caminhos de deploy e riscos |
-| [`research/05-ZYCustom.ini-proposto.md`](archive/05-ZYCustom.ini-proposto.md) | Rascunho histórico de parâmetros |
-| [`research/06-acesso-adb-e-comandos.md`](research/06-acesso-adb-e-comandos.md) | Cookbook adb / hidebug |
-| [`research/07-hardware-upgrade.md`](research/07-hardware-upgrade.md) | Fans, limpeza, upgrades de hardware |
-| [`research/08-por-que-fica-cego.md`](research/08-por-que-fica-cego.md) | **Causa-raiz:** mux + sensor desacoplado |
-| [`research/09-build-final-e-resultados.md`](research/09-build-final-e-resultados.md) | Diff final + medições |
-| [`research/11-email-intelbras.md`](archive/11-email-intelbras.md) | Rascunho de e-mail (legado; preferir relatório CSIRT) |
+| [`research/06-acesso-adb-e-comandos.md`](research/06-acesso-adb-e-comandos.md) | Comandos adb e `hidebug` |
+| [`research/07-hardware-upgrade.md`](research/07-hardware-upgrade.md) | Ventiladores (o fato e como trocar), limpeza, dissipação |
+| [`research/08-por-que-fica-cego.md`](research/08-por-que-fica-cego.md) | **Causa raiz:** o mux e o sensor desacoplado |
+| [`research/09-build-final-e-resultados.md`](research/09-build-final-e-resultados.md) | O diff da correção e as medições |
 | [`research/13-auditoria-outros-bugs.md`](research/13-auditoria-outros-bugs.md) | Wi-Fi, xiri, postura de release |
-| [`research/14-estado-final-aplicado.md`](archive/14-estado-final-aplicado.md) | O que ficou no aparelho (`/vendor`) |
-| [`research/15-bin-definitivo.md`](research/15-bin-definitivo.md) | Container `.bin` (em quarentena) |
-| [`research/26-persistencia-do-fix.md`](research/26-persistencia-do-fix.md) | Persistência do fix térmico entre boots |
+| [`research/26-persistencia-do-fix.md`](research/26-persistencia-do-fix.md) | Persistência da correção entre boots |
 | [`research/27-teardown-cabo-gnd-ntc.md`](research/27-teardown-cabo-gnd-ntc.md) | Teardown fotografado; cabo GND/NTC; mapa da placa |
-| [`research/34-escada-brilho-e-fanmonitor.md`](research/34-escada-brilho-e-fanmonitor.md) | Alarme de 70 °C, **escada de brilho** ancorada no sensor real, `THERMAL_MODE`, e o FanMonitor **inarmável por software** |
-| [`research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md`](research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md) | Sessão de campo: a proteção cegou no meio do uso; ferramental novo (saúde / vigia / props); quem sonda e quem não sonda |
-| [`research/37-mecanismo-lsadc-defasagem-dos-aneis.md`](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) | **O documento mais importante do projeto.** O mecanismo do `LSADC Error`: defasagem dos anéis de amostras, provado no binário. Explica os dois regimes com um único mecanismo, dá o **teste de vivacidade** (`--vivacidade`) e o experimento decisivo de 2 minutos |
-| [`research/38-motor-optico-e-troca-do-polarizador.md`](research/38-motor-optico-e-troca-do-polarizador.md) | **A geometria do motor óptico**, observada com o aparelho aberto, e o procedimento de troca do polarizador. **Fecha o POL-S1:** o polarizador é placa de vidro **separada** (não laminada ao painel). Corrige dois registros errados do doc 07 |
-| [`research/39-sessao-2026-09-02-optica-e-balanco-termico.md`](research/39-sessao-2026-09-02-optica-e-balanco-termico.md) | **Reparo óptico executado** (3ª troca de polarizador, Fresnel limpas) e **auditoria adversarial do balanço térmico**: seis registros do repositório derrubados, incluindo "os ventiladores são axiais" (são centrífugos — a lista de compras do doc 07 compraria peça que não monta) e "o teto do software foi atingido". **O experimento que discrimina vazão de acoplamento nunca foi rodado** |
-| [`research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md`](research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) | **2ª troca de LCD: o painel novo é VESA** (o aparelho estava em JEIDA); medição térmica com o `gtt1` +8,17 °C sobre a base, com ressalvas; **OPT-S7 fechado:** o `gtt1` mede o **bloco dissipador do LED** e nenhum sensor mede o polarizador/LCD; **OPT-S6 fechado:** 3 ventiladores; 26 achados de auditoria de código e docs em 4 blocos |
-| [`research/41-auto-pareamento-camera-e-kit-universal.md`](research/41-auto-pareamento-camera-e-kit-universal.md) | **Cor automática após troca de LCD:** a câmera interna é USB UVC (lida direto por V4L2, captura ainda não provada); não existe ID elétrico do painel; critério **"duas metades" 63\|64** que não se engana com balanço de branco; desenho do **kit universal** de pendrive (térmica + cor, idempotente, para leigo) |
-| [`research/42-firmware-2026-10-modelo-sem-usbc.md`](research/42-firmware-2026-10-modelo-sem-usbc.md) | **Firmware de 2026-10-20 decompilado:** é o modelo **sem USB-C** (V1.0.0.1), não atualização do V1.0.0.9; **a térmica não mudou** (o bug do mux segue de fábrica); 4 perfis de painel novos; não aplicar no aparelho com USB-C; lições para o kit e o builder |
-| [`research/43-pesquisa-autofoco-keystone-teclas.md`](research/43-pesquisa-autofoco-keystone-teclas.md) | **Pesquisa de firmware para a suíte de boot:** como disparar o autofoco e saber que terminou (`sys.newlink.auto`), onde ficam os 4 pontos (`persist.sys.keystone.*`), por que nenhuma tecla do controle chama um script nosso, o modo de projeção e como o launcher lista os apps (`LAUNCHER`) |
-| [`research/44-suite-de-boot.md`](research/44-suite-de-boot.md) | **A suíte de verificação de boot:** o que é, como instala (kit de pendrive, serviço de boot, app, firmware de resgate), os três gatilhos (tomada, pendrive, ícone), etapas, telas, arquivos no aparelho, como desligar, limites, o que não foi feito e o que ficou PROVISÓRIO. Termina no **roteiro único "Teste no aparelho"**. Em uso no projetor do dono desde 2026-10-31 |
-| [`research/45-home-pfl7560.md`](research/45-home-pfl7560.md) | **A home MeowCast** (`com.pfl7560.home`): intents das entradas, o que o `nlprovision` faz como HOME, por que a home entra pela prop `vendor.newlink.launcher.package` (o `set-home-activity` não vence), desenho, atalho Luz |
-| [`research/46-foco-e-qualidade.md`](research/46-foco-e-qualidade.md) | Pesquisa de firmware para o bloco 11: foco pelo `hidebug` (`gfd`, `sfd`), ajustes de imagem, resolução e keystone |
-| [`research/47-build-completa.md`](research/47-build-completa.md) | **A build completa** (`.bin` com escada, wi-fi, xiri e o `.rc` da suíte): gerador por manifesto, o que não cabe no slot e vai pelo pendrive, roteiro de gravação. Não gravada (gate BIN-S4a) |
-| [`research/48-tema-no-sistema.md`](research/48-tema-no-sistema.md) | **Tema Drácula no sistema do fabricante:** as 20 sobreposições (RRO), só cor, forma, imagens e layouts só de cor; o que fica de fora e por quê; saída de emergência |
+| [`research/33-matriz-paineis.md`](research/33-matriz-paineis.md) | **Painéis:** quais servem, qual formato LVDS e o histórico das trocas deste aparelho |
+| [`research/34-escada-brilho-e-fanmonitor.md`](research/34-escada-brilho-e-fanmonitor.md) | Escada de brilho ancorada no sensor real, `THERMAL_MODE` e o FanMonitor inarmável |
+| [`research/37-mecanismo-lsadc-defasagem-dos-aneis.md`](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) | **O doc mais importante:** o mecanismo do `LSADC Error`, provado no binário, e o teste de vivacidade |
+| [`research/38-motor-optico-e-troca-do-polarizador.md`](research/38-motor-optico-e-troca-do-polarizador.md) | Geometria do motor óptico e a troca do polarizador (placa de vidro separada) |
+| [`research/41-auto-pareamento-camera-e-kit-universal.md`](research/41-auto-pareamento-camera-e-kit-universal.md) | Cor automática pela câmera interna e o desenho do kit universal de pendrive |
+| [`research/42-firmware-2026-10-modelo-sem-usbc.md`](research/42-firmware-2026-10-modelo-sem-usbc.md) | O firmware de 2026-10-20 é do modelo **sem USB-C** (V1.0.0.1); a térmica não mudou |
+| [`research/43-pesquisa-autofoco-keystone-teclas.md`](research/43-pesquisa-autofoco-keystone-teclas.md) | Autofoco, keystone, teclas do controle e o launcher, para a suíte |
+| [`research/44-suite-de-boot.md`](research/44-suite-de-boot.md) | **A suíte de verificação:** instalação, gatilhos, etapas, telas, luz, descanso, desinstalar, PROVISÓRIO e o roteiro de teste no aparelho |
+| [`research/45-home-pfl7560.md`](research/45-home-pfl7560.md) | **A home MeowCast:** entradas, por que entra pela prop `vendor.newlink.launcher.package`, botão Luz |
+| [`research/46-foco-e-qualidade.md`](research/46-foco-e-qualidade.md) | Foco pelo `hidebug` (`gfd`, `sfd`), ajustes de imagem, resolução e keystone |
+| [`research/48-tema-no-sistema.md`](research/48-tema-no-sistema.md) | **Tema Drácula no sistema:** as 20 sobreposições (RRO) e o que fica de fora |
 
-## Reparo de hardware — troca do painel LCD e correção de cor
-
-Tema distinto do térmico: quando se **troca o micro-painel LCD** do motor óptico, as primárias saem
-certas e o preto/cinzas saem tingidos se o **formato LVDS (VESA ou JEIDA)** não casar com o painel. Na 1ª
-troca o `RX058B-0600` pediu JEIDA; na 2ª (2026-10-29) o `RX058B-4300` instalado pediu VESA; na 3ª (2026-10-30)
-o painel pediu JEIDA, e o aparelho está hoje em JEIDA (doc 41 §8). O formato não se deduz do nome: decide o teste de cinza (escada de 16 cinzas, doc 41 §4).
-Resolvido por software, sem trocar hardware.
+## Sessões de bancada (diário, citadas por §)
 
 | Doc | Conteúdo |
 |---|---|
-| [`research/28-troca-painel-rx058b-diagnostico-cor.md`](research/28-troca-painel-rx058b-diagnostico-cor.md) | **Diagnóstico completo + solução da 1ª troca:** decompilação da lib do aparelho, `lvdsctl` (chama `SetLvdsFormat`), correção VESA→JEIDA no `panelparam` (byte `0x5c`). Tentativa-e-erro incluído; a §12.1 foi refutada pela §13 e pelo doc 40. |
-| [`research/29-roadmap-troca-lcd.md`](archive/29-roadmap-troca-lcd.md) | **Roadmap e sprints (planejamento):** aplicador fácil, wizard de pareamento, auto-pareamento via câmera interna, integração no `.bin`, guia leigo, matriz de painéis, auditoria de nomenclatura de IC. |
-| [`research/33-matriz-paineis.md`](research/33-matriz-paineis.md) | **Matriz de painéis compatíveis + auditoria de nomenclatura (LCD-S6/S7):** quais painéis, qual formato LVDS, e por que o nome do perfil não garante compatibilidade. |
-| [`research/30-sprint-validacao-repositorio.md`](archive/30-sprint-validacao-repositorio.md) | **Sprint de higiene:** validar a reorganização `mod-termica`→`docs/artifacts` (links, integridade, política de versionamento). |
-| [`research/31-plano-mestre-bin-final.md`](archive/31-plano-mestre-bin-final.md) | **Plano mestre:** caminho crítico único até o `.bin` final — ordena todas as sprints pendentes por dependência e marca os gates de hardware. Comece por aqui para entender o todo. |
+| [`research/28-troca-painel-rx058b-diagnostico-cor.md`](research/28-troca-painel-rx058b-diagnostico-cor.md) | 1ª troca de painel: diagnóstico, `lvdsctl` e o byte `0x5c` da `panelparam` |
+| [`research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md`](research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md) | A proteção cegou no meio do uso; ferramentas passivas (saúde, vigia, props) |
+| [`research/39-sessao-2026-09-02-optica-e-balanco-termico.md`](research/39-sessao-2026-09-02-optica-e-balanco-termico.md) | Reparo óptico e auditoria do balanço térmico; a sala como maior alavanca; o clamp do brilho em 750 |
+| [`research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md`](research/40-sessao-2026-10-29-segunda-troca-lcd-e-auditoria.md) | 2ª troca de LCD, onde fica o NTC do `gtt1` (OPT-S7), 3 ventiladores (OPT-S6) e a auditoria de código e docs |
 
-Artefatos da correção de cor em [`../artifacts/lcd-color-fix/`](../artifacts/lcd-color-fix/) (`lvdsctl.c` + padrões de teste).
-
-## Tarefas por bloco (2026-10)
-
-Os blocos de correção abertos a partir da sessão do doc 40, cada um com a seção "Estado" no fim.
+## Build `.bin`
 
 | Doc | Conteúdo |
 |---|---|
-| [`sprints/2026-10-29-bloco-1-cor-e-gravacao.md`](sprints/2026-10-29-bloco-1-cor-e-gravacao.md) | Backup antes de gravar na `panelparam`, `term_ok`, `install.bat`, builder (feito; T1.1 virou o bloco 5) |
-| [`sprints/2026-10-29-bloco-2-medicao.md`](sprints/2026-10-29-bloco-2-medicao.md) | Locale, boots, root, `saude` pelo byte gravado, IP com porta e Ctrl-C (feito) |
+| [`research/47-build-completa.md`](research/47-build-completa.md) | **O doc único do `.bin`:** o que leva, as builds S4a e S4b, a forma do sparse, o roteiro de gravação, a definição de pronto e a ordem das gravações |
+| [`research/15-bin-definitivo.md`](research/15-bin-definitivo.md) | O formato do container LOAD e os checksums |
+| [`../firmware/README.md`](../firmware/README.md) | Firmwares de fábrica e a tabela das nossas builds |
+| [`../artifacts/bin-build/README.md`](../artifacts/bin-build/README.md) | O gerador (`build_fix_bin.py`) e o manifesto |
+
+## Tarefas por bloco
+
+Cada bloco tem a seção "Estado" no fim.
+
+| Doc | Conteúdo |
+|---|---|
+| [`sprints/2026-10-29-bloco-1-cor-e-gravacao.md`](sprints/2026-10-29-bloco-1-cor-e-gravacao.md) | Backup antes de gravar na `panelparam`, `term_ok`, `install.bat`, builder |
+| [`sprints/2026-10-29-bloco-2-medicao.md`](sprints/2026-10-29-bloco-2-medicao.md) | Locale, boots, root, `saude` pelo byte gravado, IP com porta e Ctrl-C |
 | [`sprints/2026-10-29-bloco-3-docs-sem-autorrefutacao.md`](sprints/2026-10-29-bloco-3-docs-sem-autorrefutacao.md) | Docs sem autorrefutação |
-| [`sprints/2026-10-29-bloco-4-prova-da-build.md`](sprints/2026-10-29-bloco-4-prova-da-build.md) | Prova de que a build é funcional (partes no aparelho abertas) |
-| [`sprints/2026-10-29-bloco-5-kit-universal.md`](sprints/2026-10-29-bloco-5-kit-universal.md) | Kit universal de pendrive: térmica + cor "duas metades" (software feito; bancada aberta) |
-| [`sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md`](sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md) | Kit, builder e fix para os dois modelos (feito, só em software) |
-| [`sprints/2026-10-30-bloco-7-cor-automatica.md`](sprints/2026-10-30-bloco-7-cor-automatica.md) | Cor automática pela câmera interna (`nl_camcheck faixas/niveis`), escada de 16 cinzas no lugar das duas metades e `force-stop` da galeria entre telas (provada no aparelho no bloco 8) |
-| [`sprints/2026-10-30-bloco-8-camera-robusta.md`](sprints/2026-10-30-bloco-8-camera-robusta.md) | Câmera robusta: janela de colunas 47–53 % e captura 1280×720; prova no aparelho com reboot |
-| [`sprints/2026-10-30-bloco-9-suite-de-boot.md`](sprints/2026-10-30-bloco-9-suite-de-boot.md) | Suíte de boot: decisões do dono, fatos, contratos C-geo, C-tela e C-res (documentação final: [doc 44](research/44-suite-de-boot.md)) |
-| [`sprints/2026-10-30-bloco-9a-tela-e-geometria.md`](sprints/2026-10-30-bloco-9a-tela-e-geometria.md) | `nl_tela` (telas geradas no aparelho) e `nl_camcheck geometria` |
-| [`sprints/2026-10-30-bloco-9b-suite.md`](sprints/2026-10-30-bloco-9b-suite.md) | A suíte (`suite.sh`), o serviço de boot, os gatilhos, a integração com o kit |
-| [`sprints/2026-10-30-bloco-9c-app-pendrive-docs.md`](sprints/2026-10-30-bloco-9c-app-pendrive-docs.md) | App (Verificar projetor, Wi-Fi), pendrive com firmware de resgate, `pfl7560-processos.sh` e os documentos |
-| [`sprints/2026-10-31-bloco-10-home-e-tema-dracula.md`](sprints/2026-10-31-bloco-10-home-e-tema-dracula.md) | Home nova (10A) e tema Drácula nas telas da suíte e no app (10B) |
-| [`sprints/2026-10-31-bloco-11-qualidade-e-foco.md`](sprints/2026-10-31-bloco-11-qualidade-e-foco.md) | Mapa de nitidez 3x3, varredura fina de foco e `pfl7560-qualidade.sh` (feito no 19A) |
-| [`sprints/2026-10-31-bloco-12-build-completa.md`](sprints/2026-10-31-bloco-12-build-completa.md) | Gerador do `.bin` por manifesto e a build completa (doc 47) |
-| [`sprints/2026-10-31-bloco-13-tema-no-sistema.md`](sprints/2026-10-31-bloco-13-tema-no-sistema.md) | Sobreposições Drácula no sistema do fabricante (13A) e ícones dos apps na home (13B) |
-| [`sprints/2026-10-31-bloco-14-kit-tema-vlc.md`](sprints/2026-10-31-bloco-14-kit-tema-vlc.md) | O kit leva o que foi feito à mão: sobreposições, prop do gerenciador, apps desligados, marca; `pfl7560-marca.sh` e `pfl7560-vlc.sh` |
-| [`sprints/2026-10-31-bloco-15-luz-na-home.md`](sprints/2026-10-31-bloco-15-luz-na-home.md) | Botão Luz na home pelo `sbl` do `hidebug`, com a ponte root pelo vigia |
-| [`sprints/2026-10-31-bloco-16-tema-em-tudo.md`](sprints/2026-10-31-bloco-16-tema-em-tudo.md) | Sobreposições para o resto (16A), descanso de tela MeowCast e home sem Espelhamento (16B) |
-| [`sprints/2026-10-31-bloco-17-overlays-restantes.md`](sprints/2026-10-31-bloco-17-overlays-restantes.md) | Seis sobreposições a mais (foco, caixa de som, avisos, players) |
-| [`sprints/2026-10-31-bloco-18-overlays-finais.md`](sprints/2026-10-31-bloco-18-overlays-finais.md) | As últimas telas: teclado, atalhos, pareamento, menu de imagem, instalador e a do `android` v3 |
-| [`sprints/2026-10-31-bloco-19-fechamento.md`](sprints/2026-10-31-bloco-19-fechamento.md) | Fechamento: foco pela câmera (19A), layouts só de cor e imagens do framework (19B), o teste intermitente (19C) |
-| [`ESTADO.md`](ESTADO.md) | **O estado do conjunto:** o que está no projetor do dono, no pendrive e na build, e o que falta fazer com o dono |
+| [`sprints/2026-10-29-bloco-4-prova-da-build.md`](sprints/2026-10-29-bloco-4-prova-da-build.md) | Prova de que a build é funcional |
+| [`sprints/2026-10-29-bloco-5-kit-universal.md`](sprints/2026-10-29-bloco-5-kit-universal.md) | Kit universal de pendrive: térmica e cor (bancada E4 aberta) |
+| [`sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md`](sprints/2026-10-30-bloco-6-licoes-do-firmware-novo.md) | Kit, builder e fix para os dois modelos |
+| [`sprints/2026-10-30-bloco-7-cor-automatica.md`](sprints/2026-10-30-bloco-7-cor-automatica.md) | Cor automática pela câmera, escada de 16 cinzas e `force-stop` da galeria entre telas |
+| [`sprints/2026-10-30-bloco-8-camera-robusta.md`](sprints/2026-10-30-bloco-8-camera-robusta.md) | Câmera robusta (janela 47–53 %, 1280×720); prova no aparelho com reboot |
+| [`sprints/2026-10-30-bloco-9-suite-de-boot.md`](sprints/2026-10-30-bloco-9-suite-de-boot.md) | Suíte de boot: decisões do dono e contratos C-geo, C-tela e C-res |
+| [`sprints/2026-10-30-bloco-9a-tela-e-geometria.md`](sprints/2026-10-30-bloco-9a-tela-e-geometria.md) | `nl_tela` e `nl_camcheck geometria` |
+| [`sprints/2026-10-30-bloco-9b-suite.md`](sprints/2026-10-30-bloco-9b-suite.md) | A suíte, o serviço de boot e os gatilhos |
+| [`sprints/2026-10-30-bloco-9c-app-pendrive-docs.md`](sprints/2026-10-30-bloco-9c-app-pendrive-docs.md) | App, pendrive com firmware, `pfl7560-processos.sh` |
+| [`sprints/2026-10-31-bloco-10-home-e-tema-dracula.md`](sprints/2026-10-31-bloco-10-home-e-tema-dracula.md) | Home nova e tema Drácula |
+| [`sprints/2026-10-31-bloco-11-qualidade-e-foco.md`](sprints/2026-10-31-bloco-11-qualidade-e-foco.md) | Nitidez 3x3, varredura fina de foco, `pfl7560-qualidade.sh` |
+| [`sprints/2026-10-31-bloco-12-build-completa.md`](sprints/2026-10-31-bloco-12-build-completa.md) | Gerador do `.bin` por manifesto |
+| [`sprints/2026-10-31-bloco-13-tema-no-sistema.md`](sprints/2026-10-31-bloco-13-tema-no-sistema.md) | Sobreposições no sistema e ícones na home |
+| [`sprints/2026-10-31-bloco-14-kit-tema-vlc.md`](sprints/2026-10-31-bloco-14-kit-tema-vlc.md) | O kit leva sobreposições, apps desligados e marca; `pfl7560-marca.sh` e `pfl7560-vlc.sh` |
+| [`sprints/2026-10-31-bloco-15-luz-na-home.md`](sprints/2026-10-31-bloco-15-luz-na-home.md) | Botão Luz na home |
+| [`sprints/2026-10-31-bloco-16-tema-em-tudo.md`](sprints/2026-10-31-bloco-16-tema-em-tudo.md) | Sobreposições para o resto, descanso de tela, home sem Espelhamento |
+| [`sprints/2026-10-31-bloco-17-overlays-restantes.md`](sprints/2026-10-31-bloco-17-overlays-restantes.md) | Seis sobreposições a mais |
+| [`sprints/2026-10-31-bloco-18-overlays-finais.md`](sprints/2026-10-31-bloco-18-overlays-finais.md) | As últimas telas e a sobreposição do `android` v3 |
+| [`sprints/2026-10-31-bloco-19-fechamento.md`](sprints/2026-10-31-bloco-19-fechamento.md) | Foco pela câmera, layouts só de cor, o teste intermitente |
+| [`sprints/2026-10-31-bloco-20-revisao.md`](sprints/2026-10-31-bloco-20-revisao.md) | Revisão final do conjunto |
+| [`sprints/2026-10-31-bloco-21-limpeza-bugs-bin.md`](sprints/2026-10-31-bloco-21-limpeza-bugs-bin.md) | Limpeza, bugs, leitura fácil e o `.bin` nos blocos do stock |
 
-## Arquivo interno (histórico de auditorias)
+## Divulgação
 
-Pasta [`archive/`](archive/) — sprints e auditorias internas (não é o caminho leigo).
+| Doc | Conteúdo |
+|---|---|
+| [`disclosure/STATUS.md`](disclosure/STATUS.md) | Estado do envio, impacto no consumidor (CDC) e o que falta para publicar |
+| [`disclosure/relatorio-csirt.md`](disclosure/relatorio-csirt.md) | O relatório para o CSIRT da Intelbras |
+| [`disclosure/roteiro-evidencias.md`](disclosure/roteiro-evidencias.md) | Roteiro de captura de evidências |
+| [`dossie-teardown.html`](dossie-teardown.html) | Dossiê visual do teardown |
 
-## Artefatos
+## Arquivo (histórico, não é o caminho atual)
 
-Pasta [`../artifacts/`](../artifacts/) — `ZYCustom.ini` stock e build, `bin-build/`, `app/` (o app da suíte e do descanso de tela), `home/` (a home MeowCast), `overlay/` (as
-sobreposições do tema), `tema/` (paleta, fundo e marca MeowCast), `camcheck/` e `tela/` (binários ARM da suíte),
-históricos.
+| Doc | Conteúdo |
+|---|---|
+| [`archive/05-ZYCustom.ini-proposto.md`](archive/05-ZYCustom.ini-proposto.md) | Rascunho de parâmetros de julho, superado pela correção em uso |
+| [`archive/11-email-intelbras.md`](archive/11-email-intelbras.md) | Rascunho de e-mail, superado pelo relatório CSIRT |
+| [`archive/14-estado-final-aplicado.md`](archive/14-estado-final-aplicado.md) | O aparelho em 2026-07-05, antes da escada e do MeowCast |
+| [`archive/17-auditoria-e-hardening.md`](archive/17-auditoria-e-hardening.md) | Auditoria adversarial das soluções de entrega |
+| [`archive/18-sprint-bin-futuro.md`](archive/18-sprint-bin-futuro.md) | Sprint do `.bin` que boota (sub-sprints BIN-S*) |
+| [`archive/19-sprint-warning-tela.md`](archive/19-sprint-warning-tela.md) | Aviso na tela quando a correção não está ativa (virou a suíte) |
+| [`archive/20-auditoria-integral-2026-07-06.md`](archive/20-auditoria-integral-2026-07-06.md) | Auditoria integral de 2026-07-06 |
+| [`archive/21-sprint-integridade-backup.md`](archive/21-sprint-integridade-backup.md) | Integridade byte-exata do backup e restore |
+| [`archive/22-sprint-sincronizacao-docs.md`](archive/22-sprint-sincronizacao-docs.md) | Sincronização da documentação |
+| [`archive/23-sprint-robustez-scripts.md`](archive/23-sprint-robustez-scripts.md) | Atomicidade e robustez dos instaladores |
+| [`archive/24-sprint-perfis-seguros.md`](archive/24-sprint-perfis-seguros.md) | Perfis seguros |
+| [`archive/25-sprint-acentuacao.md`](archive/25-sprint-acentuacao.md) | Acentuação pt-BR |
+| [`archive/29-roadmap-troca-lcd.md`](archive/29-roadmap-troca-lcd.md) | Roadmap da troca de LCD (LCD-S1 a S7), já executado |
+| [`archive/30-sprint-validacao-repositorio.md`](archive/30-sprint-validacao-repositorio.md) | Higiene do repositório de julho (o REPO-S2 foi para `disclosure/STATUS.md`) |
+| [`archive/31-plano-mestre-bin-final.md`](archive/31-plano-mestre-bin-final.md) | Plano do `.bin` de julho (o que vale está no doc 47 §11) |
+| [`archive/relatorio.html`](archive/relatorio.html) | "O Sensor Cego", laudo térmico visual de julho |
+
+## Fora de `docs/`
+
+| Onde | O que tem |
+|---|---|
+| [`../artifacts/README.md`](../artifacts/README.md) | Mapa de `artifacts/`: arquivos de referência com md5 e o README de cada pasta (app, home, tema, overlay, tela, camcheck, lcd-color-fix, bin-build, re-termico) |
+| [`../tests/README.md`](../tests/README.md) | Os quatro alvos do `make`, o que cada teste prova e as fixtures |
+| [`../media/README.md`](../media/README.md) | Fotos do aparelho aberto e a auditoria de privacidade |
+| [`../firmware/README.md`](../firmware/README.md) | Firmwares de fábrica e builds |
+| [`../pendrive-autorun/LEIA-ME.txt`](../pendrive-autorun/LEIA-ME.txt) | O resumo que vai no pendrive (ASCII) |
