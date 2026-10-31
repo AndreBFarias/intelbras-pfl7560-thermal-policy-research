@@ -109,9 +109,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 1926ee5699fdc87bf677bd7e00aed28d  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 a66670952039a97e8870e79ab19d12d6  nl_camcheck
-59d98245f2a9332036987b2eb927b392  suite.sh
-3ad73537fadbe03b3dcd7279108e6fd5  suite-boot.sh
-10bdc8362cd1b107a75baf16c41cb282  suite-pedido.sh
+0a0efcd0c3239556fb0944f6eb86c025  suite.sh
+7df2fc060e6546e0a221e277fe2fa505  suite-boot.sh
+39b5a9df715c15a08ea030855fb541fe  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
@@ -654,7 +654,7 @@ fi
 if [ "$SUITE_INSTALAR" = "0" ]; then
   LOG "DESINSTALAR-SUITE.txt no pendrive: removendo a suite (servico, pasta, pedido e vigia)"
   if trabalho_ok && trabalho_conferir suite.sh; then
-    sh "$WORK/suite.sh" --desinstalar
+    sh "$WORK/suite.sh" --desinstalar "$MP"
   else
     LOG "[ERRO] suite.sh nao conferiu na hora de executar - a suite NAO foi removida."
   fi

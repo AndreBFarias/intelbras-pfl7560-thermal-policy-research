@@ -986,6 +986,17 @@ exec '"$(command -v ls)"' "$@"'
   [ -s "$T/logcat.pid" ] && kill "$(cat "$T/logcat.pid")" 2>/dev/null
   limpa
 
+  novo_cenario "conferente: desinstalar leva a copia do backup do panelparam para o pendrive"
+  pendrive
+  roda_kit
+  cp "$T/pp-original.img" "$S/panelparam-backup-SER123.img"
+  : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
+  roda_kit
+  afirma '[ ! -e "$S" ] && cmp -s "$MP/suite-panelparam-backup-SER123.img" "$T/pp-original.img"' "a copia do backup se perdeu"
+  afirma '( cd "$MP" && md5sum -c --quiet suite-panelparam-backup-SER123.img.md5 )' "md5 da copia no pendrive"
+  afirma 'grep -q "copia do backup do panelparam levada para o pendrive" "$T/kit.out"' "log sem a copia"
+  limpa
+
   novo_cenario "conferente: pedido que nao se apaga (pasta) = ignorado, sem lancar"
   instala_suite; mkdir -p "$PED/pedir-verificacao/x"
   roda_pedido w "$PED" pedir-verificacao

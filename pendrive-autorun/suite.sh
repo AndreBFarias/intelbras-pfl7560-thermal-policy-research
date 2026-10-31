@@ -11,7 +11,7 @@
 #    suite.sh tomada [motivo]                    ao voltar da tomada (suite-boot.sh)
 #    suite.sh pedido                             pedido pelo app (suite-pedido.sh)
 #    suite.sh pendrive <mountpoint> [termica-falhou]   pelo kit (newlink_update.sh)
-#    suite.sh --desinstalar                      remove servico, pasta, pedido e vigia
+#    suite.sh --desinstalar [mountpoint]         remove servico, pasta, pedido e vigia
 #
 #  Etapas: 0 abertura; 1 cor (cor.sh no modo suite); 2 angulo, foco e nitidez (camera,
 #  nl_camcheck geometria); 3 temperatura (so leitura); 4 teste ativo da rampa; 5 resumo
@@ -862,9 +862,25 @@ etapa_final_pendrive(){
 }
 
 # ---- desinstalar -------------------------------------------------------------
-modo_desinstalar(){
+modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
   _drc=0
   LOG "desinstalando a suite"
+  # a copia do backup do panelparam que o cor.sh deixou aqui (modo suite sem pendrive)
+  # vai para o pendrive antes de a pasta sumir, com outro nome (nao cobre a do kit);
+  # best effort e conferida com cmp, como a copia do pendrive do cor.sh
+  if [ -n "${1:-}" ] && [ -d "$1" ] && dir_seguro "$SUITE"; then
+    for _bk in "$SUITE"/panelparam-backup-*.img; do
+      arq_seguro "$_bk" || continue
+      _bn="suite-${_bk##*/}"
+      if cp "$_bk" "$1/$_bn" 2>/dev/null && sync && cmp -s "$_bk" "$1/$_bn"; then
+        ( cd "$1" && md5sum "$_bn" > "$_bn.md5" ) 2>/dev/null
+        LOG "[OK] copia do backup do panelparam levada para o pendrive: $_bn"
+      else
+        rm -f "$1/$_bn" 2>/dev/null
+        LOG "[AVISO] nao consegui levar ${_bk##*/} para o pendrive: ela sai com a pasta da suite."
+      fi
+    done
+  fi
   # para o servico (o init mata o grupo dele, com o vigia) e o vigia pelo pid
   # (com teto: o newlink_update.sh chama isto de dentro do exec do init)
   timeout 5 setprop ctl.stop pfl7560_suite 2>/dev/null
@@ -897,7 +913,7 @@ MP=""
 AVISO_ARG=""
 MOTIVO_BOOT=""
 case "$MODO" in
-  --desinstalar) modo_desinstalar ;;
+  --desinstalar) modo_desinstalar "${2:-}" ;;
   tomada) MOTIVO_BOOT=$(echo "${2:-}" | tr -cd 'a-z_') ;;
   pedido) ;;
   pendrive)

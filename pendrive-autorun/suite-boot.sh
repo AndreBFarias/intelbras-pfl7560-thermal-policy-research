@@ -50,8 +50,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="59d98245f2a9332036987b2eb927b392"
-PEDIDO_MD5="10bdc8362cd1b107a75baf16c41cb282"
+SUITE_MD5="0a0efcd0c3239556fb0944f6eb86c025"
+PEDIDO_MD5="39b5a9df715c15a08ea030855fb541fe"
 # SUITE_MD5_FIM
 
 # PROVISORIO (teste final no aparelho, bloco 9 item 2): os dois criterios do gatilho
