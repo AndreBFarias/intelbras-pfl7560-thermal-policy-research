@@ -88,9 +88,25 @@ com ele plugado reflasha o aparelho e apaga o `/data`. Mantenha-o desconectado n
 `sys.boot.reason`, o `persist.sys.boot.reason`, o `ro.boot.bootreason`, a linha do `dmesg` com `setting system
 clock to` (o ano do relógio no boot), o RTC, o resumo de `/proc/msp/pm`, o contador `incompletas` e a decisão.
 O modo vem do arquivo `/data/vendor/pfl7560-suite/gatilho`: `auto` (padrão), `sempre` ou `nunca`. Em `auto`,
-roda se **algum**: (a) o ano do relógio no boot é menor que 2020 (o RTC zerou: ficou sem energia); (b) o
-`sys.boot.reason` não começa com `shutdown,` nem `reboot,` (o desligamento não foi limpo). **PROVISÓRIO:** o
-valor depois de faltar energia com o projetor ligado não foi medido; o histórico existe para calibrar isto.
+roda se **algum** dos critérios abaixo valer.
+
+- **(m) A marca.** É o critério que vale neste aparelho. O PFL7560 não tem relógio com bateria: não existe
+  `/sys/class/rtc/rtc0`, e o boot começa numa data fixa até a rede acertar a hora. E o motivo do boot apenas
+  repete o do último desligamento limpo. Por isso nenhum dos dois, sozinho, diz que a energia caiu.
+  - Depois de ler os sinais, a cada boot, o `suite-boot.sh` grava `pfl7560,ligado` em
+    `persist.sys.boot.reason`.
+  - Um desligamento ou reboot limpo sobrescreve essa marca (`shutdown,userrequested`, `reboot,shell`).
+  - Se a marca chega viva ao boot seguinte, a energia caiu com o projetor ligado: `motivo=queda_de_energia`.
+  - **Provado no aparelho em 2026-10-30** (`evidencias/boot-tomada/`). Um reset sem desligamento (`sysrq b`, o
+    mesmo que tirar da tomada ligado) deixou `pfl7560,ligado` em `sys.boot.reason`, `persist.sys.boot.reason` e
+    `ro.boot.bootreason`. Um reboot limpo com a marca gravada deu `reboot,shell`.
+  - Com `gatilho=nunca`, a marca não é gravada. O desinstalar a apaga.
+  - Limite: um corte antes do fim do boot anterior (antes do `sys.boot_completed`) não deixa a marca e não é
+    detectado.
+- **(a) O relógio zerado.** O ano do relógio no boot menor que 2020. Não tem efeito neste aparelho, que não tem
+  RTC; fica para outro hardware.
+- **(b) O desligamento não limpo.** O `sys.boot.reason` não começa com `shutdown,` nem `reboot,` (por exemplo
+  `kernel_panic` ou vazio).
 
 Não roda: se a suíte terminou há menos de 10 minutos (proteção contra laço); se há um pendrive com
 `newlink_update.sh` montado (o fluxo do pendrive cobre; registra e sai); se outra instância tem a trava
@@ -233,7 +249,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 
 | Item | Onde | O que confirmar |
 |---|---|---|
-| Critérios do gatilho `auto`: `ANO_MIN=2020`, prefixos `shutdown,`/`reboot,`, `ESPERA_MONTAGEM=20` | `suite-boot.sh` | o que o aparelho mostra depois de faltar energia com ele ligado (o `historico-boot.txt` guarda os sinais) |
+| `ESPERA_MONTAGEM=20` e a marca `pfl7560,ligado` com o cabo de verdade | `suite-boot.sh` | o mecanismo da marca foi provado com `sysrq b`; o passo 7 confirma com o cabo tirado com o projetor ligado |
 | `SINAL_INCLINACAO=1` e se a câmera vê alguma inclinação real | `suite.sh` | teste 10: o sinal de `geo_inclinacao_graus` com uma inclinação proposital |
 | `LIMIAR_BORDA_PX_1280=3.5` (proporcional à largura) | `suite.sh` | bordas reais no aparelho (o 640×480 real passaria dele) |
 | `AUTOFOCO_FOLGA=5` e a espera por `sys.newlink.auto` | `suite.sh` | teste 11 |
@@ -287,12 +303,12 @@ e anote o resultado (a linha de base). Espera: tudo verde.
    harness não consegue montar sem root.
 7. **Voltar da tomada com o projetor ligado.** Com a tela inicial no ar, tire o cabo de energia, espere 10 s,
    religue. Esperado: a suíte roda sozinha ("Voltou a energia. Conferindo o projetor.", **sem** a palavra
-   pendrive), resumo de 20 s; `adb shell "tail -2 $S/historico-boot.txt; head -20 $S/ultimo.log"` com o motivo
-   `queda de energia` e os sinais (relógio, `sys.boot.reason`). **Se não rodar:** copie a linha do histórico, e
-   para o resto do teste use `adb shell "echo sempre > $S/gatilho"` (voltar a `auto` no fim); o critério `auto`
-   precisa ser refeito com os sinais reais.
-8. **Desligar pelo controle e religar.** Esperado: a suíte **não** roda (se os sinais permitem distinguir
-   do passo 7); se rodar, decidir com o dono (o `gatilho` e os critérios, seção 3).
+   pendrive), resumo de 20 s; `adb shell "tail -2 $S/historico-boot.txt; head -20 $S/ultimo.log"` com
+   `persist_boot_reason=pfl7560,ligado` e `motivo=queda_de_energia`. **Se não rodar:** copie a linha do
+   histórico e, para o resto do teste, use `adb shell "echo sempre > $S/gatilho"` (voltar a `auto` no fim).
+8. **Desligar pelo controle e religar.** Esperado: a suíte **não** roda; o histórico mostra
+   `boot_reason=shutdown,userrequested` e `motivo=desligamento_limpo`, porque o desligamento limpo sobrescreveu
+   a marca.
 9. **VESA à mão + tirar da tomada.** `adb shell "$S/lvdsctl fmt 0"` (grava VESA), confirme que a imagem ficou
    com cinzas tingidos, tire da tomada e religue. Esperado: a suíte corrige para JEIDA sozinha; resumo com "Formato
    do painel: VESA → JEIDA" em `corrigido` e "1 correção feita"; `adb shell "cat $S/cor-resultado.txt; ls $S/panelparam-backup-*"`
