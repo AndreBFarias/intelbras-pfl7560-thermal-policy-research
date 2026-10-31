@@ -23,4 +23,18 @@
     <color name="primary_text_leanback_dark">#FFF8F8F2</color>
     <!-- de fabrica #99EEEEEE -> secundario (tom derivado do bloco 10) -->
     <color name="secondary_text_leanback_dark">#FFB4BCCF</color>
+
+    <!-- Bloco 18: o que so esta sobreposicao alcanca (doc 48 secao 12.6). Duas cores, nenhuma
+         imagem, dimensao ou layout. -->
+    <!-- de fabrica #FFCC0000. Titulo vermelho da contagem de desligar do descanso
+         (NewLinkService, activity_shut_down: @android:color/holo_red_dark). No framework-res.apk
+         nenhum recurso a cita (so a definicao): a troca so alcanca os apps que a usam.
+         -> vermelho: 4,5:1 sobre o painel fundo (era 2,4:1) -->
+    <color name="holo_red_dark">#FFFF5555</color>
+    <!-- de fabrica #FFFFFFFF. Fundo da ToastActivity do NewLinkService (@android:color/background_light,
+         texto @android:color/black: painel claro, decisao do coordenador) -> texto (19,7:1).
+         No framework ela tambem e o colorBackground do Theme.Light antigo e o valor de
+         bright_foreground_dark (o texto claro dos temas escuros antigos e Holo): esses passam do
+         branco ao texto Dracula, o mesmo das outras cores daqui. -->
+    <color name="background_light">#FFF8F8F2</color>
 </resources>

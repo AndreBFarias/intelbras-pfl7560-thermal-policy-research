@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Sobreposicao (RRO) do framework (bloco 13A): SO cores dos dialogos claros do Leanback.
+<!-- Sobreposicao (RRO) do framework (bloco 13A; 16A e 18 ampliam): SO cores e uma forma.
      Instalar por ultimo, depois das dos apps provadas. Saida de emergencia no doc 48.
      Nao estatica: cmd overlay enable com.pfl7560.tema.android -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
