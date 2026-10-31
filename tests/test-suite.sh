@@ -1164,14 +1164,14 @@ c_etapas_geometria(){
   novo_cenario "camera: alerta do sistema na tela = fechado com ENTER antes de mostrar"
   etapa_feliz; echo 1 > "$T/alerta"
   roda_suite tomada
-  afirma 'tem_chamada "input keyevent KEYCODE_ENTER" && grep -q "alerta do sistema (com.newlink.nlprovision)" "$S/ultimo.log"' "o alerta nao foi fechado"
+  afirma 'tem_chamada "input keyevent KEYCODE_DPAD_CENTER" && grep -q "alerta do sistema (com.newlink.nlprovision)" "$S/ultimo.log"' "o alerta nao foi fechado com o OK do controle"
   afirma '[ "$(res camera)" = ok ]' "camera: $(res camera)"
   limpa
 
   novo_cenario "camera: outro alerta do sistema (HDMI) = cancelado com BACK, nunca ENTER"
   etapa_feliz; echo 1 > "$T/alerta"; echo "com.zhiying.settings" > "$T/alerta-pacote"
   roda_suite tomada
-  afirma 'tem_chamada "input keyevent KEYCODE_BACK" && ! tem_chamada "input keyevent KEYCODE_ENTER"' "teclas: $(grep "^input" "$T/calls.log" | tr '\n' '|')"
+  afirma 'tem_chamada "input keyevent KEYCODE_BACK" && ! tem_chamada "input keyevent KEYCODE_ENTER" && ! tem_chamada "input keyevent KEYCODE_DPAD_CENTER"' "teclas: $(grep "^input" "$T/calls.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "camera: falha 2x e le na 3a = sem chamar a pessoa, autofoco entre as tentativas"
