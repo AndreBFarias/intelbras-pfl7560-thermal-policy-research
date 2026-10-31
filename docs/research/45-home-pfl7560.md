@@ -1,7 +1,19 @@
 # 45 - Home nova do PFL7560 (`com.pfl7560.home`): pesquisa, segurança e desenho (2026-10-31)
 
-**Estado: pronta em código, compilada e renderizada no PC. Nada disto rodou no aparelho.** O que só o aparelho
-confirma está marcado **PROVISÓRIO** e reunido na seção 9, com o roteiro de teste na seção 10.
+**Estado em 2026-10-31: a home MeowCast (v4) é a tela inicial do projetor do dono.** O que mudou depois desta
+pesquisa, no aparelho:
+
+- **O caminho aplicado é o B (§4.2), não o A.** O `cmd package set-home-activity` não vence: o `nlprovision` tem
+  prioridade 29 no filtro HOME (visto no aparelho em 2026-10-31). O kit grava
+  `vendor.newlink.launcher.package=com.pfl7560.home` no `/vendor/build.prop`, só com a home instalada e
+  conferida; o `nlprovision` segue como HOME, faz o trabalho de boot e repassa para a nossa. O `suite.sh
+  --desinstalar` tira a linha e a home de fábrica volta no boot seguinte. Os comandos `set-home-activity` das §5,
+  §9 e §10 ficam como registro do plano, não como caminho.
+- **A luz (§11) volta à home pela prop `vendor.pfl7560.luz`**, que a home lê com `getprop`; o arquivo `luz-atual`
+  da primeira versão saiu na revisão de segurança (doc 44 §13).
+
+O que segue marcado **PROVISÓRIO** é do plano original (seção 9, roteiro na seção 10); o estado do conjunto está
+em [`ESTADO-2026-10-31.md`](../sprints/ESTADO-2026-10-31.md).
 
 Origem: o pedido do dono de 2026-10-31 ("uma nova home e um novo tema [...] gosto da paleta drácula") e o
 [bloco 10](../sprints/2026-10-31-bloco-10-home-e-tema-dracula.md), parte 10A. O app fica em
@@ -278,15 +290,17 @@ controlar isso abaixando ela?". Sim: o `sbl` do `hidebug` baixa a luz do LED (do
   painel fica aberto, para ir de um nível a outro), BACK fecha. Um aviso diz que a proteção térmica continua
   baixando a luz sozinha e que o nível volta a cada boot.
 - **Ponte.** OK grava só os dígitos em `luz`, em `getDataDir()` (`FileOutputStream`, fora da thread da
-  interface). O vigia root aplica e devolve o valor em `luz-atual`; o app lê esse arquivo (100 se não existe)
-  ao abrir, a cada minuto e 4 s depois de um OK. Enquanto o root não responde, o app mostra o nível pedido.
+  interface). O vigia root aplica e devolve o valor na prop `vendor.pfl7560.luz`; o app a lê com `getprop` (100
+  se não existe) ao abrir, a cada minuto e 4 s depois de um OK. Enquanto o root não responde, o app mostra o
+  nível pedido. (A primeira versão devolvia num arquivo `luz-atual` na pasta do app; saiu na revisão de
+  segurança de 2026-10-31.)
 - **Sem permissão nova.** O APK continua com as duas permissões normais.
 - **Provas no PC.** 15 conferências de navegação (o painel abre no nível mais perto do atual, anda de 100 a 25
   sem passar das pontas, HOME fecha o painel), prévias `home-foco-luz.png`, `home-painel-luz.png` e
   `home-painel-luz-economico.png` abertas e conferidas, build determinístico, `aapt2 dump badging` com
   versionCode 3.
 - **PROVISÓRIO (só o aparelho confirma):** o painel e o atalho no projetor (leitura da parede, foco por D-pad);
-  o app conseguir ler o `luz-atual` que o root escreve (SELinux); o valor aparecer certo depois de um reboot; a
+  o app conseguir ler a prop `vendor.pfl7560.luz` (provado: o botão Luz funciona no aparelho); o valor aparecer certo depois de um reboot; a
   luz mudar de fato a cada nível (o dono já viu o 30 escurecer com o `sbl` à mão).
 
 ## 12. Sem Espelhamento e sem os apps desligados (bloco 16B, versionCode 4)
