@@ -849,10 +849,15 @@ etapa_final_pendrive(){
   copiar_log_pendrive
   novos_campos final
   campo titulo "Pode tirar o pendrive."
-  campo texto "A verifica\u00e7\u00e3o terminou. O resultado ficou salvo no projetor e no pendrive (newlink_suite.log)."
+  # a fase termica do kit falhou (o que antes virava a tela "erro" do cor.sh)
+  if [ "$AVISO_ARG" = "termica-falhou" ]; then
+    campo texto "A verifica\u00e7\u00e3o terminou, mas parte da corre\u00e7\u00e3o do kit falhou: veja o newlink_update.log no pendrive."
+  else
+    campo texto "A verifica\u00e7\u00e3o terminou. O resultado ficou salvo no projetor e no pendrive (newlink_suite.log)."
+  fi
   passos_fila "feito|$P_COR" "feito|$P_GEO" "feito|$P_TEMP" "feito|$P_RAMPA"
   campo rodape "volta \u00e0 tela inicial quando o pendrive sair"
-  campo tom normal
+  if [ "$AVISO_ARG" = "termica-falhou" ]; then campo tom alerta; else campo tom normal; fi
   if [ "$COR_RES" = "erro" ] || [ "$AVISO_ARG" = "termica-falhou" ]; then _est=erro; else _est=pronto; fi
   tela aviso final "$CAMPOS" "$_est"
   _t=0

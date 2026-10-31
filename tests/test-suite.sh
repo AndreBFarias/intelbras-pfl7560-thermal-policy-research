@@ -1019,6 +1019,18 @@ exec '"$(command -v ls)"' "$@"'
   afirma 'ult_hist | grep -qF "boot_reason=a\cb; "' "historico: '$(ult_hist)'"
   afirma 'ult_hist | grep -q "motivo=desligamento_nao_limpo$"' "a linha foi cortada: '$(ult_hist)'"
   limpa
+
+  novo_cenario "conferente: modo pendrive com termica-falhou = tela final em alerta citando o log"
+  etapa_feliz; pendrive
+  roda_suite pendrive "$MP" termica-falhou
+  afirma 'grep -qx "tom=alerta" "$(campos aviso final)" && grep -q "newlink_update.log" "$(campos aviso final)" && grep -qx "titulo=Pode tirar o pendrive." "$(campos aviso final)"' "tela final: $(tr '\n' '|' < "$(campos aviso final)")"
+  limpa
+
+  novo_cenario "conferente: modo pendrive sem falha = tela final normal"
+  etapa_feliz; pendrive
+  roda_suite pendrive "$MP"
+  afirma 'grep -qx "tom=normal" "$(campos aviso final)" && ! grep -q "newlink_update.log" "$(campos aviso final)"' "tela final: $(tr '\n' '|' < "$(campos aviso final)")"
+  limpa
 }
 
 # ---------------------------------------------------------------------------

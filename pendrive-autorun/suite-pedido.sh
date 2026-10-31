@@ -30,7 +30,7 @@ DONO_UID=0
 
 # md5 do suite.sh. Gerado por tests/atualizar-md5-kit.sh. NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="0a0efcd0c3239556fb0944f6eb86c025"
+SUITE_MD5="75d8d5c24ef7ed1d8aad459ab5dd8121"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
