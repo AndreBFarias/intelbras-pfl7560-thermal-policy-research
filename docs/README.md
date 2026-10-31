@@ -1,7 +1,7 @@
 # Documentação — índice
 
-Tudo o que o repositório documenta, por tipo. Os números dos docs são únicos em todas as pastas: 10, 12, 16, 32 e
-36 ficam em `guide/`; 05, 11, 14, 17 a 25, 29, 30 e 31 em `archive/`; o resto em `research/`.
+Tudo o que o repositório documenta, por tipo. Os números dos docs são únicos em todas as pastas: 10, 12, 16, 32,
+36 e 49 ficam em `guide/`; 05, 11, 14, 17 a 25, 29, 30 e 31 em `archive/`; o resto em `research/`.
 
 ## Comece aqui
 
@@ -36,6 +36,7 @@ O código não tem comentário; o porquê das decisões dele fica aqui, uma nota
 | [`guide/16-recuperacao-brick.md`](guide/16-recuperacao-brick.md) | Resgate: power-hold com o `usb_update.bin` de fábrica; por que a build de julho travou |
 | [`guide/32-guia-troca-painel-lcd.md`](guide/32-guia-troca-painel-lcd.md) | Trocar o painel LCD e corrigir a cor (VESA/JEIDA) |
 | [`guide/36-lista-de-compras-reparo-optico.md`](guide/36-lista-de-compras-reparo-optico.md) | Lista de compras do reparo óptico (polarizador, painel, peças) |
+| [`guide/49-guia-compra-fresnel.md`](guide/49-guia-compra-fresnel.md) | Lentes Fresnel: o que medir, links no Brasil e no AliExpress, armadilhas |
 
 ## Referência técnica
 
