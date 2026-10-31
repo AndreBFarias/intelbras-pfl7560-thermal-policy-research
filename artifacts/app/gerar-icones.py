@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Gera os icones e os banners do app (PNG) nas pastas res/. Sem emoji: so formas simples,
-no estilo das telas da suite (fundo #0E1116, traco claro #F2F3F5, acento verde #6FD6A6).
+na paleta Dracula das telas da suite (artifacts/tema/dracula.txt): fundo #282A36, cartao
+#44475A (linha) com contorno #6272A4 (comentario), traco #F8F8F2 (texto), acento verde #50FA7B
+no Verificar e roxo #BD93F9 (marca) no ponto do Wi-Fi.
 
   python3 -I artifacts/app/gerar-icones.py
 
@@ -15,11 +17,12 @@ from PIL import Image, ImageDraw, ImageFont
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 FONTE = os.path.join(AQUI, "..", "..", "pendrive-autorun", "fontes", "IBMPlexSansCondensed-SemiBold.ttf")
-FUNDO = (0x0E, 0x11, 0x16)
-CARTAO = (0x17, 0x1B, 0x21)
-FIO = (0x2A, 0x30, 0x38)
-TRACO = (0xF2, 0xF3, 0xF5)
-OK = (0x6F, 0xD6, 0xA6)
+FUNDO = (0x28, 0x2A, 0x36)   # fundo
+CARTAO = (0x44, 0x47, 0x5A)  # linha
+FIO = (0x62, 0x72, 0xA4)     # comentario
+TRACO = (0xF8, 0xF8, 0xF2)   # texto
+OK = (0x50, 0xFA, 0x7B)      # verde
+MARCA = (0xBD, 0x93, 0xF9)   # roxo
 SS = 4  # supersampling
 
 
@@ -62,7 +65,7 @@ def icone_wifi(lado):
         r = s * raio
         d.arc([cx - r, cy - r, cx + r, cy + r], 225, 315, fill=TRACO, width=w)
     r = s * 0.045
-    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=TRACO)
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=MARCA)
     return im.resize((lado, lado), Image.LANCZOS)
 
 

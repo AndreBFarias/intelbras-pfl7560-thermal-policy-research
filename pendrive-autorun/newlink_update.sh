@@ -80,7 +80,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # app "PFL7560" (bloco 9C): pacote e versionCode do pfl7560.apk da lista (build.sh tem o mesmo
 # VERSAO_CODIGO; o harness confere os dois)
 APP_PKG="com.pfl7560.verificar"
-APP_VERSION_CODE="1"
+APP_VERSION_CODE="2"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
 DONO_UID=0
@@ -123,7 +123,7 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 10bb893e5a71dbfca45eeb7c89ce7f6d  suite-boot.sh
 725662c93e2556d39e6d7ab1b8e48f02  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-5e177ab534186fc7b0b2b68f6fba1b2c  pfl7560.apk
+a339b061efc6e6a8e0421dc9f1eb9e8d  pfl7560.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
