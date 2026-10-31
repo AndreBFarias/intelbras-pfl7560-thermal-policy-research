@@ -152,8 +152,9 @@ Desvios do texto do spec:
    à mão, igual ao `VERSAO_CODIGO` do `build.sh` (o harness confere os dois e o `aapt2 dump badging`).
 5. **`LEANBACK_LAUNCHER` e banner ficaram** (custaram pouco), como o texto original do 9C pedia e a integração
    permitia.
-6. **O `apksigner` assinou só no esquema v3** (com `minSdk 28` ele dispensa o v2; o Android 9 verifica v3). O
-   `verify` passa; a instalação no aparelho é o teste.
+6. **Assinatura:** o APK leva os esquemas v1, v2 e v3. O `apksigner verify` sem opções mostra só o v3 porque, com
+   `minSdk 28`, só confere o que o Android 9 exige; `apksigner verify -v --min-sdk-version 23` mostra os três
+   (correção do conferente: a primeira versão desta linha dizia "só v3"). A instalação no aparelho é o teste.
 7. **A saída de `top` do harness do `pfl7560-processos.sh` foi escrita à mão**, no formato do toybox do Android 9 que
    o parser espera (`S[%CPU]` no cabeçalho), e **não gravada do aparelho**, que não pode ser tocado neste bloco. O
    parser acha as colunas pelo cabeçalho, mas o formato real é PROVISÓRIO (passo 14 do roteiro).
