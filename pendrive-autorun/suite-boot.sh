@@ -333,6 +333,13 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
+    # o descanso de tela (bloco 16B) tambem: inicio antes do fim (os dois numa volta = o
+    # descanso ja saiu da tela e a luz fica no nivel do dono)
+    for _dn in descanso-inicio descanso-fim; do
+      if [ -f "$VERIF_DIR/$_dn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
+        sh "$SUITE/suite-pedido.sh" w "$VERIF_DIR" "$_dn"
+      fi
+    done
     _v=$(( _v + 1 ))
     [ "$VIGIA_VOLTAS" != "0" ] && [ "$_v" -ge "$VIGIA_VOLTAS" ] && break
     sleep "$VIGIA_INTERVALO"
