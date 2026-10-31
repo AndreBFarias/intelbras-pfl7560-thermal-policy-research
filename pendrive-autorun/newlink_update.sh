@@ -64,6 +64,7 @@
 # So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
 # do ambiente, para que nenhuma seja porta de entrada em producao; R fica vazio.
 if [ "${PFL_TESTE:-}" != "1" ]; then
+  PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
   unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_RAPIDO PFL_DONO PFL_TESTE
 fi
 R="${PFL_ROOT:-}"
@@ -124,9 +125,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 8bf8bae6410b6b289d55e92671870d3b  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-19d13737cd8db7ec26b53ef5dbb2ebb7  suite.sh
-e29dac35c01de7b85bfcbdb9173aa9fd  suite-boot.sh
-697c5fbb91a5e61e59ce9c942bfbea43  suite-pedido.sh
+cb410c3c471e0dfc32723fdcd04d018d  suite.sh
+c0a793544d9261f0474117c63172455f  suite-boot.sh
+882a5be0f7828389957b703cadba9083  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 2b70e7f67a4c8979c7974e0face601a3  pfl7560.apk
 a2eaa639a4687070762d37da7cc3d122  pfl7560-home.apk
@@ -553,7 +554,7 @@ gravar_home_prop(){
     return 1
   fi
   if cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=/d' "$BP.new" \
-     && echo "$HOME_LINHA" >> "$BP.new" && grep -qx "$HOME_LINHA" "$BP.new" && mv "$BP.new" "$BP"; then
+     && echo "$HOME_LINHA" >> "$BP.new" && grep -qx "$HOME_LINHA" "$BP.new" && sync && mv "$BP.new" "$BP"; then
     LOG "[OK] home: $HOME_LINHA em ${BP#"$R"} (vale no proximo boot; volta tirando a linha ou com DESINSTALAR-SUITE.txt)"
     return 0
   fi
@@ -568,7 +569,7 @@ FM_LINHA="vendor.nl.filemanage_file=1"
 fm_prop_ok(){ grep -qx "$FM_LINHA" "$BP" 2>/dev/null; }
 gravar_fm_prop(){
   if cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=/d' "$BP.new" \
-     && echo "$FM_LINHA" >> "$BP.new" && grep -qx "$FM_LINHA" "$BP.new" && mv "$BP.new" "$BP"; then
+     && echo "$FM_LINHA" >> "$BP.new" && grep -qx "$FM_LINHA" "$BP.new" && sync && mv "$BP.new" "$BP"; then
     LOG "[OK] gerenciador: $FM_LINHA em ${BP#"$R"} (vale no proximo boot; volta com DESINSTALAR-SUITE.txt)"
     return 0
   fi
@@ -788,7 +789,7 @@ if [ "$TERM_ACAO" = "1" ]; then
   # escrita atomica: .new + validacao por md5 + mv + releitura por md5
   if cp "$WORK/ini.composto" "$INI.new" && chmod 644 "$INI.new" \
      && [ "$(md5sum "$INI.new" 2>/dev/null | cut -d' ' -f1)" = "$TERM_ALVO" ]; then
-    if mv "$INI.new" "$INI" && term_ok; then
+    if sync && mv "$INI.new" "$INI" && term_ok; then
       LOG "[OK] termico: ZYCustom.ini gravado e conferido por md5 (fans 100% sempre, 2o sensor, escada de brilho 1000->850 entre 66C e 70C, shutdown 75C)"
       CHG=1
     else
@@ -814,7 +815,7 @@ else
     cp "$BP" "$BP.STOCK" || LOG "[AVISO] nao consegui salvar $BP.STOCK"
   fi
   if cp "$BP" "$BP.new" && sed -i "s/wifi_disconnect_on_boot=1/wifi_disconnect_on_boot=0/" "$BP.new" \
-     && grep -q "wifi_disconnect_on_boot=0" "$BP.new" && mv "$BP.new" "$BP"; then
+     && grep -q "wifi_disconnect_on_boot=0" "$BP.new" && sync && mv "$BP.new" "$BP"; then
     LOG "[OK] wi-fi: wifi_disconnect_on_boot=0"
     CHG=1
   else
@@ -835,7 +836,7 @@ else
   if cp "$RC" "$RC.new" \
      && sed -i "/^service xiriservice \/system\/bin\/xiriservice/a\\    disabled" "$RC.new" \
      && grep -A1 "service xiriservice" "$RC.new" | grep -q "disabled" \
-     && mv "$RC.new" "$RC"; then
+     && sync && mv "$RC.new" "$RC"; then
     LOG "[OK] xiri: xiriservice desabilitado (fim do spam de log)"
     CHG=1
   else

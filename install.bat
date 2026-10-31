@@ -345,8 +345,8 @@ echo    Arquivos: newlink_update.sh, cor.sh, lvdsctl, nl_camcheck, nl_tela, ZYCu
 echo              suite.sh, suite-boot.sh, suite-pedido.sh, pfl7560-suite.rc, pfl7560.apk, pfl7560-home.apk, kit\*.png, fontes\*, overlay\*.apk e marca\*
 echo    Origem:   %HERE%\pendrive-autorun
 echo    O pendrive tem de estar em FAT32 ^(MBR^). NAO use o pendrive de resgate do firmware.
-echo    Opcional: juntar o firmware de RESGATE ^(usb_update.bin oficial V1.0.0.9 na raiz e o nosso .bin em
-echo              firmware-nosso-NAO-GRADUADO\, sem ativar^). Com ele, ligar o projetor SEGURANDO O POWER reflasha.
+echo    Opcional: juntar o FIRMWARE ^(o nosso .bin como usb_update.bin na raiz e o oficial V1.0.0.9 em
+echo              resgate-oficial\, sem ativar^). Com ele, ligar o projetor SEGURANDO O POWER reflasha com o nosso.
 echo.
 set "DRV="
 set /p "DRV=  Letra do pendrive (ex E): "
@@ -369,14 +369,14 @@ set "SRC=%HERE%\pendrive-autorun"
 set "KITFAIL=0"
 set "COMFW=0"
 set "FWRESP="
-set /p "FWRESP=  Incluir o firmware de resgate no pendrive? [s/N]: "
+set /p "FWRESP=  Incluir o firmware no pendrive, o nosso e o oficial de resgate? [s/N]: "
 if /i "%FWRESP%"=="s" set "COMFW=1"
 REM com firmware, as origens sao conferidas ANTES de copiar o kit: nada vai pela metade
 if "%COMFW%"=="1" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%\install-firmware-pendrive.ps1" -Modo conferir -Dest "%DST%" -Firmware "%HERE%\firmware"
   if errorlevel 1 (
     echo.
-    echo  [ERRO] o firmware de resgate nao confere ^(ver acima^). NADA foi copiado para o pendrive.
+    echo  [ERRO] o firmware nao confere ^(ver acima^). NADA foi copiado para o pendrive.
     pause
     goto :menu
   )
@@ -411,7 +411,7 @@ if "%COMFW%"=="1" (
   powershell -NoProfile -ExecutionPolicy Bypass -File "%HERE%\install-firmware-pendrive.ps1" -Modo copiar -Dest "%DST%" -Firmware "%HERE%\firmware"
   if errorlevel 1 (
     echo.
-    echo  [ERRO] o firmware de resgate NAO ficou bom no pendrive. NAO use este pendrive: copie de novo.
+    echo  [ERRO] o firmware NAO ficou bom no pendrive. NAO use este pendrive: copie de novo.
     pause
     goto :menu
   )

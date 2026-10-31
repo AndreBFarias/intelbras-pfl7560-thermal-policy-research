@@ -862,7 +862,7 @@ c_luz(){
 
   # ---- descanso de tela: luz a 10% e volta ----
   novo_cenario "descanso: inicio = luz a 10% sem mexer no nivel guardado; fim = volta ao guardado"
-  instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"; : > "$PED/descanso-inicio"
+  instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"; echo 60 > "$T/bl"; : > "$PED/descanso-inicio"
   roda_pedido w "$PED" descanso-inicio
   afirma 'tem_chamada "HIDEBUG  picture sbl 10 quit " && [ "$(cat "$S/luz")" = 60 ] && [ ! -e "$PED/descanso-inicio" ]' "inicio: $(grep HIDEBUG "$T/calls.log")"
   : > "$PED/descanso-fim"
@@ -870,10 +870,42 @@ c_luz(){
   afirma 'tem_chamada "HIDEBUG  picture sbl 60 quit " && grep -q "luz de volta a 60%" "$S/vigia.log"' "fim nao voltou a 60"
   limpa
 
-  novo_cenario "descanso: fim sem nivel guardado = volta a 100%"
+  novo_cenario "descanso: sem nivel guardado = o fim volta ao nivel de antes do descanso (gbl), nao a 100%"
+  instala_suite; echo 70 > "$T/bl"; : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  afirma '[ "$(cat "$S/luz-antes-descanso" 2>/dev/null)" = 70 ] && [ "$(stat -c %a "$S/luz-antes-descanso" 2>/dev/null)" = 600 ]' "inicio nao guardou o nivel de antes (0600): '$(cat "$S/luz-antes-descanso" 2>/dev/null)'"
+  : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 70 quit " && ! tem_chamada "sbl 100 quit" && grep -q "luz de volta a 70%" "$S/vigia.log"' "fim nao voltou a 70: $(grep HIDEBUG "$T/calls.log" | tr '\n' '|')"
+  afirma '[ ! -e "$S/luz-antes-descanso" ]' "o nivel de antes do descanso sobrou depois do fim"
+  limpa
+
+  novo_cenario "descanso: dois inicio seguidos e depois fim = volta ao primeiro nivel (nao a 10%)"
+  instala_suite; echo 70 > "$T/bl"; : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma '[ "$(grep "sbl" "$T/calls.log" | tail -1)" = "HIDEBUG  picture sbl 70 quit " ]' "o segundo inicio guardou 10: $(grep sbl "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso: fim sem inicio = volta ao nivel guardado"
+  instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"; : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 40 quit "' "nao voltou ao guardado: $(grep sbl "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso: fim sem inicio e sem nada guardado = 100%"
   instala_suite; : > "$PED/descanso-fim"
   roda_pedido w "$PED" descanso-fim
-  afirma 'tem_chamada "HIDEBUG  picture sbl 100 quit "' "nao voltou a 100"
+  afirma 'tem_chamada "HIDEBUG  picture sbl 100 quit "' "sem nada guardado nao voltou a 100"
+  limpa
+
+  novo_cenario "descanso: nivel de antes plantado como link = ignorado, volta ao guardado"
+  instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"; echo 90 > "$T/alvo-l"; ln -s "$T/alvo-l" "$S/luz-antes-descanso"; : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 40 quit " && ! tem_chamada "sbl 90 quit"' "seguiu o link: $(grep sbl "$T/calls.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "descanso: com a suite rodando (trava) = nao mexe na luz"
@@ -891,9 +923,10 @@ c_luz(){
   limpa
 
   novo_cenario "descanso: sinais velhos no boot sao apagados (o boot reaplica o nivel)"
-  instala_suite; : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"
+  instala_suite; : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"; echo 70 > "$S/luz-antes-descanso"
   roda_boot
   afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ] && ! grep -q "sbl 10" "$T/calls.log"' "sinal velho do descanso sobrou ou foi aplicado"
+  afirma '[ ! -e "$S/luz-antes-descanso" ]' "o nivel de antes de um descanso velho sobrou no boot"
   limpa
 
   # ---- boot ----
@@ -1049,6 +1082,7 @@ c_desinstalar(){
   sh -c 'sleep 30; :' pfl7560-vigia-teste & local vp=$!
   echo "$vp" > "$R/dev/pfl7560-suite.vigia"
   mkdir -p "$R/sdcard/pfl7560-suite" "$PED"; : > "$PED/pedir-verificacao"; : > "$PED/do-app"
+  : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"; mkdir -p "$R/dev/pfl7560-suite.lock"
   printf '%s\n' "persist.sys.boot.reason=pfl7560,ligado" >> "$T/props"
   printf 'secure screensaver_components=com.pfl7560.verificar/.Descanso\nsecure screensaver_default_component=com.pfl7560.verificar/.Descanso\n' > "$T/settings.db"
   : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
@@ -1059,6 +1093,8 @@ c_desinstalar(){
   afirma '[ ! -e "$R/vendor/etc/init/pfl7560-suite.rc" ]' "o .rc ficou"
   afirma '[ ! -e "$S" ] && [ ! -e "$PED/pedir-verificacao" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, o pedido ou a pasta das telas ficou"
   afirma '[ -f "$PED/do-app" ]' "desinstalar apagou arquivo do app (a pasta e dele)"
+  afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ]' "os sinais do descanso ficaram na pasta do app"
+  afirma '[ ! -e "$R/dev/pfl7560-suite.lock" ]' "a trava de uma suite morta pelo ctl.stop ficou"
   afirma '[ "$vrc" = 143 ]' "o vigia nao foi encerrado com TERM (wait=$vrc)"
   afirma '[ ! -e "$R/dev/pfl7560-suite.vigia" ]' "pid do vigia ficou"
   afirma 'tem_chamada "setprop ctl.stop pfl7560_suite"' "nao parou o servico"
@@ -1527,7 +1563,7 @@ c_telas(){
     afirma '[ "$(chamadas getevent)" = 1 ] && tem_chamada "input keyevent KEYCODE_HOME"' "resumo sem a espera de tecla ou sem voltar ao inicio"
     afirma '[ "$(tail -2 "$T/calls.log" | head -1)" = "am force-stop com.hisilicon.higallery" ]' "a galeria nao foi fechada antes do HOME"
     afirma '[ -z "$(grep "^am start" "$T/calls.log" | grep -v "file:///sdcard/pfl7560-")" ] && ! grep -q AM_ARQUIVO_AUSENTE "$T/calls.log"' "tela fora de /sdcard ou ausente"
-    afirma 'grep -qF "rodape=$( [ "$modo" = tomada ] && echo "queda de energia" || echo "verifica\u00e7\u00e3o pedida") \u00b7 " "$(campos resumo resumo)"' "rodape do resumo"
+    afirma 'grep -qF "rodape=$( [ "$modo" = tomada ] && echo "rel\u00f3gio zerado" || echo "verifica\u00e7\u00e3o pedida") \u00b7 " "$(campos resumo resumo)"' "rodape do resumo"
     if [ "$modo" = tomada ]; then
       afirma 'grep -qxF "titulo=Voltou a energia.\nConferindo o projetor." "$(campos aviso abertura)"' "titulo da abertura da tomada"
     else
@@ -1539,6 +1575,22 @@ c_telas(){
     afirma 'grep -q "suite terminada" "$S/ultimo.log" && [ ! -e "$S/resultados.txt.new" ] && [ ! -d "$R/dev/pfl7560-suite.lock" ]' "fim sujo"
     limpa
   done
+
+  local mot tit mtxt
+  # shellcheck disable=SC2034
+  while IFS='|' read -r mot tit mtxt; do
+    novo_cenario "tomada com motivo $mot: abertura e motivo do resumo proprios"
+    etapa_feliz
+    roda_suite tomada "$mot"
+    afirma 'grep -qxF "titulo=$tit\nConferindo o projetor." "$(campos aviso abertura)"' "titulo da abertura: $(grep "^titulo=" "$(campos aviso abertura)")"
+    afirma '[ "$(item_de "Motivo do boot")" = "Motivo do boot|$mtxt|info" ]' "item: $(item_de "Motivo do boot")"
+    limpa
+  done <<'MOTIVOS'
+queda_de_energia|Voltou a energia.|queda de energia
+gatilho_sempre|Verifica\u00e7\u00e3o de todo boot.|gatilho sempre
+desligamento_nao_limpo|N\u00e3o desligou direito.|n\u00e3o desligou bem
+relogio_zerado|Voltou a energia.|rel\u00f3gio zerado
+MOTIVOS
 
   novo_cenario "modo pendrive: a ultima tela pede para tirar o pendrive; log no pendrive"
   etapa_feliz; pendrive
@@ -1802,9 +1854,11 @@ c_estaticos(){
   afirma '[ -z "$(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")" ]' "o suite-pedido.sh manda ao hidebug algo alem de sbl/gbl: $(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")"
   # os 4 pontos e o modo de projecao: so leitura
   # o servico de boot sobe com o PATH do /vendor: os scripts fixam o PATH com /system/bin
-  for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh; do
+  for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh newlink_update.sh; do
     afirma 'grep -q "^  PATH=\"/system/bin:/system/xbin:/vendor/bin:/vendor/xbin\"; export PATH$" "$KIT/$f"' "$f sem o PATH fixo com /system/bin"
   done
+  MVS_BOOT=$(grep -hE 'mv "[$](BP|INI|RC)[.]new" "[$](BP|INI|RC)"' "$KIT/newlink_update.sh" "$KIT/suite.sh")
+  afirma '[ "$(printf "%s\n" "$MVS_BOOT" | grep -c .)" = 7 ] && [ -z "$(printf "%s\n" "$MVS_BOOT" | grep -vF "sync && mv ")" ]' "troca de arquivo de boot no /vendor sem sync antes do mv: $(printf "%s\n" "$MVS_BOOT" | grep -vF "sync && mv " | head -2)"
   # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa
   afirma '! grep -n "exit !" "$KIT"/*.sh' "script do kit com exit !(...) no awk: $(grep -n "exit !" "$KIT"/*.sh | head -3)"
   # (a unica prop persist que a suite toca e a marca do gatilho, so no desinstalar)

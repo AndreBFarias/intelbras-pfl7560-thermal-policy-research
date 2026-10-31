@@ -63,14 +63,16 @@ dito no `LEIA-ME.txt` do kit; o app não tem como saber se o pedido foi atendido
 
 **Pendrive pelo PC:** `./install.sh --pendrive <ponto de montagem>` (Windows: `install.bat`, opção 5) copia o
 kit inteiro (suíte, `nl_tela`, `fontes/`, APK, `kit/*.png`) e confere o md5 de cada arquivo depois da cópia.
-`--com-firmware` (no `.bat`, a pergunta "Incluir o firmware de resgate?") leva também o firmware de resgate:
+`--com-firmware` (no `.bat`, a pergunta "Incluir o firmware no pendrive?") leva também o firmware, no layout que
+o dono decidiu em 2026-10-31 (bloco 21):
 
-- `usb_update.bin` na raiz = o `PFL7560.bin` **oficial V1.0.0.9**, tirado do `firmware/Software PFL7560.zip` e
-  conferido pelo md5 `28a2f280eee313a4b115567926b2ba4f`. **Nunca** o `Firmware PFL7560.zip`, que é do modelo
-  sem USB-C ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md)).
-- `firmware-nosso-NAO-GRADUADO/` com `PFL7560-FIX-escada-NAO-GRADUADO.bin` (md5
-  `eae3a83db44f790b64b9a5838a27a977`, local only: não vem no git) e um `LEIA-ME.txt` dizendo que **não está
-  ativo**, não foi provado no hardware e só vale com a palavra do dono. Nunca com o nome `usb_update.bin`.
+- `usb_update.bin` na raiz = o **nosso** `PFL7560-COMPLETO-NAO-GRADUADO.bin` (md5 de
+  `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5`, local only: não vem no git), não provado no hardware.
+- `resgate-oficial/PFL7560.bin` = o **oficial V1.0.0.9**, tirado do `firmware/Software PFL7560.zip` e conferido
+  pelo md5 `28a2f280eee313a4b115567926b2ba4f`, com um `LEIA-ME.txt` que ensina a troca. **Nunca** o
+  `Firmware PFL7560.zip`, que é do modelo sem USB-C ([doc 42](42-firmware-2026-10-modelo-sem-usbc.md)).
+- A pasta do arranjo antigo (`firmware-nosso-NAO-GRADUADO/`) sai do pendrive; um pendrive com
+  `DESINSTALAR-SUITE.txt`, ou com um `usb_update.bin` sem `--com-firmware`, é recusado antes de copiar.
 - Faltou um dos arquivos de origem ou o md5 não bate: erro claro e **nada** é copiado (as origens são
   conferidas antes de tocar o pendrive; falha no meio remove o firmware). `PFL_FIRMWARE_DIR=<pasta>` aponta
   outra pasta de firmware; `./install.sh --conferir-firmware` só confere as origens, sem copiar.
@@ -85,7 +87,7 @@ dispositivo mapeado (crypt, LVM) são recusados sem perguntar. Provado com `lsbl
 **nunca foi rodado num disco de verdade**.
 
 Um pendrive com `--com-firmware` é o arranjo B do `LEIA-ME.txt` (kit de emergência): ligar **segurando o power**
-com ele plugado reflasha o aparelho e apaga o `/data`. Mantenha-o desconectado no uso normal.
+com ele plugado grava o **nosso** firmware e apaga o `/data`. Mantenha-o desconectado no uso normal.
 
 ## 3. Gatilhos
 
@@ -188,6 +190,10 @@ o resumo não aparece e o resultado fica só no `resultados.txt`. Visual: fundo 
 estados ok `#6FD6A6`, corrigido `#F2B451`, atenção `#F07560`; margem de 110 px; nada passa da margem (corta com
 reticências e avisa). Detalhes em [`artifacts/tela/README.md`](../../artifacts/tela/README.md).
 
+No modo `tomada`, o título da abertura e o "Motivo do boot" do resumo seguem o motivo do `suite-boot.sh`:
+`queda_de_energia` e `relogio_zerado` abrem com "Voltou a energia.", `gatilho_sempre` com "Verificação de todo boot."
+e `desligamento_nao_limpo` com "Não desligou direito." (bloco 21).
+
 ## 6. Arquivos
 
 No aparelho:
@@ -241,7 +247,8 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
   vigia; limpa o override de temperatura se a suíte morreu no meio da rampa; remove o `.rc` (com remount), a
   pasta da suíte, a pasta das telas e os pedidos pendentes (`pedir-verificacao` e o `luz` da home); a linha
   `vendor.newlink.launcher.package` sai do `build.prop` (a home de fábrica volta no boot seguinte); e o kit roda
-  só a fase de cor, como antes do bloco 9.
+  só a fase de cor, como antes do bloco 9. Desde o bloco 21 saem também os sinais `descanso-inicio`/`descanso-fim`
+  da pasta do Verificar e a trava `/dev/pfl7560-suite.lock` que uma suíte morta pelo `ctl.stop` deixaria até o reboot.
 - **Só o gatilho da tomada:** `adb shell 'echo nunca > /data/vendor/pfl7560-suite/gatilho'` (root). O pedido
   pelo ícone e o pendrive continuam.
 - **O descanso de tela volta ao do fabricante** no mesmo `--desinstalar` (§14): se `screensaver_components` ou
@@ -271,7 +278,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 - **PATH dos serviços.** O init sobe o serviço `pfl7560_suite` com o PATH do `/vendor`, e `cmd`, `pm`, `am`,
   `settings`, `input`, `dumpsys` e `logcat` moram em `/system/bin` (visto no aparelho em 2026-10-31: `exec cmd:
   No such file or directory` no boot). O `suite-boot.sh`, o `suite-pedido.sh`, o `suite.sh` e o `cor.sh` fixam o
-  PATH (`/system/bin` antes) na primeira linha que roda em produção.
+  PATH (`/system/bin` antes) na primeira linha que roda em produção; desde o bloco 21 o `newlink_update.sh` também.
 - O `inotifyd` vigia a pasta que existia quando ligou. Se a pasta de um app for apagada e criada de novo (o app
   desinstalado e instalado outra vez; a atualização por cima, que o kit faz, mantém a pasta), o pedido daquele
   app só volta a ser lido no boot seguinte.
@@ -305,6 +312,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 | `logcat -T 1` no Android 9 (sem ele: "não reagiu" falso, nunca injeção sem limpeza) | `suite.sh` | teste 12 |
 | App em `/vendor/app` pelo `exec` do init (pendrive real) | `newlink_update.sh` | o app em `/vendor/app` já foi provado pela instalação por rede em 2026-10-30 (`codePath=/vendor/app/PFL7560`, `flags=[ SYSTEM ]`); falta ver o `[OK] app` no `newlink_update.log` de um pendrive real (testes 1 e 2) |
 | Formato do `top` do Android 9 (toybox, `S[%CPU]`) no `pfl7560-processos.sh` | `pfl7560-processos.sh` | teste 14 |
+| `sync` antes de cada `mv` de `.new` sobre `ZYCustom.ini`, `build.prop` e `init.bigfish.rc` (bloco 21; no ext4 o `auto_da_alloc` costuma cobrir sozinho) | `newlink_update.sh`, `suite.sh` | `mount \| grep vendor`: anotar se o `/vendor` tem `auto_da_alloc` ou `nodelalloc` |
 | Tempo de geração e abertura do PNG do `nl_tela` pela galeria | `nl_tela`, `suite.sh` | teste 13 |
 | `tests/preparar-pendrive.sh` e a opção 5 do `install.bat` com firmware | `tests/`, `install.bat` | teste 15 (o `.bat` e o `.ps1` nunca rodaram: não há Windows aqui) |
 
@@ -393,8 +401,8 @@ e anote o resultado (a linha de base). Espera: tudo verde.
     novo (reinstala a suíte) e reinicie uma vez para o vigia voltar.
 16. **O pendrive de resgate (sem ligar segurando o power).** Prepare `sudo bash tests/preparar-pendrive.sh /dev/sdX`
     num pendrive que possa ser apagado (**confira o dispositivo duas vezes**). No PC:
-    `md5sum <ponto>/usb_update.bin` deve dar `28a2f280eee313a4b115567926b2ba4f`;
-    `ls <ponto>/firmware-nosso-NAO-GRADUADO/` com o `.bin` e o `LEIA-ME.txt`. Plugue-o no projetor **ligado
+    `md5sum <ponto>/usb_update.bin` deve dar o md5 de `firmware/PFL7560-COMPLETO-NAO-GRADUADO.bin.md5` e
+    `md5sum <ponto>/resgate-oficial/PFL7560.bin`, `28a2f280eee313a4b115567926b2ba4f`, com o `LEIA-ME.txt` ao lado. Plugue-o no projetor **ligado
     normalmente** (sem segurar o power): a suíte roda como no passo 1 e o firmware não é tocado. **Não** teste o
     power-hold. No Windows, repita a opção 5 do `install.bat` com a pergunta do firmware e o mesmo `md5sum`.
 17. **Fechamento.** `PFL_IP=$IP ./pfl7560-saude.sh` e `--vivacidade` verdes; `gatilho` de volta em `auto`;
@@ -500,10 +508,14 @@ ao começar e `descanso-fim` ao terminar, com qualquer tecla ou com um aviso que
 | Pedido | O que o vigia faz |
 |---|---|
 | `descanso-inicio` | `sbl 10` |
-| `descanso-fim` | reaplica o nível que o dono escolheu no botão Luz (`/data/vendor/pfl7560-suite/luz`), ou 100 sem escolha |
+| `descanso-fim` | volta ao nível que o `gbl` leu antes do descanso; sem ele, ao nível que o dono escolheu no botão Luz (`/data/vendor/pfl7560-suite/luz`), e 100 só sem os dois |
 
 O nível guardado e a prop `vendor.pfl7560.luz` não mudam. Com a suíte rodando (trava), o vigia não mexe na luz.
 Sinais velhos na pasta são apagados no boot, que já reaplica o nível do dono.
+
+O `descanso-inicio` guarda o nível lido pelo `gbl` em `/data/vendor/pfl7560-suite/luz-antes-descanso` (root, 0600) só
+se o arquivo ainda não existe, para um segundo início não guardar 10; o `descanso-fim` usa e apaga esse arquivo, e o
+boot o apaga junto com os sinais velhos (bloco 21).
 
 Provado no aparelho em 2026-10-31 (`service call dreams 1`; o `Somnambulator` não existe neste firmware): início
 → 10%, e um aviso da HDMI acordou o descanso → de volta a 25%, o nível guardado.

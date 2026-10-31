@@ -22,6 +22,7 @@
 # Precisa de: dash, busybox, shellcheck (opcional), pkill, python3 com PIL e numpy.
 #
 #   bash tests/test-kit-pendrive.sh
+# shellcheck disable=SC2034,SC2115
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
@@ -270,7 +271,7 @@ roda(){
   [ -f "$T/root/data/vendor/pfl7560-kit/cor.log" ] && cp "$T/root/data/vendor/pfl7560-kit/cor.log" "$T/cor.log.copia" 2>/dev/null
   return 0
 }
-limpa(){ if [ -n "${DEBUG_KEEP:-}" ]; then echo "  (mantido: $T)"; else rm -rf "$T"; fi; }
+limpa(){ if [ -n "${DEBUG_KEEP:-}" ]; then echo "  (mantido: $T)"; else chmod -R u+rwx "$T" 2>/dev/null; rm -rf "$T"; fi; }
 # log completo (autorun + fase de cor, que vai para o pendrive no fim)
 log_tudo(){ cat "$T/out.log" "$T/root/mnt/media_rw/USB1/newlink_cor.log" "$T/root/mnt/media_rw/USB1/newlink_suite.log" 2>/dev/null; }
 
@@ -1317,6 +1318,7 @@ c_app(){
   roda nokey
   afirma '! grep -q "vendor.newlink.launcher.package" "$T/root/vendor/build.prop" && log_tudo | grep -q "a tela inicial continua a de fabrica"' "gravou a prop sem a home instalada: $(log_tudo | grep -i home | tr '\n' '|')"
   limpa
+  afirma '[ ! -e "$T" ]' "a pasta do teste sobrou no /tmp: $T"
 
   novo_cenario "app: apk antigo em /vendor/app = atualiza"; aparelho_ok
   mkdir -p "$(APPV)"; echo velho > "$(APPV)/PFL7560.apk"

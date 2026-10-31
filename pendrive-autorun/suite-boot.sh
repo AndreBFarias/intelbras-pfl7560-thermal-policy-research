@@ -67,8 +67,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="19d13737cd8db7ec26b53ef5dbb2ebb7"
-PEDIDO_MD5="697c5fbb91a5e61e59ce9c942bfbea43"
+SUITE_MD5="cb410c3c471e0dfc32723fdcd04d018d"
+PEDIDO_MD5="882a5be0f7828389957b703cadba9083"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -362,7 +362,7 @@ ligar_vigia(){
     return 1
   fi
   # sinais velhos do descanso de tela nao valem: o boot ja reaplicou o nivel do dono
-  rm -f "$VERIF_DIR/descanso-inicio" "$VERIF_DIR/descanso-fim" 2>/dev/null
+  rm -f "$VERIF_DIR/descanso-inicio" "$VERIF_DIR/descanso-fim" "$SUITE/luz-antes-descanso" 2>/dev/null
   # um pedido que ja estava na pasta (feito antes do vigia ligar) nao gera evento de
   # criacao: e tratado agora, uma vez
   if [ -f "$VERIF_DIR/pedir-verificacao" ]; then

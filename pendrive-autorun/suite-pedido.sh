@@ -55,7 +55,7 @@ APP_UID_MIN=10000
 
 # md5 do suite.sh. Gerado por tests/atualizar-md5-kit.sh. NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="19d13737cd8db7ec26b53ef5dbb2ebb7"
+SUITE_MD5="cb410c3c471e0dfc32723fdcd04d018d"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -135,6 +135,7 @@ ler_pedido_luz(){
   rm -f "$_lp"
   return 0
 }
+ler_gbl(){ printf 'picture\ngbl\nquit\n' | timeout 15 "$HIDEBUG" 2>/dev/null | sed -n 's/^.*backlight:\([0-9]*\).*$/\1/p' | head -n 1; }
 # aplica $1 (10..100) pelo hidebug, confere lendo gbl (ate 3 leituras, 1 s entre elas) e
 # devolve ao app o que o aparelho disse
 aplicar_luz(){
@@ -142,7 +143,7 @@ aplicar_luz(){
   printf 'picture\nsbl %s\nquit\n' "$1" | timeout 15 "$HIDEBUG" >/dev/null 2>&1
   _k=0
   while :; do
-    _lido=$(printf 'picture\ngbl\nquit\n' | timeout 15 "$HIDEBUG" 2>/dev/null | sed -n 's/^.*backlight:\([0-9]*\).*$/\1/p' | head -n 1)
+    _lido=$(ler_gbl)
     [ "$_lido" = "$1" ] && break
     _k=$(( _k + 1 ))
     [ "$_k" -ge 3 ] && break
@@ -182,6 +183,7 @@ fi
 
 # ---- descanso de tela (pedido do dono, 2026-10-31): luz a 10% enquanto ele estiver na tela
 DESCANSO_LUZ=10
+ANTES_ARQ="$SUITE/luz-antes-descanso"
 # o nivel que o dono escolheu (10..100), ou 100 sem escolha
 luz_guardada(){
   _b=""
@@ -193,7 +195,17 @@ luz_guardada(){
 tratar_descanso(){
   if [ -d "$LOCK" ]; then LOG "a suite esta rodando (trava): descanso $1 sem efeito na luz."; return 0; fi
   if [ ! -x "$HIDEBUG" ]; then LOG "[AVISO] hidebug ausente - descanso $1 sem efeito na luz."; return 0; fi
-  if [ "$1" = "inicio" ]; then _dv="$DESCANSO_LUZ"; else _dv=$(luz_guardada); fi
+  if [ "$1" = "inicio" ]; then
+    if [ ! -e "$ANTES_ARQ" ] && [ ! -L "$ANTES_ARQ" ] && _a=$(luz_valida "$(ler_gbl)"); then
+      ( umask 077; printf '%s\n' "$_a" > "$ANTES_ARQ.novo" ) && mv -f "$ANTES_ARQ.novo" "$ANTES_ARQ"
+    fi
+    _dv="$DESCANSO_LUZ"
+  else
+    _dv=""
+    arq_seguro "$ANTES_ARQ" && _dv=$(luz_valida "$(head -c 16 "$ANTES_ARQ" 2>/dev/null | tr -d '\r\n')")
+    rm -f "$ANTES_ARQ"
+    [ -n "$_dv" ] || _dv=$(luz_guardada)
+  fi
   printf 'picture\nsbl %s\nquit\n' "$_dv" | timeout 15 "$HIDEBUG" >/dev/null 2>&1
   if [ "$1" = "inicio" ]; then LOG "descanso na tela: luz a $_dv% (o nivel do dono continua guardado)"
   else LOG "descanso terminou: luz de volta a $_dv%"; fi

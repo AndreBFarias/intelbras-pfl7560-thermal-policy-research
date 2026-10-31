@@ -3,13 +3,13 @@
 # install.bat (opcao 5); nao precisa ser aberto a mao.
 #
 #   -Modo conferir : confere as origens em firmware\ (nada e copiado)
-#   -Modo copiar   : copia o usb_update.bin OFICIAL (V1.0.0.9) e o nosso .bin (pasta
-#                    firmware-nosso-NAO-GRADUADO\, nao ativo) e confere o md5 depois
+#   -Modo copiar   : copia o NOSSO .bin como usb_update.bin na raiz e o OFICIAL (V1.0.0.9)
+#                    em resgate-oficial\PFL7560.bin, com um LEIA-ME, e confere o md5 depois
 #
-# Regras (as mesmas do install.sh): so o "Software PFL7560.zip" (modelo COM USB-C) vira
-# usb_update.bin, conferido pelo md5 do .bin dentro do zip; NUNCA o "Firmware PFL7560.zip"
-# (modelo sem USB-C). Faltou arquivo ou o md5 nao bate = mensagem clara e nada e copiado;
-# falha no meio da copia remove o firmware do pendrive. Sai 0 ok, 1 erro.
+# Regras (as mesmas do install.sh): o oficial sai so do "Software PFL7560.zip" (modelo COM
+# USB-C), conferido pelo md5 do .bin dentro do zip; NUNCA o "Firmware PFL7560.zip" (modelo
+# sem USB-C). Faltou arquivo ou o md5 nao bate = mensagem clara e nada e copiado; falha no
+# meio da copia remove o firmware do pendrive. Sai 0 ok, 1 erro.
 param(
   [Parameter(Mandatory = $true)][ValidateSet('conferir', 'copiar')][string]$Modo,
   [Parameter(Mandatory = $true)][string]$Dest,
@@ -20,10 +20,35 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $ZipNome = 'Software PFL7560.zip'
 $OficialMd5 = '28a2f280eee313a4b115567926b2ba4f'
-$NossoBin = 'PFL7560-FIX-escada-NAO-GRADUADO.bin'
-$NossoMd5 = 'eae3a83db44f790b64b9a5838a27a977'
-$NossoLeiame = 'LEIA-ME-nosso-NAO-GRADUADO.txt'
-$NossoPasta = 'firmware-nosso-NAO-GRADUADO'
+$NossoBin = 'PFL7560-COMPLETO-NAO-GRADUADO.bin'
+$NossoMd5 = '397698b97c23b64cfee9e64d55c7f9aa'
+$ResgatePasta = 'resgate-oficial'
+$LegadoPasta = 'firmware-nosso-NAO-GRADUADO'
+$LeiameResgate = @'
+FIRMWARE OFICIAL DE FABRICA (V1.0.0.9) - RESGATE
+================================================
+
+O PFL7560.bin desta pasta e o firmware OFICIAL de fabrica da Intelbras,
+V1.0.0.9, do aparelho COM entrada USB-C. Ele NAO esta ativo: o projetor so
+olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware (escada
+de brilho, wi-fi, xiri e o servico da suite), que nunca foi provado no
+aparelho.
+
+QUANDO USAR
+  So se o nosso firmware deixar o projetor sem ligar ou sem funcionar direito.
+
+COMO USAR
+  1. Num PC, apague o usb_update.bin da raiz do pendrive.
+  2. Copie este PFL7560.bin para a RAIZ do pendrive com o nome usb_update.bin.
+  3. Com o projetor desligado e o pendrive plugado, ligue SEGURANDO O POWER.
+     Isso regrava o aparelho e APAGA o /data (Wi-Fi, contas e apps).
+  4. Depois, rode o kit do pendrive de novo (sem segurar o power).
+  NAO use o firmware do modelo sem USB-C ("Firmware PFL7560.zip").
+
+CONFERENCIA
+  md5 deste PFL7560.bin: 28a2f280eee313a4b115567926b2ba4f
+  (no Linux: md5sum PFL7560.bin)
+'@
 
 function Erro($m) { Write-Host "  [ERRO] $m" -ForegroundColor Red; exit 1 }
 function Ok($m) { Write-Host "  [OK] $m" -ForegroundColor Green }
@@ -36,7 +61,7 @@ function Md5Arquivo($caminho) { return (Get-FileHash -Algorithm MD5 -LiteralPath
 $dest = $Dest.TrimEnd('\') + '\'
 $zip = Join-Path $Firmware $ZipNome
 $nosso = Join-Path $Firmware $NossoBin
-$leiame = Join-Path $Firmware $NossoLeiame
+$leiameTexto = $LeiameResgate.Replace("`r`n", "`n") + "`n"
 
 function Entrada($z) {
   $e = @($z.Entries | Where-Object { $_.FullName -match '(^|/)PFL7560\.bin$' })
@@ -45,10 +70,9 @@ function Entrada($z) {
 }
 
 if ($Modo -eq 'conferir') {
-  Write-Host "  firmware de resgate: conferindo as origens em $Firmware"
+  Write-Host "  firmware: conferindo as origens em $Firmware"
   if (-not (Test-Path -LiteralPath $zip)) { Erro "falta '$zip' (o firmware OFICIAL V1.0.0.9 do aparelho com USB-C). NAO use o 'Firmware PFL7560.zip': e do modelo sem USB-C." }
   if (-not (Test-Path -LiteralPath $nosso)) { Erro "falta '$nosso' (o nosso .bin; e 'local only', nao vem no git: copie-o para $Firmware). Nada foi copiado." }
-  if (-not (Test-Path -LiteralPath $leiame)) { Erro "falta '$leiame' (o texto que acompanha o nosso .bin no pendrive). Nada foi copiado." }
   $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
   try {
     $e = Entrada $z
@@ -61,39 +85,43 @@ if ($Modo -eq 'conferir') {
   if ($m -ne $NossoMd5) { Erro "'$NossoBin' tem md5 $m, o esperado e $NossoMd5. Nada foi copiado." }
   $livre = ([System.IO.DriveInfo]$dest.Substring(0, 1)).AvailableFreeSpace
   if ($livre -lt $precisa) { Erro "pouco espaco em $dest : preciso de $([int]($precisa / 1MB)) MB e ha $([int]($livre / 1MB)) MB livres. Nada foi copiado." }
-  Ok "firmware oficial V1.0.0.9 (md5 $OficialMd5) e nosso .bin (md5 $NossoMd5) conferidos"
+  Ok "nosso .bin $NossoBin (md5 $NossoMd5) e firmware oficial V1.0.0.9 (md5 $OficialMd5) conferidos"
   exit 0
 }
 
 # -Modo copiar
 function Limpar {
   foreach ($c in @("$dest" + 'usb_update.bin', "$dest" + 'usb_update.bin.copiando')) { Remove-Item -LiteralPath $c -Force -ErrorAction SilentlyContinue }
-  Remove-Item -LiteralPath ($dest + $NossoPasta) -Recurse -Force -ErrorAction SilentlyContinue
+  foreach ($c in @($ResgatePasta, $LegadoPasta)) { Remove-Item -LiteralPath ($dest + $c) -Recurse -Force -ErrorAction SilentlyContinue }
 }
-Write-Host '  copiando o firmware de resgate (o oficial e grande: leva alguns minutos)'
+$pasta = $dest + $ResgatePasta
+$oficial = Join-Path $pasta 'PFL7560.bin'
+$leiaDest = Join-Path $pasta 'LEIA-ME.txt'
+Limpar
+Write-Host "  copiando o firmware: o nosso .bin como usb_update.bin e o oficial em $ResgatePasta\ (sao grandes: leva alguns minutos)"
 try {
+  New-Item -ItemType Directory -Force -Path $pasta | Out-Null
   $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
   try {
     $e = Entrada $z
-    $tmp = $dest + 'usb_update.bin.copiando'
+    $tmp = $oficial + '.copiando'
     $saida = [System.IO.File]::Create($tmp)
     try { $entrada = $e.Open(); try { $entrada.CopyTo($saida) } finally { $entrada.Dispose() } } finally { $saida.Dispose() }
   } finally { $z.Dispose() }
-  Move-Item -LiteralPath $tmp -Destination ($dest + 'usb_update.bin') -Force
-  $pasta = $dest + $NossoPasta
-  New-Item -ItemType Directory -Force -Path $pasta | Out-Null
-  Copy-Item -LiteralPath $nosso -Destination (Join-Path $pasta $NossoBin) -Force
-  Copy-Item -LiteralPath $leiame -Destination (Join-Path $pasta 'LEIA-ME.txt') -Force
+  Move-Item -LiteralPath $tmp -Destination $oficial -Force
+  [System.IO.File]::WriteAllText($leiaDest, $leiameTexto, [System.Text.Encoding]::ASCII)
+  Copy-Item -LiteralPath $nosso -Destination ($dest + 'usb_update.bin.copiando') -Force
+  Move-Item -LiteralPath ($dest + 'usb_update.bin.copiando') -Destination ($dest + 'usb_update.bin') -Force
 } catch {
   Limpar
   Erro "falha ao copiar o firmware ($($_.Exception.Message)). O firmware foi removido do pendrive; NAO use este pendrive."
 }
 Write-Host '  conferindo o firmware depois da copia'
-if ((Md5Arquivo ($dest + 'usb_update.bin')) -ne $OficialMd5) { Limpar; Erro "usb_update.bin NAO confere com o md5 oficial $OficialMd5. O firmware foi removido do pendrive; copie de novo." }
-Ok "usb_update.bin (oficial V1.0.0.9, md5 $OficialMd5)"
-if ((Md5Arquivo (Join-Path $pasta $NossoBin)) -ne $NossoMd5 -or (Md5Arquivo (Join-Path $pasta 'LEIA-ME.txt')) -ne (Md5Arquivo $leiame)) {
-  Limpar; Erro "$NossoPasta\ NAO confere com a origem. O firmware foi removido do pendrive; copie de novo."
+if ((Md5Arquivo $oficial) -ne $OficialMd5 -or [System.IO.File]::ReadAllText($leiaDest) -ne $leiameTexto) {
+  Limpar; Erro "$ResgatePasta\ NAO confere (md5 oficial $OficialMd5 ou o LEIA-ME). O firmware foi removido do pendrive; copie de novo."
 }
-Ok "$NossoPasta\ ($NossoBin md5 $NossoMd5 e LEIA-ME.txt; NAO esta ativo)"
-Write-Host '  [!] pendrive com firmware de resgate: ligar o projetor SEGURANDO O POWER com ele plugado REFLASHA o aparelho e apaga o /data. Deixe-o desconectado no uso normal.' -ForegroundColor Yellow
+Ok "$ResgatePasta\PFL7560.bin (oficial V1.0.0.9, md5 $OficialMd5) e LEIA-ME.txt; NAO esta ativo"
+if ((Md5Arquivo ($dest + 'usb_update.bin')) -ne $NossoMd5) { Limpar; Erro "usb_update.bin NAO confere com o md5 do nosso .bin $NossoMd5. O firmware foi removido do pendrive; copie de novo." }
+Ok "usb_update.bin (o nosso $NossoBin, md5 $NossoMd5)"
+Write-Host "  [!] pendrive com firmware: ligar o projetor SEGURANDO O POWER com ele plugado REFLASHA o aparelho com o NOSSO .bin (nao provado no hardware) e apaga o /data. O resgate e o oficial em $ResgatePasta\ (LEIA-ME.txt dela). Deixe-o desconectado no uso normal." -ForegroundColor Yellow
 exit 0

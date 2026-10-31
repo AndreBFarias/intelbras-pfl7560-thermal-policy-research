@@ -16,18 +16,17 @@ md5(){ md5sum "$1" | cut -d' ' -f1; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-LEIAME_FW="$ROOT/firmware/LEIA-ME-nosso-NAO-GRADUADO.txt"
+NOSSO_BIN="PFL7560-COMPLETO-NAO-GRADUADO.bin"
 
 # ---- firmware falso ------------------------------------------------------------------
-fw_falso(){ # $1 = pasta; cria o zip oficial falso, o nosso .bin falso e o LEIA-ME; exporta os md5
+fw_falso(){ # $1 = pasta; cria o zip oficial falso e o nosso .bin falso; exporta os md5
   local d="$1"
   mkdir -p "$d/z/Software PFL7560"
   head -c 300000 /dev/urandom > "$d/z/Software PFL7560/PFL7560.bin"
   ( cd "$d/z" && zip -q -r "$d/Software PFL7560.zip" "Software PFL7560" )
-  head -c 120000 /dev/urandom > "$d/PFL7560-FIX-escada-NAO-GRADUADO.bin"
-  cp "$LEIAME_FW" "$d/LEIA-ME-nosso-NAO-GRADUADO.txt"
+  head -c 120000 /dev/urandom > "$d/$NOSSO_BIN"
   OFICIAL_MD5="$(md5 "$d/z/Software PFL7560/PFL7560.bin")"
-  NOSSO_MD5="$(md5 "$d/PFL7560-FIX-escada-NAO-GRADUADO.bin")"
+  NOSSO_MD5="$(md5 "$d/$NOSSO_BIN")"
   rm -rf "$d/z"
 }
 arquivos(){ find "$1" -type f 2>/dev/null | wc -l | tr -d ' '; }
@@ -44,21 +43,48 @@ CASO="com firmware: tudo certo"
 D="$TMP/d1"; mkdir -p "$D"
 instala "$D" --com-firmware; RC=$?
 afirma '[ "$RC" = 0 ]' "install.sh saiu $RC: $(tail -3 "$TMP/saida.log" | tr '\n' ' ')"
-afirma '[ "$(md5 "$D/usb_update.bin")" = "$OFICIAL_MD5" ]' "usb_update.bin nao e o .bin do zip oficial"
-afirma '[ "$(md5 "$D/firmware-nosso-NAO-GRADUADO/PFL7560-FIX-escada-NAO-GRADUADO.bin")" = "$NOSSO_MD5" ]' "o nosso .bin nao foi para a pasta"
-afirma 'cmp -s "$LEIAME_FW" "$D/firmware-nosso-NAO-GRADUADO/LEIA-ME.txt"' "LEIA-ME da pasta diferente da origem"
-afirma '[ -z "$(LC_ALL=C grep -nP "[^\x00-\x7F]" "$D/firmware-nosso-NAO-GRADUADO/LEIA-ME.txt")" ]' "LEIA-ME da pasta tem byte fora de ASCII"
-afirma 'grep -qi "NAO ESTA ATIVO" "$D/firmware-nosso-NAO-GRADUADO/LEIA-ME.txt" && grep -q "palavra do dono" "$D/firmware-nosso-NAO-GRADUADO/LEIA-ME.txt"' "LEIA-ME nao diz que nao esta ativo e que so vale com a palavra do dono"
-afirma '[ ! -e "$D/PFL7560-FIX-escada-NAO-GRADUADO.bin" ] && [ "$(find "$D" -name "usb_update.bin" | wc -l | tr -d " ")" = 1 ]' "o nosso .bin foi parar na raiz ou ha mais de um usb_update.bin"
-afirma '[ ! -e "$D/usb_update.bin.copiando" ]' "sobrou o arquivo temporario"
+afirma '[ "$(md5 "$D/usb_update.bin")" = "$NOSSO_MD5" ]' "usb_update.bin na raiz nao e o nosso .bin"
+afirma '[ "$(md5 "$D/resgate-oficial/PFL7560.bin")" = "$OFICIAL_MD5" ]' "resgate-oficial/PFL7560.bin nao e o .bin do zip oficial"
+afirma '[ -z "$(LC_ALL=C grep -nP "[^\x00-\x7F]" "$D/resgate-oficial/LEIA-ME.txt")" ] && [ "$(grep -c $'"'"'\r'"'"' "$D/resgate-oficial/LEIA-ME.txt")" = 0 ]' "LEIA-ME do resgate falta, tem byte fora de ASCII ou CRLF"
+afirma 'grep -q "28a2f280eee313a4b115567926b2ba4f" "$D/resgate-oficial/LEIA-ME.txt" && grep -q "usb_update.bin" "$D/resgate-oficial/LEIA-ME.txt" && grep -q "SEGURANDO O POWER" "$D/resgate-oficial/LEIA-ME.txt" && grep -q "Firmware PFL7560.zip" "$D/resgate-oficial/LEIA-ME.txt"' "LEIA-ME do resgate sem o md5, o nome usb_update.bin, o power-hold ou o aviso do modelo sem USB-C"
+afirma '[ ! -e "$D/$NOSSO_BIN" ] && [ "$(find "$D" -name "usb_update.bin" | wc -l | tr -d " ")" = 1 ] && [ ! -e "$D/firmware-nosso-NAO-GRADUADO" ]' "o .bin com o nome original na raiz, mais de um usb_update.bin ou a pasta antiga"
+afirma '[ -z "$(find "$D" -name "*.copiando")" ]' "sobrou arquivo temporario"
 afirma 'cmp -s "$ROOT/pendrive-autorun/newlink_update.sh" "$D/newlink_update.sh" && cmp -s "$ROOT/pendrive-autorun/pfl7560.apk" "$D/pfl7560.apk"' "o kit nao foi copiado junto"
 afirma 'grep -q "REFLASHA" "$TMP/saida.log"' "sem o aviso do risco de ligar segurando o power"
 
-CASO="sem --com-firmware: nem usb_update.bin nem pasta do nosso"
+CASO="sem --com-firmware: nem usb_update.bin nem resgate"
 D="$TMP/d2"; mkdir -p "$D"
 instala "$D"; RC=$?
-afirma '[ "$RC" = 0 ] && [ ! -e "$D/usb_update.bin" ] && [ ! -e "$D/firmware-nosso-NAO-GRADUADO" ]' "rc=$RC; firmware foi sem pedir"
+afirma '[ "$RC" = 0 ] && [ ! -e "$D/usb_update.bin" ] && [ ! -e "$D/resgate-oficial" ]' "rc=$RC; firmware foi sem pedir"
 afirma '[ -f "$D/newlink_update.sh" ]' "kit nao copiado"
+
+CASO="pendrive do arranjo antigo (oficial na raiz, nosso na pasta) com --com-firmware: troca e tira a pasta antiga"
+D="$TMP/d2b"; mkdir -p "$D/firmware-nosso-NAO-GRADUADO"; echo velho > "$D/usb_update.bin"; echo velho > "$D/firmware-nosso-NAO-GRADUADO/x.bin"
+instala "$D" --com-firmware; RC=$?
+afirma '[ "$RC" = 0 ] && [ "$(md5 "$D/usb_update.bin")" = "$NOSSO_MD5" ] && [ ! -e "$D/firmware-nosso-NAO-GRADUADO" ] && [ "$(md5 "$D/resgate-oficial/PFL7560.bin")" = "$OFICIAL_MD5" ]' "rc=$RC: $(find "$D" -name "*.bin" | tr '\n' ' ')"
+
+sem_kit(){ # $1 = destino  $2 = trecho esperado na mensagem; o que ja estava no pendrive fica, o kit nao vai
+  SK_D="$1"; SK_T="$2"
+  afirma '[ "$RC" != 0 ]' "install.sh deveria recusar"
+  afirma '[ ! -e "$SK_D/newlink_update.sh" ] && [ ! -e "$SK_D/kit" ]' "copiou o kit mesmo assim em $SK_D"
+  afirma 'grep -qF -- "$SK_T" "$TMP/saida.log"' "mensagem sem '$SK_T': $(grep ERRO "$TMP/saida.log" | head -2 | tr '\n' ' ')"
+}
+
+CASO="pendrive com DESINSTALAR-SUITE.txt: recusa (plugado, ele desinstalaria a suite)"
+D="$TMP/d2c"; mkdir -p "$D"; : > "$D/DESINSTALAR-SUITE.txt"
+instala "$D"; RC=$?
+sem_kit "$D" "DESINSTALAR-SUITE.txt"
+afirma '[ -e "$D/DESINSTALAR-SUITE.txt" ]' "apagou o arquivo do dono"
+D="$TMP/d2d"; mkdir -p "$D"; : > "$D/DESINSTALAR-SUITE.txt"
+instala "$D" --com-firmware; RC=$?
+sem_kit "$D" "DESINSTALAR-SUITE.txt"
+afirma '[ ! -e "$D/usb_update.bin" ] && [ ! -e "$D/resgate-oficial" ]' "copiou o firmware num pendrive recusado"
+
+CASO="pendrive com usb_update.bin, sem --com-firmware: recusa (power-hold regravaria com um .bin nao conferido)"
+D="$TMP/d2e"; mkdir -p "$D"; echo qualquer > "$D/usb_update.bin"
+instala "$D"; RC=$?
+sem_kit "$D" "usb_update.bin"
+afirma '[ "$(cat "$D/usb_update.bin")" = qualquer ]' "mexeu no usb_update.bin do dono"
 
 nada_copiado(){ # $1 = destino  $2 = trecho esperado na mensagem (globais: o afirma usa eval)
   NC_D="$1"; NC_T="$2"
@@ -69,13 +95,13 @@ nada_copiado(){ # $1 = destino  $2 = trecho esperado na mensagem (globais: o afi
 
 CASO="zip oficial ausente"
 D="$TMP/d3"; mkdir -p "$D"; F="$TMP/fw3"; mkdir -p "$F"
-cp "$FW/PFL7560-FIX-escada-NAO-GRADUADO.bin" "$FW/LEIA-ME-nosso-NAO-GRADUADO.txt" "$F/"
+cp "$FW/$NOSSO_BIN" "$F/"
 FWDIR="$F" instala "$D" --com-firmware; RC=$?
 nada_copiado "$D" "Software PFL7560.zip"
 
 CASO="so o zip do modelo sem USB-C (Firmware PFL7560.zip) nao serve"
 D="$TMP/d4"; mkdir -p "$D"; F4="$TMP/fw4"; mkdir -p "$F4"
-cp "$FW/PFL7560-FIX-escada-NAO-GRADUADO.bin" "$FW/LEIA-ME-nosso-NAO-GRADUADO.txt" "$F4/"; cp "$FW/Software PFL7560.zip" "$F4/Firmware PFL7560.zip"
+cp "$FW/$NOSSO_BIN" "$F4/"; cp "$FW/Software PFL7560.zip" "$F4/Firmware PFL7560.zip"
 FWDIR="$F4" instala "$D" --com-firmware; RC=$?
 nada_copiado "$D" "NAO use o 'Firmware PFL7560.zip'"
 
@@ -86,24 +112,18 @@ nada_copiado "$D" "esperado e 00000000000000000000000000000000"
 
 CASO="nosso .bin ausente"
 D="$TMP/d6"; mkdir -p "$D"; F="$TMP/fw6"; mkdir -p "$F"
-cp "$FW/Software PFL7560.zip" "$FW/LEIA-ME-nosso-NAO-GRADUADO.txt" "$F/"
+cp "$FW/Software PFL7560.zip" "$F/"
 FWDIR="$F" instala "$D" --com-firmware; RC=$?
-nada_copiado "$D" "falta '$F/PFL7560-FIX-escada-NAO-GRADUADO.bin'"
+nada_copiado "$D" "falta '$F/$NOSSO_BIN'"
 
 CASO="nosso .bin com md5 diferente"
 D="$TMP/d7"; mkdir -p "$D"
 NSMD5="11111111111111111111111111111111" instala "$D" --com-firmware; RC=$?
 nada_copiado "$D" "esperado e 11111111111111111111111111111111"
 
-CASO="LEIA-ME do nosso .bin ausente"
-D="$TMP/d8"; mkdir -p "$D"; F="$TMP/fw8"; mkdir -p "$F"
-cp "$FW/Software PFL7560.zip" "$FW/PFL7560-FIX-escada-NAO-GRADUADO.bin" "$F/"
-FWDIR="$F" instala "$D" --com-firmware; RC=$?
-nada_copiado "$D" "LEIA-ME-nosso-NAO-GRADUADO.txt"
-
 CASO="zip com dois PFL7560.bin"
 D="$TMP/d9"; mkdir -p "$D"; F="$TMP/fw9"; mkdir -p "$F" "$TMP/z9/a" "$TMP/z9/b"
-cp "$FW/PFL7560-FIX-escada-NAO-GRADUADO.bin" "$FW/LEIA-ME-nosso-NAO-GRADUADO.txt" "$F/"
+cp "$FW/$NOSSO_BIN" "$F/"
 head -c 1000 /dev/urandom > "$TMP/z9/a/PFL7560.bin"; head -c 1000 /dev/urandom > "$TMP/z9/b/PFL7560.bin"
 ( cd "$TMP/z9" && zip -q -r "$F/Software PFL7560.zip" a b )
 FWDIR="$F" instala "$D" --com-firmware; RC=$?
@@ -122,11 +142,11 @@ nada_copiado "$D" "pouco espaco"
 
 CASO="pasta de firmware padrao do repo (sem PFL_FIRMWARE_DIR): sem o nosso .bin, falha antes de copiar"
 D="$TMP/d12"; mkdir -p "$D"
-if [ -e "$ROOT/firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin" ]; then
+if [ -e "$ROOT/firmware/$NOSSO_BIN" ]; then
   echo "  (o nosso .bin existe em firmware/: caso pulado para nao copiar 1,4 GB)"
 else
   env bash "$ROOT/install.sh" --pendrive "$D" --com-firmware > "$TMP/saida.log" 2>&1; RC=$?
-  nada_copiado "$D" "$ROOT/firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin"
+  nada_copiado "$D" "$ROOT/firmware/$NOSSO_BIN"
 fi
 
 CASO="--conferir-firmware: so confere as origens (o preparar-pendrive.sh usa antes de formatar)"
@@ -246,7 +266,7 @@ LINHA_DEV="$L_USB" CONFIRMA=/dev/sdb prepara /dev/sdb
 afirma '[ "$RC" = 0 ]' "rc=$RC: $(tail -4 "$TMP/p/saida.log" | tr '\n' ' ')"
 afirma '[ "$(mkfs_chamadas)" = 1 ] && grep -qx "mkfs.vfat -F 32 -n PFL7560 /dev/sdb" "$TMP/p/calls.log"' "mkfs: $(grep '^mkfs' "$TMP/p/calls.log" | tr '\n' '|')"
 afirma '[ "$(grep -n "^mkfs" "$TMP/p/calls.log" | cut -d: -f1)" -lt "$(grep -n "^mount" "$TMP/p/calls.log" | head -1 | cut -d: -f1)" ] && [ "$(grep -n "^mount" "$TMP/p/calls.log" | head -1 | cut -d: -f1)" -lt "$(grep -n "^umount" "$TMP/p/calls.log" | tail -1 | cut -d: -f1)" ]' "ordem mkfs, mount, umount quebrada: $(cut -d' ' -f1 "$TMP/p/calls.log" | tr '\n' ' ')"
-afirma '[ -d "$TMP/p/snapshot" ] && [ "$(md5 "$TMP/p/snapshot/usb_update.bin")" = "$OFICIAL_MD5" ] && [ -f "$TMP/p/snapshot/firmware-nosso-NAO-GRADUADO/LEIA-ME.txt" ] && cmp -s "$ROOT/pendrive-autorun/pfl7560.apk" "$TMP/p/snapshot/pfl7560.apk"' "o pendrive nao ficou com o kit, o apk e o firmware"
+afirma '[ -d "$TMP/p/snapshot" ] && [ "$(md5 "$TMP/p/snapshot/usb_update.bin")" = "$NOSSO_MD5" ] && [ "$(md5 "$TMP/p/snapshot/resgate-oficial/PFL7560.bin")" = "$OFICIAL_MD5" ] && [ -f "$TMP/p/snapshot/resgate-oficial/LEIA-ME.txt" ] && cmp -s "$ROOT/pendrive-autorun/pfl7560.apk" "$TMP/p/snapshot/pfl7560.apk"' "o pendrive nao ficou com o kit, o apk e o firmware"
 afirma 'grep -q "pronto: pendrive preparado" "$TMP/p/saida.log"' "sem a mensagem final"
 
 CASO="particao de pendrive removivel (PKNAME=sdb): aceita"
@@ -266,14 +286,16 @@ afirma '[ "$(grep -n "Modo conferir" "$BAT" | head -1 | cut -d: -f1)" -lt "$(gre
 afirma '[ "$(grep -n "Modo copiar" "$BAT" | head -1 | cut -d: -f1)" -gt "$(grep -n "NAO confere com a lista" "$BAT" | head -1 | cut -d: -f1)" ]' "o firmware e copiado antes da conferencia do kit no install.bat"
 afirma '[ "$(sed -n "s/^\$OficialMd5 = .\([0-9a-f]*\).$/\1/p" "$PS1")" = "$(sed -n "s/^FW_OFICIAL_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do oficial difere entre o .ps1 e o install.sh"
 afirma '[ "$(sed -n "s/^\$NossoMd5 = .\([0-9a-f]*\).$/\1/p" "$PS1")" = "$(sed -n "s/^FW_NOSSO_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do nosso difere entre o .ps1 e o install.sh"
-afirma '[ "$(cut -d" " -f1 "$ROOT/firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin.md5")" = "$(sed -n "s/^FW_NOSSO_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do nosso no install.sh difere do firmware/*.bin.md5"
+afirma '[ "$(cut -d" " -f1 "$ROOT/firmware/$NOSSO_BIN.md5")" = "$(sed -n "s/^FW_NOSSO_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do nosso no install.sh difere do firmware/$NOSSO_BIN.md5"
+afirma 'grep -q "^FW_NOSSO_BIN=\"$NOSSO_BIN\"$" "$ROOT/install.sh" && grep -q "^\$NossoBin = .$NOSSO_BIN.$" "$PS1"' "o install.sh ou o .ps1 nao levam o $NOSSO_BIN"
+afirma 'diff <(sed -n "/^fw_leiame(){/,/^LEIAME\$/p" "$ROOT/install.sh" | sed "1,2d;\$d") <(sed -n "/^\$LeiameResgate = @.\$/,/^.@\$/p" "$PS1" | sed "1d;\$d") >/dev/null' "o LEIA-ME do resgate difere entre o install.sh e o .ps1"
+afirma '[ "$(sed -n "/^fw_leiame(){/,/^LEIAME\$/p" "$ROOT/install.sh" | grep -c .)" -gt 5 ]' "o install.sh sem o texto do LEIA-ME do resgate"
 afirma 'grep -q "28a2f280eee313a4b115567926b2ba4f" "$ROOT/pendrive-autorun/LEIA-ME.txt" && grep -q "^FW_OFICIAL_MD5=\"28a2f280eee313a4b115567926b2ba4f\"" "$ROOT/install.sh"' "md5 oficial do install.sh difere do citado no LEIA-ME do kit"
 afirma 'grep -q "SO para o aparelho COM entrada USB-C (V1.0.0.9)" "$ROOT/pendrive-autorun/LEIA-ME.txt" && grep -q "Só serve para o aparelho \*\*com USB-C\*\*" "$ROOT/INSTALL.md"' "o LEIA-ME do kit ou o INSTALL.md nao dizem que o resgate e so do modelo com USB-C"
 afirma 'grep -q "^FW_OFICIAL_ZIP=\"Software PFL7560.zip\"" "$ROOT/install.sh" && grep -q "^\$ZipNome = .Software PFL7560.zip.$" "$PS1"' "o zip de origem do resgate nao e o Software PFL7560.zip (o Firmware PFL7560.zip e do modelo sem USB-C)"
 
 CASO="estaticos"
 afirma 'bash -n "$ROOT/tests/preparar-pendrive.sh" && bash -n "$ROOT/install.sh"' "bash -n"
-afirma '[ -z "$(LC_ALL=C grep -nP "[^\x00-\x7F]" "$LEIAME_FW")" ]' "LEIA-ME do nosso .bin com byte fora de ASCII"
 if command -v shellcheck >/dev/null 2>&1; then
   afirma 'shellcheck "$ROOT/tests/preparar-pendrive.sh"' "shellcheck do preparar-pendrive.sh"
 else

@@ -95,8 +95,7 @@ find_ip(){
   fi
   command -v nmap >/dev/null || { err "sem nmap; use PFL_IP=<ip>"; return 1; }
   say "procurando o projetor (MAC $MAC)..."
-  sudo nmap -sn -T4 "$SUBNET" >"/tmp/pfl.$$" 2>/dev/null||true
-  local ip; ip="$(grep -i -B2 "$MAC" "/tmp/pfl.$$" 2>/dev/null|grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}'|head -1)"; rm -f "/tmp/pfl.$$"
+  local ip; ip="$(sudo nmap -sn -T4 "$SUBNET" 2>/dev/null|grep -i -B2 "$MAC"|grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}'|head -1)"
   [ -n "$ip" ] && { echo "$ip"; return 0; }
   err "nao achei. Ligue o projetor no Wi-Fi ou use PFL_IP=<ip>."; return 1
 }

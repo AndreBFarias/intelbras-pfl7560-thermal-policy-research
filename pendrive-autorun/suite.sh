@@ -447,8 +447,17 @@ etapa_abertura(){
   novos_campos abertura
   case "$MODO" in
     tomada)
-      campo titulo "Voltou a energia.\nConferindo o projetor."
-      campo texto "O projetor ficou sem energia. Antes de voc\u00ea usar, ele confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+      case "$MOTIVO_BOOT" in
+        gatilho_sempre)
+          campo titulo "Verifica\u00e7\u00e3o de todo boot.\nConferindo o projetor."
+          campo texto "Antes de voc\u00ea usar, o projetor confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+        desligamento_nao_limpo)
+          campo titulo "N\u00e3o desligou direito.\nConferindo o projetor."
+          campo texto "O projetor n\u00e3o desligou direito. Antes de voc\u00ea usar, ele confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+        *)
+          campo titulo "Voltou a energia.\nConferindo o projetor."
+          campo texto "O projetor ficou sem energia. Antes de voc\u00ea usar, ele confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
+      esac ;;
     pendrive)
       campo titulo "Pendrive do kit encontrado.\nConferindo o projetor."
       campo texto "A corre\u00e7\u00e3o do kit foi conferida. Agora o projetor confere a cor, o foco, a imagem e a temperatura. Leva cerca de 3 minutos." ;;
@@ -1043,6 +1052,8 @@ ler_sistema(){
     tomada)
       case "$MOTIVO_BOOT" in
         gatilho_sempre) _mb="gatilho sempre" ;;
+        desligamento_nao_limpo) _mb="n\u00e3o desligou bem" ;;
+        relogio_zerado) _mb="rel\u00f3gio zerado" ;;
         *) _mb="queda de energia" ;;
       esac ;;
     pendrive) _mb="pendrive do kit" ;;
@@ -1173,6 +1184,7 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     kill "$_vp" 2>/dev/null && LOG "vigia (pid $_vp) encerrado"
   fi
   rm -f "$VIGIA_PID"
+  [ -L "$LOCK" ] || rmdir "$LOCK" 2>/dev/null
   # o ctl.stop mata o grupo do servico com SIGKILL (sem trap), inclusive uma suite que
   # estivesse no meio da rampa: o override de temperatura nao pode ficar para tras
   if [ -n "$(getprop "$PROP_OVERRIDE" 2>/dev/null)" ]; then
@@ -1198,11 +1210,11 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     if mount -o rw,remount /vendor; then
       rm -f "$RC_SUITE"
       if [ "$_hl" = "1" ]; then
-        cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$/d' "$BP.new" && mv "$BP.new" "$BP"
+        cp "$BP" "$BP.new" && sed -i '/^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$/d' "$BP.new" && sync && mv "$BP.new" "$BP"
         rm -f "$BP.new"
       fi
       if [ "$_fl" = "1" ]; then
-        cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=1$/d' "$BP.new" && mv "$BP.new" "$BP"
+        cp "$BP" "$BP.new" && sed -i '/^vendor\.nl\.filemanage_file=1$/d' "$BP.new" && sync && mv "$BP.new" "$BP"
         rm -f "$BP.new"
       fi
       for _od in $_ov; do rm -rf "$_od"; done
@@ -1260,7 +1272,7 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done
   # a pasta do app e dele: so o pedido pendente sai (num link, nada e seguido)
-  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" 2>/dev/null
+  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" "$PEDIDO_DIR/descanso-inicio" "$PEDIDO_DIR/descanso-fim" 2>/dev/null
   [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"
