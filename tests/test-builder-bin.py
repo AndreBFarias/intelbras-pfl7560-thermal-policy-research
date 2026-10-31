@@ -336,6 +336,7 @@ def caso_real(rotulo, stock, ini, md5_saida=None):
 
 MD5_S4A_ANTIGO = 'a6e5da14cb3f53b42a457eb92bd91814'
 MD5_S4A_NOVO = 'e3e3e87ce08a625c83c3824eafd26d9b'
+MD5_S4B_ARQ = os.path.join(ROOT, 'firmware', 'PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin.md5')
 CASO = ''
 ANTIGO_INI = os.path.join(ART, 'ZYCustom.ini.ORIGINAL')
 NOVO_INI = os.path.join(ART, 'ZYCustom.ini.NOTYPEC.STOCK')
@@ -624,6 +625,8 @@ def caso_real_conteudo(rotulo, stock, ini, manifesto):
         afirma(rc == 0 and 'APROVADO' in vlog, f"--verificar reprovou: {vlog.strip().splitlines()[-3:]}")
         m1 = md5(out)
         print(f"    md5 do .bin de teste: {m1}  ({os.path.getsize(out) - os.path.getsize(stock):+d} B contra o stock)")
+        md5_s4b = open(MD5_S4B_ARQ).read().split()[0]
+        afirma(m1 == md5_s4b, f"md5 da S4b {m1} != {md5_s4b} de firmware/{os.path.basename(MD5_S4B_ARQ)} (APK ou .rc mudou: gere de novo e atualize o .md5 e o doc 47)")
         os.remove(out)
         rc2, _ = roda_builder(stock, ini, out, '--realocar', '--conteudo', manifesto)
         afirma(rc2 == 0 and md5(out) == m1, "saida com manifesto nao e deterministica")
