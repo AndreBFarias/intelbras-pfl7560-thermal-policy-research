@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- App "PFL7560" (bloco 9C): dois icones na lista de apps do projetor. Nenhuma permissao:
-     o pedido de verificacao vai para a pasta privada do proprio app. versionCode/versionName
+<!-- App "PFL7560" (bloco 9C): dois icones na lista de apps do projetor e (bloco 16B) o descanso
+     de tela MeowCast. Nenhuma permissao pedida: o pedido de verificacao vai para a pasta privada do
+     proprio app; o BIND_DREAM_SERVICE do descanso e a permissao que SO o sistema tem para ligar o
+     servico (atributo do service, nao uses-permission). versionCode/versionName
      e minSdk/targetSdk entram pelo aapt2 link (ver build.sh). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.pfl7560.verificar">
@@ -38,6 +40,19 @@
                 <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Descanso de tela MeowCast (bloco 16B). Quem aponta para ele e o suite-boot.sh, por
+             screensaver_components. Sem atividade de configuracao. -->
+        <service
+            android:name=".Descanso"
+            android:label="@string/descanso_nome"
+            android:exported="true"
+            android:permission="android.permission.BIND_DREAM_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.dreams.DreamService" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
 
     </application>
 </manifest>

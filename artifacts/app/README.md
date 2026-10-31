@@ -1,7 +1,7 @@
-# app PFL7560 - ícones "Verificar projetor" e "Wi-Fi" (bloco 9C)
+# app PFL7560 - ícones "Verificar projetor" e "Wi-Fi" (bloco 9C) e descanso de tela MeowCast (bloco 16B)
 
 App Android mínimo, sem Gradle, que põe dois ícones na lista de apps do projetor. Pacote
-`com.pfl7560.verificar`, `minSdk 28`, `targetSdk 28`, **nenhuma permissão**. Documento do conjunto
+`com.pfl7560.verificar`, `minSdk 28`, `targetSdk 28`, **nenhuma permissão pedida** (o `BIND_DREAM_SERVICE` é do atributo `permission` do serviço: só o sistema liga o `Descanso`). Documento do conjunto
 (suíte de boot): `docs/research/44-suite-de-boot.md`.
 
 | Atividade | O que faz |
@@ -9,7 +9,9 @@ App Android mínimo, sem Gradle, que põe dois ícones na lista de apps do proje
 | `VerificarActivity` ("Verificar projetor") | grava `pedir-verificacao` em `getDataDir()` (`/data/data/com.pfl7560.verificar/`, com `FileOutputStream`: o arquivo nasce com o dono certo), mostra "Verificação pedida" por 3 s e fecha; se não gravar, diz isso e o que fazer |
 | `WifiActivity` ("Wi-Fi") | abre `android.settings.WIFI_SETTINGS`; se não resolver, `com.zhiying.settings/.network.WifiSettingActivity`; se nada abrir, mostra a mensagem e fecha |
 
-Ambas com `MAIN` + `LAUNCHER` (o launcher do projetor lista só isso: doc 43 seção 6) e também
+| `Descanso` (serviço, sem ícone) | descanso de tela MeowCast (bloco 16B): `DreamService` com `BIND_DREAM_SERVICE`; fundo `#120B1A`, nome "MeowCast" em `#9D7AD0` (Plex Condensed Bold, de `assets/fontes/`) e a hora, mais apagada; o conjunto muda de lugar a cada minuto. Quem aponta o sistema para ele é o `suite-boot.sh` (doc 44 §14) |
+
+As duas atividades com `MAIN` + `LAUNCHER` (o launcher do projetor lista só isso: doc 43 seção 6) e também
 `LEANBACK_LAUNCHER` com `banner`, que custaram pouco. Por que a pasta privada: em `/sdcard` qualquer
 app gravaria o pedido e dispararia a suíte como root; na pasta privada só o UID do app grava, e o vigia
 root (`pendrive-autorun/suite-boot.sh`, `suite-pedido.sh`) confere que o dono do arquivo é o dono da
@@ -24,7 +26,7 @@ min depois de outra), e o vigia só liga no boot: o ícone vale a partir do boot
 SDK local, sem rede: `ANDROID_SDK` (padrão `~/Android/sdk`), `BUILD_TOOLS` (35.0.0), `PLATAFORMA`
 (android-34); precisa de Java 17 (`javac --release 8`), `zip` e `apksigner`. Passos: `aapt2 compile` e
 `link` (recursos, manifest, `R.java`), `javac`, `d8`, dex no zip, `zipalign`, `apksigner sign` e
-`verify`. Saída: `artifacts/app/pfl7560.apk` e a cópia `pendrive-autorun/pfl7560.apk`. O resultado é
+`verify`. Desde o bloco 16B o `aapt2 link` leva `-A` com a `IBMPlexSansCondensed-Bold.ttf` e a `OFL.txt` do kit (`pendrive-autorun/fontes/`). Saída: `artifacts/app/pfl7560.apk` e a cópia `pendrive-autorun/pfl7560.apk`. O resultado é
 determinístico (o mesmo md5 a cada execução).
 
 ## Versão e assinatura
@@ -50,7 +52,7 @@ e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/ge
 ## Provas
 
 - `build.sh` gera o APK do zero e `apksigner verify` passa.
-- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='2'` (o 2 é o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='3'` (o 3 é o do descanso, bloco 16B; o 2 foi o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
   duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
 - O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
 
