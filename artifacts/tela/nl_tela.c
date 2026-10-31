@@ -1,27 +1,3 @@
-/*
- * nl_tela - gera, no aparelho, as telas da suite de boot do PFL7560 (bloco 9A, contrato C-tela
- * em docs/sprints/2026-10-30-bloco-9-suite-de-boot.md).
- *
- *   nl_tela aviso|resumo <campos.txt> <saida.png> <dir_fontes>
- *
- * Grava um PNG 1920x1080 RGB. Sai 0 ok, 1 erro (fonte, arquivo, gravacao, campo invalido),
- * 2 uso errado.
- *
- * campos.txt: uma "chave=valor" por linha, ASCII puro. Texto nao ASCII vai como \uXXXX (BMP),
- * quebra de linha como \n e a barra como \\. Chave desconhecida e ignorada; linha vazia ou
- * comecada por # tambem. Byte nao ASCII cru (erro de quem escreveu o arquivo) vira "?" com um
- * aviso em stderr: a tela sai assim mesmo. Texto que nao cabe e cortado com reticencias e
- * avisado em stderr ("nl_tela: truncado: ..."), nunca passa da margem.
- *
- * Fontes: as cinco IBM Plex de <dir_fontes>; a que faltar cai na reserva do sistema
- * (/system/fonts: Roboto-Regular, Roboto-Bold, DroidSansMono; NL_TELA_SISTEMA troca a pasta,
- * para o harness do PC). Sem nenhuma das duas para um estilo: sai 1. Glifo que a fonte nao
- * tem sai da reserva, se carregada, ou vira "?".
- *
- * Compilar (NDK r27c):
- *   armv7a-linux-androideabi24-clang -O2 -Wall -o nl_tela nl_tela.c -lm
- * No PC (harness): cc -O2 -Wall -Wextra -o nl_tela nl_tela.c -lm
- */
 #include <errno.h>
 #include <math.h>
 #include <stdint.h>
@@ -30,7 +6,6 @@
 #include <string.h>
 #include <unistd.h>
 
-/* terceiros (dominio publico): avisos deles nao sao nossos */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
 #pragma GCC diagnostic ignored "-Wsign-compare"
@@ -46,38 +21,32 @@
 
 #define LARG 1920
 #define ALT 1080
-#define MAX_ARQ 65536          /* campos.txt maior que isso nao e da suite */
-#define MAX_LINHA 1024         /* bytes por linha do campos.txt, chave incluida */
-#define MAX_TXT 1024           /* caracteres por campo, depois de decodificar */
+#define MAX_ARQ 65536
+#define MAX_LINHA 1024
+#define MAX_TXT 1024
 #define MAX_PASSOS 6
 #define MAX_GRUPOS 4
 #define MAX_ITENS 6
 #define MAX_DICAS 3
 #define MAX_FONTE (16 << 20)
 
-/* paleta Dracula (bloco 10B, artifacts/tema/dracula.txt). Dois tons derivados, por contraste
- * (artifacts/tema/README.md): C_SEC e o comentario #6272A4 clareado (55% de texto), porque o
- * comentario puro da 3,0:1 sobre o fundo e 1,9:1 sobre o cartao; C_ATEN_CART e o vermelho
- * clareado (20% de texto), so para texto e ponto sobre o cartao, onde o puro da 2,9:1. */
-#define C_FUNDO  0x282A36      /* fundo */
-#define C_CARTAO 0x44475A      /* linha */
-#define C_TEXTO  0xF8F8F2      /* texto */
-#define C_SEC    0xB4BCCF      /* comentario clareado: 7,5:1 no fundo, 4,8:1 no cartao */
-#define C_FIO    0x6272A4      /* comentario: fio dentro do cartao */
-#define C_OK     0x50FA7B      /* verde */
-#define C_CORR   0xFFB86C      /* laranja */
-#define C_ATEN   0xFF5555      /* vermelho, sobre o fundo (4,5:1) */
-#define C_ATEN_CART 0xFE7674   /* vermelho clareado, sobre o cartao (3,5:1; texto de 24 px ou mais) */
-#define C_INFO   0x8BE9FD      /* ciano */
-#define C_PEND   0xF1FA8C      /* amarelo */
-#define C_ROSA   0xFF79C6      /* destaque: o passo em andamento */
-#define C_ROXO   0xBD93F9      /* marca: etapa e titulo de grupo */
-
-/* ---- imagem e mistura de cor ------------------------------------------------- */
+#define C_FUNDO  0x282A36
+#define C_CARTAO 0x44475A
+#define C_TEXTO  0xF8F8F2
+#define C_SEC    0xB4BCCF
+#define C_FIO    0x6272A4
+#define C_OK     0x50FA7B
+#define C_CORR   0xFFB86C
+#define C_ATEN   0xFF5555
+#define C_ATEN_CART 0xFE7674
+#define C_INFO   0x8BE9FD
+#define C_PEND   0xF1FA8C
+#define C_ROSA   0xFF79C6
+#define C_ROXO   0xBD93F9
 
 static unsigned char tela[ALT][LARG][3];
-static float lin[256];            /* sRGB -> linear */
-static unsigned char srgb[4096];  /* linear (0..4095) -> sRGB */
+static float lin[256];
+static unsigned char srgb[4096];
 
 static void cores_init(void) {
   for (int i = 0; i < 256; i++) {
@@ -91,7 +60,6 @@ static void cores_init(void) {
   }
 }
 
-/* mistura a cor no pixel com cobertura a (0..1), em luz linear (gamma certo) */
 static void ponto(int x, int y, uint32_t cor, float a) {
   if (x < 0 || y < 0 || x >= LARG || y >= ALT || a <= 0) return;
   if (a > 1) a = 1;
@@ -109,7 +77,6 @@ static void fundo(uint32_t cor) {
     for (int x = 0; x < LARG; x++) ponto(x, y, cor, 1);
 }
 
-/* retangulo com cantos arredondados (raio r), cobertura das quinas por 4x4 amostras */
 static void retangulo(int x0, int y0, int w, int h, int r, uint32_t cor) {
   for (int y = y0; y < y0 + h; y++)
     for (int x = x0; x < x0 + w; x++) {
@@ -127,7 +94,6 @@ static void retangulo(int x0, int y0, int w, int h, int r, uint32_t cor) {
     }
 }
 
-/* ponto de estado: disco de raio r centrado em (cx,cy); anel=1 desenha so o contorno */
 static void disco(float cx, float cy, float r, uint32_t cor, int anel) {
   float ri = r - 2.2f;
   for (int y = (int)floorf(cy - r) - 1; y <= (int)ceilf(cy + r) + 1; y++)
@@ -142,8 +108,6 @@ static void disco(float cx, float cy, float r, uint32_t cor, int anel) {
     }
 }
 
-/* ---- fontes ------------------------------------------------------------------ */
-
 enum { E_REG, E_SEMI, E_BOLD, E_MONO, E_MONO_SEMI, N_EST };
 static const char *const PRIMARIA[N_EST] = {
   "IBMPlexSansCondensed-Regular.ttf", "IBMPlexSansCondensed-SemiBold.ttf",
@@ -154,16 +118,13 @@ static const char *const RESERVA[N_EST] = {
 struct fonte { char caminho[512]; unsigned char *dados; stbtt_fontinfo info; };
 static struct fonte fontes[2 * N_EST];
 static int nfontes;
-static struct fonte *cadeia[N_EST][2];   /* primaria e reserva de cada estilo (NULL = ausente) */
+static struct fonte *cadeia[N_EST][2];
 
-/* a stb_truetype nao confere offset nenhum: um TTF truncado (copia interrompida) faz ela ler
- * fora do buffer. Confere o diretorio de tabelas do arquivo: cabe no arquivo e cada tabela
- * (offset + tamanho) tambem. Devolve o offset da fonte 0 ou -1. */
 static uint32_t be32(const unsigned char *p) {
   return (uint32_t)p[0] << 24 | (uint32_t)p[1] << 16 | (uint32_t)p[2] << 8 | p[3];
 }
 static int sfnt_ok(const unsigned char *d, long n) {
-  if (n < 16) return -1;                /* GetFontOffsetForIndex le ate o byte 15 numa TTC */
+  if (n < 16) return -1;
   int off = stbtt_GetFontOffsetForIndex(d, 0);
   if (off < 0 || (long)off + 12 > n) return -1;
   long nt = d[off + 4] << 8 | d[off + 5];
@@ -175,7 +136,6 @@ static int sfnt_ok(const unsigned char *d, long n) {
   return off;
 }
 
-/* carrega (uma vez por arquivo) a fonte do caminho; NULL se nao existe ou nao e TTF valido */
 static struct fonte *carregar(const char *dir, const char *nome) {
   char cam[512];
   if (snprintf(cam, sizeof cam, "%s/%s", dir, nome) >= (int)sizeof cam) return NULL;
@@ -221,7 +181,6 @@ static int fontes_init(const char *dir) {
   return 0;
 }
 
-/* glifo do caractere no estilo: primaria, reserva, ou o "?" da primaria */
 static int glifo(int est, uint32_t cp, struct fonte **f) {
   for (int i = 0; i < 2; i++) {
     struct fonte *ft = cadeia[est][i];
@@ -240,19 +199,14 @@ static int tem_glifo(int est, uint32_t cp) {
 
 static float escala(struct fonte *f, float px) { return stbtt_ScaleForMappingEmToPixels(&f->info, px); }
 
-/* altura das maiusculas (do "H") no estilo e tamanho: alinha o texto pela linha de topo */
 static float altura_maiuscula(int est, float px) {
   struct fonte *f; int g = glifo(est, 'H', &f), x0, y0, x1, y1;
   stbtt_GetGlyphBox(&f->info, g, &x0, &y0, &x1, &y1);
   return y1 * escala(f, px);
 }
 
-/* ---- texto ------------------------------------------------------------------- */
-
 struct txt { uint32_t c[MAX_TXT]; int n; };
 
-/* desenha (pinta=1) ou so mede s[0..n) a partir de x na linha de base y; devolve a largura.
- * esp = espacamento extra entre letras, em px. */
 static float corrida(int est, float px, float esp, float x, int y, uint32_t cor,
                      const uint32_t *s, int n, int pinta) {
   float x0 = x;
@@ -283,15 +237,12 @@ static float largura(int est, float px, float esp, const uint32_t *s, int n) {
   return corrida(est, px, esp, 0, 0, 0, s, n, 0);
 }
 
-/* o harness exige zero destes avisos nos exemplos do dono */
 static void aviso_truncado(const char *campo, const uint32_t *s, int n) {
   fprintf(stderr, "nl_tela: truncado: %s: \"", campo);
   for (int i = 0; i < n && i < 80; i++) fputc(s[i] < 0x80 && s[i] >= 0x20 ? (int)s[i] : '?', stderr);
   fprintf(stderr, "%s\"\n", n > 80 ? "..." : "");
 }
 
-/* uma linha de texto que nunca passa de maxw: o que sobra vira reticencias. alinha: 0 esquerda
- * (x e a borda esquerda), 1 direita (x e a borda direita). Devolve a largura desenhada. */
 static float linha(int est, float px, float esp, float x, int y, uint32_t cor, const uint32_t *s, int n,
                    float maxw, int alinha, const char *campo) {
   float w = largura(est, px, esp, s, n);
@@ -304,7 +255,7 @@ static float linha(int est, float px, float esp, float x, int y, uint32_t cor, c
   const uint32_t *r = tem_glifo(est, 0x2026) ? ret1 : ret3;
   int nr = r == ret1 ? 1 : 3;
   float wr = largura(est, px, esp, r, nr) + esp;
-  int lo = 0, hi = n;     /* maior k com s[0..k) + reticencias dentro de maxw (busca binaria) */
+  int lo = 0, hi = n;
   while (lo < hi) {
     int m = (lo + hi + 1) / 2;
     if (largura(est, px, esp, s, m) + wr <= maxw) lo = m; else hi = m - 1;
@@ -313,13 +264,12 @@ static float linha(int est, float px, float esp, float x, int y, uint32_t cor, c
   while (k > 0 && (s[k - 1] == ' ' || s[k - 1] == '\n')) k--;
   float wk = largura(est, px, esp, s, k) + (k ? esp : 0);
   float x0 = alinha ? x - (wk + wr - esp) : x;
-  if (wk + wr - esp > maxw) return 0;          /* nem as reticencias cabem */
+  if (wk + wr - esp > maxw) return 0;
   corrida(est, px, esp, x0, y, cor, s, k, 1);
   corrida(est, px, esp, x0 + wk, y, cor, r, nr, 1);
   return wk + wr - esp;
 }
 
-/* como linha(), mas antes de cortar reduz o tamanho de pmax ate pmin (passo de 1 px) */
 static float linha_ajustada(int est, float pmax, float pmin, float x, int y, uint32_t cor, const uint32_t *s,
                             int n, float maxw, const char *campo) {
   float px = pmax;
@@ -327,15 +277,11 @@ static float linha_ajustada(int est, float pmax, float pmin, float x, int y, uin
   return linha(est, px, 0, x, y, cor, s, n, maxw, 0, campo);
 }
 
-/* quebra s em ate maxl linhas de largura maxw (por palavra; \n forca a quebra). Grava
- * inicio/tamanho de cada linha; a ultima, se o texto nao couber, leva o resto (e o corte da
- * funcao linha poe as reticencias). Devolve o numero de linhas. */
 static int quebrar(int est, float px, const struct txt *t, float maxw, int maxl, int *ini, int *tam) {
   int nl = 0, i = 0;
   while (nl < maxl) {
     while (i < t->n && t->c[i] == ' ') i++;
     if (i >= t->n) break;
-    /* palavras enquanto couberem (a primeira sempre entra; se for larga demais, e cortada) */
     int fim = i, j = i;
     while (j < t->n && t->c[j] != '\n') {
       int k = j;
@@ -353,12 +299,9 @@ static int quebrar(int est, float px, const struct txt *t, float maxw, int maxl,
   return nl;
 }
 
-/* desenha uma linha que pode conter \n do campo: quebras viram espaco */
 static void sem_quebra(struct txt *t) {
   for (int i = 0; i < t->n; i++) if (t->c[i] == '\n') t->c[i] = ' ';
 }
-
-/* ---- campos ------------------------------------------------------------------ */
 
 enum { S_OK, S_CORR, S_ATEN, S_INFO, S_PEND, S_NADA };
 enum { F_FILA, F_AGORA, F_FEITO };
@@ -374,7 +317,7 @@ static struct campos {
   struct txt dica[MAX_DICAS];
 } C;
 
-static int nlinha;               /* linha do campos.txt em leitura (mensagens) */
+static int nlinha;
 
 static int hex(int c) {
   if (c >= '0' && c <= '9') return c - '0';
@@ -383,16 +326,12 @@ static int hex(int c) {
   return -1;
 }
 
-/* minuscula (ASCII ou Latin-1) para maiuscula; o resto fica como esta */
 static uint32_t maiuscula(uint32_t c) {
   if (c >= 'a' && c <= 'z') return c - 32;
   if (c >= 0xE0 && c <= 0xFE && c != 0xF7) return c - 0x20;
   return c;
 }
 
-/* pedido do dono: nenhuma frase nem rotulo comeca com minuscula. Sobe a 1a letra do
- * texto e a 1a depois de quebra de linha, de ". ", "! ", "? " e de " \u00b7 " (o
- * separador das telas). So a 1a letra: "0,4\u00b0 (nivelado)" fica como esta. */
 static void maiusculas_iniciais(struct txt *t) {
   int ini = 1;
   for (int i = 0; i < t->n; i++) {
@@ -407,8 +346,6 @@ static void maiusculas_iniciais(struct txt *t) {
   }
 }
 
-/* decodifica s[0..n) em t: \uXXXX (BMP; substituto ou zero viram "?"), \n, \\; outra
- * sequencia com barra fica como esta. Byte nao ASCII cru vira "?" (com aviso). */
 static void decodificar(const char *s, int n, struct txt *t) {
   int cru = 0;
   t->n = 0;
@@ -425,14 +362,13 @@ static void decodificar(const char *s, int n, struct txt *t) {
         if (cp == 0 || (cp >= 0xD800 && cp <= 0xDFFF)) cp = '?';
         i += 5;
       }
-    } else if (c < 0x20) cp = ' ';   /* tab e outros controles */
+    } else if (c < 0x20) cp = ' ';
     t->c[t->n++] = cp;
   }
   if (cru) fprintf(stderr, "nl_tela: aviso: linha %d tem byte nao ASCII cru (use \\uXXXX); trocado por ?\n", nlinha);
   maiusculas_iniciais(t);
 }
 
-/* divide v em ate max partes por '|'; devolve quantas */
 static int partes(const char *v, int n, const char **p, int *tam, int max) {
   int k = 0, ini = 0;
   for (int i = 0; i <= n; i++)
@@ -499,7 +435,7 @@ static int campo(int resumo, const char *k, int nk, const char *v, int nv) {
     decodificar(v, nv, &C.dica[C.ndicas++]);
   }
 #undef CH
-  return 0;   /* chave desconhecida: ignorada */
+  return 0;
 }
 
 static int ler_campos(const char *arq, int resumo) {
@@ -533,11 +469,8 @@ static int ler_campos(const char *arq, int resumo) {
   return 0;
 }
 
-/* ---- desenho comum ----------------------------------------------------------- */
-
 #define MARGEM 110
 
-/* cor do estado; cartao=1 quando o texto ou o ponto fica sobre o cartao (linha) */
 static uint32_t cor_estado(int est, int cartao) {
   switch (est) {
     case S_OK: return C_OK;
@@ -549,23 +482,18 @@ static uint32_t cor_estado(int est, int cartao) {
   }
 }
 
-/* texto fixo do programa, escrito com os mesmos escapes do campos.txt (o fonte e ASCII) */
 static struct txt fixo(const char *s) {
   struct txt t;
   decodificar(s, (int)strlen(s), &t);
   return t;
 }
 
-/* linha de base para que o topo das maiusculas fique em y */
 static int base_em(int est, float px, int y) { return y + (int)lroundf(altura_maiuscula(est, px)); }
-
-/* ---- aviso ------------------------------------------------------------------- */
 
 static void tela_aviso(void) {
   const int topo = 104, pe = ALT - 100, larg_util = LARG - 2 * MARGEM;
   fundo(C_FUNDO);
 
-  /* linha de cima: etapa (esquerda) e canto (direita), Mono 26 secundario */
   int b0 = base_em(E_MONO, 26, topo);
   sem_quebra(&C.etapa); sem_quebra(&C.canto);
   float wc = C.canto.n ? largura(E_MONO, 26, 0, C.canto.c, C.canto.n) : 0;
@@ -574,7 +502,6 @@ static void tela_aviso(void) {
   if (C.etapa.n) linha(E_MONO, 26, 0, MARGEM, b0, C_ROXO, C.etapa.c, C.etapa.n,
                        larg_util - wc - (C.canto.n ? 48 : 0), 0, "etapa");
 
-  /* titulo: ate 3 linhas (\n), Bold 92; tom=alerta pinta na cor de atencao */
   const float pt = 100; const int passo_t = 108;
   int ini[8], tam[8];
   int nt = quebrar(E_BOLD, pt, &C.titulo, larg_util, 3, ini, tam);
@@ -583,13 +510,11 @@ static void tela_aviso(void) {
     linha(E_BOLD, pt, 0, MARGEM, y, C.tom ? C_ATEN : C_TEXTO, C.titulo.c + ini[i], tam[i], larg_util, 0, "titulo");
   int fim_titulo = y - passo_t;
 
-  /* rodape: Mono 24 secundario, embaixo */
   sem_quebra(&C.rodape);
   int b_rod = pe;
   if (C.rodape.n) linha(E_MONO, 24, 0, MARGEM, b_rod, C_SEC, C.rodape.c, C.rodape.n, larg_util, 0, "rodape");
   int topo_rodape = b_rod - (int)altura_maiuscula(E_MONO, 24);
 
-  /* passos: uma fileira de cartoes acima do rodape (4 colunas, ou uma por passo se mais) */
   int topo_passos = C.rodape.n ? topo_rodape - 64 : pe;
   if (C.npassos) {
     int ncol = C.npassos > 4 ? C.npassos : 4, gap = 20;
@@ -601,8 +526,8 @@ static void tela_aviso(void) {
       int a[2], b[2];
       if (quebrar(E_SEMI, pn, &C.passo[i].nome, wint, 2, a, b) > 1) nlin = 2;
     }
-    int b_est = (int)altura_maiuscula(E_MONO, 24) + pad;            /* base da linha de estado */
-    int b_nome = b_est + 30 + (int)altura_maiuscula(E_SEMI, pn);     /* base do nome */
+    int b_est = (int)altura_maiuscula(E_MONO, 24) + pad;
+    int b_nome = b_est + 30 + (int)altura_maiuscula(E_SEMI, pn);
     int hcart = b_nome + (nlin - 1) * passo_n + pad + 6;
     int yc = topo_passos - hcart;
     topo_passos = yc;
@@ -610,8 +535,6 @@ static void tela_aviso(void) {
       int xc = MARGEM + (int)lroundf(i * (wcart + gap));
       int wc_i = (int)lroundf((i + 1) * (wcart + gap) - gap) - (xc - MARGEM);
       int fase = C.passo[i].fase, res = C.passo[i].res;
-      /* o passo em andamento leva contorno rosa (destaque); um cartao mais claro que a linha
-       * sairia da paleta */
       if (fase == F_AGORA) {
         retangulo(xc, yc, wc_i, hcart, 10, C_ROSA);
         retangulo(xc + 3, yc + 3, wc_i - 6, hcart - 6, 7, C_CARTAO);
@@ -619,7 +542,6 @@ static void tela_aviso(void) {
       char num[8]; snprintf(num, sizeof num, "%d", i + 1);
       struct txt tn = fixo(num);
       corrida(E_MONO, 24, 0, xc + pad, yc + b_est, C_SEC, tn.c, tn.n, 1);
-      /* estado a direita: ponto + palavra */
       const char *pal; uint32_t cor; int anel = 0;
       if (fase == F_FILA) { pal = "na fila"; cor = C_SEC; anel = 1; }
       else if (fase == F_AGORA) { pal = "agora"; cor = C_ROSA; }
@@ -634,7 +556,6 @@ static void tela_aviso(void) {
       corrida(E_MONO, 24, 0, xd - we, yc + b_est, cor, te.c, te.n, 1);
       float xh = altura_maiuscula(E_MONO, 24);
       disco(xd - we - 18, yc + b_est - xh / 2, 6, cor, anel);
-      /* nome: ate 2 linhas */
       int a[2], b[2];
       int nn = quebrar(E_SEMI, pn, &C.passo[i].nome, wint, nlin, a, b);
       for (int k = 0; k < nn; k++)
@@ -643,10 +564,9 @@ static void tela_aviso(void) {
     }
   }
 
-  /* texto: paragrafo Regular 38 secundario, ate onde couber acima dos passos */
   if (C.texto.n) {
     const float px = 40; const int passo_l = 58;
-    int b = base_em(E_REG, px, fim_titulo + 80);   /* ar sob o titulo: a descendente dele nao encosta */
+    int b = base_em(E_REG, px, fim_titulo + 80);
     int maxl = (topo_passos - 56 - b) / passo_l + 1;
     if (maxl > 8) maxl = 8;
     if (maxl < 1) maxl = 1;
@@ -656,13 +576,10 @@ static void tela_aviso(void) {
   }
 }
 
-/* ---- resumo ------------------------------------------------------------------ */
-
 static void tela_resumo(void) {
   const int topo = 72, larg_util = LARG - 2 * MARGEM;
   fundo(C_FUNDO);
 
-  /* cabecalho: titulo + destaque (Bold 72) e canto (Mono 26) na mesma linha de base */
   const float pt = 72;
   int bt = base_em(E_BOLD, pt, topo);
   sem_quebra(&C.titulo); sem_quebra(&C.destaque); sem_quebra(&C.canto);
@@ -670,8 +587,6 @@ static void tela_resumo(void) {
   if (wc > larg_util / 2) wc = larg_util / 2;
   if (C.canto.n) linha(E_MONO, 24, 0, LARG - MARGEM, bt, C_SEC, C.canto.c, C.canto.n, wc, 1, "canto");
   float maxt = larg_util - (C.canto.n ? wc + 64 : 0), ph = pt;
-  /* titulo e destaque na mesma linha: se nao cabem, os dois diminuem juntos (ate 56 px) antes
-   * de cortar; a linha de base fica onde esta */
   for (; ph > 56; ph -= 2) {
     float w = largura(E_BOLD, ph, 0, C.titulo.c, C.titulo.n);
     if (C.destaque.n) w += 0.28f * ph + largura(E_BOLD, ph, 0, C.destaque.c, C.destaque.n);
@@ -684,19 +599,16 @@ static void tela_resumo(void) {
           maxt - wt - esp, 0, "destaque");
   }
 
-  /* rodape embaixo */
   sem_quebra(&C.rodape);
   int b_rod = ALT - 66;
   if (C.rodape.n) linha(E_MONO, 24, 0, MARGEM, b_rod, C_SEC, C.rodape.c, C.rodape.n, larg_util, 0, "rodape");
   int limite = b_rod - (int)altura_maiuscula(E_MONO, 24) - 36;
 
-  /* faixa de dicas (se houver) logo acima do rodape */
   const float pd = 28; const int passo_d = 42, pad_d = 22;
   int hd = C.ndicas ? 2 * pad_d + C.ndicas * passo_d - (passo_d - (int)altura_maiuscula(E_REG, pd)) + 8 : 0;
   int topo_cart = bt + 44;
   int fundo_cart = limite - (C.ndicas ? hd + 24 : 0);
 
-  /* cartoes dos grupos: 4 colunas, mesma altura de linha em todas */
   const int gap = 24, pad = 28, hcab = 72;
   const float pg = 30, pr = 26, pv = 34;
   float wcart = (larg_util - gap * (MAX_GRUPOS - 1)) / (float)MAX_GRUPOS;
@@ -704,7 +616,6 @@ static void tela_resumo(void) {
   for (int g = 0; g < C.ngrupos; g++) if (C.grupo[g].nitens > maxit) maxit = C.grupo[g].nitens;
   int passo_i = maxit ? (fundo_cart - topo_cart - hcab - 10) / maxit : 0;
   if (passo_i > 116) passo_i = 116;
-  /* folga da linha dividida por igual: do fio ao topo do rotulo e da base do valor ao fio seguinte */
   int folga = passo_i > 88 ? (passo_i - 88) / 2 : 0;
   int b_rot = 14 + folga + (int)altura_maiuscula(E_REG, pr);
   int b_val = b_rot + 18 + (int)altura_maiuscula(E_MONO_SEMI, pv);
@@ -724,8 +635,6 @@ static void tela_resumo(void) {
       int est = C.grupo[g].item[i].est;
       retangulo(xc + pad, yi, (int)wint, 2, 0, C_FIO);
       sem_quebra(&C.grupo[g].item[i].rot); sem_quebra(&C.grupo[g].item[i].val);
-      /* rotulo e, na mesma linha, o ponto de estado na borda direita; o valor embaixo, na cor
-       * do estado, com a largura toda (se nao couber, diminui ate 28 px antes de cortar) */
       float r = 6;
       linha(E_REG, pr, 0, xc + pad, yi + b_rot, C_SEC, C.grupo[g].item[i].rot.c, C.grupo[g].item[i].rot.n,
             wint - 2 * r - 16, 0, "item (rotulo)");
@@ -736,7 +645,6 @@ static void tela_resumo(void) {
     }
   }
 
-  /* dicas: faixa propria, marcador na cor de atencao */
   if (C.ndicas) {
     int yd = topo_cart + hcart + 24;
     retangulo(MARGEM, yd, larg_util, hd, 10, C_CARTAO);
@@ -762,7 +670,7 @@ int main(int argc, char **argv) {
   if (resumo) tela_resumo(); else tela_aviso();
   if (!stbi_write_png(argv[3], LARG, ALT, 3, tela, LARG * 3)) {
     fprintf(stderr, "nl_tela: nao consegui gravar %s\n", argv[3]);
-    unlink(argv[3]);      /* so arquivo: remove() apagaria uma pasta vazia passada por engano */
+    unlink(argv[3]);
     return 1;
   }
   return 0;
