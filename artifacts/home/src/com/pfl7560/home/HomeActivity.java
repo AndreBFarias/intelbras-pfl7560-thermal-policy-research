@@ -176,7 +176,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     public void aplicarLuz(final int nivel) {
         final Context app = getApplicationContext();
         modelo.luz = nivel;
-        modelo.aviso = "Luz " + nivel + "%: pedido enviado";
+        modelo.aviso = null;   // sem aviso no OK: o nivel marcado no painel ja mostra (pedido do dono)
         vista.invalidate();
         Thread t = new Thread(new Runnable() {
             @Override

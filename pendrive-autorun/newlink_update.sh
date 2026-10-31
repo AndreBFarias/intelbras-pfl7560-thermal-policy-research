@@ -122,12 +122,12 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-4ec528651ceb839a2a1350f9f73a9aea  suite.sh
-b451df61dfcaaee1d8418732c7a49269  suite-boot.sh
-1412caa0e99ed2c7d165b515f1574d81  suite-pedido.sh
+77629505a23fd38110318476aa14fd77  suite.sh
+b34e70a0fe9ebf532ffcf123f7e1e7e2  suite-boot.sh
+df2a99fa59c235863cc8f1b3cc7e2ed5  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 a339b061efc6e6a8e0421dc9f1eb9e8d  pfl7560.apk
-50b67b323e51b2dd9aa9a7ee1535744e  pfl7560-home.apk
+2a8492aed1a15da355995c93ce9db4ed  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png

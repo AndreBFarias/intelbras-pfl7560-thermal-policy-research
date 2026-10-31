@@ -35,7 +35,12 @@ R="${PFL_ROOT:-}"
 SUITE="$R/data/vendor/pfl7560-suite"
 FIM_ARQ="$SUITE/ultimo-fim"
 LOCK="$R/dev/pfl7560-suite.lock"
-PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
+# cada pedido so vale vindo da pasta privada do app dele: a verificacao do app Verificar,
+# a luz da home (o atalho Luz mora na home; visto no aparelho em 2026-10-31: o vigia so
+# olhava a pasta do Verificar e o pedido de luz da home nunca era lido)
+VERIF_DIR="$R/data/data/com.pfl7560.verificar"
+HOME_DIR="$R/data/data/com.pfl7560.home"
+PEDIDO_DIR="$VERIF_DIR"
 LUZ_ARQ="$SUITE/luz"
 HIDEBUG="$R/vendor/bin/hidebug"
 INTERVALO_MIN=600
@@ -46,7 +51,7 @@ APP_UID_MIN=10000
 
 # md5 do suite.sh. Gerado por tests/atualizar-md5-kit.sh. NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="4ec528651ceb839a2a1350f9f73a9aea"
+SUITE_MD5="77629505a23fd38110318476aa14fd77"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -173,7 +178,13 @@ fi
 
 # so os arquivos dos pedidos, e so escrita fechada (w) ou movido para dentro (y)
 NOME="${3:-}"
-case "$NOME" in pedir-verificacao|luz) ;; *) exit 0 ;; esac
+case "$NOME" in
+  pedir-verificacao) PEDIDO_DIR="$VERIF_DIR" ;;
+  luz) PEDIDO_DIR="$HOME_DIR" ;;
+  *) exit 0 ;;
+esac
+# a pasta do evento tem de ser a do app daquele pedido (nada de luz pela pasta do Verificar)
+[ "${2%/}" = "$PEDIDO_DIR" ] || exit 0
 case "${1:-}" in *w*|*y*) ;; *) exit 0 ;; esac
 # a origem e conferida ANTES de apagar; depois apaga (um link e apagado, nunca
 # seguido). O pedido de verificacao nao tem o conteudo lido; o de luz tem, so se veio do app

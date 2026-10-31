@@ -701,7 +701,6 @@ graus(){ getprop "$1" 2>/dev/null | tr -cd '0-9.' | cut -c1-8; }
 etapa_temperatura(){
   novos_campos etapa3
   campo etapa "Etapa 3 de 4 \u00b7 temperatura"
-  campo canto "s\u00f3 leitura"
   campo titulo "Temperatura"
   campo texto "Lendo os sensores do LED e da placa, a ventoinha e o brilho. Nada \u00e9 alterado."
   passos_fila "feito|$P_COR" "feito|$P_GEO" agora fila
@@ -1000,6 +999,7 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
   done
   # a pasta do app e dele: so o pedido pendente sai (num link, nada e seguido)
   [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" 2>/dev/null
+  [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"
 }

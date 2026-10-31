@@ -42,9 +42,11 @@ INCOMPLETAS_ARQ="$SUITE/incompletas"
 BOOT_LOG="$SUITE/boot.log"
 LOCK="$R/dev/pfl7560-suite.lock"
 VIGIA_PID="$R/dev/pfl7560-suite.vigia"
-# pasta privada do app "Verificar projetor": so o UID do app grava nela (revisao de
-# seguranca de 2026-10-30; em /sdcard qualquer app disparava a suite)
-PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
+# pastas privadas dos apps: so o UID de cada app grava nela (revisao de seguranca de
+# 2026-10-30; em /sdcard qualquer app disparava a suite). Verificar: pedir-verificacao;
+# home: luz (o atalho Luz mora na home)
+VERIF_DIR="$R/data/data/com.pfl7560.verificar"
+HOME_DIR="$R/data/data/com.pfl7560.home"
 MIDIA="$R/mnt/media_rw"
 RTC="$R/sys/class/rtc/rtc0/since_epoch"
 PM="$R/proc/msp/pm"
@@ -54,8 +56,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="4ec528651ceb839a2a1350f9f73a9aea"
-PEDIDO_MD5="1412caa0e99ed2c7d165b515f1574d81"
+SUITE_MD5="77629505a23fd38110318476aa14fd77"
+PEDIDO_MD5="df2a99fa59c235863cc8f1b3cc7e2ed5"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -188,11 +190,11 @@ vigia_vivo(){
 vigia_laco(){
   _v=0
   while :; do
-    if [ -f "$PEDIDO_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
-      sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao
+    if [ -f "$VERIF_DIR/pedir-verificacao" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
+      sh "$SUITE/suite-pedido.sh" w "$VERIF_DIR" pedir-verificacao
     fi
-    if [ -f "$PEDIDO_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
-      sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" luz
+    if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
+      sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
     _v=$(( _v + 1 ))
     [ "$VIGIA_VOLTAS" != "0" ] && [ "$_v" -ge "$VIGIA_VOLTAS" ] && break
@@ -205,19 +207,25 @@ ligar_vigia(){
     LOG "[ERRO] suite-pedido.sh ausente, link, de outro dono ou com md5 diferente - vigia NAO ligado."
     return 1
   fi
-  if [ ! -d "$PEDIDO_DIR" ] || [ -L "$PEDIDO_DIR" ]; then
-    LOG "[AVISO] pasta do app $PEDIDO_DIR ausente (app nao instalado?) ou link - vigia NAO ligado."
+  # as pastas que existem (app instalado) e nao sao link
+  _vig=""
+  for _pd in "$VERIF_DIR" "$HOME_DIR"; do
+    if [ -d "$_pd" ] && [ ! -L "$_pd" ]; then _vig="$_vig $_pd"
+    else LOG "[AVISO] pasta do app $_pd ausente (app nao instalado?) ou link - nao vigiada."; fi
+  done
+  if [ -z "$_vig" ]; then
+    LOG "[AVISO] nenhuma pasta de app para vigiar - vigia NAO ligado."
     return 1
   fi
   # um pedido que ja estava na pasta (feito antes do vigia ligar) nao gera evento de
   # criacao: e tratado agora, uma vez
-  if [ -f "$PEDIDO_DIR/pedir-verificacao" ]; then
+  if [ -f "$VERIF_DIR/pedir-verificacao" ]; then
     LOG "pedido pendente de antes do vigia: tratando agora"
-    sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" pedir-verificacao >>"$SUITE/vigia.log" 2>&1 </dev/null
+    sh "$SUITE/suite-pedido.sh" w "$VERIF_DIR" pedir-verificacao >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  if [ -f "$PEDIDO_DIR/luz" ]; then
+  if [ -f "$HOME_DIR/luz" ]; then
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
-    sh "$SUITE/suite-pedido.sh" w "$PEDIDO_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
+    sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
   # inotifyd executa o suite-pedido.sh a cada evento: w = escrita fechada (o app terminou
   # de gravar), y = movido para dentro. O inotifyd do toybox do aparelho IGNORA a 1a letra
@@ -225,7 +233,8 @@ ligar_vigia(){
   # ":nwy" entregava "w"). Por isso ":wwy": com ou sem o defeito, a mascara e w + y.
   # O suite-pedido.sh fica na pasta so do root, conferida acima.
   if command -v inotifyd >/dev/null 2>&1; then
-    inotifyd "$SUITE/suite-pedido.sh" "$PEDIDO_DIR:wwy" >>"$SUITE/vigia.log" 2>&1 </dev/null &
+    # shellcheck disable=SC2046  # uma "pasta:wwy" por pasta, divisao de proposito
+    inotifyd "$SUITE/suite-pedido.sh" $(for _pd in $_vig; do printf '%s:wwy ' "$_pd"; done) >>"$SUITE/vigia.log" 2>&1 </dev/null &
     _tipo=inotifyd
   else
     vigia_laco >>"$SUITE/vigia.log" 2>&1 </dev/null &

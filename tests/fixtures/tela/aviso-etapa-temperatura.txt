@@ -1,6 +1,5 @@
-# C-tela, aviso: etapa sem camera (temperatura, so leitura)
+# C-tela, aviso: etapa sem camera (temperatura)
 etapa=Etapa 4 de 5
-canto=s\u00f3 leitura
 titulo=Temperatura e ventoinha
 texto=Lendo os dois sensores, a ventoinha e o brilho. Nada \u00e9 alterado nesta etapa.\nBloco do LED a 61 \u00b0C e placa a 30 \u00b0C: dentro do normal.
 passo=Cor do painel|feito|corrigido
