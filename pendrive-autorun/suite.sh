@@ -157,6 +157,9 @@ SINAL_INCLINACAO=1
 LED_QUENTE=66         # C: o sensor do LED (zysys.env_temp) a partir do qual a escada de brilho age
 RAMPA_LED_MAX=66      # C: com o LED ja quente o teste da rampa nao injeta (o override mascara o sensor)
 
+# descanso de tela do fabricante (bloco 16B): o desinstalar o devolve no lugar do MeowCast
+DESCANSO_FABRICA="com.newlink.screensaver/com.newlink.screensaver.ScreenService"
+
 # ---- rampa: o override de temperatura (fato 6 do bloco 9) ----------------------
 # 71000 mC fica ACIMA do WARNING (70000) e ABAIXO do EMERGENCY do .ini corrigido. FIXO
 # de proposito: no EMERGENCY o DEFAULT_PROTECT=2 desliga o aparelho na hora. Nunca
@@ -992,6 +995,18 @@ modo_desinstalar(){ # $1 = mountpoint do pendrive (opcional)
     if grep -q '^vendor\.newlink\.launcher\.package=com\.pfl7560\.home$' "$BP" 2>/dev/null; then LOG "[ERRO] nao consegui tirar a home nova do build.prop."; _drc=1
     elif [ "$_hl" = "1" ]; then LOG "[OK] home nova desligada (a de fabrica volta no proximo boot)"; fi
   fi
+  # o descanso de tela MeowCast (bloco 16B) volta ao do fabricante, mas so se ainda for o nosso
+  # (se o dono escolheu outro nas configuracoes, nao se mexe)
+  for _k in screensaver_components screensaver_default_component; do
+    case "$(timeout 10 settings get secure "$_k" 2>/dev/null)" in
+      com.pfl7560.verificar/*)
+        if timeout 10 settings put secure "$_k" "$DESCANSO_FABRICA" >/dev/null 2>&1; then
+          LOG "[OK] descanso de tela: $_k voltou ao do fabricante"
+        else
+          LOG "[AVISO] nao consegui devolver $_k ao do fabricante ($DESCANSO_FABRICA)."; _drc=1
+        fi ;;
+    esac
+  done
   # a marca de "ligado" do suite-boot.sh nao fica para tras
   [ "$(getprop persist.sys.boot.reason 2>/dev/null)" = "pfl7560,ligado" ] && setprop persist.sys.boot.reason ""
   for _dd in "$SUITE" "$TELA_DIR"; do

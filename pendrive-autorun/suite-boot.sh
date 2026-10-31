@@ -17,6 +17,9 @@
 #   2. Decide se a suite roda (arquivo gatilho: auto, sempre ou nunca).
 #   2b. Reaplica o nivel de luz que o dono escolheu no atalho Luz da home (arquivo luz,
 #      bloco 15), com qualquer gatilho: e escolha do dono, nao da suite. Sem o arquivo, nao mexe.
+#   2c. Liga o descanso de tela MeowCast (bloco 16B), com qualquer gatilho: confere
+#      screensaver_components e screensaver_default_component e aponta os dois para
+#      com.pfl7560.verificar/.Descanso se forem outro, mas so com o servico instalado.
 #   3. Liga o vigia do pedido do app (inotifyd; sem ele, um laco de 30 s).
 #   4. Lanca suite.sh tomada destacado, com o md5 dele conferido NA HORA contra o
 #      embutido aqui.
@@ -54,8 +57,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="4ec528651ceb839a2a1350f9f73a9aea"
-PEDIDO_MD5="1412caa0e99ed2c7d165b515f1574d81"
+SUITE_MD5="91b3e06654a871288b49ea83e98e3af4"
+PEDIDO_MD5="4026bc72056b23a96578567219577e4c"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -179,6 +182,34 @@ reaplicar_luz(){
   fi
 }
 
+# ---- descanso de tela MeowCast (bloco 16B) ---------------------------------------
+# O servico e o .Descanso do app com.pfl7560.verificar. So se aponta para ele se o sistema o
+# enxerga como DreamService (cmd package query-services, e dumpsys package como reserva); sem
+# ele (app ausente, firmware sem o comando) nao se mexe em nada. O suite.sh --desinstalar
+# devolve o do fabricante (com.newlink.screensaver/.ScreenService).
+DESCANSO="com.pfl7560.verificar/.Descanso"
+descanso_existe(){
+  timeout 15 cmd package query-services --components -a android.service.dreams.DreamService 2>/dev/null \
+    | grep -q 'com\.pfl7560\.verificar/.*Descanso' && return 0
+  timeout 15 dumpsys package com.pfl7560.verificar 2>/dev/null | grep -q 'com\.pfl7560\.verificar/[.a-z0-9]*Descanso'
+}
+ligar_descanso(){
+  if ! descanso_existe; then
+    LOG "descanso: o servico $DESCANSO nao existe neste boot (app nao instalado?) - nada mexido."
+    return 0
+  fi
+  for _k in screensaver_components screensaver_default_component; do
+    _v=$(timeout 10 settings get secure "$_k" 2>/dev/null | tr -d '\r')
+    if [ "$_v" = "$DESCANSO" ]; then
+      LOG "descanso: $_k ja e $DESCANSO"
+    elif timeout 10 settings put secure "$_k" "$DESCANSO" >/dev/null 2>&1; then
+      LOG "descanso: $_k era '$(limpo "$_v")', agora $DESCANSO"
+    else
+      LOG "[AVISO] descanso: nao consegui gravar $_k."
+    fi
+  done
+}
+
 # ---- vigia do pedido do app --------------------------------------------------
 vigia_vivo(){
   _p=$(head -n 1 "$VIGIA_PID" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
@@ -259,6 +290,7 @@ fi
 LOG "sys.boot.reason='$S_BR' ano_boot='$S_ANO' gatilho=$GATILHO decisao=$DECISAO motivo=$MOTIVO"
 
 reaplicar_luz
+ligar_descanso
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then
