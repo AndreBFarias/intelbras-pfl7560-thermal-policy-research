@@ -1,0 +1,10 @@
+# gerado por molde-alvo.py de ZYCustomUI.apk (md5 f6e125df); nao editar a mao
+0x7f04004d color/pt_green
+0x7f04004e color/pt_green_black
+0x7f04004f color/pt_grey_white
+0x7f05005f dimen/layout_width
+0x7f06007f drawable/match_ir_jinju
+0x7f060080 drawable/match_ir_yuyin1280x800
+0x7f07008f id/layout_main
+0x7f070090 id/layout_source_grid
+0x7f09001e layout/layout_main
