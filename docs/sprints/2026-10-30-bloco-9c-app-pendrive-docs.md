@@ -61,3 +61,47 @@ desligar nada). Harness simples com saída fixa de `top` gravada.
 `make check`, `check-kit`, `check-fix` verdes; `artifacts/app/build.sh` gera o APK do zero e `apksigner verify`
 passa; `aapt2 dump badging` mostra as duas atividades com `LAUNCHER` e `LEANBACK_LAUNCHER`;
 `tests/preparar-pendrive.sh` recusa disco não removível (teste com `lsblk` falso).
+
+## Entradas da integração de 9A e 9B e da pesquisa P (coordenador, 2026-10-30)
+
+Isto vale por cima do texto acima quando os dois discordarem.
+
+1. **App.**
+   - O pedido vai para `new File(getDataDir(), "pedir-verificacao")`, já integrado no vigia em `3c92cdb`. O
+     vigia confere que o dono do arquivo é o UID do app, e um link é recusado.
+   - Grave com `FileOutputStream` normal: o arquivo nasce com o dono certo.
+   - Não precisa de permissão. `targetSdk 28` basta.
+   - Pela pesquisa P §6, o launcher lista só `MAIN` + `LAUNCHER` com `loadIcon`. O `LEANBACK_LAUNCHER` e o
+     banner não fazem mal, mas são opcionais: deixe só se custar pouco.
+   - O ícone passa a funcionar no boot **seguinte** à instalação, porque o vigia liga no boot. Diga isso na
+     tela "Verificação pedida" quando o pedido não for atendido em 60 s? Não: o app não tem como saber. Diga
+     isso no LEIA-ME e no doc 44.
+2. **Tecla do controle.** Pela pesquisa P §4, não é possível com confiança: o mapa de teclas é fixo, e a única
+   ação configurável vem das teclas de fábrica NEWLINK7..9, que o controle comum provavelmente não tem.
+   Registre no doc 44 como **não feito, com o porquê**. Não implemente nada para teclas.
+3. **Item no menu de configurações.** O menu é do app do fabricante (`com.zhiying.settings`) e não tem ponto de
+   extensão conhecido. Registre no doc 44 como **não feito**, com o porquê. O ícone "Verificar projetor" na lista
+   de apps cobre o pedido.
+4. **Firmware de resgate no pendrive (`--com-firmware`).**
+   - O oficial do aparelho do dono é o V1.0.0.9, do `firmware/Software PFL7560.zip`, com o `.bin` de md5
+     `28a2f280eee313a4b115567926b2ba4f`. Ele vai na raiz como `usb_update.bin`, conferido pelo md5.
+   - **Nunca** use o `firmware/Firmware PFL7560.zip`, que é do modelo sem USB-C (doc 42).
+   - O nosso é o `firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin` (md5 `eae3a83db44f790b64b9a5838a27a977`). Ele vai
+     em `firmware-nosso-NAO-GRADUADO/` com um `LEIA-ME.txt` ASCII: não está ativo, não foi provado no hardware,
+     e só vale com a palavra do dono no momento.
+   - Faltando um dos arquivos de origem ou com md5 diferente, a opção falha com mensagem clara e não copia
+     pela metade.
+   - Teste com `.bin` falsos pequenos, injetando o md5 esperado por variável **só no harness**, no padrão
+     `PFL_TESTE`.
+5. **Documentação**, que o 9B pediu e cabe aqui:
+   - o `DESINSTALAR-SUITE.txt` leva a cópia do backup para o pendrive como
+     `suite-panelparam-backup-<serial>.img`;
+   - o arquivo `incompletas` e o motivo `interrompida_2x_seguidas` no histórico;
+   - o limite conhecido das telas mostradas a partir de `/sdcard/pfl7560-suite`, descrito na seção de
+     integração da tarefa 9B;
+   - o `INSTALL.md` e o `LEIA-ME.txt` citam `nl_tela` e `fontes/`, e o comentário do `copiar_pendrive` no
+     `install.sh` lista o kit inteiro.
+6. **O que o teste final no aparelho precisa confirmar.** Junte as listas "só o aparelho confirma" dos relatórios
+   do 9A e do 9B, que estão nas seções "Estado" das tarefas 9A e 9B e na seção de integração da 9B. O doc 44
+   ganha uma seção "Teste no aparelho" com um roteiro único, em ordem, com o comando de cada passo e o que se
+   espera ver. É a lista que o coordenador vai seguir com o dono.
