@@ -85,7 +85,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034  # so conferidos pelo harness contra o build.sh e o apk
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="3"
+APP_VERSION_CODE="4"
 ESPERA_REBOOT=8
 # dono exigido na pasta de trabalho e nos arquivos dela (root = 0)
 DONO_UID=0
@@ -125,10 +125,10 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 8bf8bae6410b6b289d55e92671870d3b  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 19d13737cd8db7ec26b53ef5dbb2ebb7  suite.sh
-de9976bb30f57077ed52ed01e3f56be6  suite-boot.sh
-58d350ae48ef0f2c1a231a2eac95b500  suite-pedido.sh
+c013ed9c7f1dcf531068c3c5a7990dc1  suite-boot.sh
+697c5fbb91a5e61e59ce9c942bfbea43  suite-pedido.sh
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-06349058b023bef8992c86b6b67277d0  pfl7560.apk
+2b70e7f67a4c8979c7974e0face601a3  pfl7560.apk
 a2eaa639a4687070762d37da7cc3d122  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png

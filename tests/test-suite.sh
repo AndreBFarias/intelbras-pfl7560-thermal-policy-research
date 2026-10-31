@@ -849,6 +849,42 @@ c_luz(){
   afirma 'tem_chamada "setsid sh $S/suite.sh pedido" && [ ! -e "$PED/pedir-verificacao" ] && [ "$(luz_prop)" = 60 ]' "a verificacao ou a luz quebrou"
   limpa
 
+  # ---- descanso de tela: luz a 10% e volta ----
+  novo_cenario "descanso: inicio = luz a 10% sem mexer no nivel guardado; fim = volta ao guardado"
+  instala_suite; echo 60 > "$S/luz"; chmod 600 "$S/luz"; : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  afirma 'tem_chamada "HIDEBUG  picture sbl 10 quit " && [ "$(cat "$S/luz")" = 60 ] && [ ! -e "$PED/descanso-inicio" ]' "inicio: $(grep HIDEBUG "$T/calls.log")"
+  : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 60 quit " && grep -q "luz de volta a 60%" "$S/vigia.log"' "fim nao voltou a 60"
+  limpa
+
+  novo_cenario "descanso: fim sem nivel guardado = volta a 100%"
+  instala_suite; : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  afirma 'tem_chamada "HIDEBUG  picture sbl 100 quit "' "nao voltou a 100"
+  limpa
+
+  novo_cenario "descanso: com a suite rodando (trava) = nao mexe na luz"
+  instala_suite; mkdir "$R/dev/pfl7560-suite.lock"; : > "$PED/descanso-inicio"
+  roda_pedido w "$PED" descanso-inicio
+  afirma '[ "$(grep -c "^HIDEBUG" "$T/calls.log")" = 0 ] && grep -q "descanso inicio sem efeito" "$S/vigia.log"' "mexeu na luz com a trava"
+  limpa
+
+  novo_cenario "descanso: pela pasta da home ou que nao veio do app = ignorado"
+  instala_suite; : > "$PEDH/descanso-inicio"
+  roda_pedido w "$PEDH" descanso-inicio
+  : > "$PED/descanso-inicio"
+  APP_UID_MIN_TESTE=99999999 roda_pedido w "$PED" descanso-inicio
+  afirma '[ "$(grep -c "^HIDEBUG" "$T/calls.log")" = 0 ]' "aceitou descanso de origem errada"
+  limpa
+
+  novo_cenario "descanso: sinais velhos no boot sao apagados (o boot reaplica o nivel)"
+  instala_suite; : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"
+  roda_boot
+  afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ] && ! grep -q "sbl 10" "$T/calls.log"' "sinal velho do descanso sobrou ou foi aplicado"
+  limpa
+
   # ---- boot ----
   novo_cenario "luz: boot reaplica o nivel guardado e atualiza a prop da luz"
   instala_suite; echo 40 > "$S/luz"; chmod 600 "$S/luz"

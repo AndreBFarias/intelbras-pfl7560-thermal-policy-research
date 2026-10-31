@@ -12,6 +12,9 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -94,12 +97,32 @@ public class Descanso extends DreamService {
         hora.setText(formato.format(new Date()));
         // 1o movimento daqui a um minuto cheio do relogio
         maos.postDelayed(tique, MINUTO_MS - System.currentTimeMillis() % MINUTO_MS);
+        // a luz do projetor desce a 10% enquanto o descanso estiver na tela (pedido do dono): o
+        // vigia root le o pedido na pasta privada do app e aplica (suite-pedido.sh)
+        pedir("descanso-inicio");
     }
 
     @Override
     public void onDreamingStopped() {
         maos.removeCallbacks(tique);
+        // a luz volta ao nivel escolhido pelo dono
+        pedir("descanso-fim");
         super.onDreamingStopped();
+    }
+
+    /** Grava o pedido $nome na pasta privada do app, fora da thread da interface. */
+    private void pedir(final String nome) {
+        final File f = new File(getDataDir(), nome);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try (FileOutputStream o = new FileOutputStream(f)) {
+                    o.write('1');
+                } catch (IOException e) {
+                    // sem o pedido a luz so nao muda; o descanso segue igual
+                }
+            }
+        }).start();
     }
 
     @Override

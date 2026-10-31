@@ -180,10 +180,29 @@ if [ "${1:-}" = "aplicar-luz" ]; then
   exit 0
 fi
 
+# ---- descanso de tela (pedido do dono, 2026-10-31): luz a 10% enquanto ele estiver na tela
+DESCANSO_LUZ=10
+# o nivel que o dono escolheu (10..100), ou 100 sem escolha
+luz_guardada(){
+  _b=""
+  arq_seguro "$LUZ_ARQ" && _b=$(head -c 16 "$LUZ_ARQ" 2>/dev/null | tr -d '\r\n')
+  luz_valida "$_b" || printf '100'
+}
+# $1 = inicio|fim. Nao mexe no nivel guardado nem na prop da home; com a suite rodando
+# (trava, rampa no meio) nao age. O boot reaplica o nivel guardado de qualquer jeito.
+tratar_descanso(){
+  if [ -d "$LOCK" ]; then LOG "a suite esta rodando (trava): descanso $1 sem efeito na luz."; return 0; fi
+  if [ ! -x "$HIDEBUG" ]; then LOG "[AVISO] hidebug ausente - descanso $1 sem efeito na luz."; return 0; fi
+  if [ "$1" = "inicio" ]; then _dv="$DESCANSO_LUZ"; else _dv=$(luz_guardada); fi
+  printf 'picture\nsbl %s\nquit\n' "$_dv" | timeout 15 "$HIDEBUG" >/dev/null 2>&1
+  if [ "$1" = "inicio" ]; then LOG "descanso na tela: luz a $_dv% (o nivel do dono continua guardado)"
+  else LOG "descanso terminou: luz de volta a $_dv%"; fi
+}
+
 # so os arquivos dos pedidos, e so escrita fechada (w) ou movido para dentro (y)
 NOME="${3:-}"
 case "$NOME" in
-  pedir-verificacao) PEDIDO_DIR="$VERIF_DIR" ;;
+  pedir-verificacao|descanso-inicio|descanso-fim) PEDIDO_DIR="$VERIF_DIR" ;;
   luz) PEDIDO_DIR="$HOME_DIR" ;;
   *) exit 0 ;;
 esac
@@ -212,6 +231,7 @@ if [ -e "$PEDIDO_DIR/$NOME" ] || [ -L "$PEDIDO_DIR/$NOME" ]; then
 fi
 if [ "$DO_APP" != "1" ]; then LOG "[AVISO] o pedido nao veio do app (dono do arquivo nao e o da pasta do app) - ignorado."; exit 0; fi
 if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
+case "$NOME" in descanso-*) tratar_descanso "${NOME#descanso-}"; exit 0 ;; esac
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi
 # o pedido e do dono (tocou no icone): roda mesmo se a suite acabou de rodar. A protecao
 # de 10 min e contra laco no boot (suite-boot.sh), nao contra quem pede (2026-10-31).
