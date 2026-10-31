@@ -272,8 +272,9 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
   `settings`, `input`, `dumpsys` e `logcat` moram em `/system/bin` (visto no aparelho em 2026-10-31: `exec cmd:
   No such file or directory` no boot). O `suite-boot.sh`, o `suite-pedido.sh`, o `suite.sh` e o `cor.sh` fixam o
   PATH (`/system/bin` antes) na primeira linha que roda em produção.
-- O `inotifyd` vigia a pasta que existia quando ligou. Se um app for reinstalado (a pasta dele é apagada e
-  criada de novo), o pedido daquele app só volta a ser lido no boot seguinte.
+- O `inotifyd` vigia a pasta que existia quando ligou. Se a pasta de um app for apagada e criada de novo (o app
+  desinstalado e instalado outra vez; a atualização por cima, que o kit faz, mantém a pasta), o pedido daquele
+  app só volta a ser lido no boot seguinte.
 - `inotifyd`: pelo código do toybox e do busybox, `y` é "movido para dentro" e `m` "movido para fora" (a ajuda
   de uma das versões diz o contrário). O teste 6 confirma.
 
