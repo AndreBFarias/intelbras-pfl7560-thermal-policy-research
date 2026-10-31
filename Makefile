@@ -17,9 +17,11 @@ check-kit:
 	bash tests/test-preparar-pendrive.sh
 	bash tests/test-processos.sh
 
-# builder do .bin (bloco 6): offset do vendor lido da tabela, em containers sinteticos.
+# builder do .bin (bloco 6): offset do vendor lido da tabela, em containers sinteticos; e o
+# manifesto --conteudo (bloco 12) com as recusas (espaco, slot, metadados).
 # Com PFL_STOCK_ANTIGO=<PFL7560.bin V1.0.0.9> e PFL_STOCK_NOVO=<PFL7560.bin V1.0.0.1> roda
-# tambem com os stocks de verdade (so leitura; 1,3 GB cada, leva alguns minutos).
+# tambem com os stocks de verdade (so leitura; 1,3 GB cada, leva alguns minutos; o
+# PFL_STOCK_ANTIGO roda ainda o conteudo.txt e apaga o .bin de teste).
 check-bin:
 	python3 tests/test-builder-bin.py
 
