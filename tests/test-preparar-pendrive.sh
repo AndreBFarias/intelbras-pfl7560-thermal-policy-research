@@ -268,6 +268,7 @@ afirma '[ "$(sed -n "s/^\$OficialMd5 = .\([0-9a-f]*\).$/\1/p" "$PS1")" = "$(sed 
 afirma '[ "$(sed -n "s/^\$NossoMd5 = .\([0-9a-f]*\).$/\1/p" "$PS1")" = "$(sed -n "s/^FW_NOSSO_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do nosso difere entre o .ps1 e o install.sh"
 afirma '[ "$(cut -d" " -f1 "$ROOT/firmware/PFL7560-FIX-escada-NAO-GRADUADO.bin.md5")" = "$(sed -n "s/^FW_NOSSO_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do nosso no install.sh difere do firmware/*.bin.md5"
 afirma 'grep -q "28a2f280eee313a4b115567926b2ba4f" "$ROOT/pendrive-autorun/LEIA-ME.txt" && grep -q "^FW_OFICIAL_MD5=\"28a2f280eee313a4b115567926b2ba4f\"" "$ROOT/install.sh"' "md5 oficial do install.sh difere do citado no LEIA-ME do kit"
+afirma 'grep -q "SO para o aparelho COM entrada USB-C (V1.0.0.9)" "$ROOT/pendrive-autorun/LEIA-ME.txt" && grep -q "Só serve para o aparelho \*\*com USB-C\*\*" "$ROOT/INSTALL.md"' "o LEIA-ME do kit ou o INSTALL.md nao dizem que o resgate e so do modelo com USB-C"
 afirma 'grep -q "^FW_OFICIAL_ZIP=\"Software PFL7560.zip\"" "$ROOT/install.sh" && grep -q "^\$ZipNome = .Software PFL7560.zip.$" "$PS1"' "o zip de origem do resgate nao e o Software PFL7560.zip (o Firmware PFL7560.zip e do modelo sem USB-C)"
 
 CASO="estaticos"

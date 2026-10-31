@@ -46,8 +46,9 @@ Sem PC e sem adb. O firmware executa `newlink_update.sh` no boot (como root).
    contra a lista embutida no `newlink_update.sh`: no Linux/macOS `./install.sh --pendrive /caminho/do/pendrive`,
    no Windows `install.bat` opção 5 (pede a letra do pendrive). Se um arquivo não conferir, não use o pendrive.
    Para formatar e preparar um pendrive do zero (FAT32, com o kit e o firmware de resgate), no Linux:
-   `sudo bash tests/preparar-pendrive.sh /dev/sdX`: só aceita pendrive removível por USB, pede para digitar o
-   dispositivo antes de formatar e confere o md5 no fim (ver "Firmware de resgate" abaixo).
+   `sudo bash tests/preparar-pendrive.sh /dev/sdX`: só aceita pendrive removível por USB (o disco inteiro ou uma
+   partição dele), confere o md5 do firmware **antes** de formatar, pede para digitar o dispositivo e confere o
+   md5 de tudo no fim (ver "Firmware de resgate" abaixo).
    O aparelho faz a mesma conferência e **aborta sem escrever nada** se faltar ou divergir qualquer arquivo.
 3. Com o projetor **desligado**, plugue o pendrive numa porta USB dele.
 4. **Ligue.** Se aparecer "AJUSTANDO", espere: a parte térmica é aplicada e o aparelho **reinicia sozinho** uma vez (~1 min). Se nenhuma tela do kit aparecer em 2 minutos, desligue e ligue de novo (o pendrive montou tarde).
@@ -85,6 +86,7 @@ simulação** (`make check-kit`); a bancada no aparelho ainda não foi feita (et
 `firmware-nosso-NAO-GRADUADO/`, com um `LEIA-ME.txt`: ele **não está ativo**, não foi provado no hardware e só vale
 com a palavra do dono. O nosso `.bin` é local (`*.bin` fora do git): coloque-o em `firmware/`, ou aponte outra
 pasta com `PFL_FIRMWARE_DIR=<pasta>`. Faltou um arquivo ou o md5 não bate: a opção falha e não copia nada.
+Só serve para o aparelho **com USB-C** (V1.0.0.9): no modelo sem USB-C (V1.0.0.1) não use este pendrive de resgate.
 
 Instruções resumidas: `pendrive-autorun/LEIA-ME.txt`.
 

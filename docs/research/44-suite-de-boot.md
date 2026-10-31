@@ -62,13 +62,16 @@ kit inteiro (suíte, `nl_tela`, `fontes/`, APK, `kit/*.png`) e confere o md5 de 
   ativo**, não foi provado no hardware e só vale com a palavra do dono. Nunca com o nome `usb_update.bin`.
 - Faltou um dos arquivos de origem ou o md5 não bate: erro claro e **nada** é copiado (as origens são
   conferidas antes de tocar o pendrive; falha no meio remove o firmware). `PFL_FIRMWARE_DIR=<pasta>` aponta
-  outra pasta de firmware.
+  outra pasta de firmware; `./install.sh --conferir-firmware` só confere as origens, sem copiar.
+- Só para o aparelho **com USB-C** (V1.0.0.9). No modelo sem USB-C (V1.0.0.1) este `usb_update.bin` não serve.
 
 `tests/preparar-pendrive.sh <dispositivo>` formata e prepara do zero: só aceita disco **removível por USB**
-(`lsblk` RM=1 e TRAN=usb) sem nada do sistema montado, mostra modelo e tamanho, exige que se **digite** o
-caminho do dispositivo, formata FAT32 (`mkfs.vfat -F 32 -n PFL7560`), monta, chama o `install.sh --pendrive ...
---com-firmware` e desmonta. Disco fixo, HD externo USB e cartão interno são recusados sem perguntar. Provado com
-`lsblk` e `mkfs.vfat` de mentira; **nunca foi rodado num disco de verdade**.
+(`lsblk` RM=1 e TRAN=usb), informado como o disco inteiro ou uma partição dele, sem nada do sistema montado;
+confere o firmware (arquivos e md5, pelo `install.sh --conferir-firmware`) **antes** de formatar; mostra modelo e
+tamanho, exige que se **digite** o caminho do dispositivo, formata FAT32 (`mkfs.vfat -F 32 -n PFL7560`), monta,
+chama o `install.sh --pendrive ... --com-firmware` e desmonta. Disco fixo, HD externo USB, cartão interno e
+dispositivo mapeado (crypt, LVM) são recusados sem perguntar. Provado com `lsblk` e `mkfs.vfat` de mentira;
+**nunca foi rodado num disco de verdade**.
 
 Um pendrive com `--com-firmware` é o arranjo B do `LEIA-ME.txt` (kit de emergência): ligar **segurando o power**
 com ele plugado reflasha o aparelho e apaga o `/data`. Mantenha-o desconectado no uso normal.
@@ -237,7 +240,7 @@ uma versão nova: subir os dois números, `bash artifacts/app/build.sh`, `bash t
 | Leitura de `persist.sys.mountingmode` (o rótulo do menu não foi provado) e a unidade de `fan speed` (0 = parada) | `suite.sh` | comparar com o menu e o `hidebug` |
 | `inotifyd` no toybox do Android 9 e o evento de escrita do app na pasta ext4 | `suite-boot.sh` | teste 5 e 6 |
 | `logcat -T 1` no Android 9 (sem ele: "não reagiu" falso, nunca injeção sem limpeza) | `suite.sh` | teste 12 |
-| `pm install -r` a partir de `/data/vendor/pfl7560-kit`, como root no `exec` do init | `newlink_update.sh` | teste 1 |
+| `pm install -r` a partir de `/data/vendor/pfl7560-kit`, como root no `exec` do init | `newlink_update.sh` | teste 1 e 2: o `[OK] app` no `newlink_update.log`. Se vier `[AVISO] app: pm install falhou`, anote a mensagem: o `system_server` lê o APK pelo descritor que o `pm` abre, e o SELinux pode negar a leitura de um arquivo de `/data/vendor` (hipótese, não medida) |
 | Formato do `top` do Android 9 (toybox, `S[%CPU]`) no `pfl7560-processos.sh` | `pfl7560-processos.sh` | teste 14 |
 | Tempo de geração e abertura do PNG do `nl_tela` pela galeria | `nl_tela`, `suite.sh` | teste 13 |
 | `tests/preparar-pendrive.sh` e a opção 5 do `install.bat` com firmware | `tests/`, `install.bat` | teste 15 (o `.bat` e o `.ps1` nunca rodaram: não há Windows aqui) |

@@ -194,9 +194,11 @@ OBSERVACOES
       tests/preparar-pendrive.sh <dispositivo> para formatar e preparar do zero;
       alem do usb_update.bin oficial vai a pasta firmware-nosso-NAO-GRADUADO, com o
       nosso .bin e um LEIA-ME dizendo que ele NAO esta ativo e so vale com a palavra
-      do dono). E um arranjo legitimo: cobre tanto "liguei e a correcao sumiu"
-      (plugar, ligar, deixar aplicar, tirar) quanto "brickei e preciso
-      reflashear" (power-hold). O preco e conhecer o risco abaixo.
+      do dono). SO para o aparelho COM entrada USB-C (V1.0.0.9): no modelo sem
+      USB-C (V1.0.0.1) este usb_update.bin NAO serve. E um arranjo legitimo:
+      cobre tanto "liguei e a correcao sumiu" (plugar, ligar, deixar aplicar,
+      tirar) quanto "brickei e preciso reflashear" (power-hold). O preco e
+      conhecer o risco abaixo.
 
   ATENCAO - o risco do arranjo (B), e como conviver com ele:
   - Com o pendrive plugado, LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de
