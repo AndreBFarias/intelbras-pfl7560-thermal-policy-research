@@ -3,7 +3,7 @@
 #
 #   bash artifacts/home/build.sh
 #
-# Mesmo molde do artifacts/app/build.sh: confere a paleta -> aapt2 compile + link (recursos,
+# Mesmo molde do artifacts/app/build.sh: confere a paleta (artifacts/tema/dracula.txt) -> aapt2 compile + link (recursos,
 # manifest, R.java, assets com as fontes do kit) -> javac --release 8 -> d8 -> dex no zip ->
 # zipalign -> apksigner sign -> apksigner verify. Saida: artifacts/home/pfl7560-home.apk.
 # NAO copia para o kit (pendrive-autorun/): a integracao e do coordenador.
@@ -23,7 +23,7 @@ BT="$SDK/build-tools/${BUILD_TOOLS:-35.0.0}"
 JAR="$SDK/platforms/${PLATAFORMA:-android-34}/android.jar"
 APKSIGNER="${APKSIGNER:-$(command -v apksigner || echo "$BT/apksigner")}"
 
-VERSAO_CODIGO=4          # inteiro; sobe a cada APK novo
+VERSAO_CODIGO=5          # inteiro; sobe a cada APK novo
 VERSAO_NOME="1.0"
 MIN_SDK=28
 TARGET_SDK=28
@@ -32,9 +32,9 @@ KS_ALIAS="pfl7560home"
 KS_SENHA="pfl7560home"   # nao e segredo (ver acima)
 SAIDA="$AQUI/pfl7560-home.apk"
 FONTES="$RAIZ/pendrive-autorun/fontes"
-SPEC="$RAIZ/docs/sprints/2026-10-31-bloco-10-home-e-tema-dracula.md"
+PALETA="$RAIZ/artifacts/tema/dracula.txt"
 
-for f in "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER" "$SPEC" \
+for f in "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER" "$PALETA" \
          "$FONTES/IBMPlexSansCondensed-Regular.ttf" "$FONTES/IBMPlexSansCondensed-SemiBold.ttf" \
          "$FONTES/IBMPlexSansCondensed-Bold.ttf" "$FONTES/IBMPlexMono-Regular.ttf" \
          "$FONTES/IBMPlexMono-SemiBold.ttf" "$FONTES/OFL.txt"; do
@@ -42,20 +42,15 @@ for f in "$BT/aapt2" "$BT/d8" "$BT/zipalign" "$JAR" "$KS" "$APKSIGNER" "$SPEC" \
 done
 for c in javac zip; do command -v "$c" >/dev/null || { echo "FALTA o comando $c" >&2; exit 1; }; done
 
-echo ">> paleta (spec x colors.xml x Tema.java)"
-# shellcheck disable=SC2016  # as crases sao literais (a tabela do spec em markdown)
-TOKENS="$(grep -E '^\| `[a-z]+` \| `#[0-9A-Fa-f]{6}` \|' "$SPEC" | sed -E 's/^\| `([a-z]+)` \| `#([0-9A-Fa-f]{6})`.*/\1 \2/')"
-[ "$(printf '%s\n' "$TOKENS" | wc -l)" -eq 11 ] || { echo "ERRO: o spec nao tem os 11 tokens" >&2; exit 1; }
+echo ">> paleta (artifacts/tema/dracula.txt x colors.xml x Tema.java)"
+TOKENS="$(sed -nE 's/^([a-z]+)=#([0-9A-Fa-f]{6})$/\1 \2/p' "$PALETA")"
+[ "$(printf '%s\n' "$TOKENS" | wc -l)" -eq 11 ] || { echo "ERRO: $PALETA nao tem os 11 tokens" >&2; exit 1; }
 while read -r nome hex; do
   hex="${hex^^}"
   grep -q "<color name=\"$nome\">#FF$hex</color>" "$AQUI/res/values/colors.xml" \
-    || { echo "ERRO: colors.xml difere do spec em $nome (#$hex)" >&2; exit 1; }
+    || { echo "ERRO: colors.xml difere da paleta em $nome (#$hex)" >&2; exit 1; }
   grep -q "int ${nome^^} = 0xFF$hex;" "$AQUI/src/com/pfl7560/home/Tema.java" \
-    || { echo "ERRO: Tema.java difere do spec em $nome (#$hex)" >&2; exit 1; }
-  if [ -f "$RAIZ/artifacts/tema/dracula.txt" ]; then
-    grep -qi "^$nome=#$hex\$" "$RAIZ/artifacts/tema/dracula.txt" \
-      || { echo "ERRO: artifacts/tema/dracula.txt difere do spec em $nome" >&2; exit 1; }
-  fi
+    || { echo "ERRO: Tema.java difere da paleta em $nome (#$hex)" >&2; exit 1; }
 done <<< "$TOKENS"
 echo "   11 tokens iguais"
 
