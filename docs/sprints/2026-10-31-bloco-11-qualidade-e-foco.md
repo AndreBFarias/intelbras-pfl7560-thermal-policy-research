@@ -73,3 +73,21 @@ Perguntas:
 4. **Keystone e nitidez:** a correção de 4 pontos é feita em GPU (SurfaceFlinger) ou no hardware de vídeo? Qual
    filtro de reamostragem ela usa? Há como trocar para um filtro mais nítido?
 5. O que disso pode virar etapa automática da suíte e o que só deve ser mostrado ao dono.
+
+## Estado (2026-10-31, bloco 19A)
+
+Feito no PC (worktree `bloco-19a`, branch `bloco-19a/foco`); falta só o aparelho.
+
+- `nl_camcheck nitidez`: mapa 3x3 com as regiões tiradas da imagem achada no quadro. ARM recompilado (NDK
+  r27c), md5 novo no `cor.sh` e nas listas do kit.
+- Suíte, etapa 2: o mapa a cada medida; o item "Nitidez" mostra centro e pior canto ("1,9 · canto 3,1 px") e a
+  dica separa as causas (cantos de um lado com os 4 pontos ligados = zerar e alinhar; centro = foco). Com o foco
+  ainda ruim depois dos autofocos, a varredura fina do motor pelo `hidebug` (`gfd`, `gfdr`, `sfd`), que volta à
+  posição inicial se nada melhorar.
+- `pfl7560-qualidade.sh`: lê e compara os ajustes de imagem; muda um por vez com confirmação e `--voltar`.
+
+Desvio do pedido: o valor do item não é "Centro 1,9 px · Pior canto 3,1 px" porque a coluna do resumo cabe
+18 caracteres (o `nl_tela` cortaria); o texto inteiro vai na dica.
+
+A conferir no aparelho: doc 44 §16, "PROVISÓRIO". A hipótese 1 (reamostragem contra ótica) ainda pede o dono
+zerar os 4 pontos e rodar a suíte de novo, comparando os dois mapas.

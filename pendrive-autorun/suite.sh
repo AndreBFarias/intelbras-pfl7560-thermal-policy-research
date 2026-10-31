@@ -14,7 +14,7 @@
 #    suite.sh --desinstalar [mountpoint]         remove servico, pasta, pedido e vigia
 #
 #  Etapas: 0 abertura; 1 cor (cor.sh no modo suite); 2 angulo, foco e nitidez (camera,
-#  nl_camcheck geometria); 3 temperatura (so leitura); 4 teste ativo da rampa; 5 resumo
+#  nl_camcheck geometria e nitidez 3x3; varredura fina de foco pelo hidebug); 3 temperatura (so leitura); 4 teste ativo da rampa; 5 resumo
 #  com os 19 itens. Resultados em resultados.txt (chave=valor, contrato C-res), log
 #  em ultimo.log; no modo pendrive o log vai tambem para o pendrive.
 #
@@ -23,7 +23,9 @@
 #     diretorio real, dono root), conferida a cada uso;
 #   - antes de CADA execucao de binario ou script (cor.sh, nl_camcheck, nl_tela):
 #     arquivo regular do root e md5 da lista embutida abaixo, conferido NA HORA;
-#   - o hidebug so recebe gfs e gbri, NUNCA gtt (o gtt forca o mux; doc 35);
+#   - o hidebug so recebe gfs e gbri (temperatura) e gfd, gfdr e sfd <pos> (foco, so com o
+#     foco ruim; o motor volta a posicao inicial se nada melhorar), NUNCA gtt (o gtt forca o
+#     mux; doc 35);
 #   - o teste da rampa injeta 71000 fixo, e so se o WARNING e o EMERGENCY do .ini
 #     efetivo, lidos agora, deixam 71000 entre os dois; um trap EXIT/INT/TERM/HUP
 #     limpa o override e confere lendo de volta. O override nao e persistente: um
@@ -75,9 +77,9 @@ DONO_UID=0
 # Gerado por tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO
 # editar a mao. nl_tela e fontes/ entram quando existirem no kit (bloco 9A).
 # SUITE_LISTA_INICIO
-SUITE_LISTA="c4bcb362ce80426f4e80c58021b104eb  cor.sh
+SUITE_LISTA="539096ea65bd73683697574a3be5c023  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
-596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
+8bf8bae6410b6b289d55e92671870d3b  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
@@ -147,6 +149,17 @@ RAZAO_BORDA=1.6       # borda de um lado > 1.6 x a do centro = foco ruim
 INCLINACAO_MAX=1.5    # graus
 TRAPEZIO_MAX=3        # %
 FOCO_TENTATIVAS=2
+# Varredura fina de foco pelo hidebug (bloco 11; doc 46 s2.1 e s7 passo 3). So roda com o foco
+# ainda ruim pelos limiares acima depois dos autofocos; mede a borda do CENTRO em cada posicao
+# e fica com a menor; sem melhora (ou sem resposta do hidebug), o motor volta a posicao inicial.
+# PROVISORIO: a unidade do gfd/sfd, o formato da saida e o criterio da protecao "Motor is too
+# hot!" nao foram vistos no aparelho (doc 46 s8 e s9). Calibrar no aparelho.
+VARRE_PASSO=40        # unidades do gfd por passo (o tunestep_min do autofoco do fabricante)
+VARRE_LADO=3          # passos para cada lado da posicao inicial (7 posicoes medidas)
+VARRE_PAUSA=2         # s depois de cada movimento: o motor descansa e a camera assenta
+VARRE_CHEGADA=3       # leituras do gfd (uma por pausa) esperando o motor chegar
+VARRE_TOLERANCIA=20   # o gfd lido pode diferir da posicao pedida ate isto
+VARRE_GANHO=0.15      # px: melhora minima da borda do centro que conta
 # modo automatico da camera como no cor.sh: ligado; PFL_TESTE=1 PFL_MODO_AUTO=0 o desliga
 MODO_AUTO=1
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_MODO_AUTO:-}" ] && MODO_AUTO="$PFL_MODO_AUTO"
@@ -227,6 +240,8 @@ res(){ printf '%s=%s\n' "$1" "$(limpo "$2" 200)" >> "$RES.new"; }
 # ---- travas e saida ----------------------------------------------------------
 TRAVA_MINHA=0
 RAMPA_ATIVA=0
+VARRE_ATIVA=0         # 1 enquanto a varredura de foco tem o motor fora da posicao inicial
+VARRE_P0=""
 LOGCAT_PID=""
 pegar_lock(){ mkdir "$LOCK" 2>/dev/null && TRAVA_MINHA=1; }
 # Desfaz o override e CONFERE lendo de volta; 3 tentativas.
@@ -251,6 +266,11 @@ sair(){
   if [ "$RAMPA_ATIVA" = "1" ]; then
     LOG "saindo com o override de temperatura ativo: limpando"
     if rampa_limpar; then res rampa_limpeza_saida ok; else res rampa_limpeza_saida falhou; fi
+  fi
+  if [ "$VARRE_ATIVA" = "1" ] && [ -n "$VARRE_P0" ]; then
+    LOG "saindo no meio da varredura de foco: devolvendo o motor a $VARRE_P0"
+    hb_foco "sfd $VARRE_P0" >/dev/null
+    res foco_varredura interrompida
   fi
   parar_logcat
   if [ "$TRAVA_MINHA" = "1" ]; then
@@ -584,6 +604,139 @@ medir_geo(){
   done
   G_LIMIAR=$(awk -v l="$LIMIAR_BORDA_PX_1280" -v w="$G_L" 'BEGIN{printf "%.2f", l*w/1280}')
   G_OK=1
+  # a nitidez 3x3 e um extra: sem ela, a geometria vale e o item usa a borda do centro
+  medir_nitidez "$_ff" || LOG "[AVISO] nitidez 3x3 sem leitura: o item Nitidez usa a borda do centro da geometria"
+}
+# mapa de nitidez 3x3 (bloco 11, nl_camcheck nitidez). NIT_OK=1 com as 9 regioes legiveis.
+NIT_REGIOES="r1c1 r1c2 r1c3 r2c1 r2c2 r2c3 r3c1 r3c2 r3c3"
+nit_valor(){ echo "$NIT_SAIDA" | sed -n "s/^nitidez_$1=\\([0-9][0-9]*\\.[0-9]*\\)\$/\\1/p" | head -1; }
+medir_nitidez(){
+  NIT_OK=0
+  NIT_SAIDA=$(nlcam_exec nitidez "$VIDEO" "$1" "$CAM_DESCARTE"); _rc=$?
+  LOG "nitidez (rc=$_rc): $(echo "$NIT_SAIDA" | tr '\n' ' ')"
+  [ "$_rc" = "0" ] || return 1
+  for _nr in $NIT_REGIOES; do
+    numero "$(nit_valor "$_nr")" || { LOG "[AVISO] saida da nitidez ilegivel"; return 1; }
+  done
+  NIT_OK=1
+}
+# o quadro chega espelhado de cima para baixo, nao de lado: a coluna c1 e a esquerda na parede.
+# Pior canto de cada lado (r1 e r3 da coluna) contra o centro (r2c2); a causa provavel:
+#   centro   = o centro passou do limiar (foco)
+#   lado_X   = so os cantos de um lado passam de RAZAO_BORDA x o centro (angulo ou 4 pontos)
+#   cantos   = os dois lados (borda da lente ou da camera; o mapa se compara contra ele mesmo)
+classificar_nitidez(){
+  N_C=$(nit_valor r2c2)
+  N_E=$(awk -v a="$(nit_valor r1c1)" -v b="$(nit_valor r3c1)" 'BEGIN{print (a+0 > b+0) ? a : b}')
+  N_D=$(awk -v a="$(nit_valor r1c3)" -v b="$(nit_valor r3c3)" 'BEGIN{print (a+0 > b+0) ? a : b}')
+  if maior "$N_E" "$N_D"; then N_P=$N_E; else N_P=$N_D; fi
+  _nlim=$(awk -v c="$N_C" -v r="$RAZAO_BORDA" 'BEGIN{printf "%.2f", c*r}')
+  NIT_CAUSA=nenhuma
+  if maior "$N_C" "$G_LIMIAR"; then NIT_CAUSA=centro
+  elif maior "$N_E" "$_nlim" && maior "$N_D" "$_nlim"; then NIT_CAUSA=cantos
+  elif maior "$N_E" "$_nlim"; then NIT_CAUSA=lado_esquerdo
+  elif maior "$N_D" "$_nlim"; then NIT_CAUSA=lado_direito
+  fi
+}
+
+# ---- varredura fina de foco (bloco 11; doc 46 s2.1 e s7 passo 3) --------------------
+# So gfd (le a posicao), gfdr (a faixa) e sfd <pos> (vai a uma posicao) chegam ao hidebug por
+# aqui; qualquer outra coisa e recusada. Posicoes absolutas: tudo fica na unidade do gfd (o
+# sentido do "sfd2 0|1" em relacao ao gfd nao e conhecido).
+hb_foco(){
+  case "$1" in
+    gfd|gfdr) ;;
+    "sfd "*) case "${1#sfd }" in ''|*[!0-9]*) return 1 ;; esac ;;
+    *) return 1 ;;
+  esac
+  [ -x "$HIDEBUG" ] || return 1
+  printf 'custom\n%s\nquit\n' "$1" | timeout 15 "$HIDEBUG" 2>/dev/null
+}
+# PROVISORIO: o formato da saida do gfd e do gfdr nao foi visto no aparelho (doc 46 s9). Sem
+# numero reconhecido, a varredura nao mexe no motor (e a saida crua vai para o log).
+foco_pos(){ hb_foco gfd | grep -ai 'focus\|distance' | grep -aoE '[0-9]+' | tail -1; }
+foco_faixa(){ hb_foco gfdr | grep -a '\[' | grep -aoE '[0-9]+' | head -2 | tr '\n' ' '; }
+# vai a $1 e confere pelo gfd (ate VARRE_CHEGADA leituras, uma por pausa)
+foco_ir(){
+  hb_foco "sfd $1" >/dev/null || return 1
+  _vi=0; _vl=""
+  while [ "$_vi" -lt "$VARRE_CHEGADA" ]; do
+    sleep "$VARRE_PAUSA"
+    _vl=$(foco_pos)
+    if [ -n "$_vl" ]; then
+      _vd=$(( _vl - $1 )); [ "$_vd" -lt 0 ] && _vd=$(( -_vd ))
+      [ "$_vd" -le "$VARRE_TOLERANCIA" ] && return 0
+    fi
+    _vi=$(( _vi + 1 ))
+  done
+  LOG "[AVISO] varredura: o foco nao chegou a $1 (gfd: ${_vl:-sem resposta})"
+  return 1
+}
+# chega a $1 sempre subindo, um passo abaixo antes (folga de direcao do motor, doc 46 s7)
+foco_aproximar(){
+  _va=$(( $1 - VARRE_PASSO ))
+  [ -n "$FOCO_MIN" ] && [ "$_va" -lt "$FOCO_MIN" ] && _va=$FOCO_MIN
+  [ "$_va" -lt 0 ] && _va=0
+  [ "$_va" != "$1" ] && foco_ir "$_va"
+  foco_ir "$1"
+}
+# a borda do centro pela geometria, com o faixas.txt da ultima medida (a tela segue a mesma)
+medir_centro(){
+  _vg=$(nlcam_exec geometria "$VIDEO" "$SUITE/faixas.txt" "$CAM_DESCARTE") || return 1
+  M_CENTRO=$(echo "$_vg" | sed -n 's/^borda_centro_px=\([0-9][0-9]*\.[0-9]*\)$/\1/p' | head -1)
+  numero "$M_CENTRO"
+}
+# 0 = ficou numa posicao melhor (a geometria tem de ser medida de novo); 1 = o motor esta (ou
+# deveria estar) na posicao inicial. VARRE = melhorou|sem_ganho|falhou|sem_hidebug|pulada.
+varredura_foco(){
+  VARRE_P0=""; VARRE_PF=""; VARRE_DEPOIS=""; FOCO_MIN=""; FOCO_MAX=""
+  if [ "$(getprop sys.newlink.auto 2>/dev/null)" = "1" ]; then
+    LOG "varredura: o autofoco esta em curso, o motor fica com ele"; VARRE=pulada; return 1
+  fi
+  _vp0=$(foco_pos)
+  if [ -z "$_vp0" ]; then
+    LOG "[AVISO] varredura: o hidebug nao deu a posicao do foco (gfd: $(limpo "$(hb_foco gfd)" 80)); o motor nao foi mexido"
+    VARRE=sem_hidebug; return 1
+  fi
+  VARRE_P0=$_vp0
+  _vr=$(foco_faixa)
+  _vmn=$(echo "$_vr" | cut -d' ' -f1); _vmx=$(echo "$_vr" | cut -d' ' -f2)
+  if [ -n "$_vmn" ] && [ -n "$_vmx" ] && [ "$_vmn" -lt "$_vmx" ]; then FOCO_MIN=$_vmn; FOCO_MAX=$_vmx; fi
+  LOG "varredura: foco em $_vp0 (faixa ${FOCO_MIN:-?} a ${FOCO_MAX:-?}), borda do centro $G_BC px; $VARRE_LADO passo(s) de $VARRE_PASSO para cada lado"
+  VARRE_ATIVA=1
+  _vb=$_vp0; _vbm=$G_BC; _vok=1
+  _vk=$(( -VARRE_LADO ))
+  while [ "$_vk" -le "$VARRE_LADO" ]; do
+    _vp=$(( _vp0 + _vk * VARRE_PASSO )); _vk=$(( _vk + 1 ))
+    [ "$_vp" -lt 0 ] && continue
+    [ -n "$FOCO_MIN" ] && { [ "$_vp" -lt "$FOCO_MIN" ] || [ "$_vp" -gt "$FOCO_MAX" ]; } && continue
+    foco_ir "$_vp" || { _vok=0; break; }
+    medir_centro || { LOG "[AVISO] varredura: a camera nao mediu em $_vp"; _vok=0; break; }
+    LOG "varredura: foco $_vp, borda do centro $M_CENTRO px"
+    if awk -v m="$M_CENTRO" -v b="$_vbm" -v g="$VARRE_GANHO" 'BEGIN{if (m + g <= b) exit 0; exit 1}'; then
+      _vb=$_vp; _vbm=$M_CENTRO
+    fi
+  done
+  if [ "$_vok" = "1" ] && [ "$_vb" != "$_vp0" ]; then
+    if foco_aproximar "$_vb" && medir_centro && \
+       awk -v m="$M_CENTRO" -v b="$G_BC" -v g="$VARRE_GANHO" 'BEGIN{if (m + g <= b) exit 0; exit 1}'; then
+      VARRE=melhorou; VARRE_PF=$_vb; VARRE_DEPOIS=$M_CENTRO; VARRE_ATIVA=0
+      LOG "varredura: fica em $_vb (borda do centro $G_BC -> $M_CENTRO px)"
+      return 0
+    fi
+    LOG "varredura: a melhora em $_vb nao se confirmou: volto a $_vp0"
+  fi
+  if [ "$_vok" = "1" ]; then VARRE=sem_ganho; else VARRE=falhou; fi
+  foco_aproximar "$_vp0"
+  _vl=$(foco_pos)
+  if [ -n "$_vl" ] && [ "$(( _vl - _vp0 ))" -le "$VARRE_TOLERANCIA" ] && [ "$(( _vp0 - _vl ))" -le "$VARRE_TOLERANCIA" ]; then
+    VARRE_PF=$_vl; VARRE_ATIVA=0
+    LOG "varredura: nada melhorou ($VARRE): o foco voltou a $_vp0"
+  else
+    LOG "[ERRO] varredura: NAO confirmei a volta do foco a $_vp0 (gfd: ${_vl:-sem resposta}); refaca o foco pela tecla do controle"
+    VARRE=nao_voltou; VARRE_ATIVA=0
+  fi
+  return 1
 }
 foco_ruim(){
   awk -v c="$G_BC" -v e="$G_BE" -v d="$G_BD" -v r="$RAZAO_BORDA" -v l="$G_LIMIAR" \
@@ -626,7 +779,7 @@ ler_modo_projecao(){
   esac
 }
 etapa_geometria(){
-  I_CAMERA=""; FOCO_N=0; G_OK=0
+  I_CAMERA=""; FOCO_N=0; G_OK=0; NIT_OK=0; VARRE=nao_precisou
   ler_resolucao
   ler_quatro_pontos
   ler_modo_projecao
@@ -640,6 +793,15 @@ etapa_geometria(){
       disparar_autofoco
       medir_geo || break
     done
+    if [ "$G_OK" = "1" ] && foco_ruim; then
+      LOG "foco ainda ruim depois de $FOCO_N autofoco(s): varredura fina pelo hidebug"
+      G_BC_ANTES=$G_BC
+      if varredura_foco; then medir_geo; fi
+      res foco_varredura "$VARRE"; res foco_pos_inicial "$VARRE_P0"; res foco_pos_final "$VARRE_PF"
+      res foco_borda_antes "$G_BC_ANTES"; res foco_borda_depois "$VARRE_DEPOIS"
+    else
+      res foco_varredura "$VARRE"
+    fi
     res camera "$( [ "$G_OK" = 1 ] && echo ok || echo falhou)"
   else
     res camera falhou
@@ -657,16 +819,48 @@ etapa_geometria(){
     _gtxt="$(virgula "$(um_dec "$_ga")")\u00b0"
     _conselho=0
     if [ "$QP" = "ligada" ] && { maior "$G_TRAP" "$TRAPEZIO_MAX" || maior "$G_BC" "$G_LIMIAR" || maior "$_ga" "$INCLINACAO_MAX"; }; then _conselho=1; fi
-    # nitidez: a borda da coluna central
-    if maior "$G_BC" "$G_LIMIAR"; then
+    # nitidez: com o mapa 3x3, o centro e o pior canto, e a dica pela causa; sem ele, a borda
+    # da coluna central da geometria
+    _dica_nit=0; _dica_qp=0
+    if [ "${NIT_OK:-0}" = "1" ]; then
+      classificar_nitidez
+      for _nr in $NIT_REGIOES; do res "nitidez_$_nr" "$(nit_valor "$_nr")"; done
+      res nitidez_centro_px "$N_C"; res nitidez_pior_canto_px "$N_P"; res nitidez_causa "$NIT_CAUSA"
+      _nc=$(virgula "$(um_dec "$N_C")"); _np=$(virgula "$(um_dec "$N_P")")
+      # o valor cabe em 18 caracteres (coluna do resumo); com 2 digitos, sem o "px"
+      if [ "${#_nc}" -le 3 ] && [ "${#_np}" -le 3 ]; then _nv="$_nc \u00b7 canto $_np px"; else _nv="$_nc \u00b7 canto $_np"; fi
+      case "$NIT_CAUSA" in
+        centro)
+          I_NITIDEZ="$_nv|atencao"; P_GEO=atencao; _dica_nit=1
+          if [ "$FOCO_N" -gt 0 ] || [ "$VARRE" != nao_precisou ]; then
+            dica "Centro borrado ($_nc px): foco refeito. Se continuar, limpe a lente e confira a dist\u00e2ncia at\u00e9 a parede."
+          else
+            dica "Centro borrado ($_nc px): refa\u00e7a o foco pela tecla do controle."
+          fi ;;
+        lado_esquerdo|lado_direito)
+          I_NITIDEZ="$_nv|atencao"; P_GEO=atencao; _dica_nit=1
+          if [ "$NIT_CAUSA" = lado_esquerdo ]; then _nl=esquerdo; else _nl=direito; fi
+          if [ "$QP" = "ligada" ]; then
+            _dica_qp=1
+            dica "Cantos do lado $_nl borrados ($_np px; centro $_nc px): zere os 4 pontos e alinhe o projetor de frente."
+          else
+            dica "Cantos do lado $_nl borrados ($_np px; centro $_nc px): alinhe o projetor de frente para a parede."
+          fi ;;
+        *)
+          if maior "$N_P" "$G_LIMIAR"; then I_NITIDEZ="$_nv|atencao"; P_GEO=atencao; else I_NITIDEZ="$_nv|ok"; fi ;;
+      esac
+    elif maior "$G_BC" "$G_LIMIAR"; then
       I_NITIDEZ="baixa ($(virgula "$(um_dec "$G_BC")") px)|atencao"; P_GEO=atencao
     else
       I_NITIDEZ="boa ($(virgula "$(um_dec "$G_BC")") px)|ok"
     fi
-    # foco: os lados contra o centro, refeito pelo autofoco ate FOCO_TENTATIVAS vezes
+    # foco: os lados contra o centro, refeito pelo autofoco ate FOCO_TENTATIVAS vezes e depois
+    # pela varredura fina; a dica da nitidez, quando houve, ja diz a causa
     if foco_ruim; then
       I_FOCO="irregular|atencao"; P_GEO=atencao
-      dica "Foco irregular mesmo depois de $FOCO_N autofoco(s): limpe a lente e confira a dist\u00e2ncia at\u00e9 a parede."
+      [ "$_dica_nit" = "1" ] || dica "Foco irregular mesmo depois de $FOCO_N autofoco(s): limpe a lente e confira a dist\u00e2ncia at\u00e9 a parede."
+    elif [ "$VARRE" = melhorou ]; then
+      I_FOCO="ajuste fino|corrigido"; [ "$P_GEO" = ok ] && P_GEO=corrigido
     elif [ "$FOCO_N" -gt 0 ]; then
       I_FOCO="refeito (${FOCO_N}x)|corrigido"; [ "$P_GEO" = ok ] && P_GEO=corrigido
     else
@@ -674,7 +868,7 @@ etapa_geometria(){
     fi
     if [ "$_conselho" = "1" ]; then
       I_QP="ligada|atencao"; P_GEO=atencao
-      dica "4 pontos ligados e imagem distorcida: alinhe o projetor de frente para a parede e zere os 4 pontos."
+      [ "$_dica_qp" = "1" ] || dica "4 pontos ligados e imagem distorcida: alinhe o projetor de frente para a parede e zere os 4 pontos."
     fi
     # inclinacao: com a correcao de 4 pontos ligada, a inclinacao que a camera ve vem
     # dela (a camera esta presa ao projetor), entao o conselho e o de cima, nao nivelar
