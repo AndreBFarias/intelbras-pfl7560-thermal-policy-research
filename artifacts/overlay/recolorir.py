@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # artifacts/overlay/recolorir.py - troca as cores das imagens do fabricante pela paleta Dracula,
-# sem mudar o desenho (blocos 13A, 16A, 17A e 18).
+# sem mudar o desenho (blocos 13A, 16A, 17A, 18 e 19B).
 #
 #   python3 -I artifacts/overlay/recolorir.py <app desmontado pelo apktool> <res da sobreposicao> [tabela]
 #
 #   tabela (padrao zysetting): zysetting, zybluetooth, zyfilemanager, higallery, zyspeakermodel,
-#   ijkplayer, hivideoplayer, himusic, hipinyinime, zycustomui. Ex.:
+#   ijkplayer, hivideoplayer, himusic, hipinyinime, zycustomui, android (19B: framework-res). Ex.:
 #   python3 -I artifacts/overlay/recolorir.py <ZYSetting desmontado> artifacts/overlay/zysetting/res
 #   python3 -I artifacts/overlay/recolorir.py <ZYBluetooth desmontado> artifacts/overlay/zybluetooth/res zybluetooth
 #
@@ -180,10 +180,25 @@ PAREAMENTO = ({'#1F1F1F': '#1F1F1F', '#000000': '#000000', '#FFFFFF': '#FFFFFF',
                '#76C8FB': 'roxo', '#D82E2E': '#D82E2E'}, 1)
 ZYCUSTOMUI = {'match_ir_yuyin1280x800': PAREAMENTO, 'match_ir_jinju': PAREAMENTO}
 
+# Bloco 19B. Framework (android, framework-res desmontado): as imagens do sistema que o HiMusic usa
+# (doc 48, secao 12.7), so em drawable-xhdpi no alvo.
+ANDROID = {
+    # botao tocar/pausar do player de musica (@android:style/MediaButton.Play e ic_media_pause):
+    # icone branco -> texto; o contorno cinza translucido fica
+    'ic_media_play': ({'#FFFFFF': 'texto', '#7F7F7F': '#7F7F7F'}, 1),
+    'ic_media_pause': ({'#FFFFFF': 'texto', '#7F7F7F': '#7F7F7F'}, 1),
+    # janela das listas do HiMusic com Theme.Dialog (FileListActivity): painel preto 90% com fio
+    # cinza #505050 -> fundo com fio comentario (como o Toast, secao 10.6); a sombra vai junto
+    'panel_background': ({'#000000': 'fundo', '#505050': 'comentario'}, 1),
+    # ... e com Theme.Holo.Dialog (ImageListAcvitity): corpo #282828 -> fundo, o realce da borda ->
+    # linha, a sombra preta fica. Ordem: os cinzas do corpo antes do preto (ver o cabecalho)
+    'dialog_full_holo_dark': ({'#282828': 'fundo', '#343434': 'linha', '#000000': '#000000'}, 1),
+}
+
 TABELAS = {'zysetting': ZYSETTING, 'zybluetooth': ZYBLUETOOTH, 'zyfilemanager': ZYFILEMANAGER,
            'higallery': HIGALLERY, 'zyspeakermodel': ZYSPEAKERMODEL, 'ijkplayer': IJKPLAYER,
            'hivideoplayer': HIVIDEOPLAYER, 'himusic': HIMUSIC, 'hipinyinime': HIPINYINIME,
-           'zycustomui': ZYCUSTOMUI}
+           'zycustomui': ZYCUSTOMUI, 'android': ANDROID}
 
 def melhor(px, ancoras):
     """(i, j, t): px ~ ancora i misturada com j na fracao t (j=None: so i)."""
