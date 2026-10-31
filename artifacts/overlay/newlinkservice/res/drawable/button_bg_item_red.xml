@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Botao de cancelar parado do BlackDialog. De fabrica laranja-avermelhado #FFFC5531
+     -> vermelho (texto branco 3,1:1). Mesmo raio. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="40dp" />
+    <solid android:color="#FFFF5555" />
+</shape>
