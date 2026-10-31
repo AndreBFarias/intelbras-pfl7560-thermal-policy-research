@@ -64,7 +64,7 @@ ruim = 0
 for p in sys.argv[2:]:
     raw, erro = ler(p)
     if erro is None and margens:
-        fundo = bytes((0x0E, 0x11, 0x16)); fora = []
+        fundo = bytes((0x28, 0x2A, 0x36)); fora = []
         for y, l in linhas(raw):
             if y < 50 or y >= 1030:
                 if l != fundo * 1920: fora.append('linha %d' % y)

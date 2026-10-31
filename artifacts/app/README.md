@@ -40,14 +40,17 @@ determinístico (o mesmo md5 a cada execução).
 
 ## Ícones
 
-`gerar-icones.py` (Pillow) desenha os PNG de `res/mipmap-*` e os banners de `res/drawable-xhdpi` no
-estilo das telas da suíte (fundo `#0E1116`, traço claro, acento `#6FD6A6`), sem emoji, e usa a fonte IBM
-Plex do kit. A saída é determinística. `python3 -I artifacts/app/gerar-icones.py`.
+`gerar-icones.py` (Pillow) desenha os PNG de `res/mipmap-*` e os banners de `res/drawable-xhdpi` na
+paleta Drácula das telas da suíte (bloco 10B, `artifacts/tema/`): fundo `#282A36`, cartão `#44475A` com
+contorno `#6272A4`, traço `#F8F8F2`, o visto do Verificar em verde `#50FA7B` e o ponto do Wi-Fi em roxo
+`#BD93F9`, sem emoji, e usa a fonte IBM Plex do kit. As cores das mensagens de 3 s (`res/values/styles.xml`)
+são as mesmas: fundo, texto, secundário `#B4BCCF` (o comentário clareado, ver `artifacts/tema/README.md`)
+e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/gerar-icones.py`.
 
 ## Provas
 
 - `build.sh` gera o APK do zero e `apksigner verify` passa.
-- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='1'`, `targetSdkVersion:'28'`,
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='2'` (o 2 é o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
   duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
 - O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
 

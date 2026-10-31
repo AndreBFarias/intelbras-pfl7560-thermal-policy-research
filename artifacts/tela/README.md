@@ -62,18 +62,21 @@ Decisoes onde o contrato deixou escolha:
 
 ## Visual
 
-Paleta e tamanhos do C-tela: fundo `#0E1116`, cartoes `#171B21` com cantos de 10 px, texto
-`#F2F3F5`, secundario `#A9AFB8`, fio `#2A3038`; ok `#6FD6A6`, corrigido `#F2B451`, atencao
-`#F07560`, info = texto (ponto cinza), pendente = secundario (ponto vazado). Margem lateral 110 px.
+Paleta Dracula (bloco 10B; tokens em `artifacts/tema/dracula.txt`, papel de cada um em
+`artifacts/tema/README.md`): fundo `#282A36`, cartoes `#44475A` (linha) com cantos de 10 px, texto
+`#F8F8F2`, secundario `#B4BCCF` (o comentario `#6272A4` clareado, por contraste), fio `#6272A4`; ok
+`#50FA7B`, corrigido `#FFB86C`, atencao `#FF5555` sobre o fundo e `#FE7674` sobre o cartao, info
+`#8BE9FD`, pendente `#F1FA8C` (ponto vazado); etapa do aviso e titulo de grupo em roxo `#BD93F9`; o
+passo em andamento tem contorno rosa `#FF79C6`. Margem lateral 110 px.
 Mistura de cor em luz linear (sRGB correto) para o antisserrilhado.
 
 - `aviso`: linha de cima Mono 26 (etapa e canto), titulo Bold 100, texto Regular 40 secundario (ate
   1400 px de largura), passos numa fileira de cartoes acima do rodape (4 colunas; 5 ou 6 passos,
   uma por passo), com numero, estado (ponto + palavra) e nome SemiBold 34 em ate 2 linhas; o passo
-  em andamento tem o cartao mais claro. Rodape Mono 24.
+  em andamento tem contorno rosa de 3 px. Rodape Mono 24.
 - `resumo`: titulo + destaque Bold 72 na mesma linha (destaque na cor do estado), canto Mono 24 a
   direita na mesma linha de base; quatro cartoes de grupo com a mesma altura de linha
-  (rotulo do grupo SemiBold 30 espacado; por item: fio, rotulo Regular 26 secundario com o ponto
+  (rotulo do grupo SemiBold 30 espacado, em roxo; por item: fio, rotulo Regular 26 secundario com o ponto
   de estado de 12 px a direita, valor Mono SemiBold 34 na cor do estado); faixa de dicas (Regular
   28, marcador na cor de atencao) logo abaixo dos cartoes; rodape Mono 24. A altura da linha se ajusta ao espaco
   (ate 116 px; com 6 itens e 3 dicas, cerca de 88).

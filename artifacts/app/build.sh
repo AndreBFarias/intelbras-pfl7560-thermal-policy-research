@@ -28,7 +28,7 @@ BT="$SDK/build-tools/${BUILD_TOOLS:-35.0.0}"
 JAR="$SDK/platforms/${PLATAFORMA:-android-34}/android.jar"
 APKSIGNER="${APKSIGNER:-$(command -v apksigner || echo "$BT/apksigner")}"
 
-VERSAO_CODIGO=1          # inteiro; sobe a cada APK novo (o kit instala por cima quando muda)
+VERSAO_CODIGO=2          # inteiro; sobe a cada APK novo (o kit instala por cima quando muda)
 VERSAO_NOME="1.0"
 MIN_SDK=28
 TARGET_SDK=28

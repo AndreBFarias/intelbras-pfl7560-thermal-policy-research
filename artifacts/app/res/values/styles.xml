@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="fundo">#FF0E1116</color>
-    <color name="texto">#FFF2F3F5</color>
-    <color name="secundario">#FFA9AFB8</color>
-    <color name="atencao">#FFF07560</color>
+    <!-- paleta Dracula (artifacts/tema/dracula.txt): fundo, texto, secundario = comentario
+         clareado (artifacts/tema/README.md), atencao = vermelho -->
+    <color name="fundo">#FF282A36</color>
+    <color name="texto">#FFF8F8F2</color>
+    <color name="secundario">#FFB4BCCF</color>
+    <color name="atencao">#FFFF5555</color>
     <style name="Tema" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/fundo</item>
         <item name="android:windowFullscreen">true</item>
