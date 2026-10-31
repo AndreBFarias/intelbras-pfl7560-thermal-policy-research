@@ -25,6 +25,7 @@
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 KIT="$ROOT/pendrive-autorun"
+# shellcheck disable=SC2034  # usada nas strings do afirma (eval) e nos stubs
 APP_VC="$(sed -n 's/^APP_VERSION_CODE="\([0-9]*\)"$/\1/p' "$KIT/newlink_update.sh")"   # versionCode do app no kit
 OFF=$(( 168 + 69 * 768 + 92 ))     # byte lvdsctl_fmt do perfil 69 (53252, 0-based; 53253 no cmp -l)
 PNOME="RX058B_4300_5010E_1080P_M"
@@ -1232,10 +1233,9 @@ c_sem_suite_legado(){
 
 # bloco 9C: o kit instala o app (pm install -r) antes de lancar a suite; falha nao para o kit
 c_app(){
-  local W; novo_cenario "app: ausente = instala da copia do root, antes da suite; 2a vez nao reinstala"; aparelho_ok
-  W="$(W)"
+  novo_cenario "app: ausente = instala da copia do root, antes da suite; 2a vez nao reinstala"; aparelho_ok
   roda nokey
-  afirma '[ "$(chamadas "pm install")" = 1 ] && tem_chamada "^pm install -r $W/pfl7560.apk\$"' "pm install: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(chamadas "pm install")" = 1 ] && tem_chamada "^pm install -r $(W)/pfl7560.apk\$"' "pm install: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
   afirma '! grep -q "^pm install.*media_rw" "$T/calls.log"' "instalou direto do pendrive"
   afirma '[ "$(grep -n "^pm install" "$T/calls.log" | head -1 | cut -d: -f1)" -lt "$(grep -n "^am start" "$T/calls.log" | head -1 | cut -d: -f1)" ]' "o app nao foi instalado antes da primeira tela da suite"
   afirma 'log_tudo | grep -q "\[OK\] app: com.pfl7560.verificar instalado" && log_tudo | grep -q "boot SEGUINTE"' "log sem a instalacao ou sem o aviso do boot seguinte"
@@ -1321,7 +1321,9 @@ c_estaticos(){
   # bloco 9C: o apk do kit e o de artifacts/app; o versionCode do kit e o do build.sh (e o do apk, se ha aapt2)
   afirma 'cmp -s "$KIT/pfl7560.apk" "$ROOT/artifacts/app/pfl7560.apk"' "pfl7560.apk do kit difere do de artifacts/app"
   afirma '[ -n "$APP_VC" ] && [ "$APP_VC" = "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\) .*/\1/p" "$ROOT/artifacts/app/build.sh")" ]' "APP_VERSION_CODE do newlink_update.sh difere do VERSAO_CODIGO do build.sh"
-  local aapt2; aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
+  local aapt2
+  # shellcheck disable=SC2012  # nomes sem espaco; o ls so acha o aapt2 do SDK local
+  aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
   if [ -n "$aapt2" ]; then
     afirma '"$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^package: name='"'"'com.pfl7560.verificar'"'"' versionCode='"'"'$APP_VC'"'"'"' "versionCode do apk difere do APP_VERSION_CODE"
     afirma '[ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^launchable-activity")" = 2 ] && [ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^leanback-launchable-activity")" = 2 ]' "o apk nao tem as duas atividades com LAUNCHER e LEANBACK_LAUNCHER"
