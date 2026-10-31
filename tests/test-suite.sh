@@ -1611,6 +1611,10 @@ c_estaticos(){
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-boot.sh" | grep -qi "hidebug"' "o boot fala com o hidebug direto (deve chamar o suite-pedido.sh)"
   afirma '[ -z "$(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")" ]' "o suite-pedido.sh manda ao hidebug algo alem de sbl/gbl: $(grep -vE "^[[:space:]]*#" "$KIT/suite-pedido.sh" | grep "| timeout 15 " | grep -vE "sbl %s|gbl")"
   # os 4 pontos e o modo de projecao: so leitura
+  # o servico de boot sobe com o PATH do /vendor: os scripts fixam o PATH com /system/bin
+  for f in suite-boot.sh suite.sh suite-pedido.sh cor.sh; do
+    afirma 'grep -q "^  PATH=\"/system/bin:/system/xbin:/vendor/bin:/vendor/xbin\"; export PATH$" "$KIT/$f"' "$f sem o PATH fixo com /system/bin"
+  done
   # o awk do Android 9 recusa "exit !(...)" (visto no aparelho): nenhum script do kit usa
   afirma '! grep -n "exit !" "$KIT"/*.sh' "script do kit com exit !(...) no awk: $(grep -n "exit !" "$KIT"/*.sh | head -3)"
   # (a unica prop persist que a suite toca e a marca do gatilho, so no desinstalar)

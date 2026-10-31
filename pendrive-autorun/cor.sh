@@ -55,6 +55,10 @@
 # do ambiente, para que nenhuma delas seja porta de entrada em producao. O gancho
 # de boot gerado por este script apaga todas antes de qualquer coisa.
 if [ "${PFL_TESTE:-}" != "1" ]; then
+  # o init sobe o servico de boot com o PATH do /vendor: cmd, pm, am, settings, input,
+  # dumpsys e logcat moram em /system/bin (visto no aparelho em 2026-10-31: "exec cmd: No
+  # such file or directory" no boot). PATH fixo, com /system antes, em producao.
+  PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
   unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE
 fi
 R="${PFL_ROOT:-}"

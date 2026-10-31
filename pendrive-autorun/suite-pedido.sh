@@ -29,6 +29,10 @@
 # ============================================================================
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
+  # o init sobe o servico de boot com o PATH do /vendor: cmd, pm, am, settings, input,
+  # dumpsys e logcat moram em /system/bin (visto no aparelho em 2026-10-31: "exec cmd: No
+  # such file or directory" no boot). PATH fixo, com /system antes, em producao.
+  PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
   unset PFL_ROOT PFL_RAPIDO PFL_DONO PFL_TESTE PFL_APP_UID_MIN
 fi
 R="${PFL_ROOT:-}"
@@ -51,7 +55,7 @@ APP_UID_MIN=10000
 
 # md5 do suite.sh. Gerado por tests/atualizar-md5-kit.sh. NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="1a8c21f3946040c19cd71fb1d69f1dad"
+SUITE_MD5="9905461b637025600ea114a8ad3ef7b5"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }

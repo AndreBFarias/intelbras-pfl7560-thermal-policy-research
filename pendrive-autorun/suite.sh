@@ -34,6 +34,10 @@
 # So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
 # do ambiente, para que nenhuma seja porta de entrada em producao.
 if [ "${PFL_TESTE:-}" != "1" ]; then
+  # o init sobe o servico de boot com o PATH do /vendor: cmd, pm, am, settings, input,
+  # dumpsys e logcat moram em /system/bin (visto no aparelho em 2026-10-31: "exec cmd: No
+  # such file or directory" no boot). PATH fixo, com /system antes, em producao.
+  PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
   unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_ESPERA_OK_VOLTAS
 fi
 # locale fixo: o awk segue LC_NUMERIC e em pt_BR imprime "3,50", que outro awk le como 3
@@ -71,7 +75,7 @@ DONO_UID=0
 # Gerado por tests/atualizar-md5-kit.sh (o harness confere que esta em dia). NAO
 # editar a mao. nl_tela e fontes/ entram quando existirem no kit (bloco 9A).
 # SUITE_LISTA_INICIO
-SUITE_LISTA="56dd74f1e2e7d04ad3236b818c587f52  cor.sh
+SUITE_LISTA="c8dfa71677ed8ba6faf43f483a448fef  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 596ab23dff8b3ef0e779c99769b48e2c  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela

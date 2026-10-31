@@ -38,6 +38,10 @@
 # So valem com PFL_TESTE=1 (o harness em tests/ a define). Fora disso TODAS saem
 # do ambiente, para que nenhuma seja porta de entrada em producao.
 if [ "${PFL_TESTE:-}" != "1" ]; then
+  # o init sobe o servico de boot com o PATH do /vendor: cmd, pm, am, settings, input,
+  # dumpsys e logcat moram em /system/bin (visto no aparelho em 2026-10-31: "exec cmd: No
+  # such file or directory" no boot). PATH fixo, com /system antes, em producao.
+  PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
   unset PFL_ROOT PFL_RAPIDO PFL_DONO PFL_TESTE PFL_VIGIA_VOLTAS
 fi
 R="${PFL_ROOT:-}"
@@ -63,8 +67,8 @@ DONO_UID=0
 # md5 do suite.sh e do suite-pedido.sh. Gerados por tests/atualizar-md5-kit.sh (o
 # harness confere que estao em dia). NAO editar a mao.
 # SUITE_MD5_INICIO
-SUITE_MD5="1a8c21f3946040c19cd71fb1d69f1dad"
-PEDIDO_MD5="0e6f34f20d0f2848581aa0ee7d28fbd5"
+SUITE_MD5="9905461b637025600ea114a8ad3ef7b5"
+PEDIDO_MD5="9f7cb9fa906ef74222e20c1308f67204"
 # SUITE_MD5_FIM
 
 # Criterios do gatilho "auto" (o historico-boot.txt registra os sinais de cada boot):
@@ -199,9 +203,9 @@ descanso_existe(){
     | grep -q 'com\.pfl7560\.verificar/.*Descanso' && return 0
   timeout 15 dumpsys package com.pfl7560.verificar 2>/dev/null | grep -q 'com\.pfl7560\.verificar/[.a-z0-9]*Descanso'
 }
-# no 1o boot depois de trocar o app o PackageManager ainda processa o APK quando o boot
-# termina (visto no aparelho em 2026-10-31: "nao existe" no boot, listado 1 min depois).
-# Ate DESCANSO_TENTATIVAS consultas, DESCANSO_ESPERA s entre elas; roda em segundo plano.
+# Ate DESCANSO_TENTATIVAS consultas, DESCANSO_ESPERA s entre elas, em segundo plano (o
+# PackageManager pode estar ocupado logo no boot). O "nao existe" visto no aparelho em
+# 2026-10-31 era outra coisa: o PATH do servico sem /system/bin (ver o topo do script).
 DESCANSO_TENTATIVAS=6
 DESCANSO_ESPERA=10
 [ -n "${PFL_RAPIDO:-}" ] && DESCANSO_ESPERA=0
