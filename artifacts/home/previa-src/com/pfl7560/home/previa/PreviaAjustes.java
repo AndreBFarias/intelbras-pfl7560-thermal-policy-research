@@ -204,6 +204,7 @@ public final class PreviaAjustes {
         }
         checarSetas();
         checarDiario();
+        checarVoltar();
         // o acesso e um item da fileira Apps, nao um atalho
         verdade(Acoes.AJUSTES.equals("ajustes"), "acao ajustes");
         List<Item> lista = new ArrayList<Item>();
@@ -212,6 +213,50 @@ public final class PreviaAjustes {
         verdade(m.apps.size() == 1 && Acoes.AJUSTES.equals(m.apps.get(0).acao), "o item Ajustes aparece nos Apps");
         m.inicio();
         verdade(!m.ajustesAberta, "HOME fecha a tela de ajustes");
+    }
+
+    /** Voltar fecha a tela aberta com um aperto, de qualquer lugar dela; arrastando bola, solta a bola. */
+    private static void checarVoltar() {
+        Modelo m = painel();
+        verdade(m.voltar() && !m.ajustesAberta, "Voltar fecha Servicos");
+        m.abrirAjustes();
+        m.ajustes.mover(0, -1);
+        verdade(m.ajustes.zona == Ajustes.ZONA_ABA && m.voltar() && !m.ajustesAberta, "Voltar fecha das abas");
+        m.abrirAjustes();
+        m.ajustes.estado = PADRAO;
+        m.ajustes.mover(1, 0);
+        m.ajustes.mover(0, 1);
+        verdade(m.voltar() && !m.ajustesAberta, "Voltar fecha o Diario");
+        m.abrirAjustes();
+        m.ajustes.linha = 6;
+        m.ajustes.ok();
+        verdade(m.ajustes.confirmando >= 0 && m.voltar() && !m.ajustesAberta && m.ajustes.confirmando == -1,
+                "Voltar fecha mesmo esperando o segundo OK");
+        m.abrirAjustes();
+        m.ajustes.linha = 0;
+        m.ajustes.marcarAplicando();
+        m.aviso = "algo";
+        verdade(m.voltar() && !m.ajustesAberta && m.aviso == null, "Voltar fecha com pedido em curso e apaga o aviso");
+        m.abrirAjustes();
+        verdade(m.ajustes.emCurso(0), "o pedido em curso segue ao reabrir");
+        m.voltar();
+
+        m.abrirLuz();
+        m.moverLuz(1);
+        verdade(m.voltar() && !m.luzAberta, "Voltar fecha a Luz");
+
+        m.abrirCurvas();
+        verdade(m.voltar() && !m.curvasAberta, "Voltar fecha as Curvas");
+        m.abrirCurvas();
+        m.curvas.mover(1, 0);
+        m.curvas.mover(0, 1);
+        verdade(m.voltar() && !m.curvasAberta, "Voltar fecha as Curvas de qualquer zona");
+        m.abrirCurvas();
+        m.curvas.pegando = true;
+        verdade(m.voltar() && m.curvasAberta && !m.curvas.pegando, "arrastando bola, Voltar solta a bola");
+        verdade(m.voltar() && !m.curvasAberta, "o aperto seguinte fecha");
+
+        verdade(!m.voltar() && !m.luzAberta && !m.curvasAberta && !m.ajustesAberta, "na tela principal Voltar segue ao sistema");
     }
 
     /** Direita e esquerda trocam de aba de qualquer lugar da tela, sem engolir a tecla. */

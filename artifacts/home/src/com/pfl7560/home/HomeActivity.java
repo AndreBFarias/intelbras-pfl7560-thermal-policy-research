@@ -70,13 +70,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         Guarda.instalar(getApplicationContext());
-        if (Guarda.emLaco(this)) {
-            Guarda.limpar(this);
-            if (Abridor.homeDeFabrica(this)) {
-                finish();
-                return;
-            }
-        }
+        conferirLaco();
         modelo = Modelo.padrao(Leitor.temUsbC());
         modelo.relogio(Calendar.getInstance());
         vista = new HomeView(this, modelo, this);
@@ -96,6 +90,29 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             Guarda.anotar(this, "receptor de pacotes", e);
         }
         carregarApps();
+    }
+
+    /**
+     * Caiu duas vezes em 2 minutos? Entrega a tela inicial de fabrica. As preferencias ficam em disco: a leitura
+     * corre fora do thread principal, e a troca volta a ele.
+     */
+    private void conferirLaco() {
+        final Context app = getApplicationContext();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (!Guarda.emLaco(app)) return;
+                Guarda.limpar(app);
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        if (Abridor.homeDeFabrica(HomeActivity.this)) finish();
+                    }
+                });
+            }
+        }, "home-guarda");
+        t.start();
     }
 
     @Override
@@ -161,25 +178,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     @Override
     public void onBackPressed() {
         if (modelo == null) return;
-        if (modelo.curvasAberta) {
-            if (!modelo.curvas.voltar()) {
-                modelo.fecharCurvas();
-                modelo.aviso = null;
-            }
-            vista.invalidate();
-            return;
-        }
-        if (modelo.ajustesAberta) {
-            modelo.fecharAjustes();
-            modelo.aviso = null;
-            vista.invalidate();
-            return;
-        }
-        if (modelo.luzAberta) {
-            modelo.fecharLuz();
-            modelo.aviso = null;
-            vista.invalidate();
-        }
+        if (modelo.voltar()) vista.invalidate();
     }
 
     @Override

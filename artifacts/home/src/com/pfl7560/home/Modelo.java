@@ -131,6 +131,24 @@ public final class Modelo {
         ajustes.confirmando = -1;
     }
 
+    /**
+     * Voltar: fecha a tela aberta com um aperto. Unica excecao: arrastando uma bola nas Curvas, Voltar solta a bola.
+     * Devolve false na tela principal (nada a fechar).
+     */
+    public boolean voltar() {
+        if (curvasAberta) {
+            if (!curvas.voltar()) fecharCurvas();
+        } else if (ajustesAberta) {
+            fecharAjustes();
+        } else if (luzAberta) {
+            fecharLuz();
+        } else {
+            return false;
+        }
+        aviso = null;
+        return true;
+    }
+
     public void inicio() {
         luzAberta = false;
         fecharCurvas();
