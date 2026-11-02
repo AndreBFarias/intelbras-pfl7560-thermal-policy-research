@@ -10,7 +10,12 @@ Arquivo para abrir sessão nova sem depender da conversa.
 no 1º boot, então o kit instalou primeiro: `vendor.pfl7560.semente=data_vence` (a cópia do `/vendor` não precisou
 agir; só fica provada num aparelho sem pendrive). Intelbras visto só no 1º boot: animação de boot (antes de o kit
 repor a marca em `/atv/bootvideo`) e o assistente de pareamento do controle (primeira configuração depois do
-reset). **Bloco 30 em voo:** HDMI e USB-C na home só com cabo (E1 avulso, árvore `bloco30`).
+reset). Logs do 1º boot lidos: cor VESA→JEIDA corrigida, resumo 19/0/0, rampa reagiu.
+
+**Decisão do dono (2026-11-02):** documentar o processo do flash (agente de docs em voo, doc 47 §13) e **gravar
+uma S6** com o bloco 30 (não só pelo pendrive do kit). Bloco 30 em voo: HDMI e USB-C na home só com cabo (E1
+avulso, árvore `bloco30`; depois E2 confere). Depois: integrar, montar a S6 (mesmo roteiro da S5), pré-voo,
+backup com `id -u` = 0, flash com o dono.
 
 **Agora (2026-11-02 ~10:40):** blocos 26 a 29, conferente final e documentação integrados no `main`. **S5 final
 montada:** `3f3023b06e500e354fa6d4ca4e236f5f` (duas gerações iguais, `--verificar` APROVADO, `test-semente-s5`
