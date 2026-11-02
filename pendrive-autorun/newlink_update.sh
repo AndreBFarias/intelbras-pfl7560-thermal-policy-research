@@ -19,7 +19,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="6"
+APP_VERSION_CODE="7"
 ESPERA_REBOOT=8
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
@@ -46,8 +46,8 @@ bdf8936e37eb56dc7f3989b486175879  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-26e2f517f862d19ecf452cdf3d56ae74  pfl7560.apk
-c743059f7c02384ae560e21f13ebc9c6  pfl7560-home.apk
+6c43460eb4d234436541ffded0113c69  pfl7560.apk
+e31d62b0e20b916cf48b530f2af788a0  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png

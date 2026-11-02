@@ -16,6 +16,8 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   instale por cima do anterior. Não serve para loja.
 - `VERSAO_CODIGO` sobe a cada APK novo (o kit instala por cima quando muda). No app, o `APP_VERSION_CODE` do
   `newlink_update.sh` tem de ser o mesmo (o harness confere). Depois de um APK novo, `bash tests/atualizar-md5-kit.sh`.
+- `VERSAO_CODIGO` está em 7 nos dois apps (bloco 24: a home ganhou as abas Chaves e Diário; o app subiu junto para o kit
+  instalar os dois por cima). O `APP_VERSION_CODE="7"` do `newlink_update.sh` acompanha.
 - Só o `build.sh` do app copia para o kit; o da home e o das sobreposições não (a integração é do coordenador).
 - O app leva só a fonte Bold (o nome do descanso de tela), com a licença; a home leva as cinco do kit em `assets/`.
 - A home confere a paleta (`artifacts/tema/dracula.txt`, `res/values/colors.xml` e `Tema.java`) antes de compilar.
