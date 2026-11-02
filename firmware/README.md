@@ -53,14 +53,14 @@ Só lê. Sai 0 com `PRE-VOO APROVADO` e 1 se qualquer item falhar:
    `/data/data/com.pfl7560.home/shared_prefs`, soltos ou no `pfl-backup.tar`;
 5. o stock de resgate (md5 `28a2f280…`) está fora do pendrive do flash.
 
-O `install.sh --com-firmware` ainda põe a S4a no pendrive. Esse pendrive é recusado para a S5. Teste:
-`tests/test-preflight-flash.sh`.
+O `install.sh --com-firmware` põe a S5 no pendrive, conferida pelo md5 deste mesmo `.md5` (o `.ps1` do Windows
+também): o pendrive que ele faz passa no pré-voo. Teste: `tests/test-preflight-flash.sh`.
 
 ## Avisos
 
 1. Os zips são **propriedade da Intelbras** e ficam aqui como backup privado de reparo. Não redistribua.
 2. O clone precisa de **Git LFS**: `git lfs install` antes do `git clone` ou do `git pull`.
-3. **O pendrive.** O `./install.sh --pendrive <ponto> --com-firmware` põe o **nosso** `.bin` (a S4a) na raiz como
+3. **O pendrive.** O `./install.sh --pendrive <ponto> --com-firmware` põe o **nosso** `.bin` (a S5) na raiz como
    `usb_update.bin` e o oficial V1.0.0.9 em `resgate-oficial/PFL7560.bin`, com um `LEIA-ME.txt` que ele mesmo
    gera. Ligar **segurando o power** com esse pendrive plugado grava o nosso firmware, que não foi provado no
    hardware. Para o **resgate**, o loader só lê o `usb_update.bin` da raiz: copie o `resgate-oficial/PFL7560.bin`,

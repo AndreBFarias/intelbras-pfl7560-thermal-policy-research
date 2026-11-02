@@ -8,8 +8,15 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $ZipNome = 'Software PFL7560.zip'
 $OficialMd5 = '28a2f280eee313a4b115567926b2ba4f'
-$NossoBin = 'PFL7560-S4a-NAO-GRADUADO.bin'
-$NossoMd5 = 'a6e5da14cb3f53b42a457eb92bd91814'
+$NossoBin = 'PFL7560-S5-COMPLETO-NAO-GRADUADO.bin'
+# o md5 aprovado vem do .md5 versionado ao lado do .ps1 (o mesmo do install.sh e do firmware/preflight-flash.sh)
+$NossoMd5Arq = Join-Path (Join-Path $PSScriptRoot 'firmware') ($NossoBin + '.md5')
+$NossoMd5 = ''
+if (Test-Path -LiteralPath $NossoMd5Arq) {
+  foreach ($l in Get-Content -LiteralPath $NossoMd5Arq) {
+    if ($l -cmatch '^([0-9a-f]{32})  PFL7560-S5-COMPLETO-NAO-GRADUADO\.bin$') { $NossoMd5 = $Matches[1]; break }
+  }
+}
 $ResgatePasta = 'resgate-oficial'
 $LegadoPasta = 'firmware-nosso-NAO-GRADUADO'
 $LeiameResgate = @'
@@ -18,9 +25,9 @@ FIRMWARE OFICIAL DE FABRICA (V1.0.0.9) - RESGATE
 
 O PFL7560.bin desta pasta e o firmware OFICIAL de fabrica da Intelbras,
 V1.0.0.9, do aparelho COM entrada USB-C. Ele NAO esta ativo: o projetor so
-olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware (escada
-de brilho, wi-fi, xiri e o servico da suite), que nunca foi provado no
-aparelho.
+olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware S5
+(escada de brilho, wi-fi, xiri, a suite, a home e o app ja na imagem), que
+nunca foi provado no aparelho.
 
 QUANDO USAR
   So se o nosso firmware deixar o projetor sem ligar ou sem funcionar direito.
@@ -61,6 +68,7 @@ if ($Modo -eq 'conferir') {
   Write-Host "  firmware: conferindo as origens em $Firmware"
   if (-not (Test-Path -LiteralPath $zip)) { Erro "falta '$zip' (o firmware OFICIAL V1.0.0.9 do aparelho com USB-C). NAO use o 'Firmware PFL7560.zip': e do modelo sem USB-C." }
   if (-not (Test-Path -LiteralPath $nosso)) { Erro "falta '$nosso' (o nosso .bin; e 'local only', nao vem no git: copie-o para $Firmware). Nada foi copiado." }
+  if (-not $NossoMd5) { Erro "sem o md5 aprovado de $NossoBin em '$NossoMd5Arq' (linha '<md5>  $NossoBin'). Nada foi copiado." }
   $z = [System.IO.Compression.ZipFile]::OpenRead($zip)
   try {
     $e = Entrada $z

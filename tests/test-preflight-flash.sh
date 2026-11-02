@@ -169,6 +169,21 @@ for args in "" "--backup x --resgate y" "p --resgate y" "p --backup x" "p q --ba
   afirma '[ "$RC" = 2 ] && grep -q "^uso:" "$T/saida.log"' "rc=$RC"
 done
 
+echo "== pendrive feito pelo install.sh --com-firmware =="
+novo_cenario "install.sh --pendrive --com-firmware leva a S5 do .md5 e o pre-voo aprova o pendrive como saiu"
+if command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1; then
+  FWD="$T/fw"; mkdir -p "$FWD/z/Software PFL7560"
+  cp "$PC/stock.bin" "$FWD/z/Software PFL7560/PFL7560.bin"
+  ( cd "$FWD/z" && zip -q -r "$FWD/Software PFL7560.zip" "Software PFL7560" ) && rm -rf "$FWD/z"
+  mv "$PEN/usb_update.bin" "$FWD/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin"
+  rm -rf "$PEN"; mkdir -p "$PEN"
+  env PFL_TESTE=1 PFL_FIRMWARE_DIR="$FWD" PFL_FW_OFICIAL_MD5="$STOCK_MD5" PFL_FW_NOSSO_MD5_ARQ="$T/s5.md5" \
+      bash "$ROOT/install.sh" --pendrive "$PEN" --com-firmware > "$T/install.log" 2>&1; IRC=$?
+  afirma '[ "$IRC" = 0 ] && [ "$(md5 "$PEN/usb_update.bin")" = "$(cut -d" " -f1 "$T/s5.md5")" ]' "install.sh nao pos a S5 do .md5: $(tail -3 "$T/install.log" | tr '\n' ' ')"
+  padrao
+  afirma '[ "$RC" = 0 ] && grep -q "^PRE-VOO APROVADO" "$T/saida.log" && ! grep -q FALHA "$T/saida.log"' "o pre-voo recusou o pendrive do install.sh: $(grep FALHA "$T/saida.log" | tr '\n' ' ')"
+else echo "  (zip/unzip ausentes: caso pulado)"; fi
+
 echo "== estaticos =="
 CASO="estaticos"
 afirma 'dash -n "$PRE"' "dash -n"
