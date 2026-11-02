@@ -112,6 +112,7 @@ public final class Previa {
 
         checarNavegacao(firmware);
         checarEntradas();
+        checarLinhaEstado(fontes, firmware);
     }
 
     /**
@@ -609,6 +610,102 @@ public final class Previa {
         verdade(c.mover(0, -1) && c.zona == Curvas.ZONA_ABA && c.mover(-1, 0) && c.aba == Curvas.ABA_LED, "volta para a aba LED");
         m.inicio();
         verdade(!m.curvasAberta, "HOME fecha o painel de curvas");
+    }
+
+    /** Os textos da linha de estado (base 1000, Desenho.ESTADO_BASE) que o Desenho pinta: [x0, x1] e o texto. */
+    private static final class Anotador implements Pintor {
+        final Pintor real;
+        final List<float[]> faixas = new ArrayList<float[]>();
+        final List<String> textos = new ArrayList<String>();
+
+        Anotador(Pintor real) {
+            this.real = real;
+        }
+
+        public void gradiente(float x, float y, float w, float h, int a, int b) {
+        }
+
+        public void retangulo(float x, float y, float w, float h, float r, int c) {
+        }
+
+        public void contorno(float x, float y, float w, float h, float r, float e, int c) {
+        }
+
+        public void linha(float x1, float y1, float x2, float y2, float e, int c) {
+        }
+
+        public void circulo(float cx, float cy, float r, int c) {
+        }
+
+        public void anel(float cx, float cy, float r, float e, int c) {
+        }
+
+        public void arco(float cx, float cy, float r, float i, float v, float e, int c) {
+        }
+
+        public void polilinha(float[] xy, boolean f, float e, int c) {
+        }
+
+        public void texto(String s, float x, float yBase, int fonte, float tam, int cor, int alin) {
+            if (yBase != 1000f) return;
+            float w = real.largura(s, fonte, tam);
+            float x0 = alin == DIR ? x - w : alin == CENTRO ? x - w / 2 : x;
+            faixas.add(new float[] {x0, x0 + w});
+            textos.add(s);
+        }
+
+        public float largura(String s, int fonte, float tam) {
+            return real.largura(s, fonte, tam);
+        }
+
+        boolean semSobrepor() {
+            for (int i = 0; i < faixas.size(); i++) {
+                for (int j = i + 1; j < faixas.size(); j++) {
+                    float[] a = faixas.get(i);
+                    float[] b = faixas.get(j);
+                    if (a[0] < b[1] && b[0] < a[1]) return false;
+                }
+                if (faixas.get(i)[0] < 112f || faixas.get(i)[1] > 1920f - 112f + 0.5f) return false;
+            }
+            return true;
+        }
+    }
+
+    private static Anotador estadoDe(File fontes, Modelo m) throws Exception {
+        BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        Anotador a = new Anotador(new PintorJ2D(g, fontes));
+        Desenho.desenhar(a, m);
+        g.dispose();
+        return a;
+    }
+
+    /**
+     * Bloco 30: "MeowCast" no canto e o aviso amarelo a esquerda dela nunca sobrepoem a parte da esquerda da linha
+     * de estado. Com rede de nome comprido e aviso comprido, a marca sai enquanto o aviso esta na tela.
+     */
+    private static void checarLinhaEstado(File fontes, List<Item> firmware) throws Exception {
+        Modelo m = base();
+        m.definirApps(firmware);
+        m.wifi = "MinhaRede";
+        m.bluetooth = "Bluetooth conectado";
+        m.temperatura = "59";
+        m.temperaturaPlaca = "47";
+        Anotador a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains("MeowCast"), "estado: sem aviso, a marca no canto");
+        m.aviso = "Não abriu: Alto-falante Bluetooth";
+        a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains("MeowCast") && a.textos.contains(m.aviso),
+                "estado: rede curta, o aviso cabe ao lado da marca");
+        m.wifi = "NET_2G_APARTAMENTO_1203";
+        a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains(m.aviso), "estado: rede comprida e aviso comprido nao se sobrepoem");
+        verdade(!a.textos.contains("MeowCast"), "estado: sem lugar, a marca sai enquanto o aviso esta na tela");
+        m.aviso = null;
+        m.wifi = "Rede_de_32_caracteres_aaaaaaaaaa";
+        a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains("MeowCast"), "estado: rede de 32 caracteres e a marca");
+        System.out.println("linha de estado: conferencias ok");
     }
 
     private static void verdade(boolean b, String o) {

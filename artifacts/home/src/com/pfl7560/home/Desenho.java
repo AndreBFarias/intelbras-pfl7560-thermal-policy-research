@@ -162,29 +162,42 @@ public final class Desenho {
     private static void estado(Pintor p, Modelo m) {
         float x = MX;
         float t = 28;
+        // onde termina a parte da esquerda (rede, Bluetooth, temperaturas)
+        float fim = MX;
         if (m.wifi != null) {
             Icones.desenhar(p, Icones.WIFI, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
             x += 46;
             p.texto(m.wifi, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
-            x += p.largura(m.wifi, Pintor.SANS, t) + 48;
+            x += p.largura(m.wifi, Pintor.SANS, t);
+            fim = x;
+            x += 48;
         }
         if (m.bluetooth != null) {
             Icones.desenhar(p, Icones.BLUETOOTH, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
             x += 46;
             p.texto(m.bluetooth, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
-            x += p.largura(m.bluetooth, Pintor.SANS, t) + 48;
+            x += p.largura(m.bluetooth, Pintor.SANS, t);
+            fim = x;
+            x += 48;
         }
         if (m.temperatura != null || m.temperaturaPlaca != null) {
             Icones.desenhar(p, Icones.TERMOMETRO, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
             x += 42;
-            if (m.temperatura != null) x = graus(p, "LED", m.temperatura, x, t) + 32;
-            if (m.temperaturaPlaca != null) graus(p, "Placa", m.temperaturaPlaca, x, t);
+            fim = x;
+            if (m.temperatura != null) {
+                fim = graus(p, "LED", m.temperatura, x, t);
+                x = fim + 32;
+            }
+            if (m.temperaturaPlaca != null) fim = graus(p, "Placa", m.temperaturaPlaca, x, t);
         }
-        // a marca no canto inferior direito (bloco 30); o aviso fica logo a esquerda dela
-        p.texto(MARCA, DIREITA, ESTADO_BASE, Pintor.SANS_NEGRITO, MARCA_TAM, MARCA_COR, Pintor.DIR);
+        // A marca no canto inferior direito (bloco 30); o aviso fica logo a esquerda dela. Se o aviso nao cabe entre
+        // a parte da esquerda e a marca (nome de rede comprido), a marca sai enquanto ele estiver na tela e o aviso
+        // volta ao canto, como antes do bloco 30: o aviso e o que o dono precisa ler.
+        float xa = DIREITA - p.largura(MARCA, Pintor.SANS_NEGRITO, MARCA_TAM) - 48;
+        boolean marca = m.aviso == null || xa - p.largura(m.aviso, Pintor.SANS_SEMI, t) >= fim + 48;
+        if (marca) p.texto(MARCA, DIREITA, ESTADO_BASE, Pintor.SANS_NEGRITO, MARCA_TAM, MARCA_COR, Pintor.DIR);
         if (m.aviso != null) {
-            float xa = DIREITA - p.largura(MARCA, Pintor.SANS_NEGRITO, MARCA_TAM) - 48;
-            p.texto(m.aviso, xa, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
+            p.texto(m.aviso, marca ? xa : DIREITA, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
         }
     }
 
