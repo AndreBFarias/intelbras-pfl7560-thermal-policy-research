@@ -94,6 +94,13 @@ Por que funciona: o flash **só toca as partições que o container leva** (entr
 (nem pela nossa build, nem pelo flash) — então o modo de upgrade USB está sempre disponível. É o mesmo motor
 que a "Atualização local" usa, só que disparado pelo hardware em vez do menu.
 
+> **Atualização (2026-11-02): a S5 foi gravada com este mesmo método e funcionou.** O `.bin` que o `install.sh
+> --com-firmware` põe na raiz do pendrive (a S5 `3f3023b0…`, já com modo, dono e rótulo do stock em tudo o que
+> mexe) foi gravado ligando segurando o POWER e subiu sem travar na logo: o defeito de metadados da seção 2 está
+> curado na origem. O 1º boot depois do flash traz a animação de boot da Intelbras de cabeça para baixo e
+> esverdeada (a cor volta ao stock, passo 7) e o assistente de pareamento do controle; com o pendrive do kit
+> plugado, o kit corrige a cor na hora. Relato completo: [doc 47 §13](../research/47-build-completa.md).
+
 ## 4. Plano B — recuperação por UART/serial (se o power-hold falhar)
 
 O loader expõe um **console U-Boot na UART** (`baudrate=115200`, 8N1). Com um adaptador USB-TTL (CH340/CP2102,
