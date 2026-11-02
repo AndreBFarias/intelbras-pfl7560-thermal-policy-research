@@ -1,7 +1,7 @@
 # Home PFL7560 (`com.pfl7560.home`, bloco 10A)
 
-Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1, HDMI 2 e
-os HDMI só enquanto há cabo ligado na porta; o USB-C sempre, porque não tem sinal de cabo: bloco 30, doc 45 §14), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Luz, Curvas, Configurações),
+Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1 e
+HDMI 2 só enquanto há cabo ligado na porta; o USB-C sempre, porque não tem sinal de cabo: bloco 30, doc 45 §14), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Luz, Curvas, Configurações),
 **Apps** e uma linha de estado (rede, Bluetooth, temperatura do LED e da placa; "MeowCast" no canto direito, bloco 30). Só D-pad, com o foco em rosa. Pesquisa, intents,
 riscos e desenho: [doc 45](../../docs/research/45-home-pfl7560.md).
 

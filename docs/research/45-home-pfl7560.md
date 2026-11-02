@@ -344,8 +344,10 @@ remover o office suite (ocultar da home)". Os três já foram desligados à mão
 
 ## 14. Entradas só com cabo (bloco 30, versionCode 10)
 
-Pedido do dono: os botões HDMI e USB-C só aparecem na home enquanto há um aparelho ligado na porta; sem cabo
-nenhum, a fileira Entradas some (nem o título). O pop-up de fábrica continua desligado (`pop_disp`).
+Pedido do dono: os botões HDMI e USB-C só aparecem na home enquanto há um aparelho ligado na porta. O USB-C não
+tem sinal de cabo e, por decisão do dono, fica sempre (§14.4); os HDMI só com cabo. Sem cabo HDMI, a fileira
+mostra só o USB-C; no firmware sem USB-C, ela some (nem o título). O pop-up de fábrica continua desligado
+(`pop_disp`).
 
 ### 14.1 O sinal: o estado das entradas de TV (`TvInputManager`), sem root e sem prop nova
 
@@ -402,8 +404,8 @@ lê, portanto, sem root: a suíte não precisa publicar prop `vendor.pfl7560.*` 
     botão fica visível. Esconder tiraria o único caminho até a entrada.
   - Antes da primeira leitura (os primeiros milissegundos), a fileira está vazia.
 - **Foco (`Modelo.definirEntradas`):**
-  - Na primeira leitura, se o dono ainda não mexeu, o foco vai ao começo: HDMI 1 com cabo, senão Verificar
-    projetor.
+  - Na primeira leitura, se o dono ainda não mexeu, o foco vai ao começo: a primeira entrada da fileira (HDMI 1
+    com cabo, senão HDMI 2, senão USB-C); sem entrada nenhuma, Verificar projetor.
   - Depois disso, um cabo novo nunca puxa o foco.
   - O botão em foco que continua leva o foco junto, mesmo mudando de lugar.
   - O botão em foco que some passa o foco ao vizinho que ocupa o lugar. Se não sobra entrada, o foco vai para o
@@ -468,3 +470,6 @@ lê, portanto, sem root: a suíte não precisa publicar prop `vendor.pfl7560.*` 
 - "MeowCast" fica no canto inferior direito, na linha de estado: IBM Plex Sans Condensed Bold, 34 px, cor
   roxo a 80 % sobre o fundo (`#9F7ED2`, a mistura de tokens mais perto do `#9D7AD0` da marca, sem cor nova;
   3,8:1 sobre a base do gradiente, texto grande). O aviso amarelo passa a ficar logo à esquerda da marca.
+- Se o aviso não cabe entre a parte da esquerda da linha de estado e a marca (nome de rede comprido, aviso
+  comprido), a marca sai enquanto o aviso está na tela e ele volta ao canto. A conferência "linha de estado" do
+  `gerar-previas.sh` prova que nenhum texto da linha se sobrepõe (E2, 2026-11-02).
