@@ -108,6 +108,9 @@ novo_cenario "usb_update.bin e um link"; mv "$PEN/usb_update.bin" "$PC/s5.bin"; 
 novo_cenario "usb_update.bin com outro nome (Usb_Update.bin)"; mv "$PEN/usb_update.bin" "$PEN/Usb_Update.bin"; padrao; recusa "1. usb_update.bin ausente"
 novo_cenario "sem o .md5 da S6"; rm "$T/s5.md5"; padrao; recusa "1. sem o md5 da S6"
 novo_cenario ".md5 da S6 de outro arquivo"; sed -i 's/S6-COMPLETO/S5-COMPLETO/' "$T/s5.md5"; padrao; recusa "1. sem o md5 da S6"
+novo_cenario "usb_update.bin e a S5 gravada (a linha da S5 traz o md5 dele, a da S6 outro)"
+{ sed 's/S6-COMPLETO/S5-COMPLETO/' "$T/s5.md5"; echo "0123456789abcdef0123456789abcdef  PFL7560-S6-COMPLETO-NAO-GRADUADO.bin"; } > "$T/m5" && mv "$T/m5" "$T/s5.md5"
+padrao; recusa "1. usb_update.bin tem md5"
 
 echo "== item 2: verificar_bin =="
 novo_cenario "verificador reprova"; : > "$T/flag.reprova"; padrao; recusa "2. verificar_bin reprovou"
@@ -191,6 +194,8 @@ afirma '[ -x "$PRE" ] && head -1 "$PRE" | grep -qx "#!/bin/sh"' "sem +x ou sheba
 afirma '[ -z "$(LC_ALL=C grep -nP "[^\x00-\x7F]" "$PRE")" ]' "byte fora de ASCII"
 afirma '! grep -vE "^[[:space:]]*#" "$PRE" | grep -qE "\b(adb|rm|mv|cp|dd|mkfs|mount|chmod|tee)\b|>[^&]*\$PEN|PFL_FALLBACK"' "o pre-voo grava, apaga ou fala com o aparelho"
 afirma 'grep -q "28a2f280eee313a4b115567926b2ba4f" "$PRE"' "sem o md5 do stock V1.0.0.9"
+afirma 'grep -qx "MD5_ARQ=\"\$RAIZ/firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5\"" "$PRE"' "o pre-voo nao le o firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5"
+afirma 's5="$(cut -d" " -f1 "$ROOT/firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5")"; s6="$(cut -d" " -f1 "$ROOT/firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5")"; [ ${#s5} = 32 ] && [ ${#s6} = 32 ] && [ "$s5" != "$s6" ]' "o .md5 da S6 falta ou e o mesmo da S5 gravada"
 if command -v shellcheck >/dev/null 2>&1; then
   afirma 'shellcheck -s sh "$PRE"' "shellcheck -s sh"
   afirma 'shellcheck "$ROOT/tests/test-preflight-flash.sh"' "shellcheck do harness"
