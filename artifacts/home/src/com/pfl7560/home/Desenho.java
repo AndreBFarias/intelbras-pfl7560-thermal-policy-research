@@ -22,12 +22,10 @@ public final class Desenho {
     static final float ENT_Y = 136f;
     static final float ENT_W = 296f;
     static final float ENT_H = 200f;
-    static final float ENT_X0 = DIREITA - (3 * ENT_W + 2 * VAO);
 
     static final float ATA_TITULO = 432f;
     static final float ATA_Y = 456f;
     static final float ATA_H = 172f;
-    static final float ATA_W = (CONTEUDO - 6 * VAO) / 7f;
 
     public static final int APPS_VISIVEIS = 7;
     static final float APP_TITULO = 724f;
@@ -42,9 +40,21 @@ public final class Desenho {
     private Desenho() {
     }
 
+    /** As entradas encostam na direita, quantas forem. */
+    static float entX0(Modelo m) {
+        int n = Math.max(1, m.entradas.length);
+        return DIREITA - (n * ENT_W + (n - 1) * VAO);
+    }
+
+    /** Os atalhos dividem a largura toda entre si. */
+    static float ataW(Modelo m) {
+        int n = Math.max(1, m.atalhos.length);
+        return (CONTEUDO - (n - 1) * VAO) / n;
+    }
+
     public static float centroX(Modelo m, int fileira, int i) {
-        if (fileira == Modelo.ENTRADAS) return ENT_X0 + i * (ENT_W + VAO) + ENT_W / 2;
-        if (fileira == Modelo.ATALHOS) return MX + i * (ATA_W + VAO) + ATA_W / 2;
+        if (fileira == Modelo.ENTRADAS) return entX0(m) + i * (ENT_W + VAO) + ENT_W / 2;
+        if (fileira == Modelo.ATALHOS) return MX + i * (ataW(m) + VAO) + ataW(m) / 2;
         return MX + (i - m.primeiroApp) * (APP_W + VAO) + APP_W / 2;
     }
 
@@ -83,9 +93,10 @@ public final class Desenho {
     }
 
     private static void entradas(Pintor p, Modelo m) {
-        titulo(p, "Entradas", ENT_X0, ENT_TITULO);
+        float x0 = entX0(m);
+        titulo(p, "Entradas", x0, ENT_TITULO);
         for (int i = 0; i < m.entradas.length; i++) {
-            float x = ENT_X0 + i * (ENT_W + VAO);
+            float x = x0 + i * (ENT_W + VAO);
             boolean f = m.fileira == Modelo.ENTRADAS && m.coluna == i;
             cartao(p, x, ENT_Y, ENT_W, ENT_H, f);
             int cf = f ? Tema.LINHA : Tema.CARTAO;
@@ -96,6 +107,7 @@ public final class Desenho {
 
     private static void atalhos(Pintor p, Modelo m) {
         titulo(p, "Atalhos", MX, ATA_TITULO);
+        final float ATA_W = ataW(m);
         for (int i = 0; i < m.atalhos.length; i++) {
             float x = MX + i * (ATA_W + VAO);
             boolean f = m.fileira == Modelo.ATALHOS && m.coluna == i;
@@ -155,18 +167,31 @@ public final class Desenho {
             p.texto(m.wifi, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
             x += p.largura(m.wifi, Pintor.SANS, t) + 48;
         }
-        if (m.temperatura != null) {
+        if (m.bluetooth != null) {
+            Icones.desenhar(p, Icones.BLUETOOTH, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
+            x += 46;
+            p.texto(m.bluetooth, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+            x += p.largura(m.bluetooth, Pintor.SANS, t) + 48;
+        }
+        if (m.temperatura != null || m.temperaturaPlaca != null) {
             Icones.desenhar(p, Icones.TERMOMETRO, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
             x += 42;
-            p.texto("LED", x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
-            x += p.largura("LED ", Pintor.SANS, t);
-            p.texto(m.temperatura, x, ESTADO_BASE, Pintor.MONO, 27, Tema.TEXTO_2, Pintor.ESQ);
-            x += p.largura(m.temperatura, Pintor.MONO, 27) + 5;
-            p.texto("°C", x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+            if (m.temperatura != null) x = graus(p, "LED", m.temperatura, x, t) + 32;
+            if (m.temperaturaPlaca != null) graus(p, "Placa", m.temperaturaPlaca, x, t);
         }
         if (m.aviso != null) {
             p.texto(m.aviso, DIREITA, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
         }
+    }
+
+    /** "Nome nn °C" no rodape; devolve onde termina. */
+    private static float graus(Pintor p, String nome, String valor, float x, float t) {
+        p.texto(nome, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+        x += p.largura(nome + " ", Pintor.SANS, t);
+        p.texto(valor, x, ESTADO_BASE, Pintor.MONO, 27, Tema.TEXTO_2, Pintor.ESQ);
+        x += p.largura(valor, Pintor.MONO, 27) + 5;
+        p.texto("°C", x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+        return x + p.largura("°C", Pintor.SANS, t);
     }
 
     private static void painelLuz(Pintor p, Modelo m) {
@@ -270,12 +295,10 @@ public final class Desenho {
             p.retangulo(ax, CV_MODO_Y, 300, CV_CHIP_H, 14, Tema.CARTAO);
             p.texto(rot, ax + 150, CV_MODO_Y + 40, Pintor.SANS_NEGRITO, 32, Tema.TEXTO_2, Pintor.CENTRO);
         }
-        String dica;
-        if (c.zona == Curvas.ZONA_GRAFICO && c.pegando) dica = "Setas: mover a bola    OK ou Voltar: soltar";
-        else if (c.zona == Curvas.ZONA_GRAFICO) dica = c.editavel() ? "Esquerda e direita: escolher a bola    OK: pegar    Cima e baixo: mudar de linha"
-                : "Este perfil não se edita. Escolha Manual ou mexa numa bola de outro perfil.";
-        else dica = "Setas: escolher    OK: aplicar (no botão)    Voltar: fechar";
-        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        // a unica dica que fica: com a bola pega, as setas mudam de papel
+        if (c.zona == Curvas.ZONA_GRAFICO && c.pegando) {
+            p.texto("Setas: mover a bola    OK ou Voltar: soltar", MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        }
         if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
 
@@ -309,17 +332,6 @@ public final class Desenho {
             p.texto(l[1], MX, y + 44, Pintor.SANS_SEMI, 32, Tema.TEXTO, Pintor.ESQ);
             y += 118;
         }
-        p.texto("Ligado, o projetor confere no boot se a correção de 4 pontos mudou e, se mudou,",
-                MX, 800, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        p.texto("regrava o logo de abertura no formato da tela, com backup e releitura.",
-                MX, 840, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        p.texto("No máximo uma gravação por boot. Na dúvida, não grava.",
-                MX, 880, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        p.texto("Socorro: o arquivo DESLIGAR-LOGO-AUTO.txt no pendrive do kit desliga a chave.",
-                MX, 920, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        String dica = foco ? "OK: ligar ou desligar (vale no próximo boot)    Cima: abas    Voltar: fechar"
-                : "Setas: escolher    Baixo: a chave    Voltar: fechar";
-        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
         if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
 
@@ -370,8 +382,7 @@ public final class Desenho {
         } else {
             float xf = cvX(70, t0, t1);
             p.retangulo(xf, CV_GY, CV_GX + CV_GW - xf, CV_GH, 0, Tema.misturar(Tema.VERMELHO, Tema.CARTAO, 0.22f));
-            p.texto("70 e 75 °C: escada do", (xf + CV_GX + CV_GW) / 2, CV_GY + 40, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
-            p.texto("firmware, intocável", (xf + CV_GX + CV_GW) / 2, CV_GY + 72, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
+            p.texto("do firmware", (xf + CV_GX + CV_GW) / 2, CV_GY + 40, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
             if (c.perfilLed == 0) {
                 p.linha(cvX(t0, t0, t1), cvY(1000, v0, v1), xf, cvY(1000, v0, v1), 6, Tema.COMENTARIO);
                 p.texto("sem curva: o firmware decide", CV_GX + 20, cvY(1000, v0, v1) + 44, Pintor.SANS, 26, Tema.TEXTO_2, Pintor.ESQ);
@@ -425,11 +436,13 @@ public final class Desenho {
     static final float AJ_CHAVE_X = MX + 1060f;
     static final float AJ_ESTADO_X = MX + 1190f;
 
-    private static void chave(Pintor p, float x, float y, char c, boolean foco) {
+    /** O interruptor de um SERVICO: '1' ligado (verde, a direita), '0' desligado, 'p' parcial (no meio). */
+    private static void chave(Pintor p, float x, float y, char c, boolean foco, boolean emCurso) {
         float w = 84f;
         float h = 40f;
         int fundo = c == '1' ? Tema.VERDE : c == 'p' ? Tema.LARANJA : Tema.LINHA;
-        p.retangulo(x, y, w, h, h / 2, foco && c != '1' && c != 'p' ? Tema.COMENTARIO : fundo);
+        if (emCurso) fundo = Tema.misturar(fundo, Tema.CARTAO, 0.5f);
+        p.retangulo(x, y, w, h, h / 2, foco && !emCurso && c != '1' && c != 'p' ? Tema.COMENTARIO : fundo);
         float cx = c == '1' ? x + w - h / 2 : c == 'p' ? x + w / 2 : x + h / 2;
         p.circulo(cx, y + h / 2, h / 2 - 5, Tema.TEXTO);
     }
@@ -443,32 +456,32 @@ public final class Desenho {
         }
     }
 
-    private static void listaChaves(Pintor p, Modelo m) {
+    private static boolean temChave(char c) {
+        return c == '1' || c == '0' || c == 'p';
+    }
+
+    private static int corEstado(char c, boolean emCurso) {
+        if (emCurso) return Tema.AMARELO;
+        return c == '1' ? Tema.VERDE : c == 'p' ? Tema.LARANJA : c == '0' ? Tema.TEXTO_2 : Tema.COMENTARIO;
+    }
+
+    private static void listaServicos(Pintor p, Modelo m) {
         Ajustes a = m.ajustes;
-        for (int i = 0; i < Ajustes.IDS.length; i++) {
-            float y = AJ_LINHA_Y + i * AJ_LINHA_H;
-            boolean f = a.zona == Ajustes.ZONA_LINHAS && a.linha == i;
-            char c = a.estadoDe(i);
+        for (int l = 0; l < Ajustes.VISIVEIS.length; l++) {
+            int i = Ajustes.VISIVEIS[l];
+            float y = AJ_LINHA_Y + l * AJ_LINHA_H;
+            boolean f = a.zona == Ajustes.ZONA_LINHAS && a.linha == l;
+            char c = a.lido() ? a.servico(i) : '?';
+            boolean ec = a.emCurso(i);
             fundoLinha(p, y, f);
-            int cor = c == '-' ? Tema.TEXTO_2 : Tema.TEXTO;
-            p.texto(Ajustes.ROTULOS[i], MX + 24, y + 38, Pintor.SANS_SEMI, 30, cor, Pintor.ESQ);
-            if (c == '1' || c == '0' || c == 'p') chave(p, AJ_CHAVE_X, y + 7, c, f);
-            int ce = c == '1' ? Tema.VERDE : c == 'p' ? Tema.LARANJA : c == '0' ? Tema.TEXTO_2 : Tema.COMENTARIO;
-            float ex = (c == '1' || c == '0' || c == 'p') ? AJ_ESTADO_X : AJ_CHAVE_X;
-            p.texto(Ajustes.rotuloEstado(c), ex, y + 37, Pintor.SANS, 28, ce, Pintor.ESQ);
+            p.texto(Ajustes.ROTULOS[i], MX + 24, y + 38, Pintor.SANS_SEMI, 30, c == '-' ? Tema.TEXTO_2 : Tema.TEXTO, Pintor.ESQ);
+            if (temChave(c)) chave(p, AJ_CHAVE_X, y + 7, c, f, ec);
+            float ex = temChave(c) ? AJ_ESTADO_X : AJ_CHAVE_X;
+            p.texto(a.rotuloServico(i), ex, y + 37, Pintor.SANS, 28, corEstado(c, ec), Pintor.ESQ);
         }
-        float ty = AJ_LINHA_Y + Ajustes.IDS.length * AJ_LINHA_H + 40;
-        int sel = a.linha;
-        for (String l : quebrar(p, Ajustes.FAZ[sel], Pintor.SANS, 27, CONTEUDO, 2)) {
-            p.texto(l, MX, ty, Pintor.SANS, 27, Tema.TEXTO, Pintor.ESQ);
-            ty += 34;
-        }
-        int nr = Ajustes.NIVEL_RISCO[sel];
-        int cr = nr == 2 ? Tema.VERMELHO : nr == 1 ? Tema.AMARELO : Tema.VERDE;
-        String corpo = Ajustes.NIVEIS[nr] + Ajustes.RISCO[sel];
-        for (String l : quebrar(p, corpo, Pintor.SANS_SEMI, 27, CONTEUDO, 2)) {
-            p.texto(l, MX, ty, Pintor.SANS_SEMI, 27, cr, Pintor.ESQ);
-            ty += 34;
+        if (a.zona == Ajustes.ZONA_LINHAS) {
+            float ty = AJ_LINHA_Y + Ajustes.VISIVEIS.length * AJ_LINHA_H + 40;
+            p.texto(reticencias(p, Ajustes.FAZ[a.indice()], Pintor.SANS, 28, CONTEUDO), MX, ty, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
         }
     }
 
@@ -481,32 +494,27 @@ public final class Desenho {
             p.texto(Ajustes.DIARIO_ROTULOS[i], MX + 24, y + 38, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
             if (i == 0) {
                 char c = a.estadoDiario();
-                if (c == '1' || c == '0') chave(p, AJ_CHAVE_X, y + 7, c, f);
-                int ce = c == '1' ? Tema.VERDE : c == '0' ? Tema.TEXTO_2 : Tema.COMENTARIO;
+                boolean ec = a.diarioAplicando == '1' || a.diarioAplicando == '0';
+                if (c == '1' || c == '0') chave(p, AJ_CHAVE_X, y + 7, c, f, ec);
                 float ex = (c == '1' || c == '0') ? AJ_ESTADO_X : AJ_CHAVE_X;
-                p.texto(a.rotuloEstadoDiario(), ex, y + 37, Pintor.SANS, 28, ce, Pintor.ESQ);
+                p.texto(a.rotuloEstadoDiario(), ex, y + 37, Pintor.SANS, 28, corEstado(c, ec), Pintor.ESQ);
+            } else if (a.diarioAplicando == 'e') {
+                p.texto("Pedindo…", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.AMARELO, Pintor.ESQ);
             } else if (!a.diarioLido()) {
-                p.texto("Não consegui ler", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.COMENTARIO, Pintor.ESQ);
+                p.texto("Lendo…", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.COMENTARIO, Pintor.ESQ);
             } else if (a.diarioPedido()) {
-                p.texto("Pedido feito, esperando o PC", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.AMARELO, Pintor.ESQ);
-            } else {
-                p.texto("OK para pedir", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+                p.texto("Esperando o PC", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.AMARELO, Pintor.ESQ);
             }
         }
         float ty = AJ_LINHA_Y + Ajustes.DIARIO_ROTULOS.length * AJ_LINHA_H + 40;
-        String tam = a.diarioLido() ? Ajustes.rotuloTamanho(a.diarioBytes()) + " de 512 KB" : "não consegui ler";
-        p.texto("Tamanho do diário: " + tam, MX, ty, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
-        ty += 42;
-        p.texto("Último envio ao PC: " + Ajustes.rotuloEnvio(a.diarioEnvio), MX, ty, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
-        ty += 64;
-        int sel = a.linha;
-        for (String l : quebrar(p, Ajustes.DIARIO_FAZ[sel], Pintor.SANS, 27, CONTEUDO, 2)) {
-            p.texto(l, MX, ty, Pintor.SANS, 27, Tema.TEXTO, Pintor.ESQ);
-            ty += 34;
+        if (a.diarioLido()) {
+            p.texto("Tamanho: " + Ajustes.rotuloTamanho(a.diarioBytes()) + " de 512 KB", MX, ty, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+            ty += 42;
+            p.texto("Último envio: " + Ajustes.rotuloEnvio(a.diarioEnvio), MX, ty, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+            ty += 64;
         }
-        for (String l : quebrar(p, Ajustes.DIARIO_RISCO[sel], Pintor.SANS_SEMI, 27, CONTEUDO, 2)) {
-            p.texto(l, MX, ty, Pintor.SANS_SEMI, 27, Tema.VERDE, Pintor.ESQ);
-            ty += 34;
+        if (a.zona == Ajustes.ZONA_LINHAS) {
+            p.texto(Ajustes.DIARIO_FAZ[a.linha], MX, ty, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
         }
     }
 
@@ -514,19 +522,14 @@ public final class Desenho {
         Ajustes a = m.ajustes;
         p.gradiente(0, 0, LARGURA, ALTURA, Tema.FUNDO, Tema.FUNDO_BASE);
         titulo(p, "Ajustes do sistema", MX, ENT_TITULO);
-        if (a.abas() > 1) {
-            for (int i = 0; i < a.abas(); i++) {
-                chip(p, MX + i * (300 + VAO), AJ_ABA_Y, 300, Ajustes.ABAS[i], a.aba == i, a.zona == Ajustes.ZONA_ABA && a.aba == i);
-            }
+        for (int i = 0; i < a.abas(); i++) {
+            chip(p, MX + i * (300 + VAO), AJ_ABA_Y, 300, Ajustes.ABAS[i], a.aba == i, a.zona == Ajustes.ZONA_ABA && a.aba == i);
         }
         if (a.aba == Ajustes.ABA_DIARIO) listaDiario(p, m);
-        else listaChaves(p, m);
-        String dica;
-        if (a.confirmando == a.linha) dica = "Aperte OK de novo para confirmar    Outra seta: desistir";
-        else if (a.pedindo != null) dica = "Enviando o pedido ao projetor...";
-        else if (a.aba == Ajustes.ABA_DIARIO) dica = "Cima e baixo: escolher    OK: aplicar    Voltar: fechar";
-        else dica = "Cima e baixo: escolher    OK: ligar ou desligar    Voltar: fechar";
-        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        else listaServicos(p, m);
+        if (a.confirmando >= 0 && a.confirmando == a.linha) {
+            p.texto("OK de novo para desligar", MX, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.ESQ);
+        }
         if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
 
@@ -546,15 +549,6 @@ public final class Desenho {
         } else {
             p.texto("Sem curva", x, y, Pintor.MONO_SEMI, 44, Tema.TEXTO_2, Pintor.ESQ);
             y += 60;
-        }
-        String[] regras = vent
-                ? new String[] {"100% a partir de 66 °C é obrigatório.", "O piso (70%) nunca deixa parar.", "Silencioso: silêncio primeiro; o brilho",
-                    "pode cair antes pela escada de 66 °C."}
-                : new String[] {"Só abaixo de 70 °C, sempre caindo.", "70 e 75 °C são do firmware.", "O botão Luz continua separado: a luz que",
-                    "você escolhe lá multiplica esta curva."};
-        for (String r : regras) {
-            p.texto(r, x, y, Pintor.SANS, 24, Tema.TEXTO_2, Pintor.ESQ);
-            y += 32;
         }
         y += 24;
         String ativo = vent ? c.ventEstado : c.ledEstado;

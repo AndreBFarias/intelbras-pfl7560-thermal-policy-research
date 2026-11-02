@@ -40,7 +40,11 @@ PM_ESPERA=3
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_PM_ESPERA:-}" ] && PM_ESPERA="$PFL_PM_ESPERA"
 FILA_MAX=60
 
-IDS="deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone"
+IDS="deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone pop_disp"
+# o pop-up "Dispositivo conectado" (HDMI/USB-C) e do com.zhiying.settings: o
+# receptor dele so mostra a janela se vendor.newlink.hisi.hdmiisdialog != 0
+POP_PROP="vendor.newlink.hisi.hdmiisdialog"
+BP="$R/vendor/build.prop"
 
 LOG(){ echo "[PFL7560-chaves] $*"; }
 limpo(){ printf '%s' "$1" | tr '\n\r\t;' '    ' | tr -cd ' -~' | cut -c1-"${2:-40}"; }
@@ -68,7 +72,7 @@ id_valido(){
 # padrao ao instalar: 1 = ligada. So o que o dono aprovou na rodada 1.
 padrao_de(){
   case "$1" in
-    deb_seg|deb_ota|deb_hisi|deb_lnch|deb_vlc|log_vplug) echo 1 ;;
+    deb_seg|deb_ota|deb_hisi|deb_lnch|deb_vlc|log_vplug|pop_disp) echo 1 ;;
     *) echo 0 ;;
   esac
 }
@@ -82,7 +86,7 @@ pacotes_do(){
     deb_ota) echo "com.newlink.service com.newlink.service2" ;;
     deb_hisi) echo "com.hisilicon.android.music com.hisilicon.android.videoplayer com.hisilicon.tvui com.hisilicon.tv.menu" ;;
     deb_lnch) echo "com.newlink.hisilauncher" ;;
-    deb_vlc) echo "org.videolan.vlc com.mobisystems.editor.office_registered" ;;
+    deb_vlc) echo "com.mobisystems.editor.office_registered" ;;
   esac
 }
 # lista de negacao, vale para qualquer pacote, mesmo que a lista erre um dia
@@ -216,6 +220,9 @@ estado_de(){
     keystone)
       _ks=$(getprop persist.hisi.keystone.enable 2>/dev/null | tr -cd '[:lower:]')
       if [ "$_ks" = "false" ]; then echo 1; else echo 0; fi ;;
+    pop_disp)
+      _pd=$(getprop "$POP_PROP" 2>/dev/null | tr -cd '0-9')
+      if [ -z "$_pd" ]; then echo '-'; elif [ "$_pd" = 0 ]; then echo 1; else echo 0; fi ;;
   esac
 }
 estado_todos(){
@@ -308,6 +315,15 @@ aplicar_chave(){
     web_cmd) aplicar_web "$2" ;;
     keystone)
       if [ "$2" = "ligar" ]; then setprop persist.hisi.keystone.enable false 2>/dev/null; else setprop persist.hisi.keystone.enable true 2>/dev/null; fi ;;
+    pop_disp)
+      [ "$(estado_de pop_disp)" = "-" ] && return 0
+      # nao e persist: o boot reaplica. Desligar devolve o valor do build.prop
+      if [ "$2" = "ligar" ]; then setprop "$POP_PROP" 0 2>/dev/null
+      else
+        _pv=$(sed -n "s/^vendor\\.newlink\\.hisi\\.hdmiisdialog=//p" "$BP" 2>/dev/null | tail -n 1 | tr -cd '0-9' | cut -c1-3)
+        case "$_pv" in ''|0) _pv=1 ;; esac
+        setprop "$POP_PROP" "$_pv" 2>/dev/null
+      fi ;;
   esac
 }
 # aplica, confere pela leitura e diz o resultado; $3 = guardar | nao

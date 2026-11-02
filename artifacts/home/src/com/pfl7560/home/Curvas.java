@@ -368,40 +368,40 @@ public final class Curvas {
     public static String rotuloMotivo(String motivo) {
         if (motivo == null || motivo.isEmpty()) return "Nenhuma";
         switch (motivo) {
-            case "formato": return "Os cantos da imagem vieram fora do formato.";
-            case "fora_da_tela": return "Um canto está fora da tela.";
-            case "nao_convexo": return "Os cantos se cruzam ou não formam um quadrilátero.";
-            case "canto_trocado": return "Um canto está do lado errado da tela.";
-            case "area_pequena": return "A imagem ficaria pequena demais (menos de 25% da tela).";
-            case "programa": return "O gerador do logo não conferiu: reinstale o kit.";
-            case "arte": return "A arte do logo não conferiu: reinstale o kit.";
-            case "modelo": return "Este aparelho não é um PFL7560.";
-            case "particao": return "A partição do logo não tem o tamanho esperado.";
-            case "cabecalho": return "A partição do logo não tem o formato conhecido.";
-            case "suite_rodando": return "A verificação estava rodando: tenta no próximo boot.";
-            case "pendrive": return "Desligado pelo arquivo do pendrive.";
+            case "formato": return "Cantos fora do formato";
+            case "fora_da_tela": return "Canto fora da tela";
+            case "nao_convexo": return "Cantos não formam um quadrilátero";
+            case "canto_trocado": return "Canto do lado errado";
+            case "area_pequena": return "Imagem pequena demais";
+            case "programa": return "Gerador do logo não conferiu";
+            case "arte": return "Arte do logo não conferiu";
+            case "modelo": return "Não é um PFL7560";
+            case "particao": return "Partição de tamanho inesperado";
+            case "cabecalho": return "Partição de formato desconhecido";
+            case "suite_rodando": return "Verificação rodando: fica para o próximo boot";
+            case "pendrive": return "Desligado pelo pendrive";
             case "backup":
-            case "primeiro": return "Não consegui guardar o backup da partição: nada gravado.";
-            case "mudou": return "A partição mudou durante o preparo: nada gravado.";
+            case "primeiro": return "Sem backup: nada gravado";
+            case "mudou": return "Partição mudou: nada gravado";
             case "trabalho":
             case "gerar":
-            case "montar": return "Não consegui preparar a imagem nova: nada gravado.";
-            case "releitura_devolvido": return "A gravação não conferiu: o logo antigo voltou e a chave desligou.";
-            case "releitura_sem_volta": return "A gravação não conferiu e o backup não voltou: restaure pelo PC.";
-            default: return "Não gravado (" + motivo + ").";
+            case "montar": return "Imagem nova falhou: nada gravado";
+            case "releitura_devolvido": return "Não conferiu: o logo antigo voltou";
+            case "releitura_sem_volta": return "Não conferiu: restaure pelo PC";
+            default: return "Não gravado (" + motivo + ")";
         }
     }
 
     public static String rotuloAviso(String aviso, boolean vent) {
         if (aviso == null || aviso.isEmpty()) return "";
         String seguro = vent ? "ventiladores em 100%" : "brilho do firmware";
-        if ("firmware".equals(aviso)) return "O firmware brigou com a curva: " + seguro + ".";
-        if ("temperatura".equals(aviso)) return "Sem leitura de temperatura: " + seguro + ".";
-        if ("pedido".equals(aviso)) return "Pedido recusado: " + seguro + ".";
-        if ("hidebug".equals(aviso)) return "O projetor não respondeu: " + seguro + ".";
-        if ("ini".equals(aviso)) return "Não consegui gravar no projetor.";
-        if ("gravar".equals(aviso)) return "A curva dos ventiladores não se grava no projetor: só ao vivo.";
-        if ("suite".equals(aviso)) return "A verificação está rodando: peça de novo no fim.";
+        if ("firmware".equals(aviso)) return "O firmware brigou: " + seguro;
+        if ("temperatura".equals(aviso)) return "Sem temperatura: " + seguro;
+        if ("pedido".equals(aviso)) return "Pedido recusado: " + seguro;
+        if ("hidebug".equals(aviso)) return "Sem resposta: " + seguro;
+        if ("ini".equals(aviso)) return "Não gravou no projetor";
+        if ("gravar".equals(aviso)) return "Ventiladores: só ao vivo";
+        if ("suite".equals(aviso)) return "Verificação rodando: peça no fim";
         return "Aviso: " + aviso;
     }
 }

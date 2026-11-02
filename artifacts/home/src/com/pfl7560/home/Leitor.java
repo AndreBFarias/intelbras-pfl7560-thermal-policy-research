@@ -1,5 +1,7 @@
 package com.pfl7560.home;
 
+import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -9,6 +11,7 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.provider.Settings;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -89,8 +92,39 @@ final class Leitor {
         return s;
     }
 
+    /** Temperatura do LED (zysys.env_temp). */
     static String temperatura() {
-        String v = prop("zysys.env_temp");
+        return graus(prop("zysys.env_temp"));
+    }
+
+    /** Temperatura da placa: zysys.light_temp e o termistor 0 (POLICY_0), doc 50. Nunca gtt/stp. */
+    static String temperaturaPlaca() {
+        return graus(prop("zysys.light_temp"));
+    }
+
+    /** "Bluetooth desligado", "Bluetooth conectado" (fone ou caixa) ou "Bluetooth ligado"; null se nao deu para ler. */
+    static String bluetooth(Context c) {
+        try {
+            BluetoothAdapter ba = BluetoothAdapter.getDefaultAdapter();
+            if (ba == null) return null;
+            int s = ba.getState();
+            if (s == BluetoothAdapter.STATE_OFF || s == BluetoothAdapter.STATE_TURNING_OFF) return "Bluetooth desligado";
+            // A2DP (2), HEADSET (1) e A2DP_SINK (11): o que um projetor liga de verdade
+            for (int perfil : new int[] {BluetoothProfile.A2DP, BluetoothProfile.HEADSET, 11}) {
+                if (ba.getProfileConnectionState(perfil) == BluetoothProfile.STATE_CONNECTED) return "Bluetooth conectado";
+            }
+            return "Bluetooth ligado";
+        } catch (RuntimeException e) {
+            Guarda.anotar(c, "bluetooth", e);
+            try {
+                return Settings.Global.getInt(c.getContentResolver(), "bluetooth_on", 0) != 0 ? "Bluetooth ligado" : "Bluetooth desligado";
+            } catch (RuntimeException e2) {
+                return null;
+            }
+        }
+    }
+
+    private static String graus(String v) {
         StringBuilder num = new StringBuilder();
         for (char ch : v.toCharArray()) if ((ch >= '0' && ch <= '9') || ch == '.') num.append(ch);
         try {
@@ -185,15 +219,6 @@ final class Leitor {
         } finally {
             if (p != null) p.destroy();
         }
-    }
-
-    static boolean temUsbC() {
-        String n = prop("zysys.typec_count").trim();
-        try {
-            if (!n.isEmpty()) return Integer.parseInt(n) > 0;
-        } catch (NumberFormatException e) {
-        }
-        return !prop("zysys.source.typec1").trim().isEmpty();
     }
 
     static String prop(String nome) {

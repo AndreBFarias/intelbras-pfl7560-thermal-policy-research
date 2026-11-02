@@ -18,8 +18,6 @@ final class Abridor {
                 return entrada(a, "zysys.source.hdmi1", 11);
             case Acoes.HDMI2:
                 return entrada(a, "zysys.source.hdmi2", 10);
-            case Acoes.USB_C:
-                return entrada(a, "zysys.source.typec1", 9);
             case Acoes.VERIFICAR:
                 return iniciar(a, componente("com.pfl7560.verificar", "com.pfl7560.verificar.VerificarActivity"));
             case Acoes.WIFI:
@@ -27,10 +25,6 @@ final class Abridor {
                         || iniciar(a, componente(ZY, ZY + ".network.WifiSettingActivity"));
             case Acoes.BLUETOOTH:
                 return iniciar(a, acao(Settings.ACTION_BLUETOOTH_SETTINGS));
-            case Acoes.IMAGEM:
-                return iniciar(a, acao("android.settings.projection.cra.6d.sen_new"))
-                        || iniciar(a, componente(ZY, ZY + ".pictureSetting.pictureModeActivity"))
-                        || iniciar(a, acao(Settings.ACTION_SETTINGS));
             case Acoes.CONFIG:
                 return iniciar(a, acao(Settings.ACTION_SETTINGS));
             default:

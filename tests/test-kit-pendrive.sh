@@ -1267,8 +1267,8 @@ exec "$T/bin/pm.orig" "$@"'
   printf 'package:org.videolan.vlc\npackage:com.mobisystems.editor.office_registered\npackage:com.outro.app\n' > "$T/desligados"
   : > "$T/root/mnt/media_rw/USB1/REVERTER-DEBLOAT.txt"
   roda nokey
-  afirma 'tem_chamada "^pm enable --user 0 org.videolan.vlc" && tem_chamada "^pm enable --user 0 com.mobisystems.editor.office_registered"' "nao religou VLC e Office: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
-  afirma '! tem_chamada "^pm enable --user 0 com.outro.app" && ! tem_chamada "^pm disable"' "religou pacote fora da lista ou desligou algo"
+  afirma 'tem_chamada "^pm enable --user 0 com.mobisystems.editor.office_registered"' "nao religou o Office: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  afirma '! tem_chamada "^pm enable --user 0 com.outro.app" && ! tem_chamada "^pm enable --user 0 org.videolan.vlc" && ! tem_chamada "^pm disable"' "religou pacote fora da lista (o VLC e do dono desde 2026-11-02) ou desligou algo"
   afirma '[ -e "$(S14)/debloat-revertido" ] && [ -f "$(S14)/debloat-aprovados.txt" ]' "sem a marca de reversao ou sem a lista na pasta da suite"
   afirma 'log_tudo | grep -q "REVERTER-DEBLOAT.txt no pendrive"' "log sem o aviso da reversao"
   rm -f "$T/root/mnt/media_rw/USB1/REVERTER-DEBLOAT.txt"; : > "$T/root/mnt/media_rw/USB1/REAPLICAR-DEBLOAT.txt"
@@ -1294,11 +1294,11 @@ exec "$T/bin/pm.orig" "$@"'
 c_bloco25(){
   local L aapt2
   novo_cenario "bloco 25: o kit instala nl_logo, suite-logo.sh e a arte reta na suite (executaveis 755, md5 do kit)"; aparelho_ok
-  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 7 ]' "versionCode do app ou da home nao e 7"
+  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 8 ]' "versionCode do app nao e 7 ou o da home nao e 8 (bloco 27)"
   # shellcheck disable=SC2012
   aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
   if [ -n "$aapt2" ]; then
-    afirma '"$aapt2" dump badging "$KIT/pfl7560-home.apk" | grep -q "^package: name='"'"'com.pfl7560.home'"'"' versionCode='"'"'7'"'"'"' "versionCode do apk da home nao e 7"
+    afirma '"$aapt2" dump badging "$KIT/pfl7560-home.apk" | grep -q "^package: name='"'"'com.pfl7560.home'"'"' versionCode='"'"'8'"'"'"' "versionCode do apk da home nao e 8"
   fi
   roda nokey
   afirma '[ "$(stat -c %a "$(S14)/nl_logo")" = 755 ] && [ "$(stat -c %a "$(S14)/suite-logo.sh")" = 755 ] && cmp -s "$(S14)/nl_logo" "$KIT/nl_logo" && cmp -s "$(S14)/suite-logo.sh" "$KIT/suite-logo.sh"' "nl_logo/suite-logo.sh nao instalados como executaveis iguais aos do kit"

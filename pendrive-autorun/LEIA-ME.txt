@@ -257,7 +257,7 @@ CURVAS, STANDBY E DEBLOAT (bloco 23)
     controle (KEYCODE_POWER), que DESLIGA o aparelho; ligar de novo e pelo
     controle, boot completo. So acontece com o descanso ainda na tela.
   - Debloat: o kit desliga (pm disable-user, reversivel) so os apps de
-    debloat-aprovados.txt (Office, VLC, cast e miracast). Para religar tudo, crie
+    debloat-aprovados.txt (Office, cast e miracast). Para religar tudo, crie
     um arquivo VAZIO REVERTER-DEBLOAT.txt na raiz do pendrive e ligue o projetor.
     REAPLICAR-DEBLOAT.txt (vazio) volta a desligar no boot seguinte.
   - O pendrive agora leva tambem: suite-curvas.sh e debloat-aprovados.txt (copie

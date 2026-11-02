@@ -37,14 +37,16 @@ public final class Previa {
         Modelo m = base();
         m.definirApps(firmware);
         m.wifi = "MinhaRede";
+        m.bluetooth = "Bluetooth ligado";
         m.temperatura = "59";
+        m.temperaturaPlaca = "47";
         salvar(m, fontes, new File(saida, "home-foco-entrada.png"));
 
         m.fileira = Modelo.ATALHOS;
         m.coluna = 0;
         salvar(m, fontes, new File(saida, "home-foco-atalho.png"));
 
-        m.coluna = 4;
+        m.coluna = 3;
         salvar(m, fontes, new File(saida, "home-foco-luz.png"));
         m.coluna = 0;
 
@@ -93,6 +95,16 @@ public final class Previa {
 
         Modelo c = base();
         salvar(c, fontes, new File(saida, "home-carregando.png"));
+
+        // a tela inicial do bloco 27: duas entradas, seis atalhos, Bluetooth e placa no rodape
+        Modelo t = base();
+        t.definirApps(firmware);
+        t.wifi = "MinhaRede";
+        t.bluetooth = "Bluetooth conectado";
+        t.temperatura = "61";
+        t.temperaturaPlaca = "48";
+        t.mover(1, 0);
+        salvar(t, fontes, new File(saida, "home-tela-inicial.png"));
 
         previasCurvas(fontes, saida, firmware);
 
@@ -246,10 +258,16 @@ public final class Previa {
         m.definirApps(apps);
         verdade(m.fileira == Modelo.ENTRADAS && m.coluna == 0, "comeca em HDMI 1");
         verdade(!m.mover(-1, 0) && !m.mover(0, -1), "nada acima nem a esquerda de HDMI 1");
-        verdade(m.mover(1, 0) && m.mover(1, 0) && !m.mover(1, 0), "tres entradas");
-        verdade(m.mover(0, 1) && m.fileira == Modelo.ATALHOS && m.coluna == 6, "de USB-C desce para Configuracoes");
-        verdade(m.atalhos.length == 7 && !m.mover(1, 0), "sete atalhos, Configuracoes e o ultimo");
-        verdade(m.atalhos[5].acao.equals(Acoes.CURVAS) && m.atalhos[6].acao.equals(Acoes.CONFIG), "Curvas antes de Configuracoes");
+        verdade(m.entradas.length == 2 && m.mover(1, 0) && !m.mover(1, 0) && m.focado().acao.equals(Acoes.HDMI2),
+                "duas entradas, sem USB-C; a ultima e HDMI 2");
+        verdade(m.mover(0, 1) && m.fileira == Modelo.ATALHOS && m.coluna == 5, "de HDMI 2 desce para Configuracoes");
+        verdade(m.atalhos.length == 6 && !m.mover(1, 0), "seis atalhos, Configuracoes e o ultimo");
+        verdade(m.atalhos[4].acao.equals(Acoes.CURVAS) && m.atalhos[5].acao.equals(Acoes.CONFIG), "Curvas antes de Configuracoes");
+        for (Item it : m.atalhos) verdade(!it.rotulo.equals("Imagem"), "o atalho Imagem saiu");
+        verdade(Modelo.OCULTOS.contains("com.newlink.filemanager"), "o gerenciador de arquivos sai da fileira Apps");
+        for (Item it : m.apps) verdade(!"com.newlink.filemanager".equals(it.pacote), "gerenciador na fileira");
+        verdade(m.mover(0, -1) && m.fileira == Modelo.ENTRADAS && m.coluna == 1, "de Configuracoes sobe para HDMI 2");
+        verdade(m.mover(0, 1) && m.coluna == 5, "e desce de novo para Configuracoes");
         verdade(m.mover(0, 1) && m.fileira == Modelo.APPS, "desce para os apps");
         verdade(!m.mover(0, 1), "nada abaixo dos apps");
         m.inicio();
@@ -273,14 +291,6 @@ public final class Previa {
         o.definirApps(com);
         verdade(o.apps.size() == m.apps.size() && !m.apps.isEmpty(), "a fileira Apps nao traz Office, iOSCast nem Espelhamento");
         for (Item it : o.apps) verdade(!Modelo.OCULTOS.contains(it.pacote), "oculto na fileira: " + it.pacote);
-        Modelo n = Modelo.padrao(false);
-        n.definirApps(apps);
-        verdade(n.entradas.length == 2, "modelo sem USB-C: so HDMI 1 e HDMI 2");
-        for (Item it : n.entradas) verdade(!Acoes.USB_C.equals(it.acao), "modelo sem USB-C com o cartao USB-C");
-        verdade(n.mover(1, 0) && !n.mover(1, 0) && n.focado().acao.equals(Acoes.HDMI2), "duas entradas, a ultima e HDMI 2");
-        verdade(n.mover(0, 1) && n.fileira == Modelo.ATALHOS, "de HDMI 2 desce para os atalhos");
-        while (n.mover(1, 0)) { }
-        verdade(n.mover(0, -1) && n.fileira == Modelo.ENTRADAS && n.coluna == 1, "de Configuracoes sobe para HDMI 2");
         Modelo v = base();
         v.definirApps(new ArrayList<Item>());
         v.mover(0, 1);

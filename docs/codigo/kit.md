@@ -233,7 +233,8 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 
 ## `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24)
 
-- Dez chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone`.
+- Onze chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone
+  pop_disp` (o `pop_disp` entrou no bloco 27, no fim, para não mexer na posição das outras).
   "Ligada" = a medida está aplicada (app desligado, porta caída...). Cada chave **lê o estado real** do aparelho e volta
   pela mesma chave; nada se desliga sem o dono ligar a chave (ou sem o padrão da instalação, abaixo).
 - Comandos: `boot` (reaplica o que o dono escolheu), `pedido` (chamado pelo `suite-pedido.sh`), `aplicar <id>
@@ -243,15 +244,19 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   `$SUITE/chaves.escolhas`; a escolha só é gravada se o estado relido confirmou (ou se a chave não existe aqui). Se a
   coisa existia e **sumiu** com a mudança (o chip Wi-Fi que cai do barramento), o aviso é `sumiu` e a escolha vira 0,
   para o boot não repetir: reiniciar devolve o aparelho.
-- Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat e o log do vplugin ligados; eth0, chip Wi-Fi,
+- Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat, o log do vplugin e o `pop_disp` ligados; eth0, chip Wi-Fi,
   web/cmdsrv e keystone desligados. `debloat-revertido` segura só `deb_vlc`. `deb_lnch` só liga com a home instalada
   e ativa. O protetor de tela não entra no debloat.
 - Grupos: `deb_seg` (autotest, factorymenu, tvtestingtools, hikeymasterprovision, ijkplayerdemo, location.fused),
   `deb_ota` (`com.newlink.service`, `service2`), `deb_hisi` (music, videoplayer, tvui, tv.menu; **nunca** `higallery`:
-  é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (VLC e Office).
+  é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (só o Office desde o bloco 27; o
+  id ficou `deb_vlc` para não mudar a prop. O VLC é do dono e o kit não mexe nele, nem pelo `debloat-aprovados.txt`).
 - Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` acha o USB
   `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
-  e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot).
+  e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot); `pop_disp` = `setprop
+  vendor.newlink.hisi.hdmiisdialog 0` (o pop-up "Dispositivo conectado" é do `com.zhiying.settings`, que só abre a
+  janela com a prop != 0; de fábrica 1). Não é persist: o boot reaplica, e desligar devolve o valor do
+  `/vendor/build.prop` (1 se faltar). Firmware sem a prop = `-`, sem `setprop`.
 - **Resgate:** o arquivo `DESLIGAR-CHAVES.txt` no pendrive desliga todas a cada plugada e grava escolha 0 em todas
   (sem marca de "feito"). A escolha 0 é gravada **antes** da trava, e o boot só toma a trava depois de esperar o
   `pm`: o `newlink_update.sh` e o `suite-boot.sh` sobem juntos no `boot_completed`, e o resgate não pode perder a
