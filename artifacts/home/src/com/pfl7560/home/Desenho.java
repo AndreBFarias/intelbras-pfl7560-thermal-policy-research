@@ -93,6 +93,8 @@ public final class Desenho {
     }
 
     private static void entradas(Pintor p, Modelo m) {
+        // sem cabo em nenhuma porta (bloco 30): nem o titulo
+        if (m.entradas.length == 0) return;
         float x0 = entX0(m);
         titulo(p, "Entradas", x0, ENT_TITULO);
         for (int i = 0; i < m.entradas.length; i++) {

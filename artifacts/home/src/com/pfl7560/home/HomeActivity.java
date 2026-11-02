@@ -10,6 +10,7 @@ import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Looper;
 
 import java.util.Calendar;
@@ -34,6 +35,9 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private boolean ouvindoTempo;
     private boolean ouvindoPacotes;
     private int geracaoApps;
+    /** Quais portas tem cabo (bloco 30), no fio proprio. */
+    private HandlerThread fioCabos;
+    private Cabos cabos;
 
     private final BroadcastReceiver tempo = new BroadcastReceiver() {
         @Override
@@ -91,6 +95,16 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             Guarda.anotar(this, "receptor de pacotes", e);
         }
         carregarApps();
+
+        fioCabos = new HandlerThread("home-cabos");
+        fioCabos.start();
+        cabos = new Cabos(getApplicationContext(), new Handler(fioCabos.getLooper()), principal, new Cabos.Ouvinte() {
+            @Override
+            public void entradas(Item[] lista) {
+                if (isDestroyed() || modelo == null) return;
+                if (modelo.definirEntradas(lista)) vista.invalidate();
+            }
+        });
     }
 
     /**
@@ -136,6 +150,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         }
         atualizarRelogio();
         lerEstado();
+        if (cabos != null) cabos.ligar();
         // de volta a tela das Ajustes (de outro app, do descanso de tela): le de novo
         if (modelo.ajustesAberta) lerChavesAssincrono();
         vista.requestFocus();
@@ -144,6 +159,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     @Override
     protected void onPause() {
         super.onPause();
+        if (cabos != null) cabos.desligar();
         if (ouvindoTempo) {
             try {
                 unregisterReceiver(tempo);
@@ -158,6 +174,8 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     protected void onDestroy() {
         principal.removeCallbacksAndMessages(null);
         fila.shutdownNow();
+        if (cabos != null) cabos.desligar();
+        if (fioCabos != null) fioCabos.quitSafely();
         if (ouvindoPacotes) {
             try {
                 unregisterReceiver(pacotes);

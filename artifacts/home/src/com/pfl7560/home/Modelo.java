@@ -18,7 +18,15 @@ public final class Modelo {
             "com.mobisystems.editor.office_registered", "com.newlink.cast", "com.hisilicon.miracast",
             "com.newlink.filemanager"));
 
-    public final Item[] entradas;
+    /**
+     * So as entradas com cabo (bloco 30), na ordem HDMI 1, HDMI 2, USB-C; vazia ate a primeira leitura e sem cabo
+     * nenhum. Quem muda e definirEntradas, que cuida do foco.
+     */
+    public Item[] entradas;
+    /** A primeira leitura das entradas ja chegou. */
+    public boolean entradasLidas;
+    /** O dono mexeu no foco desde a abertura ou o ultimo HOME. */
+    private boolean tocado;
     public final Item[] atalhos;
     public List<Item> apps = Collections.emptyList();
     public int estadoApps = APPS_CARREGANDO;
@@ -52,16 +60,14 @@ public final class Modelo {
     public int primeiroApp = 0;
 
     public Modelo(Item[] entradas, Item[] atalhos) {
-        this.entradas = entradas;
+        this.entradas = entradas == null ? new Item[0] : entradas;
         this.atalhos = atalhos;
+        posicaoInicial();
     }
 
-    /** A tela de sempre: duas entradas HDMI (o USB-C nao e usado) e seis atalhos. */
+    /** A tela de sempre: seis atalhos; as entradas chegam depois, so as com cabo (definirEntradas). */
     public static Modelo padrao() {
-        return new Modelo(new Item[] {
-            new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1),
-            new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2),
-        }, new Item[] {
+        return new Modelo(new Item[0], new Item[] {
             new Item("Verificar projetor", Icones.VERIFICAR, Acoes.VERIFICAR),
             new Item("Wi-Fi", Icones.WIFI, Acoes.WIFI),
             new Item("Bluetooth", Icones.BLUETOOTH, Acoes.BLUETOOTH),
@@ -78,8 +84,8 @@ public final class Modelo {
     }
 
     public Item focado() {
-        if (fileira == ENTRADAS) return entradas[coluna];
-        if (fileira == ATALHOS) return atalhos[coluna];
+        if (fileira == ENTRADAS) return coluna < entradas.length ? entradas[coluna] : null;
+        if (fileira == ATALHOS) return coluna < atalhos.length ? atalhos[coluna] : null;
         return coluna < apps.size() ? apps.get(coluna) : null;
     }
 
@@ -164,9 +170,83 @@ public final class Modelo {
         luzAberta = false;
         fecharCurvas();
         fecharAjustes();
-        fileira = ENTRADAS;
-        coluna = 0;
+        posicaoInicial();
         primeiroApp = 0;
+        tocado = false;
+    }
+
+    /** O comeco: a primeira entrada com cabo; sem nenhuma, o primeiro atalho. */
+    private void posicaoInicial() {
+        fileira = entradas.length > 0 ? ENTRADAS : ATALHOS;
+        coluna = 0;
+    }
+
+    /**
+     * Cabo ligado ou tirado (bloco 30). Devolve true se a tela mudou. O foco nunca some nem e roubado:
+     * <ul>
+     * <li>na primeira leitura, sem o dono ter mexido, vai para o comeco (HDMI 1 se tiver cabo, como sempre);</li>
+     * <li>depois, uma entrada nova nunca puxa o foco;</li>
+     * <li>o botao em foco que continua leva o foco junto, mesmo mudando de lugar;</li>
+     * <li>o botao em foco que some passa o foco ao que ocupa o lugar dele na fileira (ou ao ultimo); sem entrada
+     * nenhuma, ao atalho logo abaixo, como a seta para baixo.</li>
+     * </ul>
+     */
+    public boolean definirEntradas(Item[] novas) {
+        if (novas == null) novas = new Item[0];
+        boolean primeira = !entradasLidas;
+        entradasLidas = true;
+        if (mesmas(entradas, novas)) {
+            if (primeira && !tocado && fileira != APPS) {
+                int f = fileira;
+                int c = coluna;
+                posicaoInicial();
+                return f != fileira || c != coluna;
+            }
+            return false;
+        }
+        boolean naFileira = fileira == ENTRADAS && coluna < entradas.length;
+        String antes = naFileira ? entradas[coluna].acao : null;
+        float cx = naFileira ? Desenho.centroX(this, ENTRADAS, coluna) : 0f;
+        entradas = novas;
+        if (primeira && !tocado && fileira != APPS) {
+            posicaoInicial();
+            return true;
+        }
+        if (fileira != ENTRADAS) return true;
+        for (int i = 0; i < novas.length; i++) {
+            if (antes != null && antes.equals(novas[i].acao)) {
+                coluna = i;
+                return true;
+            }
+        }
+        if (novas.length > 0) {
+            coluna = Math.max(0, Math.min(coluna, novas.length - 1));
+            return true;
+        }
+        fileira = ATALHOS;
+        coluna = maisPerto(ATALHOS, 0, atalhos.length - 1, cx);
+        return true;
+    }
+
+    private static boolean mesmas(Item[] a, Item[] b) {
+        if (a.length != b.length) return false;
+        for (int i = 0; i < a.length; i++) {
+            if (a[i].acao == null ? b[i].acao != null : !a[i].acao.equals(b[i].acao)) return false;
+        }
+        return true;
+    }
+
+    private int maisPerto(int f, int ini, int fim, float cx) {
+        int melhor = ini;
+        float dist = Float.MAX_VALUE;
+        for (int i = ini; i <= fim; i++) {
+            float d = Math.abs(Desenho.centroX(this, f, i) - cx);
+            if (d < dist) {
+                dist = d;
+                melhor = i;
+            }
+        }
+        return melhor;
     }
 
     public void definirApps(List<Item> lista) {
@@ -197,6 +277,7 @@ public final class Modelo {
             int nc = coluna + dx;
             if (nc < 0 || nc >= quantos(fileira)) return false;
             coluna = nc;
+            tocado = true;
             rolarAteFoco();
             return true;
         }
@@ -211,17 +292,10 @@ public final class Modelo {
             ini = primeiroApp;
             fim = Math.min(fim, primeiroApp + Desenho.APPS_VISIVEIS - 1);
         }
-        int melhor = ini;
-        float dist = Float.MAX_VALUE;
-        for (int i = ini; i <= fim; i++) {
-            float d = Math.abs(Desenho.centroX(this, f, i) - cx);
-            if (d < dist) {
-                dist = d;
-                melhor = i;
-            }
-        }
+        int melhor = maisPerto(f, ini, fim, cx);
         fileira = f;
         coluna = melhor;
+        tocado = true;
         return true;
     }
 
