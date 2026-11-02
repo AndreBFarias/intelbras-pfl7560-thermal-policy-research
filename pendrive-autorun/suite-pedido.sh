@@ -21,8 +21,8 @@ APP_UID_MIN=10000
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="c1cc1a0b5f037521afcca3e35a74766a"
-CURVAS_MD5="60aa994d0f34b6dd002a1a4a5ba7668b"
+SUITE_MD5="95e2630b8d3c2978d1e0b0e109d4e538"
+CURVAS_MD5="42182cfa5c2661b28a4ee508144b2aab"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -159,8 +159,9 @@ luz_guardada(){
   luz_valida "$_b" || printf '100'
 }
 tratar_descanso(){
+  [ "$1" = "fim" ] && curvas_chamar standby-cancelar
   if [ -d "$LOCK" ]; then LOG "a suite esta rodando (trava): descanso $1 sem efeito na luz."; return 0; fi
-  if [ "$1" = "inicio" ]; then curvas_chamar standby-inicio; else curvas_chamar standby-cancelar; fi
+  [ "$1" = "inicio" ] && curvas_chamar standby-inicio
   if [ ! -x "$HIDEBUG" ]; then LOG "[AVISO] hidebug ausente - descanso $1 sem efeito na luz."; return 0; fi
   if [ "$1" = "inicio" ]; then
     if [ ! -e "$ANTES_ARQ" ] && [ ! -L "$ANTES_ARQ" ] && _a=$(luz_valida "$(ler_gbl)"); then

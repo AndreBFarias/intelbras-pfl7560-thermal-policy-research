@@ -41,6 +41,8 @@ public final class Curvas {
     private static final int[][] PRE_VENT_V = {
         {30, 30, 40, 60, 100}, {40, 45, 60, 80, 100}, {100, 100, 100, 100, 100},
     };
+    private static final int[] ESCADA_T = {66000, 67500, 69000, 70000, 71500, 73000};
+    private static final int[] ESCADA_B = {1000, 950, 900, 850, 850, 850};
     private static final int[] PRE_LED_T = {45, 55, 62};
     private static final int[] PRE_LED_B = {950, 900, 850};
 
@@ -156,7 +158,19 @@ public final class Curvas {
     public int valMax(int i) {
         int[] v = valores();
         if (aba == ABA_VENT) return i == VENT_N - 1 ? V_MAX : v[i + 1];
-        return i == 0 ? B_MAX : v[i - 1];
+        return Math.min(i == 0 ? B_MAX : v[i - 1], escada(ledT[i]));
+    }
+
+    public static int escada(int graus) {
+        int x = graus * 1000;
+        if (x <= ESCADA_T[0]) return ESCADA_B[0];
+        for (int k = 1; k < ESCADA_T.length; k++) {
+            if (x <= ESCADA_T[k]) {
+                int b = ESCADA_B[k - 1] + (x - ESCADA_T[k - 1]) * (ESCADA_B[k] - ESCADA_B[k - 1]) / (ESCADA_T[k] - ESCADA_T[k - 1]);
+                return b / B_PASSO * B_PASSO;
+            }
+        }
+        return ESCADA_B[ESCADA_B.length - 1];
     }
 
     public int passoValor() {
@@ -227,6 +241,7 @@ public final class Curvas {
             int n = Math.max(tempMin(bola), Math.min(tempMax(bola), t[bola] + dx));
             if (n != t[bola]) {
                 t[bola] = n;
+                if (aba == ABA_LED && v[bola] > escada(n)) v[bola] = escada(n);
                 mudou = true;
             }
         }
@@ -315,6 +330,7 @@ public final class Curvas {
         if ("pedido".equals(aviso)) return "Pedido recusado: " + seguro + ".";
         if ("hidebug".equals(aviso)) return "O projetor não respondeu: " + seguro + ".";
         if ("ini".equals(aviso)) return "Não consegui gravar no projetor.";
+        if ("gravar".equals(aviso)) return "A curva dos ventiladores não se grava no projetor: só ao vivo.";
         if ("suite".equals(aviso)) return "A verificação está rodando: peça de novo no fim.";
         return "Aviso: " + aviso;
     }

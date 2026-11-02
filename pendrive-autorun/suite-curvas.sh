@@ -21,12 +21,11 @@ LISTA_ARQ="$SUITE/debloat-aprovados.txt"
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
 
-NORM_OK="76874472b7ee62c6682e993ee7f85745"
-NORM_OK_NOTYPEC="a09d3ab83a87837cc85484e1adcce9b5"
+NORM_OK="bfc8d66bd6bde87feff69fc572a6fe30"
+NORM_OK_NOTYPEC="c917f8faa8f28702a26feb8ffa99fcb7"
 
 FAN_PISO=300
 FAN_MAX=1000
-FAN_BOOT_MIN=500
 TEMP_CHEIA=660
 TEMP_LED_LIMITE=700
 LED_MIN=850
@@ -34,8 +33,6 @@ INTERVALO=5
 TOLERANCIA=20
 DESISTE_APOS=3
 HIST_QUEDA=100
-FAN_CANON="500, 575, 650, 725, 825, 925, 1000"
-PWM_CANON=1000
 LED_LIM_CANON="66000, 67500, 69000, 70000, 71500, 73000"
 LED_BRI_CANON="1000,  950,  900,  850,  850,  850"
 STANDBY_AVISO=600
@@ -95,9 +92,7 @@ ini_linha(){
 }
 ini_cortes(){
   _cs=""
-  for _ln in $(ini_linhas "$1" CoolingFan_0 FW_SPEED_CURVE DEFAULT_PWM_DUTY) \
-             $(ini_linhas "$1" CoolingFan_1 FW_SPEED_CURVE DEFAULT_PWM_DUTY) \
-             $(ini_linhas "$1" BacklightPolicy 'POLICY_[01]_THRESHOLD' 'POLICY_[01]_BRIGHTNESS'); do
+  for _ln in $(ini_linhas "$1" BacklightPolicy 'POLICY_[01]_THRESHOLD' 'POLICY_[01]_BRIGHTNESS'); do
     _cs="$_cs -e ${_ln}d"
   done
   [ -n "$_cs" ] || return 1
@@ -129,13 +124,34 @@ lista_valida(){
   [ "$_lq" = "$_lo" ] || return 1
   [ -z "$_lult" ] || [ "$_lp" = "$_lult" ]
 }
-ini_curvas_ok(){
-  for _sec in CoolingFan_0 CoolingFan_1; do
-    _fw=$(ini_valor "$1" "$_sec" FW_SPEED_CURVE) || return 1
-    lista_valida 7 "$FAN_PISO" "$FAN_MAX" cresc "$FAN_MAX" "$_fw" || return 1
-    _dd=$(ini_valor "$1" "$_sec" DEFAULT_PWM_DUTY) || return 1
-    num "$_dd" && [ "$_dd" -ge "$FAN_BOOT_MIN" ] && [ "$_dd" -le "$FAN_MAX" ] || return 1
+interp_lin(){
+  _ix=$1; _iX=$(printf '%s' "$2" | tr -d ' '); _iY=$(printf '%s' "$3" | tr -d ' ')
+  _px=""; _py=""; _ik=1
+  while [ "$_ik" -le 6 ]; do
+    _cx=$(printf '%s' "$_iX" | cut -d, -f"$_ik"); _cy=$(printf '%s' "$_iY" | cut -d, -f"$_ik")
+    if [ "$_ix" -le "$_cx" ]; then
+      if [ -z "$_px" ]; then echo "$_cy"; else echo $(( _py + ( _ix - _px ) * ( _cy - _py ) / ( _cx - _px ) )); fi
+      return 0
+    fi
+    _px=$_cx; _py=$_cy; _ik=$(( _ik + 1 ))
   done
+  echo "$_py"
+}
+escada_canon(){ interp_lin "$1" "$LED_LIM_CANON" "$LED_BRI_CANON"; }
+led_ponto_ok(){ [ "$2" -le "$(escada_canon "$1")" ]; }
+escada_em(){
+  _em=$(escada_canon "$(( $1 * 100 ))")
+  for _pol in 0 1; do
+    _th=$(ini_valor "$INI" BacklightPolicy "POLICY_${_pol}_THRESHOLD" 2>/dev/null) || continue
+    _br=$(ini_valor "$INI" BacklightPolicy "POLICY_${_pol}_BRIGHTNESS" 2>/dev/null) || continue
+    lista_valida 6 1000 73000 estrito 73000 "$_th" || continue
+    lista_valida 6 "$LED_MIN" 1000 decresc "$LED_MIN" "$_br" || continue
+    _ev=$(interp_lin "$(( $1 * 100 ))" "$_th" "$_br")
+    [ "$_ev" -lt "$_em" ] && _em=$_ev
+  done
+  echo "$_em"
+}
+ini_curvas_ok(){
   for _pol in 0 1; do
     _th=$(ini_valor "$1" BacklightPolicy "POLICY_${_pol}_THRESHOLD") || return 1
     _br=$(ini_valor "$1" BacklightPolicy "POLICY_${_pol}_BRIGHTNESS") || return 1
@@ -145,6 +161,9 @@ ini_curvas_ok(){
     case "$_br" in *,"$LED_MIN","$LED_MIN","$LED_MIN") ;; *) return 1 ;; esac
     _t3=$(printf '%s' "$_th" | cut -d, -f3)
     [ "$_t3" -lt 70000 ] || return 1
+    for _ik2 in 1 2 3; do
+      led_ponto_ok "$(printf '%s' "$_th" | cut -d, -f"$_ik2" | tr -d ' ')" "$(printf '%s' "$_br" | cut -d, -f"$_ik2" | tr -d ' ')" || return 1
+    done
   done
 }
 ini_base(){
@@ -235,20 +254,6 @@ vent_alvo(){
   done
   echo "$FAN_MAX"
 }
-vent_sete(){
-  _a=$(( VT1 * 10 )); _b=$(( VT5 * 10 ))
-  _o=""
-  for _i in 0 1 2 3 4 5 6; do
-    _x=$(( _a + ( _b - _a ) * _i / 6 ))
-    _o="$_o$(vent_alvo "$_x"), "
-  done
-  printf '%s' "${_o%, }"
-}
-vent_boot(){
-  _d=$(( VV1 * 10 ))
-  [ "$_d" -lt "$FAN_BOOT_MIN" ] && _d=$FAN_BOOT_MIN
-  echo "$_d"
-}
 vent_carregar(){
   arq_seguro "$VENT_ARQ" || return 1
   _vl=$(head -c 200 "$VENT_ARQ" 2>/dev/null | tr -d '\r\n' | tr -cd 'a-z0-9: ')
@@ -272,6 +277,7 @@ led_valida(){
     [ "$_t" -ge 40 ] && [ "$_t" -le 69 ] || return 1
     [ "$_b" -ge "$LED_MIN" ] && [ "$_b" -le 1000 ] && [ $(( _b % 10 )) = 0 ] || return 1
     [ "$_t" -gt "$_pt" ] && [ "$_b" -le "$_pb" ] || return 1
+    led_ponto_ok "$(( _t * 1000 ))" "$_b" || return 1
     _pt=$_t; _pb=$_b; _n=$(( _n + 1 ))
     eval "LT$_n=\$_t; LB$_n=\$_b"
   done
@@ -321,13 +327,6 @@ ini_escrever(){
   _sedf="$SUITE/ini.sed"
   rm -f "$_alvo" "$_sedf"
   : > "$_sedf" || return 1
-  if [ -n "${W_FAN:-}" ]; then
-    for _sec in CoolingFan_0 CoolingFan_1; do
-      _l1=$(ini_linha "$INI" "$_sec" FW_SPEED_CURVE) || { rm -f "$_sedf"; return 1; }
-      _l2=$(ini_linha "$INI" "$_sec" DEFAULT_PWM_DUTY) || { rm -f "$_sedf"; return 1; }
-      printf '%s\n' "${_l1}s/^\\(FW_SPEED_CURVE *=\\) *[0-9, ]*;/\\1  ${W_FAN};/" "${_l2}s/^\\(DEFAULT_PWM_DUTY *=\\) *[0-9]*;/\\1 ${W_PWM};/" >> "$_sedf"
-    done
-  fi
   if [ -n "${W_LIM:-}" ]; then
     for _pol in 0 1; do
       _l1=$(ini_linha "$INI" BacklightPolicy "POLICY_${_pol}_THRESHOLD") || { rm -f "$_sedf"; return 1; }
@@ -360,7 +359,9 @@ fans_segura(){
   fans_aplicar "$FAN_MAX" || LOG "[AVISO] hidebug nao aplicou 1000 nos ventiladores."
 }
 led_solta(){
-  bri_aplicar 1000 || LOG "[AVISO] hidebug nao devolveu o brilho a politica do firmware."
+  _ls=$LED_MIN
+  if le_temp; then _ls=$(escada_em "$TEMP10"); fi
+  bri_aplicar "$_ls" || LOG "[AVISO] hidebug nao devolveu o brilho a politica do firmware."
 }
 
 parar_vent(){
@@ -462,6 +463,8 @@ ciclo_led(){
     return 0
   fi
   _n=$(led_alvo "$TEMP10")
+  _e=$(escada_em "$TEMP10")
+  [ "$_e" -lt "$_n" ] && _n=$_e
   _lido=$(bri_ler)
   if perto "$_lido" "$_n"; then LED_ATUAL=$_n; BRIGOU_L=0; return 0; fi
   if ! bri_aplicar "$_n"; then
@@ -558,32 +561,24 @@ modo_pedido_vent(){
   trava || { LOG "[ERRO] nao peguei a trava das curvas."; exit 1; }
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root."; destrava; exit 1; }
   prop vent_aviso ""
-  _ini=ok
-  case "$_modo" in gravar|ambos)
-    if [ "$_perfil" = agressivo ]; then
-      W_FAN="$FAN_CANON"; W_PWM="$PWM_CANON"
-    else
-      W_FAN=$(vent_sete); W_PWM=$(vent_boot)
-    fi
-    W_LIM=""; W_BRI=""
-    ini_escrever || _ini=falhou
-    W_FAN=""
-  ;; esac
   if [ "$_perfil" = agressivo ]; then
     parar_vent
     prop vent "agressivo:$_modo"
   else
     case "$_modo" in
-      gravar) parar_vent; if [ "$_ini" = ok ]; then prop vent "$_perfil:gravada"; else prop vent padrao; fi ;;
+      gravar) parar_vent; prop vent padrao ;;
       *)
         rm -f "$VENT_DESISTIU"
-        escreve_conf "$VENT_ARQ" "v1 $_perfil $_modo $VT1:$VV1 $VT2:$VV2 $VT3:$VV3 $VT4:$VV4 $VT5:$VV5"
-        prop vent "$_perfil:$_modo"
+        escreve_conf "$VENT_ARQ" "v1 $_perfil vivo $VT1:$VV1 $VT2:$VV2 $VT3:$VV3 $VT4:$VV4 $VT5:$VV5"
+        prop vent "$_perfil:vivo"
         laco_ligar ;;
     esac
+    case "$_modo" in gravar|ambos)
+      LOG "[AVISO] a curva dos ventiladores nao e gravada no ZYCustom.ini: FW_SPEED_CURVE e a tabela velocidade->duty do firmware, nao uma curva por temperatura (doc 49 sec. 4.3). Ini intacto."
+      prop vent_aviso gravar ;;
+    esac
   fi
-  [ "$_ini" = ok ] || prop vent_aviso ini
-  LOG "curva dos ventiladores: perfil $_perfil, modo $_modo, ini $_ini"
+  LOG "curva dos ventiladores: perfil $_perfil, modo $_modo"
   destrava
   exit 0
 }
@@ -608,7 +603,7 @@ modo_pedido_led(){
     destrava; exit 0 ;;
   esac
   if [ "$_perfil" != padrao ] && ! led_valida "$@"; then
-    LOG "[AVISO] curva do LED recusada (fora das travas: 40 a 69 C, 850 a 1000 de 10 em 10, nao crescente; 70 e 75 C intocaveis) - brilho solto."
+    LOG "[AVISO] curva do LED recusada (fora das travas: 40 a 69 C, 850 a 1000 de 10 em 10, nao crescente, nunca acima da escada do firmware de 66 C; 70 e 75 C intocaveis) - brilho solto."
     trava || exit 1
     parar_led; prop led padrao; prop led_aviso pedido
     destrava; exit 0
@@ -624,7 +619,6 @@ modo_pedido_led(){
       W_LIM="$(( LT1 * 1000 )), $(( LT2 * 1000 )), $(( LT3 * 1000 )), 70000, 71500, 73000"
       W_BRI=$(printf '%4d, %4d, %4d, %4d, %4d, %4d' "$LB1" "$LB2" "$LB3" "$LED_MIN" "$LED_MIN" "$LED_MIN")
     fi
-    W_FAN=""
     ini_escrever || _ini=falhou
     W_LIM=""; W_BRI=""
   ;; esac
@@ -653,11 +647,18 @@ standby_cancelar(){
   rm -f "$PID_STANDBY"
   prop standby ""
 }
+sonhando(){ timeout 10 dumpsys power 2>/dev/null | grep -aq 'mWakefulness=Dreaming'; }
+standby_desiste(){
+  LOG "o descanso nao esta mais na tela (dumpsys power sem Dreaming): standby cancelado, nada feito."
+  rm -f "$PID_STANDBY"; prop standby ""
+  exit 0
+}
 standby_vigia(){
   echo "$$" > "$PID_STANDBY"
   trap 'rm -f "$PID_STANDBY"; exit 0' INT TERM HUP
   _s=0
   while [ "$_s" -lt "$STANDBY_AVISO" ]; do sleep 5; _s=$(( _s + 5 )); done
+  sonhando || standby_desiste
   prop standby aviso
   LOG "descanso ativo ha $STANDBY_AVISO s: aviso de standby na tela"
   while [ "$_s" -lt "$STANDBY_TOTAL" ]; do sleep 5; _s=$(( _s + 5 )); done
@@ -666,9 +667,10 @@ standby_vigia(){
     rm -f "$PID_STANDBY"; prop standby ""
     exit 0
   fi
+  sonhando || standby_desiste
   prop standby agora
-  LOG "standby pelo descanso: KEYCODE_SLEEP (PROVISORIO ate o doc 49 dizer o que o POWER do controle faz)"
-  input keyevent KEYCODE_SLEEP >/dev/null 2>&1
+  LOG "standby pelo descanso: KEYCODE_POWER, o mesmo do botao do controle (doc 49 sec. 4.4: desliga o aparelho)"
+  input keyevent KEYCODE_POWER >/dev/null 2>&1
   rm -f "$PID_STANDBY"
   sleep 2
   prop standby ""

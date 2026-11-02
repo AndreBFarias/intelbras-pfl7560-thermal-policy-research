@@ -245,15 +245,17 @@ OBSERVACOES
 CURVAS, STANDBY E DEBLOAT (bloco 23)
   - Curvas: o atalho "Curvas" da tela inicial edita a curva dos ventiladores
     (temperatura x velocidade, 100% obrigatorio a partir de 66 C, piso 30%) e a
-    do LED (temperatura x brilho, so abaixo de 70 C). Pode valer ao vivo (o
-    projetor aplica enquanto estiver ligado), gravada no ZYCustom.ini (vale pelo
-    firmware depois de reiniciar) ou nos dois. Qualquer falha ou pedido invalido
-    deixa os ventiladores em 100%. O kit aceita o ZYCustom.ini com essas curvas
-    gravadas (nao trata como arquivo desconhecido). Piso de 30% e perfis sao
-    PROVISORIOS ate a medicao no projetor.
+    do LED (temperatura x brilho, so abaixo de 70 C e nunca acima da escada do
+    firmware). Ventiladores: so ao vivo (o projetor aplica enquanto estiver
+    ligado); "gravar" ainda nao vale para eles e deixa em 100%. LED: ao vivo,
+    gravada no ZYCustom.ini (vale depois de reiniciar) ou os dois. Qualquer
+    falha ou pedido invalido deixa os ventiladores em 100%. O kit aceita o
+    ZYCustom.ini com a curva do LED gravada (nao trata como arquivo
+    desconhecido). Piso de 30% e perfis sao PROVISORIOS ate a medicao.
   - Standby: com o descanso de tela ativo por mais de 10 minutos aparece um aviso
-    de 60 segundos; qualquer tecla cancela, senao o projetor entra em standby
-    (KEYCODE_SLEEP; PROVISORIO ate se confirmar que e igual ao POWER do controle).
+    de 60 segundos; qualquer tecla cancela, senao o projetor recebe o POWER do
+    controle (KEYCODE_POWER), que DESLIGA o aparelho; ligar de novo e pelo
+    controle, boot completo. So acontece com o descanso ainda na tela.
   - Debloat: o kit desliga (pm disable-user, reversivel) so os apps de
     debloat-aprovados.txt (Office, VLC, cast e miracast). Para religar tudo, crie
     um arquivo VAZIO REVERTER-DEBLOAT.txt na raiz do pendrive e ligue o projetor.

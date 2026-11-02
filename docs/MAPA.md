@@ -108,7 +108,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | prop `vendor.pfl7560.luz` | `suite-pedido.sh` | home | a luz aplicada, de volta ao app |
 | `/data/data/com.pfl7560.home/curva-vent`, `curva-led` | home | `suite-pedido.sh` (move para a pasta do root) | pedidos de curva (44 §17) |
 | props `vendor.pfl7560.vent`, `led`, `vent_aviso`, `led_aviso`, `standby` | `suite-curvas.sh` | home, `Descanso` | estado das curvas e aviso de standby |
-| `/data/vendor/pfl7560-suite/curva-vent`, `curva-led`, `*.desistiu`, `ini-antes-curva`, `debloat-revertido` | `suite-curvas.sh` | `suite-curvas.sh` | curva guardada, marca de desistência, cópia do `.ini`, marca do debloat revertido |
+| `/data/vendor/pfl7560-suite/curva-vent`, `curva-led`, `*.desistiu`, `ini-antes-curva`, `debloat-revertido` | `suite-curvas.sh` | `suite-curvas.sh` | curva guardada, marca de desistência, cópia do `.ini` (só a curva do LED grava), marca do debloat revertido |
 | prop `vendor.newlink.launcher.package`, `vendor.nl.filemanage_file` (no `/vendor/build.prop`) | autorun | `nlprovision`, gerenciador de arquivos | home nova; gerenciador abrindo na lista |
 | prop `persist.sys.boot.reason` = `pfl7560,ligado` | `suite-boot.sh` | `suite-boot.sh` no boot seguinte | marca de "energia caiu ligado" |
 | prop `vendor.zy.power.tm.temp` | rampa da suíte, `--vivacidade` | laço térmico | override de 71000 m°C, limpo no fim |

@@ -713,13 +713,24 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
   1000) com histerese (sobe na hora; só desce quando a queda passa de 100) e relê com `gfs`. Se o firmware reescrever
   3 vezes seguidas, o laço desiste, grava a marca `curva-vent.desistiu` e avisa a home pela prop `vent_aviso`.
   Falha do laço, do `hidebug` ou pedido inválido = ventiladores em 1000.
-- **Gravada:** vira `FW_SPEED_CURVE`/`DEFAULT_PWM_DUTY` nas duas seções `CoolingFan_*` do `ZYCustom.ini`, com
-  escrita atômica (`.new`, md5, `sync`, `mv`), remontagem rw/ro do `/vendor` e cópia em `ini-antes-curva`. O
-  `DEFAULT_PWM_DUTY` nunca fica abaixo de 500 (partida do boot).
-- **O kit aceita variantes do `.ini`** que só diferem nessas chaves: o md5 normalizado (sem as linhas de curva do
-  ventilador e do LED) tem de bater com o do `ZYCustom.ini` do kit (USB-C ou NOTYPEC), e os valores têm de passar na
-  conferência (`ini-ok`). Sem isso o `newlink_update.sh` trataria a curva gravada como "ini desconhecido".
-  Gravar a canônica de volta restaura o md5 byte a byte (provado para as duas bases).
+- **Gravada: não existe para os ventiladores (conferente F2, alinhado ao doc 49 §4.3).** O F1 gravava a curva em
+  `FW_SPEED_CURVE`/`DEFAULT_PWM_DUTY`, mas `FW_SPEED_CURVE` não é uma curva por temperatura: é o eixo X da tabela
+  velocidade → duty (`CoolingFan::calcSpeedCurve`, Y = `FW_PWM_DUTY`) por onde passa **todo** `sfs` e o alvo da
+  `[ThermalPolicy]`. Reescrevê-la não muda nada pela política (o alvo é sempre 1000 → duty 1000) e distorce o
+  `sfs` do laço: com uma curva manual de 90 %, `sfs 900` cairia em `X[0]` e viraria duty 200. Por isso `gravar`
+  nos ventiladores não toca no `.ini` (ventiladores em 1000, `vent_aviso=gravar`) e `ambos` vira só `vivo` (com o
+  mesmo aviso). O lugar certo de uma curva gravada é a `[ThermalPolicy]`, mas o doc 49 não diz qual sensor os
+  limiares dela leem (25 a 36 °C não batem com o LED): **decisão da dona** antes de gravar lá.
+- **O kit aceita variantes do `.ini`** que só diferem nos degraus da `BacklightPolicy` (curva do LED gravada): o
+  md5 normalizado (sem as 4 linhas `POLICY_[01]_THRESHOLD/BRIGHTNESS`) tem de bater com o do `ZYCustom.ini` do kit
+  (USB-C ou NOTYPEC), e os valores têm de passar na conferência (`ini-ok`). As seções `CoolingFan_*` voltaram a
+  ser conferidas byte a byte: qualquer `FW_SPEED_CURVE`/`DEFAULT_PWM_DUTY` diferente é "ini desconhecido".
+  Gravar a curva padrão do LED de volta restaura o md5 byte a byte (provado para as duas bases).
+- **Rede de segurança do firmware (doc 49 §4.1):** a política reescreve qualquer `sfs` em rampa até ≈ 999 em
+  ≈ 2 min (o alvo da `[ThermalPolicy]` é 1000). Se o laço morrer sem passar pela saída, os ventiladores voltam
+  sozinhos. O mesmo vale contra o laço: a releitura com `gfs` pode acusar briga (desiste e fica em 1000) ou não
+  ver a rampa, conforme o que o `gfs` devolve (velocidade pedida ou duty; não medido). Em todos os casos os
+  ventiladores só sobem.
 - Silencioso é "silêncio primeiro": o piso é baixo e o brilho pode cair mais cedo pela escada de 66 °C.
 
 ### 17.2 Curva do LED
@@ -727,13 +738,24 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
 - Arquivo `curva-led`: `v1 <perfil> <modo> t:b x3`, perfis `padrao` (sem pontos), `silencioso`, `manual`. Temperatura
   de 40 a 69 °C estritamente crescente; brilho de 850 a 1000 em passos de 10, **não crescente**. WARNING 70000 e
   EMERGENCY 75000 do `.ini` ficam intocados; acima de 69 °C a escada do firmware manda.
+- **Nunca acima da escada do firmware (conferente F2).** Entre 66 e 70 °C a escada `[BacklightPolicy]` baixa o
+  brilho de 1000 a 850. Cada ponto da curva tem de ficar abaixo dela (`67:960` passa, `67:970` não; a tela já
+  prende a bolinha), o `ini-ok` confere o mesmo, e o laço mira no **menor** entre a curva e a escada instalada
+  (as duas `POLICY`, e a canônica).
 - **Ao vivo:** `sbri 0 N` pelo `hidebug` (módulo `custom`), relido com `gbri 0`. Se o firmware devolver outro valor 3
   vezes seguidas, o laço desiste e avisa (`led_aviso=firmware`). De 70 °C para cima o laço não escreve nada.
+- **Soltar = devolver no valor da escada, não em 1000 (conferente F2).** O `sbri` não atualiza o estado da
+  política, e a rampa `RunLineChange` só escreve quando o alvo muda (doc 49 §4.2). Acima de 70 °C a escada é plana
+  em 850; um `sbri 1000` ali deixaria o LED em 1000 até a temperatura voltar a mudar de faixa. Por isso soltar
+  (saída do laço, 70 °C, trava da suíte, pedido inválido, `parar`) manda `sbri` com o valor da escada na
+  temperatura lida, e o piso 850 se a temperatura não se lê.
 - **Gravada:** nos degraus da `BacklightPolicy` (`POLICY_*_THRESHOLD`/`POLICY_*_BRIGHTNESS`), mesma escrita atômica.
-- **Como combina com o botão Luz (`sbl`):** o `suite-curvas.sh` nunca chama `sbl`/`gbl` (módulo `picture`). O
-  doc 44 §13 só mediu que o `sbl` deixa o brilho do módulo `custom` em 1000. A hipótese de trabalho é que os dois
-  se multiplicam (a Luz escala a imagem; `sbri` e a escada escalam o LED). PROVISÓRIO até uma medição com o
-  projetor.
+- **Como combina com o botão Luz:** o botão Luz usa o `sbl` do módulo `picture` (§13), que não mexe no brilho do
+  módulo `custom` (medido: continua 1000). O `suite-curvas.sh` nunca chama `sbl`/`gbl`. O doc 49 §4.2 trata do
+  `sbl` do `custom` (`setThermalBacklightLevel`), que divide o mesmo pendente do `sbri` ("vale o último"); esse não
+  é o do botão. A hipótese de trabalho continua: Luz (`picture`) e curva/escada (`custom`) se compõem.
+  PROVISÓRIO até uma medição com o projetor. Pelo doc 49 §4.2: abaixo de 66 °C um `sbri` fica (a escada não
+  escreve); um `sbri` abaixo de 750 satura em 750 (o piso do kit é 850).
 
 ### 17.3 Descanso de tela por mais de 10 minutos = standby
 
@@ -741,10 +763,19 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
   põe a prop `vendor.pfl7560.standby=aviso`; o app (versionCode 6) consulta a prop a cada 5 s a partir do minuto 9 e
   mostra o aviso de 60 s na tela. **Qualquer tecla** acorda o descanso (é um `DreamService` não interativo), o que
   grava `descanso-fim`, mata o vigia e limpa a prop. Aos 660 s a prop vai para `agora` e o root manda
-  `input keyevent KEYCODE_SLEEP`.
-- Com a suíte rodando (trava ocupada) o standby é adiado e nada é feito.
-- PROVISÓRIO: o que o POWER do controle faz de fato (doc 49 não diz); `KEYCODE_SLEEP` é o caminho mais seguro e
-  reversível por tecla. Os tempos 600/660 s também.
+  `input keyevent KEYCODE_POWER`, o mesmo caminho da tecla do controle (doc 49 §4.4; o F1 usava `KEYCODE_SLEEP`).
+- **O que o POWER faz (doc 49 §4.4): desliga o Android inteiro.** Não há standby com RAM
+  (`persist.sys.suspend.mode = shutdown`); ligar de novo é boot frio, e a suíte de boot roda. Ventiladores e LED
+  ficam sem o térmico, mas desligados.
+- **Só com o descanso na tela (conferente F2).** Aos 600 s e de novo aos 660 s o vigia exige
+  `mWakefulness=Dreaming` no `dumpsys power`. Sem isso (o descanso saiu sem o `descanso-fim` chegar, um vídeo ou a
+  HDMI acordou a tela) não há aviso nem tecla. Um vídeo tocando segura a tela acordada, então o descanso nem
+  começa. O `descanso-fim` cancela o vigia **mesmo com a suíte rodando** (antes a trava pulava o cancelamento, e o
+  standby armado disparava depois).
+- Com a suíte rodando (trava ocupada) no fim da contagem, o standby é adiado e nada é feito.
+- PROVISÓRIO: `input keyevent KEYCODE_POWER` igual à tecla do IR (INFERIDO no doc 49, não testado); o
+  `mWakefulness=Dreaming` com o descanso que entra sozinho por ociosidade (o `service call dreams 1` do §14.1 não
+  passa pelo `PowerManager`); os tempos 600/660 s.
 
 ### 17.4 Debloat reversível
 
@@ -760,11 +791,12 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
 
 | Item | Onde |
 |---|---|
-| `FW_SPEED_CURVE` não é lido pelo firmware como esta curva (o caminho real é `[ThermalPolicy]`, plano em 1000): a gravada é só a intenção | `suite-curvas.sh` |
-| Piso de 30 % e os valores dos perfis Silencioso/Balanceado | `suite-curvas.sh`, `Curvas.java` |
-| Mínimo 500 do `DEFAULT_PWM_DUTY` e piso de brilho 850 | `suite-curvas.sh` |
-| Soma multiplicativa de `sbl` com `sbri`/escada | §17.2 |
-| `KEYCODE_SLEEP` igual ao POWER do controle; 600 s de aviso e 660 s de total | §17.3 |
+| Curva dos ventiladores gravada: só depois da decisão da dona sobre a `[ThermalPolicy]` (qual sensor) | §17.1 |
+| Piso de 30 % (em `sfs` dá duty 200/325, doc 49 §4.3) e os valores dos perfis Silencioso/Balanceado | `suite-curvas.sh`, `Curvas.java` |
+| O que o `gfs` devolve depois de um `sfs` (velocidade pedida ou duty) | §17.1 |
+| Piso de brilho 850 | `suite-curvas.sh` |
+| Composição da Luz (`picture`) com `sbri`/escada (`custom`) | §17.2 |
+| `KEYCODE_POWER` igual à tecla do IR; `mWakefulness=Dreaming` no descanso por ociosidade; 600 s de aviso e 660 s de total | §17.3 |
 | Pedido durante a suíte é recusado com `*_aviso=suite` | `suite-pedido.sh` |
 | O laço pode tocar os ventiladores no boot antes de a suíte pegar a trava | `suite-boot.sh` |
 | A marca `.desistiu` persiste entre boots até um pedido novo | `suite-curvas.sh` |

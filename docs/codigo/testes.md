@@ -97,7 +97,12 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
   debloat). O `hidebug` de mentira é com estado (`curvas_hidebug`): `sfs`/`sbri` gravam, `gfs`/`gbri` leem, e um
   modo "firmware reescreve" prova a desistência. O tempo é falso (`sleep` não faz nada, `PFL_CURVAS_VOLTAS` limita as
   voltas do laço, `PFL_STANDBY_*` encurta o standby). Estáticos: ASCII puro, sem `gtt`/`stp`/`sbl`, `shellcheck -s sh`.
-- `test-kit-pendrive.sh`: `c_bloco23` (variante do `.ini` aceita sem regravar nem reiniciar; piso fora da faixa
+- Conferente F2: ventilador `gravar` não toca no `.ini` (`vent_aviso=gravar`, `ambos` vira `vivo`); LED acima da
+  escada recusado (`67:970`) e no limite aceito (`67:960 69:900`); soltar o LED devolve no valor da escada (927 a
+  54,7 °C com a curva gravada, 850 de 70 °C para cima e sem temperatura); mutações em `FW_SPEED_CURVE` e
+  `DEFAULT_PWM_DUTY` derrubam o `ini-ok`; o `dumpsys power` de mentira lê `$T/wakefulness`: sem `Dreaming` não há
+  aviso nem tecla, saindo entre o aviso e o fim não há tecla, e o `descanso-fim` cancela mesmo com a trava.
+- `test-kit-pendrive.sh`: `c_bloco23` (variante do LED no `.ini` aceita sem regravar nem reiniciar; `FW_SPEED_CURVE` mexido
   recusado; `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`; versionCode 6; `suite-curvas.sh` e a lista do debloat no
   `KIT_LISTA`/`KIT_EXEC`).
 - Home: `Previa.java` confere o modelo das curvas e a navegação (`gerar-previas.sh`).

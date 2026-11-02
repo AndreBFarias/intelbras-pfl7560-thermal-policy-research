@@ -45,7 +45,7 @@ Uma linha por termo, com o doc que explica. Para o estado de cada pendência, ve
 | suíte | a verificação automática (cor, câmera, ângulo, nitidez, foco, temperatura, resumo) | [44](research/44-suite-de-boot.md) |
 | vigia | a parte da suíte que espera, no boot, o pedido do ícone e os sinais do descanso de tela | [44](research/44-suite-de-boot.md) |
 | curva | o gráfico temperatura do LED x velocidade dos ventiladores (ou x brilho) que a home edita; vale ao vivo, gravada no `.ini` ou nos dois | [44 §17](research/44-suite-de-boot.md) |
-| standby pelo descanso | descanso ativo por mais de 10 min: aviso de 60 s na tela e depois `KEYCODE_SLEEP`; qualquer tecla cancela | [44 §17](research/44-suite-de-boot.md) |
+| standby pelo descanso | descanso ativo por mais de 10 min: aviso de 60 s na tela e depois `KEYCODE_POWER` (desliga, como a tecla do controle), só com o descanso ainda na tela; qualquer tecla cancela | [44 §17](research/44-suite-de-boot.md) |
 | debloat | desligar pacotes da lista aprovada com `pm disable-user --user 0`; `REVERTER-DEBLOAT.txt` no pendrive religa | [44 §17](research/44-suite-de-boot.md) |
 | descanso | o descanso de tela MeowCast; põe a luz a 10 % enquanto está na tela e devolve o nível de antes | [44](research/44-suite-de-boot.md) §14 |
 | `nl_tela` / `nl_camcheck` | os binários ARM que desenham as telas da suíte e leem a câmera | [`artifacts/`](../artifacts/README.md) |

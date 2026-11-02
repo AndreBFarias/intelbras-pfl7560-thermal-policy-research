@@ -165,6 +165,7 @@ fi
 exit 0'
   stub input 'echo "input $*" >> "$T/calls.log"'
   stub dumpsys 'case "$1" in package) [ -f "$T/dumpsys-descanso" ] && echo "  1a2b com.pfl7560.verificar/.Descanso filter 3c4d"; exit 0 ;; esac
+case "$1" in power) echo "dumpsys power" >> "$T/calls.log"; echo "  mWakefulness=$(cat "$T/wakefulness" 2>/dev/null || echo Awake)"; exit 0 ;; esac
 n=$(cat "$T/alerta" 2>/dev/null || echo 0)
 p=$(cat "$T/alerta-pacote" 2>/dev/null || echo com.newlink.nlprovision)
 if [ "$n" -gt 0 ]; then echo $((n-1)) > "$T/alerta"; echo "  mCurrentFocus=Window{8a4910d u0 $p}"; else echo "  mCurrentFocus=Window{1 u0 com.hisilicon.higallery/x}"; fi'
@@ -1785,28 +1786,16 @@ c_curvas_vent_pedido(){
   afirma '[ ! -e "$S/curva-vent.novo" ] && grep -q "perfil silencioso, modo vivo" "$S/curvas.log"' "sobrou .novo ou log sem o pedido: $(log_curvas | tail -2)"
   limpa
 
-  cenario_curvas "curvas/vent: gravar = so o .ini (FW_SPEED_CURVE de 7 pontos, DEFAULT_PWM_DUTY >= 500), cop. de seguranca, /vendor rw e volta ro, laco desligado"
-  roda_curvas ini-norm "$R/vendor/etc/ZYCustom.ini"; cp "$T/curvas.out" "$T/n0"
+  cenario_curvas "curvas/vent: gravar = o .ini NAO muda (FW_SPEED_CURVE e velocidade->duty, doc 49 4.3), ventiladores em 1000, aviso 'gravar', laco desligado"
   roda_curvas pedido vent "v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100"
-  afirma '[ "$RC" = 0 ] && [ "$(ini_md5_r)" != "$INI_KIT_MD5" ] && [ "$(md5 "$S/ini-antes-curva")" = "$INI_KIT_MD5" ]' "ini nao mudou ou a copia de seguranca nao e a de antes: rc=$RC"
-  afirma '[ "$(grep -a -c "^FW_SPEED_CURVE =  300, 300, 300, 350, 400, 600, 1000;" "$R/vendor/etc/ZYCustom.ini")" = 2 ] && [ "$(grep -a -c "^DEFAULT_PWM_DUTY      = 500;" "$R/vendor/etc/ZYCustom.ini")" = 2 ]' "linhas do ini: $(linha_ini FW_SPEED_CURVE)$(linha_ini DEFAULT_PWM)"
-  roda_curvas ini-norm "$R/vendor/etc/ZYCustom.ini"
-  afirma '[ "$(cat "$T/curvas.out")" = "$(cat "$T/n0")" ]' "as outras linhas do ini mudaram (md5 normalizado difere)"
-  roda_curvas ini-ok "$R/vendor/etc/ZYCustom.ini"
-  afirma '[ "$RC" = 0 ]' "o ini gravado nao e aceito como variante do kit"
-  afirma 'tem_chamada "mount -o rw,remount /vendor" && tem_chamada "mount -o ro,remount /vendor" && [ ! -e "$R/vendor/etc/ZYCustom.ini.new" ] && [ ! -e "$S/ini.novo" ] && [ ! -e "$S/ini.sed" ]' "remount ou sobra: $(grep mount "$T/calls.log" | tr '\n' '|'); $(lista_dir "$S") $(lista_dir "$R/vendor/etc")"
-  afirma '[ "$(prop_de vent)" = silencioso:gravada ] && [ ! -e "$S/curva-vent" ] && [ "$(chamadas setsid)" = 0 ] && [ "$(fans_n 1000)" = 1 ]' "props/laco/1000: vent='$(prop_de vent)'; setsid=$(chamadas setsid); 1000x$(fans_n 1000)"
-  : > "$T/calls.log"
-  roda_curvas pedido vent "v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100"
-  afirma '[ "$(chamadas mount)" = 0 ] && grep -q "ja estava com essas curvas" "$S/curvas.log"' "regravou o que ja estava igual"
-  roda_curvas pedido vent "v1 agressivo gravar 30:100 40:100 50:100 60:100 66:100"
-  afirma '[ "$(ini_md5_r)" = "$INI_KIT_MD5" ]' "agressivo nao devolveu o ini byte a byte ao do kit: $(ini_md5_r)"
-  afirma '[ "$(md5 "$S/ini-antes-curva")" != "$INI_KIT_MD5" ] && [ "$(prop_de vent)" = agressivo:gravar ]' "copia de seguranca ou prop erradas"
+  afirma '[ "$RC" = 0 ] && [ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ "$(chamadas mount)" = 0 ] && [ ! -e "$S/ini-antes-curva" ]' "mexeu no ini ou no /vendor: rc=$RC $(grep mount "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(prop_de vent)" = padrao ] && [ "$(prop_de vent_aviso)" = gravar ] && [ ! -e "$S/curva-vent" ] && [ "$(chamadas setsid)" = 0 ] && [ "$(fans_n 1000)" = 1 ]' "props/laco/1000: vent='$(prop_de vent)' aviso='$(prop_de vent_aviso)'; setsid=$(chamadas setsid); 1000x$(fans_n 1000)"
+  afirma 'grep -q "nao e gravada no ZYCustom.ini" "$S/curvas.log"' "log sem o motivo: $(log_curvas | tail -2)"
   limpa
 
-  cenario_curvas "curvas/vent: ao vivo + gravar (ambos) = ini gravado e laco ligado"
+  cenario_curvas "curvas/vent: ao vivo + gravar (ambos) = so o ao vivo (laco ligado), ini intacto, aviso 'gravar'"
   roda_curvas pedido vent "v1 balanceado ambos 30:40 45:50 55:65 61:80 66:100"
-  afirma '[ "$(prop_de vent)" = balanceado:ambos ] && [ -e "$S/curva-vent" ] && tem_chamada "setsid sh $S/suite-curvas.sh laco" && [ "$(ini_md5_r)" != "$INI_KIT_MD5" ]' "ambos: vent='$(prop_de vent)' ini=$(ini_md5_r)"
+  afirma '[ "$(prop_de vent)" = balanceado:vivo ] && [ "$(prop_de vent_aviso)" = gravar ] && [ "$(cat "$S/curva-vent")" = "v1 balanceado vivo 30:40 45:50 55:65 61:80 66:100" ] && tem_chamada "setsid sh $S/suite-curvas.sh laco" && [ "$(ini_md5_r)" = "$INI_KIT_MD5" ]' "ambos: vent='$(prop_de vent)' aviso='$(prop_de vent_aviso)' ini=$(ini_md5_r)"
   limpa
 
   cenario_curvas "curvas/vent: perfil agressivo ao vivo = para o laco e deixa em 1000 (o de hoje)"
@@ -1863,14 +1852,21 @@ c_curvas_led_pedido(){
   afirma 'tem_chamada "setsid sh $S/suite-curvas.sh laco" && [ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ "$(hb)" = 0 ]' "laco/ini/hidebug"
   limpa
 
-  cenario_curvas "curvas/led: gravar = degraus da BacklightPolicy nos dois POLICY, 70000/71500/73000 e 850 do fim intactos, e padrao devolve o ini byte a byte"
+  cenario_curvas "curvas/led: gravar = degraus da BacklightPolicy nos dois POLICY, 70000/71500/73000 e 850 do fim intactos, brilho solto no degrau gravado, e padrao devolve o ini byte a byte"
   roda_curvas pedido led "v1 silencioso gravar 50:950 60:900 65:850"
   afirma '[ "$(grep -a -c "^POLICY_[01]_THRESHOLD  = 50000, 60000, 65000, 70000, 71500, 73000;" "$R/vendor/etc/ZYCustom.ini")" = 2 ] && [ "$(grep -a -c "^POLICY_[01]_BRIGHTNESS =   950,  900,  850,  850,  850,  850;" "$R/vendor/etc/ZYCustom.ini")" = 2 ]' "ini: $(linha_ini POLICY_)"
   afirma '[ "$(grep -a "^WARNING" "$R/vendor/etc/ZYCustom.ini")" = "$(grep -a "^WARNING" "$KIT/ZYCustom.ini")" ] && [ "$(grep -a "^EMERGENCY" "$R/vendor/etc/ZYCustom.ini")" = "$(grep -a "^EMERGENCY" "$KIT/ZYCustom.ini")" ]' "WARNING/EMERGENCY mudaram"
   roda_curvas ini-ok "$R/vendor/etc/ZYCustom.ini"
-  afirma '[ "$RC" = 0 ] && [ "$(prop_de led)" = silencioso:gravada ] && [ ! -e "$S/curva-led" ] && [ "$(bri_n 1000)" = 1 ]' "led: rc=$RC prop='$(prop_de led)' 1000x$(bri_n 1000)"
+  afirma '[ "$RC" = 0 ] && [ "$(prop_de led)" = silencioso:gravada ] && [ ! -e "$S/curva-led" ] && [ "$(bri_n 927)" = 1 ] && [ "$(bri_n 1000)" = 0 ]' "led: rc=$RC prop='$(prop_de led)' (solta na escada gravada: 927 a 54,7 C) $(grep -oE 'sbri 0 [0-9]+' "$T/calls.log" | tr '\n' '|')"
   roda_curvas pedido led "v1 padrao gravar"
   afirma '[ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ "$(prop_de led)" = padrao:gravar ]' "padrao nao devolveu o ini do kit: $(ini_md5_r)"
+  limpa
+
+  cenario_curvas "curvas/led: pontos acima de 66 C rente a escada do firmware (67:960, 69:900) = aceitos e gravados"
+  roda_curvas pedido led "v1 manual gravar 50:1000 67:960 69:900"
+  afirma '[ "$(prop_de led)" = manual:gravada ] && [ "$(grep -a -c "^POLICY_[01]_BRIGHTNESS =  1000,  960,  900,  850,  850,  850;" "$R/vendor/etc/ZYCustom.ini")" = 2 ]' "rente a escada: prop='$(prop_de led)' $(linha_ini POLICY_)"
+  roda_curvas ini-ok "$R/vendor/etc/ZYCustom.ini"
+  afirma '[ "$RC" = 0 ]' "o ini rente a escada nao e aceito"
   limpa
 
   while IFS= read -r v; do
@@ -1899,6 +1895,9 @@ v1 silencioso vivo 050:950 60:900 65:850
 v1 silencioso vivo 50:950 60:900 65
 v1 silencioso vivo 50:950 60:900 65:850; touch x
 v1 manual gravar 50:950 60:900 65:800
+v1 manual vivo 50:1000 60:1000 68:1000
+v1 manual gravar 50:1000 60:1000 67:970
+v1 manual vivo 50:1000 67:960 69:910
 lixo
 LISTA
 }
@@ -2014,14 +2013,30 @@ c_curvas_led_laco(){
 60.0 900
 64.9 900
 65.0 850
-69.9 850
-70.0 1000
 TAB
 
-  cenario_curvas "curvas/laco-led: a 70 C o laco solta o brilho para a escada do firmware (sbri 1000) e nao segura mais"
+  while IFS=' ' read -r t a; do
+    cenario_curvas "curvas/laco-led: LED a $t C, acima da escada de 66 C = o laco nao passa da escada e solta em $a"
+    curva_led_arq; temp_led "$t"
+    VOLTAS_T=2 roda_curvas laco
+    afirma '[ "$(grep -c "^HIDEBUG.* sbri " "$T/calls.log")" -ge 1 ] && [ -z "$(grep -oE "sbri 0 [0-9]+" "$T/calls.log" | awk -v m="$a" "\$3 > m")" ] && [ "$(grep -oE "sbri 0 [0-9]+" "$T/calls.log" | tail -1)" = "sbri 0 $a" ]' "$t C: $(grep -oE 'sbri 0 [0-9]+' "$T/calls.log" | tr '\n' '|')"
+    limpa
+  done <<'TAB'
+69.9 855
+70.0 850
+72.0 850
+TAB
+
+  cenario_curvas "curvas/laco-led: curva acima da escada entre 66 e 70 C (1000 a 68 C) = segue a escada (934), nunca mais claro"
+  printf 'v1 manual vivo 40:1000 50:1000 60:1000\n' > "$S/curva-led"; chmod 600 "$S/curva-led"; temp_led 68
+  VOLTAS_T=2 roda_curvas laco
+  afirma '[ "$(bri_n 934)" -ge 1 ] && [ "$(bri_n 1000)" = 0 ]' "a 68 C: $(grep -oE 'sbri 0 [0-9]+' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  cenario_curvas "curvas/laco-led: a 70 C o laco solta o brilho no valor da escada do firmware (850), nunca em 1000"
   curva_led_arq; temp_led 66; temps_por_ciclo 70.5 72
   VOLTAS_T=3 roda_curvas laco
-  afirma '[ "$(bri_n 850)" = 1 ] && [ "$(bri_n 1000)" = 2 ] && [ "$(grep -c "^HIDEBUG.* sbri " "$T/calls.log")" = 3 ]' "acima de 70: $(grep sbri "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(bri_n 850)" = 3 ] && [ "$(bri_n 1000)" = 0 ] && [ "$(grep -c "^HIDEBUG.* sbri " "$T/calls.log")" = 3 ]' "acima de 70: $(grep sbri "$T/calls.log" | tr '\n' '|')"
   limpa
 
   cenario_curvas "curvas/laco-led: o firmware reescreve o brilho = 3 ciclos, desiste, solta o brilho e avisa"
@@ -2036,10 +2051,10 @@ TAB
   afirma '[ "$(fans_n 400)" = 1 ] && [ "$(bri_n 950)" = 1 ] && [ "$(prop_de vent)" = silencioso:vivo ] && [ "$(prop_de led)" = silencioso:vivo ]' "juntas: $(grep -o 'sfs 0 [0-9]*\|sbri 0 [0-9]*' "$T/calls.log" | tr '\n' ' ')"
   limpa
 
-  cenario_curvas "curvas/laco-led: sem temperatura legivel o LED fica como esta (nao inventa brilho)"
+  cenario_curvas "curvas/laco-led: sem temperatura legivel o LED fica como esta e a saida solta no piso seguro (850), nao em 1000"
   curva_led_arq; temp_led abc
   VOLTAS_T=2 roda_curvas laco
-  afirma '[ "$(grep -c "^HIDEBUG.* sbri " "$T/calls.log")" = 1 ] && [ "$(bri_n 1000)" = 1 ]' "sem temperatura aplicou brilho: $(grep sbri "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(grep -c "^HIDEBUG.* sbri " "$T/calls.log")" = 1 ] && [ "$(bri_n 850)" = 1 ]' "sem temperatura aplicou brilho: $(grep sbri "$T/calls.log" | tr '\n' '|')"
   limpa
 }
 
@@ -2172,16 +2187,40 @@ c_curvas_standby(){
   kill "$vp" 2>/dev/null; wait "$vp" 2>/dev/null
   limpa
 
-  novo_cenario "standby/vigia: passou do total = aviso e depois 'agora', e so entao o input keyevent KEYCODE_SLEEP"
-  instala_suite
+  novo_cenario "standby/fio: descanso-fim com a trava da suite = cancela o vigia do mesmo jeito (a suite nao segura o standby armado)"
+  instala_suite; mkdir "$R/dev/pfl7560-suite.lock"
+  bash -c 'exec -a pfl7560-standby-teste /bin/sleep 30' &
+  vp=$!
+  echo "$vp" > "$R/dev/pfl7560-standby.pid"; printf 'vendor.pfl7560.standby=aviso\n' >> "$T/props"; : > "$PED/descanso-fim"
+  roda_pedido w "$PED" descanso-fim
+  sleep 0.3
+  afirma '! kill -0 "$vp" 2>/dev/null && [ ! -e "$R/dev/pfl7560-standby.pid" ] && [ -z "$(prop_de standby)" ] && [ "$(hb)" = 0 ]' "trava segurou o standby armado: pid=$vp prop='$(prop_de standby)'"
+  kill "$vp" 2>/dev/null; wait "$vp" 2>/dev/null
+  limpa
+
+  novo_cenario "standby/vigia: o descanso saiu da tela sem descanso-fim (video, aviso da HDMI) = nem aviso nem tecla"
+  instala_suite; echo Awake > "$T/wakefulness"
   amb env PFL_STANDBY_AVISO=10 PFL_STANDBY_TOTAL=20 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
-  afirma '[ "$(grep -c "^input " "$T/calls.log")" = 1 ] && tem_chamada "input keyevent KEYCODE_SLEEP"' "input: $(grep '^input' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(chamadas input)" = 0 ] && ! grep -q "standby aviso\|standby agora" "$T/calls.log" && [ ! -e "$R/dev/pfl7560-standby.pid" ] && grep -q "standby cancelado" "$S/curvas.log"' "mandou tecla sem o descanso na tela: $(grep -E '^(input|setprop vendor.pfl7560.standby)' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "standby/vigia: o descanso sai entre o aviso e o fim = sem tecla, prop limpa"
+  instala_suite; echo Dreaming > "$T/wakefulness"
+  stub sleep 'echo "sleep $*" >> "$T/calls.log"; n=$(grep -c "^sleep" "$T/calls.log"); [ "$n" -ge 3 ] && echo Awake > "$T/wakefulness"; exit 0'
+  amb env PFL_STANDBY_AVISO=10 PFL_STANDBY_TOTAL=20 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(chamadas input)" = 0 ] && tem_chamada "setprop vendor.pfl7560.standby aviso" && [ -z "$(prop_de standby)" ]' "sem descanso no fim: $(grep -E '^(input|setprop vendor.pfl7560.standby)' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "standby/vigia: passou do total com o descanso na tela = aviso, 'agora' e so entao o input keyevent KEYCODE_POWER (o botao do controle, doc 49 4.4)"
+  instala_suite; echo Dreaming > "$T/wakefulness"
+  amb env PFL_STANDBY_AVISO=10 PFL_STANDBY_TOTAL=20 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(grep -c "^input " "$T/calls.log")" = 1 ] && tem_chamada "input keyevent KEYCODE_POWER" && [ "$(chamadas "dumpsys power")" = 2 ]' "input: $(grep '^input' "$T/calls.log" | tr '\n' '|')"
   afirma '[ "$(grep "^setprop vendor.pfl7560.standby" "$T/calls.log" | tr "\n" "|")" = "setprop vendor.pfl7560.standby aviso|setprop vendor.pfl7560.standby agora|setprop vendor.pfl7560.standby |" ]' "ordem das props: $(grep '^setprop vendor.pfl7560.standby' "$T/calls.log" | tr '\n' '|')"
   afirma '[ ! -e "$R/dev/pfl7560-standby.pid" ]' "sobrou o pid"
   limpa
 
   novo_cenario "standby/vigia: a suite pegou a trava no meio = adia, nao manda nenhuma tecla"
-  instala_suite; mkdir "$R/dev/pfl7560-suite.lock"
+  instala_suite; echo Dreaming > "$T/wakefulness"; mkdir "$R/dev/pfl7560-suite.lock"
   amb env PFL_STANDBY_AVISO=10 PFL_STANDBY_TOTAL=20 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
   afirma '[ "$(chamadas input)" = 0 ] && ! grep -q "standby agora" "$T/calls.log" && grep -q "standby adiado" "$S/curvas.log"' "mandou tecla com a trava: $(grep '^input' "$T/calls.log")"
   limpa
@@ -2226,6 +2265,9 @@ degrau de 70000 mexido|s/69000, 70000, 71500/69000, 70500, 71500/
 brilho final 800|s/POLICY_0_BRIGHTNESS =  1000,  950,  900,  850,  850,  850;/POLICY_0_BRIGHTNESS =  1000,  950,  900,  850,  850,  800;/
 3o degrau colado em 70000|s/67500, 69000, 70000/67500, 70000, 70000/
 brilho subindo|s/1000,  950,  900,  850/1000,  900,  950,  850/
+curva do ventilador mexida dentro da faixa|s/FW_SPEED_CURVE =  500, 575/FW_SPEED_CURVE =  500, 600/
+PWM de partida 500|s/^DEFAULT_PWM_DUTY      = 1000;/DEFAULT_PWM_DUTY      = 500;/
+brilho acima da escada a 67500|s/POLICY_0_BRIGHTNESS =  1000,  950,/POLICY_0_BRIGHTNESS =  1000, 1000,/
 TAB
 
   novo_cenario "curvas/ini: ini de fabrica (STOCK / ORIGINAL) = nao e variante do kit"
@@ -2240,24 +2282,24 @@ TAB
 
   novo_cenario "curvas/ini: gravar sobre a base NOTYPEC e depois voltar ao padrao = devolve o md5 inteiro da NOTYPEC, byte a byte"
   instala_suite; cp "$ROOT/artifacts/ZYCustom_390.NOTYPEC.ini" "$R/vendor/etc/ZYCustom.ini"
-  roda_curvas pedido vent "v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100"
-  afirma '[ "$(ini_md5_r)" != "$INI_NOTYPEC_MD5" ] && [ "$(md5 "$S/ini-antes-curva")" = "$INI_NOTYPEC_MD5" ]' "gravou errado na base NOTYPEC"
   roda_curvas pedido led "v1 silencioso gravar 50:950 60:900 65:850"
-  roda_curvas pedido vent "v1 agressivo gravar 30:100 45:100 55:100 61:100 66:100"
+  afirma '[ "$(ini_md5_r)" != "$INI_NOTYPEC_MD5" ] && [ "$(md5 "$S/ini-antes-curva")" = "$INI_NOTYPEC_MD5" ]' "gravou errado na base NOTYPEC"
+  roda_curvas ini-ok "$R/vendor/etc/ZYCustom.ini"
+  afirma '[ "$RC" = 0 ]' "a variante NOTYPEC gravada nao e aceita"
   roda_curvas pedido led "v1 padrao gravar 50:1000 60:1000 65:1000"
   afirma '[ "$(ini_md5_r)" = "$INI_NOTYPEC_MD5" ]' "nao voltou ao NOTYPEC original: $(ini_md5_r)"
   limpa
 
   novo_cenario "curvas/ini: gravar com o ini fora da lista aceita = nao grava, avisa 'ini' e deixa o ini como estava"
   instala_suite; cp "$ROOT/artifacts/ZYCustom.ini.ORIGINAL" "$R/vendor/etc/ZYCustom.ini"
-  roda_curvas pedido vent "v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100"
-  afirma '[ "$(ini_md5_r)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.ORIGINAL")" ] && [ "$(prop_de vent_aviso)" = ini ] && [ "$(chamadas mount)" = 0 ]' "mexeu num ini nao aceito: aviso='$(prop_de vent_aviso)'"
+  roda_curvas pedido led "v1 silencioso gravar 50:950 60:900 65:850"
+  afirma '[ "$(ini_md5_r)" = "$(md5 "$ROOT/artifacts/ZYCustom.ini.ORIGINAL")" ] && [ "$(prop_de led_aviso)" = ini ] && [ "$(chamadas mount)" = 0 ]' "mexeu num ini nao aceito: aviso='$(prop_de led_aviso)'"
   limpa
 
   novo_cenario "curvas/ini: o remount falha = ini intacto, sem .new nem ini.novo sobrando, aviso 'ini'"
   instala_suite; stub mount 'echo "mount $*" >> "$T/calls.log"; exit 1'
-  roda_curvas pedido vent "v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100"
-  afirma '[ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ ! -e "$R/vendor/etc/ZYCustom.ini.new" ] && [ ! -e "$S/ini.novo" ] && [ "$(prop_de vent_aviso)" = ini ]' "remount falhou e o ini mudou ou sobrou: $(ini_md5_r) $(lista_dir "$R/vendor/etc")"
+  roda_curvas pedido led "v1 silencioso gravar 50:950 60:900 65:850"
+  afirma '[ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ ! -e "$R/vendor/etc/ZYCustom.ini.new" ] && [ ! -e "$S/ini.novo" ] && [ "$(prop_de led_aviso)" = ini ]' "remount falhou e o ini mudou ou sobrou: $(ini_md5_r) $(lista_dir "$R/vendor/etc")"
   limpa
 }
 

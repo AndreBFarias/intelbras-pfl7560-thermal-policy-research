@@ -145,7 +145,8 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   segurança). Sem aviso no OK: o nível marcado no painel já mostra (pedido do dono).
 - **Curvas (bloco 23):** sétimo atalho, com ícone próprio. `Curvas` (Java puro, sem Android) guarda o modelo: 5
   bolinhas de ventilador (25 a 66 °C, 30 a 100 %, passo 5, a última presa em 66 °C/100 %) ou 3 do LED (40 a 69 °C,
-  850 a 1000, não crescente), perfis e modo (ao vivo, gravar, ambos). Setas movem a bolinha pegada, OK pega e solta,
+  850 a 1000, não crescente, nunca acima da escada do firmware de 66 a 70 °C: `Curvas.escada`), perfis e modo (ao vivo,
+  gravar, ambos; nos ventiladores o kit só aplica ao vivo e responde `vent_aviso=gravar`, que a tela traduz). Setas movem a bolinha pegada, OK pega e solta,
   BACK solta antes de fechar. Mexer numa bolinha vira Manual (cópia guardada). `Desenho.painelCurvas` desenha o
   gráfico em 1920x1080. A home grava o pedido (`curva-vent`/`curva-led`) na pasta privada, espera 2,5 s e relê as
   props `vent`, `led`, `vent_aviso`, `led_aviso` numa thread à parte. Formatos: doc 44 §17. `Previa` confere ~40

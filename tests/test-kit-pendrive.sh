@@ -1237,9 +1237,9 @@ S14(){ echo "$T/root/data/vendor/pfl7560-suite"; }
 N_OVL="$(echo "$OVL_KIT" | wc -w | tr -d ' ')"
 c_bloco23(){
   local f
-  novo_cenario "bloco 23: ini que so difere nas chaves de curva (FW_SPEED_CURVE) = termico ja ok, sem regravar nem reiniciar"; aparelho_ok
+  novo_cenario "bloco 23: ini que so difere nos degraus da curva do LED (BacklightPolicy) = termico ja ok, sem regravar nem reiniciar"; aparelho_ok
   f="$T/root/vendor/etc/ZYCustom.ini"
-  sed -i 's/FW_SPEED_CURVE =  500, 575, 650, 725, 825, 925, 1000;/FW_SPEED_CURVE =  500, 600, 700, 800, 900, 950, 1000;/' "$f"
+  sed -i 's/^POLICY_0_BRIGHTNESS =  1000,  950,  900,/POLICY_0_BRIGHTNESS =   950,  950,  900,/' "$f"
   afirma '[ "$(md5 "$f")" != "$(md5 "$KIT/ZYCustom.ini")" ]' "a variante nao mudou o ini (teste invalido)"
   local m0; m0="$(md5 "$f")"; local v0; v0="$(estado_vendor)"
   roda nokey
@@ -1248,9 +1248,9 @@ c_bloco23(){
   afirma '[ "$(chamadas reboot)" = 0 ] && [ "$(chamadas mount)" = 0 ]' "reiniciou ou remontou /vendor por causa da variante"
   limpa
 
-  novo_cenario "bloco 23: variante com piso de ventilador fora da faixa = NAO e aceita, e o ini desconhecido nao e sobrescrito"; aparelho_ok
+  novo_cenario "bloco 23: FW_SPEED_CURVE mexida (e a tabela velocidade->duty, doc 49 4.3) = NAO e variante aceita, e o ini desconhecido nao e sobrescrito"; aparelho_ok
   f="$T/root/vendor/etc/ZYCustom.ini"
-  sed -i 's/FW_SPEED_CURVE =  500, 575, 650, 725, 825, 925, 1000;/FW_SPEED_CURVE =  200, 575, 650, 725, 825, 925, 1000;/' "$f"
+  sed -i 's/FW_SPEED_CURVE =  500, 575, 650, 725, 825, 925, 1000;/FW_SPEED_CURVE =  500, 600, 700, 800, 900, 950, 1000;/' "$f"
   m0="$(md5 "$f")"
   roda nokey
   afirma '[ "$(md5 "$f")" = "$m0" ] && grep -q "NAO vou sobrescrever" "$T/out.log"' "aceitou ou sobrescreveu a variante invalida"
