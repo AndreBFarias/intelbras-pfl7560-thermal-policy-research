@@ -27,11 +27,16 @@ tão legal." Decisões pelo AskUserQuestion na mesma hora, transcritas abaixo.
    confirma depois; nenhuma tecla é engolida.
 4. **Tela inicial:**
    - sai o atalho **Imagem** e o app **Gerenciador de arquivos** (já existem dentro de Configurações);
-   - o atalho **Configurações** fica (confirmar na rodada final; o dono escreveu "talvez" sobre ele);
+   - o atalho **Configurações** fica;
    - VLC já foi desinstalado: nada a fazer;
    - rodapé ganha o **estado do Bluetooth** (igual ao "Wi-Fi conectado") e a **temperatura da placa** ao lado da do
      LED.
-5. **Junto no bloco:** (a) Ajustes tenta ler de novo a cada 2,5 s até conseguir, mostrando "Lendo…" em vez de
+5. **Chaves que somem da tela** (o kit e a prop `chaves` não mudam de posição; a home só esconde o índice):
+   - `eth0`: o projetor não tem porta de cabo. Some da tela e o kit não mexe nela (fica desligada).
+   - `deb_vlc` ("VLC e Office embutidos"): o dono pediu "Remove vlc e office". Some da tela; o estado atual
+     (ligada = os dois desligados) fica como está.
+6. **Configurações** fica na tela inicial (decidido).
+7. **Junto no bloco:** (a) Ajustes tenta ler de novo a cada 2,5 s até conseguir, mostrando "Lendo…" em vez de
    "Não consegui ler", e lê de novo ao voltar para a tela; (b) chave para desligar o pop-up de "dispositivo
    conectado" (`com.newlink.nlprovision`, visto pela suíte), reversível, no mesmo formato das chaves do bloco 24.
 
