@@ -1731,7 +1731,7 @@ exec '"$(command -v ls)"' "$@"'
   limpa
 }
 
-VAL_V="v1 silencioso vivo 30:30 45:30 55:40 61:60 66:100"
+VAL_V="v1 silencioso vivo 30:70 45:70 55:75 61:85 66:100"
 VAL_L="v1 silencioso vivo 50:950 60:900 65:850"
 prop_de(){ awk -v k="vendor.pfl7560.$1" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2) } END { print v }' "$T/props"; }
 temp_led(){ local c; c="$(printf '\342\204\203')"; awk '!/^zysys.env_temp=/' "$T/props" > "$T/p" && printf 'zysys.env_temp=%s%s\n' "$1" "$c" >> "$T/p" && mv "$T/p" "$T/props"; }
@@ -1787,15 +1787,15 @@ c_curvas_vent_pedido(){
   limpa
 
   cenario_curvas "curvas/vent: gravar = o .ini NAO muda (FW_SPEED_CURVE e velocidade->duty, doc 49 4.3), ventiladores em 1000, aviso 'gravar', laco desligado"
-  roda_curvas pedido vent "v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100"
+  roda_curvas pedido vent "v1 silencioso gravar 30:70 45:70 55:75 61:85 66:100"
   afirma '[ "$RC" = 0 ] && [ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ "$(chamadas mount)" = 0 ] && [ ! -e "$S/ini-antes-curva" ]' "mexeu no ini ou no /vendor: rc=$RC $(grep mount "$T/calls.log" | tr '\n' '|')"
   afirma '[ "$(prop_de vent)" = padrao ] && [ "$(prop_de vent_aviso)" = gravar ] && [ ! -e "$S/curva-vent" ] && [ "$(chamadas setsid)" = 0 ] && [ "$(fans_n 1000)" = 1 ]' "props/laco/1000: vent='$(prop_de vent)' aviso='$(prop_de vent_aviso)'; setsid=$(chamadas setsid); 1000x$(fans_n 1000)"
   afirma 'grep -q "nao e gravada no ZYCustom.ini" "$S/curvas.log"' "log sem o motivo: $(log_curvas | tail -2)"
   limpa
 
   cenario_curvas "curvas/vent: ao vivo + gravar (ambos) = so o ao vivo (laco ligado), ini intacto, aviso 'gravar'"
-  roda_curvas pedido vent "v1 balanceado ambos 30:40 45:50 55:65 61:80 66:100"
-  afirma '[ "$(prop_de vent)" = balanceado:vivo ] && [ "$(prop_de vent_aviso)" = gravar ] && [ "$(cat "$S/curva-vent")" = "v1 balanceado vivo 30:40 45:50 55:65 61:80 66:100" ] && tem_chamada "setsid sh $S/suite-curvas.sh laco" && [ "$(ini_md5_r)" = "$INI_KIT_MD5" ]' "ambos: vent='$(prop_de vent)' aviso='$(prop_de vent_aviso)' ini=$(ini_md5_r)"
+  roda_curvas pedido vent "v1 balanceado ambos 30:70 45:75 55:85 60:95 66:100"
+  afirma '[ "$(prop_de vent)" = balanceado:vivo ] && [ "$(prop_de vent_aviso)" = gravar ] && [ "$(cat "$S/curva-vent")" = "v1 balanceado vivo 30:70 45:75 55:85 60:95 66:100" ] && tem_chamada "setsid sh $S/suite-curvas.sh laco" && [ "$(ini_md5_r)" = "$INI_KIT_MD5" ]' "ambos: vent='$(prop_de vent)' aviso='$(prop_de vent_aviso)' ini=$(ini_md5_r)"
   limpa
 
   cenario_curvas "curvas/vent: perfil agressivo ao vivo = para o laco e deixa em 1000 (o de hoje)"
@@ -1813,27 +1813,30 @@ c_curvas_vent_pedido(){
     afirma '[ "$(ini_md5_r)" = "$INI_KIT_MD5" ] && [ "$(chamadas mount)" = 0 ] && [ "$(chamadas setsid)" = 0 ]' "'$v': mexeu no ini ou ligou o laco"
     limpa
   done <<'LISTA'
-v2 silencioso vivo 30:30 45:30 55:40 61:60 66:100
-v1 turbo vivo 30:30 45:30 55:40 61:60 66:100
-v1 silencioso agora 30:30 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30:30 45:30 55:40 61:60
-v1 silencioso vivo 30:30 45:30 55:40 61:60 66:100 66:100
-v1 silencioso vivo 30:25 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30:0 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30:33 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30:30 45:30 55:40 61:60 66:95
-v1 silencioso vivo 30:30 45:30 55:40 61:60 67:100
-v1 silencioso vivo 24:30 45:30 55:40 61:60 66:100
-v1 silencioso vivo 45:30 30:30 55:40 61:60 66:100
-v1 silencioso vivo 30:30 30:30 55:40 61:60 66:100
-v1 silencioso vivo 30:50 45:40 55:60 61:70 66:100
-v1 silencioso vivo 030:30 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30: 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30:30:30 45:30 55:40 61:60 66:100
-v1 silencioso vivo 30:30 45:30 55:40 61:60 66:1000
-v1 silencioso vivo 30:30 45:30 55:40 61:60 66:100; touch x
+v2 silencioso vivo 30:70 45:70 55:75 61:85 66:100
+v1 turbo vivo 30:70 45:70 55:75 61:85 66:100
+v1 silencioso agora 30:70 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30:70 45:70 55:75 61:85
+v1 silencioso vivo 30:70 45:70 55:75 61:85 66:100 66:100
+v1 silencioso vivo 30:65 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30:30 45:30 55:40 61:60 66:100
+v1 silencioso vivo 30:30 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30:0 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30:73 45:75 55:75 61:85 66:100
+v1 silencioso vivo 30:70 45:70 55:75 61:85 66:95
+v1 silencioso vivo 30:70 45:70 55:75 61:85 67:100
+v1 silencioso vivo 24:70 45:70 55:75 61:85 66:100
+v1 silencioso vivo 45:70 30:70 55:75 61:85 66:100
+v1 silencioso vivo 30:70 30:70 55:75 61:85 66:100
+v1 silencioso vivo 30:80 45:75 55:85 61:90 66:100
+v1 silencioso vivo 030:70 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30: 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30:70:70 45:70 55:75 61:85 66:100
+v1 silencioso vivo 30:70 45:70 55:75 61:85 66:1000
+v1 silencioso vivo 30:70 45:70 55:75 61:85 66:100; touch x
 v1 agressivo vivo 30:50 40:100 50:100 60:100 66:100
 v1 agressivo vivo 30:100 40:100 50:90 60:100 66:100
+v1 manual vivo 30:60 40:65 50:70 60:80 66:100
 v1 silencioso vivo abc
 lixo
 $(touch x)
@@ -1920,13 +1923,13 @@ c_curvas_vent_laco(){
     afirma '[ ! -e "$R/dev/pfl7560-curvas.pid" ] && [ ! -e "$R/dev/pfl7560-curvas.trava" ]' "sobrou pid ou trava"
     limpa
   done <<'TAB'
-24.0 300
-32.0 300
-45.0 300
-50.0 350
-58.0 500
-61.0 600
-63.0 800
+24.0 700
+32.0 700
+45.0 700
+50.0 750
+58.0 800
+61.0 850
+63.0 950
 65.9 1000
 66.0 1000
 70.0 1000
@@ -1940,17 +1943,17 @@ TAB
   limpa
 
   cenario_curvas "curvas/laco: histerese = sobe na hora, so desce depois de 100 de folga, e nao passa de 50 em 50"
-  curva_vent_arq; temp_led 58
-  temps_por_ciclo 56 53 62
+  curva_vent_arq; temp_led 61
+  temps_por_ciclo 58 53 63
   VOLTAS_T=4 roda_curvas laco
-  afirma '[ "$(fans_n 500)" = 1 ] && [ "$(fans_n 450)" = 0 ] && [ "$(fans_n 400)" = 1 ] && [ "$(fans_n 700)" = 1 ]' "sequencia errada: $(grep -o 'sfs 0 [0-9]*' "$T/calls.log" | tr '\n' ' ')"
+  afirma '[ "$(fans_n 850)" = 1 ] && [ "$(fans_n 800)" = 0 ] && [ "$(fans_n 750)" = 1 ] && [ "$(fans_n 950)" = 1 ]' "sequencia errada: $(grep -o 'sfs 0 [0-9]*' "$T/calls.log" | tr '\n' ' ')"
   limpa
 
   cenario_curvas "curvas/laco: o firmware reescreve (gfs volta 1000) = 3 ciclos, desiste, deixa em 1000 e avisa a home"
   curva_vent_arq; temp_led 58; : > "$T/fan-reescreve"
   VOLTAS_T=6 roda_curvas laco
   afirma '[ -e "$S/curva-vent.desistiu" ] && [ "$(prop_de vent)" = silencioso:desistiu ] && [ "$(prop_de vent_aviso)" = firmware ]' "desistiu: prop='$(prop_de vent)' aviso='$(prop_de vent_aviso)'"
-  afirma '[ "$(fans_n 500)" = 3 ] && [ "$(fans_n 1000)" -ge 1 ] && grep -q "o firmware briga com a curva dos ventiladores" "$S/curvas.log"' "tentativas: $(grep -c 'sfs 0 500' "$T/calls.log"); $(log_curvas | tail -3)"
+  afirma '[ "$(fans_n 800)" = 3 ] && [ "$(fans_n 1000)" -ge 1 ] && grep -q "o firmware briga com a curva dos ventiladores" "$S/curvas.log"' "tentativas: $(grep -c 'sfs 0 800' "$T/calls.log"); $(log_curvas | tail -3)"
   limpa
 
   cenario_curvas "curvas/laco: hidebug ausente = desiste depois de 3 ciclos e avisa 'hidebug'"
@@ -1986,9 +1989,9 @@ TAB
   limpa
 
   cenario_curvas "curvas/laco: curva so gravada (modo gravar) guardada por engano = o laco nao aplica nada"
-  printf 'v1 silencioso gravar 30:30 45:30 55:40 61:60 66:100\n' > "$S/curva-vent"; chmod 600 "$S/curva-vent"; temp_led 40
+  printf 'v1 silencioso gravar 30:70 45:70 55:75 61:85 66:100\n' > "$S/curva-vent"; chmod 600 "$S/curva-vent"; temp_led 40
   VOLTAS_T=2 roda_curvas laco
-  afirma '[ "$(fans_n 300)" = 0 ]' "aplicou um pedido de gravar ao vivo"
+  afirma '[ "$(fans_n 700)" = 0 ]' "aplicou um pedido de gravar ao vivo"
   limpa
 
   cenario_curvas "curvas/laco: pasta da suite aberta a outros = o laco nao liga"
@@ -2052,10 +2055,10 @@ TAB
   afirma '[ -e "$S/curva-led.desistiu" ] && [ "$(prop_de led)" = silencioso:desistiu ] && [ "$(prop_de led_aviso)" = firmware ] && [ "$(bri_n 950)" = 3 ] && [ "$(bri_n 1000)" -ge 1 ]' "led: prop='$(prop_de led)' aviso='$(prop_de led_aviso)' 950x$(bri_n 950)"
   limpa
 
-  cenario_curvas "curvas/laco: as duas curvas juntas no mesmo laco (vent 55 C = 400, LED = 950)"
+  cenario_curvas "curvas/laco: as duas curvas juntas no mesmo laco (vent 55 C = 750, LED = 950)"
   curva_vent_arq; curva_led_arq; temp_led 55
   VOLTAS_T=2 roda_curvas laco
-  afirma '[ "$(fans_n 400)" = 1 ] && [ "$(bri_n 950)" = 1 ] && [ "$(prop_de vent)" = silencioso:vivo ] && [ "$(prop_de led)" = silencioso:vivo ]' "juntas: $(grep -o 'sfs 0 [0-9]*\|sbri 0 [0-9]*' "$T/calls.log" | tr '\n' ' ')"
+  afirma '[ "$(fans_n 750)" = 1 ] && [ "$(bri_n 950)" = 1 ] && [ "$(prop_de vent)" = silencioso:vivo ] && [ "$(prop_de led)" = silencioso:vivo ]' "juntas: $(grep -o 'sfs 0 [0-9]*\|sbri 0 [0-9]*' "$T/calls.log" | tr '\n' ' ')"
   limpa
 
   cenario_curvas "curvas/laco-led: sem temperatura legivel o LED fica como esta e a saida solta no piso seguro (850), nao em 1000"
@@ -2244,6 +2247,30 @@ c_curvas_standby(){
   limpa
 }
 
+c_logo_boot(){
+  local L
+  novo_cenario "logo/boot: suite-boot.sh roda o suite-logo.sh conferido por md5, em segundo plano, uma vez"
+  instala_suite; cp "$KIT/suite-logo.sh" "$S/suite-logo.sh"; chmod 755 "$S/suite-logo.sh"
+  L="$R/data/vendor/pfl7560-logo"
+  roda_boot
+  afirma 'grep -q "==== boot" "$L/logo.log" && [ "$(cat "$L/motivo")" = programa ] && [ "$(prop_de logo_motivo)" = programa ] && [ "$(prop_de logo)" = ligado ]' "o boot nao rodou o suite-logo.sh: $(lista_dir "$L") $(grep -i logo "$S/boot.log" | tr '\n' '|')"
+  afirma '[ -d "$R/dev/pfl7560-logo.boot" ] && [ "$(stat -c %a "$L")" = 700 ]' "sem a marca de uma vez por boot ou pasta do logo aberta"
+  limpa
+
+  novo_cenario "logo/boot: suite-logo.sh adulterado = nao roda, diz no boot.log"
+  instala_suite; cp "$KIT/suite-logo.sh" "$S/suite-logo.sh"; echo "# x" >> "$S/suite-logo.sh"
+  roda_boot
+  afirma '[ ! -e "$R/data/vendor/pfl7560-logo" ] && grep -q "logo automatico NAO conferido" "$S/boot.log"' "rodou o adulterado: $(grep -i logo "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "logo/boot: pedido logo-auto pendente de antes do vigia = tratado no boot"
+  instala_suite; cp "$KIT/suite-logo.sh" "$S/suite-logo.sh"; chmod 755 "$S/suite-logo.sh"
+  printf 'desligado' > "$PEDH/logo-auto"
+  roda_boot
+  afirma '[ -e "$R/data/vendor/pfl7560-logo/desligado" ] && [ ! -e "$PEDH/logo-auto" ]' "o pedido pendente nao desligou a chave: $(tail -3 "$S/vigia.log" | tr '\n' '|')"
+  limpa
+}
+
 ini_muta(){ cp "$KIT/ZYCustom.ini" "$T/ini.mut"; sed -i "$1" "$T/ini.mut"; }
 
 c_curvas_ini(){
@@ -2424,7 +2451,7 @@ c_estaticos(){
   afirma 'grep -qx "service pfl7560_suite /vendor/bin/sh /data/vendor/pfl7560-suite/suite-boot.sh" "$KIT/pfl7560-suite.rc"' ".rc sem o servico"
   afirma '! grep -vE "^[[:space:]]*#" "$KIT/suite-curvas.sh" | grep -qwE "gtt|stp|picture|sbl|gbl|adb|75000"' "suite-curvas.sh cita gtt/stp/picture/sbl/gbl/adb/75000 (o botao Luz e o motor termico ficam fora)"
   afirma '[ "$(grep -c "| timeout 15 \"\$HIDEBUG\"" "$KIT/suite-curvas.sh")" = 4 ] && grep -q "printf .custom.nsfs 0 %s.nsfs 1 %s.nquit.n. " "$KIT/suite-curvas.sh" && grep -q "printf .custom.ngfs 0.ngfs 1.nquit.n. " "$KIT/suite-curvas.sh" && grep -q "printf .custom.nsbri 0 %s.nquit.n. " "$KIT/suite-curvas.sh" && grep -q "printf .custom.ngbri 0.nquit.n. " "$KIT/suite-curvas.sh"' "o suite-curvas.sh manda ao hidebug algo alem de sfs/gfs/sbri/gbri"
-  afirma '[ "$(grep -c "^FAN_PISO=300$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^FAN_MAX=1000$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^TEMP_CHEIA=660$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^TEMP_LED_LIMITE=700$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^LED_MIN=850$" "$KIT/suite-curvas.sh")" = 1 ]' "constantes de seguranca do suite-curvas.sh mudaram (piso 30%, 100% a 66 C, LED so abaixo de 70 C, brilho minimo 850)"
+  afirma '[ "$(grep -c "^FAN_PISO=700$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^FAN_MAX=1000$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^TEMP_CHEIA=660$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^TEMP_LED_LIMITE=700$" "$KIT/suite-curvas.sh")" = 1 ] && [ "$(grep -c "^LED_MIN=850$" "$KIT/suite-curvas.sh")" = 1 ]' "constantes de seguranca do suite-curvas.sh mudaram (piso 70%, 100% a 66 C, LED so abaixo de 70 C, brilho minimo 850)"
 }
 
 echo "== estaticos =="
@@ -2433,7 +2460,7 @@ echo "== cenarios sob dash =="
 for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot \
          c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente \
          c_curvas_vent_pedido c_curvas_led_pedido c_curvas_vent_laco c_curvas_led_laco c_curvas_boot \
-         c_curvas_fio c_curvas_standby c_curvas_ini c_curvas_debloat}; do
+         c_curvas_fio c_curvas_standby c_curvas_ini c_curvas_debloat c_logo_boot}; do
   echo "  $c"
   "$c"
 done

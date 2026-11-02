@@ -22,11 +22,12 @@ DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="a742d1b64ac538698a8efdab420045aa"
-PEDIDO_MD5="42f0009d55f576b6d1d860e629c2999d"
-CURVAS_MD5="b665fae4369ecaf95a126023c4ea22df"
+SUITE_MD5="af325be828a13918768db9904c056b48"
+PEDIDO_MD5="7035acd497fc1205a6e09aa8e938185f"
+CURVAS_MD5="bd4da978560a5c41802d400ba186dda3"
 CHAVES_MD5="d1c3f7f398cfe5a481935b2a2ae9de9a"
 DIARIO_MD5="90caa1f05da00c43a29dd364ed3afb69"
+LOGO_MD5="2e9220bb030f2a6ed045eb60e79defad"
 # SUITE_MD5_FIM
 
 MARCA_LIGADO="pfl7560,ligado"
@@ -129,6 +130,14 @@ ligar_curvas(){
     sh "$SUITE/suite-curvas.sh" boot
   else
     LOG "[ERRO] suite-curvas.sh ausente, link, de outro dono ou com md5 diferente - curvas NAO religadas (ventiladores seguem no firmware)."
+  fi
+}
+
+ligar_logo(){
+  if confere "$SUITE/suite-logo.sh" "$LOGO_MD5"; then
+    sh "$SUITE/suite-logo.sh" boot
+  else
+    LOG "[ERRO] suite-logo.sh ausente, link, de outro dono ou com md5 diferente - logo automatico NAO conferido neste boot."
   fi
 }
 
@@ -278,7 +287,7 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
-    for _cn in curva-vent curva-led chave diario; do
+    for _cn in curva-vent curva-led chave diario logo-auto; do
       if [ -f "$HOME_DIR/$_cn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
         sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn"
       fi
@@ -317,7 +326,7 @@ ligar_vigia(){
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  for _cn in curva-vent curva-led chave diario; do
+  for _cn in curva-vent curva-led chave diario logo-auto; do
     if [ -f "$HOME_DIR/$_cn" ]; then
       LOG "pedido de $_cn pendente de antes do vigia: tratando agora"
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn" >>"$SUITE/vigia.log" 2>&1 </dev/null
@@ -375,5 +384,6 @@ if [ "$DECISAO" = "sim" ]; then
     LOG "[ERRO] suite.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."
   fi
 fi
+ligar_logo &
 wait
 exit 0

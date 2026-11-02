@@ -91,7 +91,7 @@ c_estaticos(){
   afirma 'grep -q "^KIT_EXEC=.* suite-diario.sh" "$KIT/newlink_update.sh"' "suite-diario.sh fora da KIT_EXEC"
   afirma 'grep -q "sh \"\$SUITE/suite-diario.sh\" parar" "$KIT/suite.sh"' "desinstalar nao para o laco do diario"
   afirma 'grep -q "com.pfl7560.home/diario\"" "$KIT/suite.sh"' "desinstalar nao apaga o pedido diario da home (sobraria para a proxima instalacao)"
-  afirma 'grep -q "^  luz|curva-vent|curva-led|chave|diario) PEDIDO_DIR=\"\$HOME_DIR\" ;;" "$KIT/suite-pedido.sh"' "suite-pedido nao aceita o pedido diario da pasta da home"
+  afirma 'grep -q "^  luz|curva-vent|curva-led|chave|diario[|)].* PEDIDO_DIR=\"\$HOME_DIR\" ;;" "$KIT/suite-pedido.sh"' "suite-pedido nao aceita o pedido diario da pasta da home"
   afirma '[ "$(grep -c "chave diario" "$KIT/suite-boot.sh")" = 2 ]' "o vigia nao olha o pedido diario nos dois lugares"
   afirma 'grep -q "MAX_ARQ=262144" "$f"' "o tamanho de cada arquivo nao e 256 KB"
 }

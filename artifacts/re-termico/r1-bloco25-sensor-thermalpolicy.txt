@@ -1,0 +1,486 @@
+# R1 bloco 25: qual sensor cada [ThermalPolicy] le, e como os alvos se combinam (doc 50).
+# libhitvservice.so md5 4ce869799a82493799be61ff5d922be3, capstone 5.0.7 Thumb; anotacao PLT/GOT/strings pelos relocs APS2 do .rel.dyn
+
+=== 0x1de9e8 ZYThermalManager::ZYThermalManager: vetor ThermalSense[i] = {Thermal::find(i), i, 4}
+0x1de9d8 cmp r7, r0
+0x1de9da bhs #0x1dea0e
+0x1de9dc ldrd sl, r0, [r4, #0x140]
+0x1de9e0 cmp sl, r0
+0x1de9e2 bhs #0x1dea04
+0x1de9e4 ldr r7, [sp, #8]
+0x1de9e6 mov r0, r7
+0x1de9e8 blx #0x97620 PLT->ZYConfig::Thermal::find(unsigned long)
+0x1de9ec add.w r1, sl, #0xc
+0x1de9f0 vst1.32 {d8, d9}, [r1]
+0x1de9f4 stm.w sl, {r0, r7, r8}
+0x1de9f8 ldr.w r0, [r4, #0x140]
+0x1de9fc adds r0, #0x1c
+0x1de9fe str.w r0, [r4, #0x140]
+0x1dea02 b #0x1de9c4 ZYThermalManager::ZYThermalManager()+0xa4
+
+=== 0x1fd168 RunDaulRigalMode: T0 = media do sense[0], T1 = media do sense[1]
+0x1fd168 push.w {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+0x1fd16c sub sp, #0xc
+0x1fd16e mov r8, r0
+0x1fd170 ldr.w r4, [r8, #0x13c]
+0x1fd174 ldr r0, [r4, #4]
+0x1fd176 bl #0x200d10 Thermistor::instance(unsigned long)
+0x1fd17a mov r5, r0
+0x1fd17c blx #0x98484 PLT->Thermistor::getTemperature()
+0x1fd180 ldr r0, [r5, #4]
+0x1fd182 ldr r1, [r5, #0xc]
+0x1fd184 ldr r0, [r0, #4]
+0x1fd186 cmp r1, r0
+0x1fd188 bne #0x1fd196
+0x1fd18a mov r0, r5
+0x1fd18c blx #0x98640 PLT->Thermistor::getAverageTemperature()
+0x1fd190 mov r5, r0
+0x1fd192 movs r7, #1
+0x1fd194 b #0x1fd198
+0x1fd196 movs r7, #0
+0x1fd198 ldr r0, [r4, #0x20]
+0x1fd19a bl #0x200d10 Thermistor::instance(unsigned long)
+0x1fd19e mov r6, r0
+0x1fd1a0 blx #0x98484 PLT->Thermistor::getTemperature()
+0x1fd1a4 ldr r0, [r6, #4]
+0x1fd1a6 ldr r1, [r6, #0xc]
+0x1fd1a8 ldr r0, [r0, #4]
+0x1fd1aa cmp r1, r0
+0x1fd1ac bne #0x1fd1b8
+0x1fd1ae mov r0, r6
+0x1fd1b0 blx #0x98640 PLT->Thermistor::getAverageTemperature()
+
+=== 0x1fd440 RunDaulRigalMode: caminho normal chama RunThermalDualProcess(T0, T1)
+0x1fd436 str r6, [sp, #8]
+0x1fd438 blx #0x8b8f0 PLT->HiLog::PrintLog(ATV_LOG_PRIO_E, char const*, char const*, unsigned int, char const*, ...)
+0x1fd43c str r6, [r4, #0x2c]
+0x1fd43e add sp, #0xc
+0x1fd440 pop.w {r4, r5, r6, r7, r8, sb, sl, fp, pc}
+0x1fd444 mov r1, r5
+0x1fd446 mov r2, r6
+0x1fd448 blx #0x986ac PLT->ZYThermalManager::RunThermalDualProcess(int, int)
+0x1fd44c cmp.w sb, #0
+
+=== 0x203048 RunThermalDualProcess(int T0, int T1)
+0x203048 push.w {r4, r5, r6, r7, r8, sb, sl, fp, lr}
+0x20304c sub sp, #0xc
+0x20304e mov sl, r0
+0x203050 ldr r0, [pc, #0x1b4] lit=0x16b2c2
+0x203052 mov r7, r2
+0x203054 mov r5, r1
+0x203056 add r0, pc =0x36e31c GOT->__stack_chk_guard
+0x203058 ldr r0, [r0]
+0x20305a ldr r0, [r0]
+0x20305c str r0, [sp, #8]
+0x20305e ldr.w r0, [sl, #0x20]
+0x203062 cbz r0, #0x203072
+0x203064 str r5, [sp, #4]
+0x203066 ldr r1, [r0]
+0x203068 ldr r2, [r1, #0x18]
+0x20306a add r1, sp, #4
+0x20306c blx r2
+0x20306e mov r6, r0
+0x203070 b #0x203076
+0x203072 mov.w r6, #0x3e8
+0x203076 ldr.w r0, [sl, #0x40]
+0x20307a cbz r0, #0x20308a
+0x20307c str r7, [sp, #4]
+0x20307e ldr r1, [r0]
+0x203080 ldr r2, [r1, #0x18]
+0x203082 add r1, sp, #4
+0x203084 blx r2
+0x203086 mov sb, r0
+0x203088 b #0x20308e
+0x20308a mov.w sb, #0x3e8
+0x20308e ldr.w r0, [sl, #0xa8]
+0x203092 cbz r0, #0x2030a2
+0x203094 str r5, [sp, #4]
+0x203096 ldr r1, [r0]
+0x203098 ldr r2, [r1, #0x18]
+0x20309a add r1, sp, #4
+0x20309c blx r2
+0x20309e mov fp, r0
+0x2030a0 b #0x2030a6
+0x2030a2 mov.w fp, #0
+0x2030a6 ldr.w r0, [sl, #0xc8]
+0x2030aa cbz r0, #0x2030ba
+0x2030ac str r7, [sp, #4]
+0x2030ae ldr r1, [r0]
+0x2030b0 ldr r2, [r1, #0x18]
+0x2030b2 add r1, sp, #4
+0x2030b4 blx r2
+0x2030b6 mov r8, r0
+0x2030b8 b #0x2030be
+0x2030ba mov.w r8, #0
+0x2030be ldr.w r7, [sl, #0x154]
+0x2030c2 ldr r0, [r7]
+0x2030c4 bl #0x201aa0 CoolingFan::instance(unsigned long)
+0x2030c8 ldr r1, [r0, #8]
+0x2030ca ldrd r2, r1, [r1, #0x18]
+0x2030ce cmp r2, r1
+0x2030d0 beq #0x2030ea
+0x2030d2 cmp r6, sb
+0x2030d4 it lo
+0x2030d6 movlo r6, sb
+0x2030d8 mov r1, r6
+0x2030da blx #0x986f4 PLT->CoolingFan::calcSpeedCurve(unsigned int)
+0x2030de mov r1, r0
+0x2030e0 cmp r1, #0x64
+0x2030e2 bhs #0x2030ee
+0x2030e4 movs r2, #0
+0x2030e6 movs r1, #0x64
+0x2030e8 b #0x203108
+0x2030ea movs r6, #1
+0x2030ec b #0x203112
+0x2030ee movw r0, #0x3b6
+0x2030f2 cmp r1, r0
+0x2030f4 bhs #0x2030fa
+0x2030f6 movs r2, #0
+0x2030f8 b #0x203108
+0x2030fa cmp.w r1, #0x3e8
+0x2030fe mov.w r2, #1
+0x203102 it hs
+0x203104 movhs.w r1, #0x3e8
+0x203108 mov r0, r7
+0x20310a movs r3, #0
+0x20310c blx #0x98700 PLT->ZYThermalManager::FanSpeedControl::RunPwmChange(unsigned int, HI_BOOL, HI_BOOL)
+0x203110 mov r6, r0
+0x203112 ldr.w r7, [sl, #0x154]
+0x203116 ldr r0, [r7, #0x18]!
+0x20311a bl #0x201aa0 CoolingFan::instance(unsigned long)
+0x20311e ldr r1, [r0, #8]
+0x203120 ldrd r2, r1, [r1, #0x18]
+0x203124 cmp r2, r1
+0x203126 beq #0x20313a
+0x203128 mov r1, sb
+0x20312a blx #0x986f4 PLT->CoolingFan::calcSpeedCurve(unsigned int)
+0x20312e mov r1, r0
+0x203130 cmp r1, #0x64
+0x203132 bhs #0x20313e
+0x203134 movs r2, #0
+0x203136 movs r1, #0x64
+0x203138 b #0x203158
+0x20313a movs r0, #1
+0x20313c b #0x203160
+0x20313e movw r0, #0x3b6
+0x203142 cmp r1, r0
+0x203144 bhs #0x20314a
+0x203146 movs r2, #0
+0x203148 b #0x203158
+0x20314a cmp.w r1, #0x3e8
+0x20314e mov.w r2, #1
+0x203152 it hs
+0x203154 movhs.w r1, #0x3e8
+0x203158 mov r0, r7
+0x20315a movs r3, #0
+0x20315c blx #0x98700 PLT->ZYThermalManager::FanSpeedControl::RunPwmChange(unsigned int, HI_BOOL, HI_BOOL)
+0x203160 ldr r1, [pc, #0xa8] lit=0x16b8a0
+0x203162 adds r7, r0, r6
+0x203164 add r1, pc =0x36ea08 GOT->ZYConfig::Thermal::BACKLIGHT_EN
+0x203166 ldr r1, [r1]
+0x203168 ldr r1, [r1]
+0x20316a cmp r1, #0
+0x20316c itt ne
+0x20316e ldrdne r6, r5, [sl, #0x160]
+0x203172 cmpne r6, r5
+0x203174 beq #0x2031b4
+0x203176 cmp r8, fp
+0x203178 it lo
+0x20317a movlo fp, r8
+0x20317c ldr r0, [r6]
+0x20317e .byte 0xc0, 0xf7
+
+=== 0x1feca8 ThermalPolicy::RunStart: updatePolicy(enum) e update2ndPolicy("2ND_STANDARD")
+0x1feca8 push {r4, r5, r7, lr}
+0x1fecaa sub sp, #0x20
+0x1fecac mov r4, r0
+0x1fecae ldr r0, [pc, #0x15c] lit=0x16f668
+0x1fecb0 add r0, pc =0x36e31c GOT->__stack_chk_guard
+0x1fecb2 ldr r0, [r0]
+0x1fecb4 ldr r0, [r0]
+0x1fecb6 str r0, [sp, #0x1c]
+0x1fecb8 mov r0, r4
+0x1fecba ldr r1, [r4]
+0x1fecbc blx #0x98520 PLT->ZYThermalManager::ThermalPolicy::updatePolicy(ZY_THERMAL_POLICY_E)
+0x1fecc0 cbz r0, #0x1fecde
+0x1fecc2 ldr r1, [pc, #0x14c] lit=0x9b91e
+0x1fecc4 ldr r2, [pc, #0x14c] lit=0x9bc1b
+0x1fecc6 ldr r3, [r4]
+0x1fecc8 add r1, pc =0x29a5ea 'ZYThermalManager'
+0x1fecca ldr r5, [pc, #0x14c] lit=0x9bbf1
+0x1feccc add r2, pc =0x29a8eb 'RunStart'
+0x1fecce add r5, pc =0x29a8c3 'Thermal Policy set %d failed, s32Ret=%d'
+0x1fecd0 strd r5, r3, [sp]
+0x1fecd4 str r0, [sp, #8]
+0x1fecd6 movs r0, #6
+0x1fecd8 movw r3, #0x1c7
+0x1fecdc b #0x1fedce
+0x1fecde ldr r0, [pc, #0x13c] lit=0x16fd04
+0x1fece0 movw r1, #0x1001
+0x1fece4 add r0, pc =0x36e9ec GOT->ZYConfig::Thermal::THERMAL_MODE
+0x1fece6 ldr r0, [r0]
+0x1fece8 ldr r0, [r0]
+0x1fecea subs r1, r0, r1
+0x1fecec cmp r1, #0x11
+0x1fecee bhi #0x1fed68
+0x1fecf0 movs r2, #1
+0x1fecf2 lsl.w r1, r2, r1
+0x1fecf6 movs r2, #5
+0x1fecf8 movt r2, #2
+0x1fecfc tst r1, r2
+0x1fecfe beq #0x1fed68
+0x1fed00 movs r0, #0x10
+0x1fed02 blx #0x8b890 PLT->operator new(unsigned int)
+0x1fed06 ldr r1, [pc, #0x118] lit=0xaa7b8
+0x1fed08 movs r2, #0x11
+0x1fed0a str r0, [sp, #0x18]
+0x1fed0c add r1, pc =0x2a94c8 '2ND_STANDARD'
+0x1fed0e str r2, [sp, #0x10]
+0x1fed10 movs r2, #0xc
+0x1fed12 str r2, [sp, #0x14]
+0x1fed14 movw r2, #0x4144
+0x1fed18 vldr d16, [r1]
+0x1fed1c movt r2, #0x4452
+0x1fed20 movs r1, #0
+0x1fed22 str r2, [r0, #8]
+0x1fed24 strb r1, [r0, #0xc]
+0x1fed26 vst1.8 {d16}, [r0]
+0x1fed2a add r1, sp, #0x10
+0x1fed2c mov r0, r4
+0x1fed2e blx #0x987c0 PLT->ZYThermalManager::ThermalPolicy::update2ndPolicy(std::__1::basic_string<char, std::__1::char_traits<char>...
+0x1fed32 mov r5, r0
+
+=== 0x1fef3c BacklightPolicy::RunStart
+0x1fef3c push {r4, r5, r7, lr}
+0x1fef3e sub sp, #0x20
+0x1fef40 mov r4, r0
+0x1fef42 ldr r0, [pc, #0x15c] lit=0x16f3d4
+0x1fef44 add r0, pc =0x36e31c GOT->__stack_chk_guard
+0x1fef46 ldr r0, [r0]
+0x1fef48 ldr r0, [r0]
+0x1fef4a str r0, [sp, #0x1c]
+0x1fef4c mov r0, r4
+0x1fef4e ldr r1, [r4]
+0x1fef50 blx #0x98538 PLT->ZYThermalManager::BacklightPolicy::updatePolicy(ZY_BACKLIGHT_POLICY_E)
+0x1fef54 cbz r0, #0x1fef72
+0x1fef56 ldr r1, [pc, #0x14c] lit=0x9b68a
+0x1fef58 ldr r2, [pc, #0x14c] lit=0x9b987
+0x1fef5a ldr r3, [r4]
+0x1fef5c add r1, pc =0x29a5ea 'ZYThermalManager'
+0x1fef5e ldr r5, [pc, #0x14c] lit=0x9ba8e
+0x1fef60 add r2, pc =0x29a8eb 'RunStart'
+0x1fef62 add r5, pc =0x29a9f4 'Backlight Policy set %d failed, s32Ret=%d'
+0x1fef64 strd r5, r3, [sp]
+0x1fef68 str r0, [sp, #8]
+0x1fef6a movs r0, #6
+0x1fef6c movw r3, #0x26d
+0x1fef70 b #0x1ff062
+0x1fef72 ldr r0, [pc, #0x13c] lit=0x16fa70
+0x1fef74 movw r1, #0x1001
+0x1fef78 add r0, pc =0x36e9ec GOT->ZYConfig::Thermal::THERMAL_MODE
+0x1fef7a ldr r0, [r0]
+0x1fef7c ldr r0, [r0]
+0x1fef7e subs r1, r0, r1
+0x1fef80 cmp r1, #0x11
+0x1fef82 bhi #0x1feffc
+0x1fef84 movs r2, #1
+0x1fef86 lsl.w r1, r2, r1
+0x1fef8a movs r2, #5
+0x1fef8c movt r2, #2
+0x1fef90 tst r1, r2
+0x1fef92 beq #0x1feffc
+0x1fef94 movs r0, #0x10
+0x1fef96 blx #0x8b890 PLT->operator new(unsigned int)
+0x1fef9a ldr r1, [pc, #0x118] lit=0xaa524
+0x1fef9c movs r2, #0x11
+0x1fef9e str r0, [sp, #0x18]
+0x1fefa0 add r1, pc =0x2a94c8 '2ND_STANDARD'
+0x1fefa2 str r2, [sp, #0x10]
+0x1fefa4 movs r2, #0xc
+0x1fefa6 str r2, [sp, #0x14]
+0x1fefa8 movw r2, #0x4144
+0x1fefac vldr d16, [r1]
+0x1fefb0 movt r2, #0x4452
+0x1fefb4 movs r1, #0
+0x1fefb6 str r2, [r0, #8]
+0x1fefb8 strb r1, [r0, #0xc]
+0x1fefba vst1.8 {d16}, [r0]
+0x1fefbe add r1, sp, #0x10
+0x1fefc0 mov r0, r4
+0x1fefc2 blx #0x987d8 PLT->ZYThermalManager::BacklightPolicy::update2ndPolicy(std::__1::basic_string<char, std::__1::char_traits<cha...
+
+=== 0x220154 ThermalPolicy::findConfig(ZY_THERMAL_POLICY_E)
+0x220154 push.w {r4, r5, r6, r7, r8, lr}
+0x220158 sub sp, #0x18
+0x22015a mov r8, r0
+0x22015c ldr r0, [pc, #0x124] lit=0x14e1ba
+0x22015e add r0, pc =0x36e31c GOT->__stack_chk_guard
+0x220160 ldr r0, [r0]
+0x220162 ldr r0, [r0]
+0x220164 str r0, [sp, #0x14]
+0x220166 add.w r0, r8, #1
+0x22016a cmp r0, #4
+0x22016c bhi #0x220178
+0x22016e ldr r1, [pc, #0x11c] lit=0x14ba3c
+0x220170 add r1, pc =0x36bbb0 'Ck&'
+0x220172 ldr.w r5, [r1, r0, lsl #2]
+0x220176 b #0x22017c
+0x220178 ldr r5, [pc, #0x10c] lit=0x426b8
+0x22017a add r5, pc =0x262836
+0x22017c movs r0, #0
+0x22017e strd r0, r0, [sp, #8]
+0x220182 str r0, [sp, #0x10]
+0x220184 mov r0, r5
+0x220186 blx #0x8b92c PLT->strlen
+0x22018a mov r6, r0
+0x22018c cmn.w r6, #0x10
+0x220190 bhs #0x220266
+0x220192 cmp r6, #0xb
+0x220194 bhs #0x2201a8
+0x220196 lsls r0, r6, #1
+0x220198 cmp r6, #0
+0x22019a strb.w r0, [sp, #8]
+0x22019e add r0, sp, #8
+0x2201a0 orr r7, r0, #1
+0x2201a4 bne #0x2201c2
+0x2201a6 b #0x2201cc
+
+=== 0x22048c createAlgorithm por CLASS
+0x22048c push.w {r4, r5, r6, r7, r8, sb, sl, lr}
+0x220490 sub sp, #0x38
+0x220492 mov r8, r0
+0x220494 ldr r0, [pc, #0x2f0] lit=0x14de7e
+0x220496 mov r5, r1
+0x220498 cmp r5, #0
+0x22049a add r0, pc =0x36e31c GOT->__stack_chk_guard
+0x22049c ldr r0, [r0]
+0x22049e ldr r0, [r0]
+0x2204a0 str r0, [sp, #0x34]
+0x2204a2 beq #0x220544
+0x2204a4 ldr r0, [r5, #0xc]
+0x2204a6 cmp r0, #2
+0x2204a8 beq.w #0x2205ea
+0x2204ac cmp r0, #1
+0x2204ae beq #0x220558
+0x2204b0 cmp r0, #0
+0x2204b2 bne.w #0x2206e0
+0x2204b6 movs r7, #0
+0x2204b8 strd r7, r7, [sp, #8]
+0x2204bc str r7, [sp, #0x10]
+0x2204be .byte 0xd5, 0xe9
+
+=== 0x21fc08 lambda LINE: interpolacao
+0x21fc08 push {r4, lr}
+0x21fc0a ldrd r2, r3, [r0, #4]
+0x21fc0e cmp r2, r3
+0x21fc10 beq #0x21fc4a
+0x21fc12 ldr.w lr, [r1]
+0x21fc16 ldr r1, [r3, #-0x4]
+0x21fc1a cmp r1, lr
+0x21fc1c ble #0x21fc4e
+0x21fc1e ldr r1, [r2]
+0x21fc20 cmp r1, lr
+0x21fc22 bge #0x21fc56
+0x21fc24 subs r1, r3, r2
+0x21fc26 asr.w ip, r1, #2
+0x21fc2a cmp.w ip, #2
+0x21fc2e blo #0x21fc46
+0x21fc30 movs r3, #0
+0x21fc32 add.w r1, r2, r3, lsl #2
+0x21fc36 ldr r1, [r1, #4]
+0x21fc38 cmp r1, lr
+0x21fc3a bgt #0x21fc5c
+0x21fc3c adds r1, r3, #1
+0x21fc3e adds r3, #2
+0x21fc40 cmp r3, ip
+0x21fc42 mov r3, r1
+0x21fc44 blo #0x21fc32
+0x21fc46 ldr r0, [r0, #0x1c]
+0x21fc48 pop {r4, pc}
+0x21fc4a ldr r0, [r0, #0x1c]
+0x21fc4c pop {r4, pc}
+0x21fc4e ldr r0, [r0, #0x14]
+0x21fc50 ldr r0, [r0, #-0x4]
+0x21fc54 pop {r4, pc}
+0x21fc56 ldr r0, [r0, #0x10]
+0x21fc58 ldr r0, [r0]
+0x21fc5a pop {r4, pc}
+0x21fc5c ldr r0, [r0, #0x10]
+0x21fc5e .byte 0x52, 0xf8
+
+=== 0xa0360 ParseInt (default 0)
+0xa0360 ldrb r3, [r1]
+0xa0362 ldr r2, [r1, #8]
+0xa0364 ldr r0, [r0]
+0xa0366 tst.w r3, #1
+0xa036a it eq
+0xa036c addeq r2, r1, #1
+0xa036e mov r1, r2
+0xa0370 movs r2, #0
+0xa0372 b.w #0x22d040 __aeabi_idiv0+0x50
+0xa0376 push {r7, lr}
+
+=== 0x1cb850 ZYConfig::ThermalPolicy::init: CLASS
+0x1cb850 ldr r0, [sp, #0x78]
+0x1cb852 blx #0x8b8b4 PLT->operator delete(void*)
+0x1cb856 ldr.w r2, [pc, #0x6b4] lit=0xc978f
+0x1cb85a add r1, sp, #0xe0
+0x1cb85c mov r0, sb
+0x1cb85e add r2, pc =0x294ff1 'CLASS'
+0x1cb860 blx #0x8bba8 PLT->std::__1::basic_string<char, std::__1::char_traits<char>, std::__1::allocator<char> > std::__1::operator+...
+0x1cb864 mov r0, r8
+
+=== 0x200ca4 ThermalSense::RunReport: id 0 light_temp, id 1 env_temp
+0x200ca4 push {r4, r5, r7, lr}
+0x200ca6 mov r4, r0
+0x200ca8 mov r5, r1
+0x200caa ldr r0, [r4, #4]
+0x200cac bl #0x200d10 Thermistor::instance(unsigned long)
+0x200cb0 ldr r0, [r0, #4]
+0x200cb2 ldr r0, [r0]
+0x200cb4 cmp r0, #2
+0x200cb6 it eq
+0x200cb8 popeq {r4, r5, r7, pc}
+0x200cba vmov s0, r5
+0x200cbe vldr s2, [pc, #0x3c]
+0x200cc2 ldr.w ip, [pc, #0x3c] lit=0x9aad9
+0x200cc6 vcvt.f32.s32 s0, s0
+0x200cca ldr r0, [pc, #0x38] lit=0x9aae4
+0x200ccc ldr r5, [pc, #0x3c] lit=0x9aac0
+0x200cce add ip, pc =0x29b7ab 'zysys.env_temp'
+0x200cd0 ldr r4, [r4, #4]
+0x200cd2 add r0, pc =0x29b7ba 'zysys.screen_temp'
+0x200cd4 ldr r1, [pc, #0x30] lit=0x99f6b
+0x200cd6 add r5, pc =0x29b79a 'zysys.light_temp'
+0x200cd8 cmp r4, #1
+0x200cda it eq
+0x200cdc moveq r0, ip
+0x200cde cmp r4, #0
+0x200ce0 add r1, pc =0x29ac4f
+0x200ce2 it eq
+0x200ce4 moveq r0, r5
+0x200ce6 vdiv.f32 s0, s0, s2
+0x200cea vcvt.f64.f32 d16, s0
+0x200cee vmov r2, r3, d16
+0x200cf2 pop.w {r4, r5, r7, lr}
+0x200cf6 b.w #0x1c6c9c ZYUtil::property_format(char const*, char const*, ...)
+0x200cfa nop
+0x200cfc movs r0, r0
+0x200cfe add r2, pc
+
+=== 0x21d980 Thermistor::getTemperature: vendor.zy.power.tm.temp
+0x21d980 bge #0x21d992
+0x21d982 ldr r0, [r4, #0x20]
+0x21d984 cbz r0, #0x21d990
+0x21d986 ldr r1, [r0]
+0x21d988 ldr r1, [r1, #4]
+0x21d98a blx r1
+0x21d98c mov r1, r0
+0x21d98e b #0x21d992 Thermistor::getTemperature()+0x22
+0x21d990 subs r1, r2, #1
+0x21d992 ldr r0, [pc, #0x24] lit=0x80c8d
+0x21d994 add r0, pc =0x29e625 'vendor.zy.power.tm.temp'
+0x21d996 blx #0x8caa8 PLT->property_get_int32
+0x21d99a ldr r2, [r4, #4]
+0x21d99c ldr r1, [r4, #0xc]
+0x21d99e ldr r2, [r2, #4]

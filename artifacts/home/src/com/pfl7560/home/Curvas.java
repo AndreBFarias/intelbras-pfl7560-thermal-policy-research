@@ -3,6 +3,7 @@ package com.pfl7560.home;
 public final class Curvas {
     public static final int ABA_VENT = 0;
     public static final int ABA_LED = 1;
+    public static final int ABA_LOGO = 2;
 
     public static final int ZONA_ABA = 0;
     public static final int ZONA_PERFIL = 1;
@@ -12,13 +13,16 @@ public final class Curvas {
 
     public static final int NADA = 0;
     public static final int APLICAR = 1;
+    public static final int LOGO = 2;
+
+    public static final String LOGO_RETO = "0,1080 1920,1080 0,0 1920,0";
 
     public static final int VENT_N = 5;
     public static final int LED_N = 3;
 
     public static final int T_MIN = 25;
     public static final int T_CHEIA = 66;
-    public static final int V_MIN = 30;
+    public static final int V_MIN = 70;
     public static final int V_MAX = 100;
     public static final int V_PASSO = 5;
 
@@ -39,7 +43,7 @@ public final class Curvas {
         {30, 45, 55, 61, 66}, {30, 45, 55, 60, 66}, {30, 40, 50, 60, 66},
     };
     private static final int[][] PRE_VENT_V = {
-        {30, 30, 40, 60, 100}, {40, 45, 60, 80, 100}, {100, 100, 100, 100, 100},
+        {70, 70, 75, 85, 100}, {70, 75, 85, 95, 100}, {100, 100, 100, 100, 100},
     };
     private static final int[] ESCADA_T = {66000, 67500, 69000, 70000, 71500, 73000};
     private static final int[] ESCADA_B = {1000, 950, 900, 850, 850, 850};
@@ -68,6 +72,10 @@ public final class Curvas {
     public String ventAviso = "";
     public String ledAviso = "";
     public String pedindo;
+    public String logoEstado = "";
+    public String logoCantos = "";
+    public String logoHora = "";
+    public String logoMotivo = "";
 
     public Curvas() {
         copiar(PRE_VENT_T[1], manualVentT);
@@ -182,6 +190,7 @@ public final class Curvas {
     }
 
     public boolean mover(int dx, int dy) {
+        if (aba == ABA_LOGO) return moverLogo(dx, dy);
         if (zona == ZONA_GRAFICO && pegando) return moverBola(dx, dy);
         if (dy != 0) {
             int z = zona + dy;
@@ -192,7 +201,7 @@ public final class Curvas {
         if (dx == 0) return false;
         switch (zona) {
             case ZONA_ABA:
-                return trocarAba(dx > 0 ? ABA_LED : ABA_VENT);
+                return trocarAba(aba + dx);
             case ZONA_PERFIL:
                 return trocarPerfil(perfil() + dx);
             case ZONA_GRAFICO:
@@ -210,8 +219,21 @@ public final class Curvas {
         }
     }
 
+    private boolean moverLogo(int dx, int dy) {
+        if (dy < 0 && zona != ZONA_ABA) {
+            zona = ZONA_ABA;
+            return true;
+        }
+        if (dy > 0 && zona == ZONA_ABA) {
+            zona = ZONA_PERFIL;
+            return true;
+        }
+        if (dy == 0 && dx != 0 && zona == ZONA_ABA) return trocarAba(aba + dx);
+        return false;
+    }
+
     private boolean trocarAba(int nova) {
-        if (nova == aba) return false;
+        if (nova < ABA_VENT || nova > ABA_LOGO || nova == aba) return false;
         aba = nova;
         bola = 0;
         pegando = false;
@@ -270,6 +292,7 @@ public final class Curvas {
     }
 
     public int ok() {
+        if (aba == ABA_LOGO) return zona == ZONA_PERFIL && pedindo == null ? LOGO : NADA;
         switch (zona) {
             case ZONA_GRAFICO:
                 if (editavel()) pegando = !pegando;
@@ -320,6 +343,53 @@ public final class Curvas {
         if ("ambos".equals(modo)) return nome + ", ao vivo e gravada";
         if ("desistiu".equals(modo)) return nome + ", curva ao vivo desligada";
         return nome;
+    }
+
+    public boolean logoLigado() {
+        return !"desligado".equals(logoEstado);
+    }
+
+    public String pedidoLogo() {
+        return logoLigado() ? "desligado" : "ligado";
+    }
+
+    public static boolean pedidoLogoValido(String pedido) {
+        return "ligado".equals(pedido) || "desligado".equals(pedido);
+    }
+
+    public static String rotuloCantos(String cantos) {
+        if (cantos == null || cantos.isEmpty() || "desconhecido".equals(cantos)) return "Ainda não conferidos";
+        if (LOGO_RETO.equals(cantos)) return "Retos (sem correção de 4 pontos)";
+        String[] c = cantos.split(" ");
+        if (c.length != 4) return cantos;
+        return "Sup. esq. " + c[0] + "   Sup. dir. " + c[1] + "   Inf. esq. " + c[2] + "   Inf. dir. " + c[3];
+    }
+
+    public static String rotuloMotivo(String motivo) {
+        if (motivo == null || motivo.isEmpty()) return "Nenhuma";
+        switch (motivo) {
+            case "formato": return "Os cantos da imagem vieram fora do formato.";
+            case "fora_da_tela": return "Um canto está fora da tela.";
+            case "nao_convexo": return "Os cantos se cruzam ou não formam um quadrilátero.";
+            case "canto_trocado": return "Um canto está do lado errado da tela.";
+            case "area_pequena": return "A imagem ficaria pequena demais (menos de 25% da tela).";
+            case "programa": return "O gerador do logo não conferiu: reinstale o kit.";
+            case "arte": return "A arte do logo não conferiu: reinstale o kit.";
+            case "modelo": return "Este aparelho não é um PFL7560.";
+            case "particao": return "A partição do logo não tem o tamanho esperado.";
+            case "cabecalho": return "A partição do logo não tem o formato conhecido.";
+            case "suite_rodando": return "A verificação estava rodando: tenta no próximo boot.";
+            case "pendrive": return "Desligado pelo arquivo do pendrive.";
+            case "backup":
+            case "primeiro": return "Não consegui guardar o backup da partição: nada gravado.";
+            case "mudou": return "A partição mudou durante o preparo: nada gravado.";
+            case "trabalho":
+            case "gerar":
+            case "montar": return "Não consegui preparar a imagem nova: nada gravado.";
+            case "releitura_devolvido": return "A gravação não conferiu: o logo antigo voltou e a chave desligou.";
+            case "releitura_sem_volta": return "A gravação não conferiu e o backup não voltou: restaure pelo PC.";
+            default: return "Não gravado (" + motivo + ").";
+        }
     }
 
     public static String rotuloAviso(String aviso, boolean vent) {

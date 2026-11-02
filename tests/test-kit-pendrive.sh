@@ -1276,18 +1276,52 @@ exec "$T/bin/pm.orig" "$@"'
   afirma '[ ! -e "$(S14)/debloat-revertido" ] && log_tudo | grep -q "REAPLICAR-DEBLOAT.txt no pendrive"' "REAPLICAR nao tirou a marca"
   limpa
 
-  novo_cenario "bloco 23: o kit leva a suite de curvas e a lista do debloat, com md5 na lista e no versionCode 7 (bloco 24)"; aparelho_ok
-  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^APP_VERSION_CODE=\"\([0-9]*\)\"$/\1/p" "$KIT/newlink_update.sh")" = 7 ]' "versionCode do app nao e 7"
+  novo_cenario "bloco 23: o kit leva a suite de curvas e a lista do debloat, com md5 na lista e no versionCode 6 ou mais"; aparelho_ok
+  afirma '[ "$APP_VC" -ge 6 ] && [ "$(sed -n "s/^APP_VERSION_CODE=\"\([0-9]*\)\"$/\1/p" "$KIT/newlink_update.sh")" -ge 6 ]' "versionCode do app menor que 6"
   afirma 'grep -q "  suite-curvas.sh\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh") && grep -q "  debloat-aprovados.txt\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh")' "suite-curvas.sh ou debloat-aprovados.txt fora da KIT_LISTA"
   afirma 'grep -q "^KIT_EXEC=.*suite-curvas.sh" "$KIT/newlink_update.sh" || grep -q "suite-curvas.sh" <(sed -n "/KIT_EXEC/,/^\$/p" "$KIT/newlink_update.sh")' "suite-curvas.sh fora do KIT_EXEC"
   afirma 'cmp -s "$KIT/pfl7560-home.apk" "$ROOT/artifacts/home/pfl7560-home.apk"' "pfl7560-home.apk do kit difere do de artifacts/home"
-  afirma '[ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 7 ]' "versionCode da home nao e 7"
+  afirma '[ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" -ge 6 ]' "versionCode da home menor que 6"
   afirma '! LC_ALL=C grep -q "[^[:print:][:space:]]" "$KIT/suite-curvas.sh"' "suite-curvas.sh nao e ASCII puro"
   afirma '! tail -n +2 "$KIT/suite-curvas.sh" | grep -E "^[[:space:]]*#" | grep -qv "^[[:space:]]*# shellcheck"' "suite-curvas.sh tem comentario"
   afirma '! grep -qE "\b(gtt|stp)\b" "$KIT/suite-curvas.sh" || ! grep -E "\b(gtt|stp)\b" "$KIT/suite-curvas.sh" | grep -vqE "^[[:space:]]*(#|LOG)"' "suite-curvas.sh chama gtt ou stp"
   if command -v shellcheck >/dev/null 2>&1; then
     afirma 'shellcheck -s sh "$KIT/suite-curvas.sh"' "shellcheck -s sh no suite-curvas.sh"
   fi
+  limpa
+}
+
+c_bloco25(){
+  local L aapt2
+  novo_cenario "bloco 25: o kit instala nl_logo, suite-logo.sh e a arte reta na suite (executaveis 755, md5 do kit)"; aparelho_ok
+  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 7 ]' "versionCode do app ou da home nao e 7"
+  # shellcheck disable=SC2012
+  aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
+  if [ -n "$aapt2" ]; then
+    afirma '"$aapt2" dump badging "$KIT/pfl7560-home.apk" | grep -q "^package: name='"'"'com.pfl7560.home'"'"' versionCode='"'"'7'"'"'"' "versionCode do apk da home nao e 7"
+  fi
+  roda nokey
+  afirma '[ "$(stat -c %a "$(S14)/nl_logo")" = 755 ] && [ "$(stat -c %a "$(S14)/suite-logo.sh")" = 755 ] && cmp -s "$(S14)/nl_logo" "$KIT/nl_logo" && cmp -s "$(S14)/suite-logo.sh" "$KIT/suite-logo.sh"' "nl_logo/suite-logo.sh nao instalados como executaveis iguais aos do kit"
+  afirma 'cmp -s "$(S14)/marca/logo.jpg" "$KIT/marca/logo.jpg" && [ "$(stat -c %a "$(S14)/marca")" = 700 ] && [ ! -e "$(S14)/marca/bootanimation.zip" ]' "a arte reta nao foi para a suite (ou a animacao foi junto)"
+  afirma 'grep -q "  nl_logo\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh") && grep -q "  suite-logo.sh\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh") && grep -q "^KIT_EXEC=.* nl_logo .*suite-logo.sh" "$KIT/newlink_update.sh"' "nl_logo ou suite-logo.sh fora da KIT_LISTA ou do KIT_EXEC"
+  afirma '[ ! -e "$T/root/data/vendor/pfl7560-logo" ] && ! tem_chamada "pfl7560.logo"' "sem o arquivo de resgate, o kit mexeu na chave do logo"
+  limpa
+
+  for L in "" DESINSTALAR-SUITE.txt; do
+    novo_cenario "bloco 25: DESLIGAR-LOGO-AUTO.txt no pendrive desliga a chave do logo automatico ${L:+(mesmo com $L)}"; aparelho_ok
+    : > "$T/root/mnt/media_rw/USB1/DESLIGAR-LOGO-AUTO.txt"
+    [ -n "$L" ] && : > "$T/root/mnt/media_rw/USB1/$L"
+    roda nokey
+    afirma '[ -f "$T/root/data/vendor/pfl7560-logo/desligado" ] && [ "$(stat -c %a "$T/root/data/vendor/pfl7560-logo")" = 700 ] && [ "$(cat "$T/root/data/vendor/pfl7560-logo/motivo")" = pendrive ]' "a chave nao foi desligada na pasta so do root"
+    afirma 'tem_chamada "setprop vendor.pfl7560.logo desligado" && log_tudo | grep -q "DESLIGAR-LOGO-AUTO.txt no pendrive"' "sem a prop ou o aviso no log"
+    limpa
+  done
+
+  novo_cenario "bloco 25: pasta do logo aberta a outros = o resgate nao mexe nela e avisa"; aparelho_ok
+  mkdir -p "$T/root/data/vendor/pfl7560-logo"; chmod 755 "$T/root/data/vendor/pfl7560-logo"
+  : > "$T/root/mnt/media_rw/USB1/DESLIGAR-LOGO-AUTO.txt"
+  roda nokey
+  afirma '[ ! -e "$T/root/data/vendor/pfl7560-logo/desligado" ] && log_tudo | grep -q "chave NAO mexida"' "o resgate escreveu numa pasta insegura"
   limpa
 }
 
@@ -1546,7 +1580,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
-           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23}; do
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23 c_bloco25}; do
     echo "  $c"
     "$c"
   done

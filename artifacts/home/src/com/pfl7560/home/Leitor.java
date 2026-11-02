@@ -139,6 +139,17 @@ final class Leitor {
         }
     }
 
+    static boolean pedirLogo(Context c, String pedido) {
+        if (!Curvas.pedidoLogoValido(pedido)) return false;
+        try (FileOutputStream out = new FileOutputStream(new File(c.getDataDir(), "logo-auto"))) {
+            out.write(pedido.getBytes("US-ASCII"));
+            return true;
+        } catch (IOException | RuntimeException e) {
+            Guarda.anotar(c, "pedir logo-auto", e);
+            return false;
+        }
+    }
+
     static boolean pedirChave(Context c, String pedido) {
         if (!Ajustes.pedidoValido(pedido)) return false;
         try (FileOutputStream out = new FileOutputStream(new File(c.getDataDir(), "chave"))) {

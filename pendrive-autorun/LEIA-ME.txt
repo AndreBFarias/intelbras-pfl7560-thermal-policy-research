@@ -244,14 +244,14 @@ OBSERVACOES
 
 CURVAS, STANDBY E DEBLOAT (bloco 23)
   - Curvas: o atalho "Curvas" da tela inicial edita a curva dos ventiladores
-    (temperatura x velocidade, 100% obrigatorio a partir de 66 C, piso 30%) e a
+    (temperatura x velocidade, 100% obrigatorio a partir de 66 C, piso 70%) e a
     do LED (temperatura x brilho, so abaixo de 70 C e nunca acima da escada do
     firmware). Ventiladores: so ao vivo (o projetor aplica enquanto estiver
     ligado); "gravar" ainda nao vale para eles e deixa em 100%. LED: ao vivo,
     gravada no ZYCustom.ini (vale depois de reiniciar) ou os dois. Qualquer
     falha ou pedido invalido deixa os ventiladores em 100%. O kit aceita o
     ZYCustom.ini com a curva do LED gravada (nao trata como arquivo
-    desconhecido). Piso de 30% e perfis sao PROVISORIOS ate a medicao.
+    desconhecido). Piso de 70% (decisao do dono); perfis PROVISORIOS.
   - Standby: com o descanso de tela ativo por mais de 10 minutos aparece um aviso
     de 60 segundos; qualquer tecla cancela, senao o projetor recebe o POWER do
     controle (KEYCODE_POWER), que DESLIGA o aparelho; ligar de novo e pelo
@@ -263,3 +263,17 @@ CURVAS, STANDBY E DEBLOAT (bloco 23)
   - O pendrive agora leva tambem: suite-curvas.sh e debloat-aprovados.txt (copie
     junto com os outros arquivos da raiz). Detalhes: docs/research/44-suite-de-boot.md,
     secao 17.
+
+LOGO AUTOMATICO DO BOOT (bloco 25)
+  - Ligado por padrao. A cada boot o projetor confere se a correcao de 4 pontos
+    mudou desde o logo gravado; se mudou, gera o logo de abertura no formato
+    novo e grava na particao logo, com backup antes (o primeiro e o ultimo
+    ficam em /data/vendor/pfl7560-logo) e releitura depois. No maximo uma
+    gravacao por boot; qualquer duvida = nao grava (o motivo aparece na home,
+    em Curvas > Logo do boot, onde tambem se liga e desliga).
+  - Resgate: crie um arquivo VAZIO DESLIGAR-LOGO-AUTO.txt na raiz do pendrive e
+    ligue o projetor com ele: a chave desliga e a particao logo nao e mais
+    escrita. Religar: pela home.
+  - O pendrive agora leva tambem: nl_logo e suite-logo.sh (e a arte reta
+    marca/logo.jpg, que ja ia). Detalhes: docs/research/44-suite-de-boot.md,
+    secao 18.

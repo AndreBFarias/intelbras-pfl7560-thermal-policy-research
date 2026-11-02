@@ -214,6 +214,42 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     }
 
     @Override
+    public void alternarLogo() {
+        final Curvas cv = modelo.curvas;
+        if (cv.pedindo != null) return;
+        final String pedido = cv.pedidoLogo();
+        cv.pedindo = pedido;
+        final Context app = getApplicationContext();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final boolean ok = Leitor.pedirLogo(app, pedido);
+                if (ok) {
+                    try {
+                        Thread.sleep(CURVA_ESPERA_MS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                final String[] lido = lerCurvas();
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        cv.pedindo = null;
+                        aplicarEstadoCurvas(lido);
+                        modelo.aviso = ok ? "Pedido enviado ao projetor" : "Não consegui pedir";
+                        vista.invalidate();
+                        principal.removeCallbacks(apagarAviso);
+                        principal.postDelayed(apagarAviso, AVISO_MS);
+                    }
+                });
+            }
+        }, "home-logo");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
+    }
+
     public void aplicarChave() {
         final Ajustes aj = modelo.ajustes;
         if (aj.pedindo != null) return;
@@ -375,6 +411,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static String[] lerCurvas() {
         return new String[] {
             Leitor.propRoot("vent"), Leitor.propRoot("led"), Leitor.propRoot("vent_aviso"), Leitor.propRoot("led_aviso"),
+            Leitor.propRoot("logo"), Leitor.propRoot("logo_cantos"), Leitor.propRoot("logo_hora"), Leitor.propRoot("logo_motivo"),
         };
     }
 
@@ -383,6 +420,10 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         modelo.curvas.ledEstado = lido[1];
         modelo.curvas.ventAviso = lido[2];
         modelo.curvas.ledAviso = lido[3];
+        modelo.curvas.logoEstado = lido[4];
+        modelo.curvas.logoCantos = lido[5];
+        modelo.curvas.logoHora = lido[6];
+        modelo.curvas.logoMotivo = lido[7];
     }
 
     @Override

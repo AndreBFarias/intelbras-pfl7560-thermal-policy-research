@@ -38,16 +38,18 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-a742d1b64ac538698a8efdab420045aa  suite.sh
-922e442cb247faf8cbda79ff3db2e66a  suite-boot.sh
-42f0009d55f576b6d1d860e629c2999d  suite-pedido.sh
-b665fae4369ecaf95a126023c4ea22df  suite-curvas.sh
+af325be828a13918768db9904c056b48  suite.sh
+144baca56fdff51f1e3d8175efb28011  suite-boot.sh
+7035acd497fc1205a6e09aa8e938185f  suite-pedido.sh
+bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
 d1c3f7f398cfe5a481935b2a2ae9de9a  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
+2760b4c77e6639632f63a156859520bc  nl_logo
+2e9220bb030f2a6ed045eb60e79defad  suite-logo.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 6c43460eb4d234436541ffded0113c69  pfl7560.apk
-a187c32851436b493019f6b473b1292e  pfl7560-home.apk
+ab54f172bbba1e25e306fe5f7d3e0a96  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -200,7 +202,7 @@ if ! preparar_trabalho; then
 fi
 KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
-KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh"
+KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela nl_logo suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh suite-logo.sh"
 kit_subpastas(){ echo "$1" | sed -n 's|/.*||p' | sort -u; }
 copiar_preparo(){
   rm -rf "$PREP"
@@ -235,7 +237,7 @@ if ! trabalho_conferir $KIT_COPIA; then
 fi
 COR_MD5=$(kit_md5_esperado cor.sh)
 
-suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$' -e '^overlay/' -e '^marca/'; }
+suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$' -e '^overlay/' -e '^marca/bootanimation.zip$'; }
 suite_dir_ok(){
   if dir_seguro "$SUITE"; then
     for _sd in $(kit_subpastas "$(suite_nomes)"); do
@@ -489,6 +491,24 @@ chaves_pendrive(){
   fi
 }
 [ "$SUITE_OK" = "1" ] && debloat_pendrive
+LOGO_DIR="$R/data/vendor/pfl7560-logo"
+logo_pendrive(){
+  [ -e "$MP/DESLIGAR-LOGO-AUTO.txt" ] || return 0
+  if [ ! -e "$LOGO_DIR" ] && [ ! -L "$LOGO_DIR" ]; then
+    mkdir -p "${LOGO_DIR%/*}" 2>/dev/null
+    ( umask 077; mkdir "$LOGO_DIR" 2>/dev/null ) && chmod 700 "$LOGO_DIR" 2>/dev/null
+  fi
+  if ! dir_seguro "$LOGO_DIR"; then
+    LOG "[ERRO] DESLIGAR-LOGO-AUTO.txt no pendrive, mas $LOGO_DIR nao e uma pasta so do root - chave NAO mexida."
+    return 0
+  fi
+  ( umask 077; : > "$LOGO_DIR/desligado" )
+  ( umask 077; printf 'pendrive\n' > "$LOGO_DIR/motivo.novo" ) && mv -f "$LOGO_DIR/motivo.novo" "$LOGO_DIR/motivo"
+  setprop vendor.pfl7560.logo desligado 2>/dev/null
+  setprop vendor.pfl7560.logo_motivo pendrive 2>/dev/null
+  LOG "DESLIGAR-LOGO-AUTO.txt no pendrive: logo automatico desligado (a particao logo nao e mais escrita; religa pela home)"
+}
+logo_pendrive
 [ "$SUITE_OK" = "1" ] && chaves_pendrive
 APP_PEND=0
 if [ "$SUITE_OK" = "1" ]; then

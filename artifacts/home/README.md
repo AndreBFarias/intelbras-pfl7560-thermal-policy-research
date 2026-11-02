@@ -24,11 +24,21 @@ O atalho **Curvas** (sétimo, antes de Configurações) abre a tela de curvas: a
 (Silencioso, Balanceado, Agressivo e Manual nos ventiladores; Padrão, Silencioso e Manual no LED), o gráfico com 5
 bolinhas (3 no LED) e o modo de aplicar (ao vivo, gravar no .ini ou os dois; nos ventiladores só o ao vivo vale, e
 gravar responde com um aviso). Setas movem a bolinha pegada, OK pega
-e solta, BACK solta e depois fecha. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 30 %
-(PROVISÓRIO); o LED só edita abaixo de 70 C e a bolinha não sobe acima da escada do firmware (66 a 70 C). A home grava o pedido na pasta dela e o root (`suite-curvas.sh`)
+e solta, BACK solta e depois fecha. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 70 %
+(bloco 25: a bolinha não desce abaixo e o root recusa); o LED só edita abaixo de 70 C e a bolinha não sobe acima da escada do firmware (66 a 70 C). A home grava o pedido na pasta dela e o root (`suite-curvas.sh`)
 aplica. Formatos e limites: [doc 44 §17](../../docs/research/44-suite-de-boot.md).
 
 ![curva dos ventiladores](previa/home-curvas-vent-silencioso.png)
+
+## Logo do boot (bloco 25)
+
+A terceira aba da tela Curvas liga e desliga o logo automático (ligado por padrão) e mostra os cantos do logo
+gravado, a hora da última gravação e o último motivo de recusa. OK na chave grava o pedido `logo-auto` na pasta da
+home; o root (`suite-logo.sh`) muda a chave, que vale no boot seguinte. A gravação em si só acontece no boot, nunca
+pela home. Formatos e conferências: [doc 44 §18](../../docs/research/44-suite-de-boot.md). Se a tela de Ajustes do
+bloco 24 entrar, a chave pode mudar para lá.
+
+![logo do boot](previa/home-curvas-logo-ligado.png)
 
 ## Sem Espelhamento nem os apps desligados (bloco 16B)
 
@@ -58,7 +68,7 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 6`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
+`minSdk 28`, `targetSdk 28`, `versionCode 7`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
 ambas normais.
 
 ## Código

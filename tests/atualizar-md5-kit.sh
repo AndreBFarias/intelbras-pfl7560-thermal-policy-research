@@ -10,9 +10,10 @@ PEDIDO_SH="$KIT/suite-pedido.sh"
 CURVAS_SH="$KIT/suite-curvas.sh"
 CHAVES_SH="$KIT/suite-chaves.sh"
 DIARIO_SH="$KIT/suite-diario.sh"
+LOGO_SH="$KIT/suite-logo.sh"
 LVDS_MD5="178d812872cb9306c0ae6faeed07184a"
 
-for f in "$SH" "$SUITE_SH" "$BOOT_SH" "$PEDIDO_SH" "$CURVAS_SH" "$CHAVES_SH" "$DIARIO_SH" "$KIT/debloat-aprovados.txt"; do
+for f in "$SH" "$SUITE_SH" "$BOOT_SH" "$PEDIDO_SH" "$CURVAS_SH" "$CHAVES_SH" "$DIARIO_SH" "$LOGO_SH" "$KIT/nl_logo" "$KIT/debloat-aprovados.txt"; do
   [ -f "$f" ] || { echo "FALHA: sem $f"; exit 1; }
 done
 if [ "$(md5sum "$ROOT/artifacts/lcd-color-fix/lvdsctl" | cut -d' ' -f1)" != "$LVDS_MD5" ] \
@@ -21,6 +22,9 @@ if [ "$(md5sum "$ROOT/artifacts/lcd-color-fix/lvdsctl" | cut -d' ' -f1)" != "$LV
 fi
 if ! cmp -s "$ROOT/artifacts/camcheck/nl_camcheck" "$KIT/nl_camcheck"; then
   echo "FALHA: pendrive-autorun/nl_camcheck difere de artifacts/camcheck/nl_camcheck"; exit 1
+fi
+if ! cmp -s "$ROOT/artifacts/logo/nl_logo" "$KIT/nl_logo"; then
+  echo "FALHA: pendrive-autorun/nl_logo difere de artifacts/logo/nl_logo"; exit 1
 fi
 NLTELA=""
 if [ -e "$KIT/nl_tela" ]; then
@@ -87,14 +91,18 @@ suite_lista="$(cd "$KIT" && for f in cor.sh lvdsctl nl_camcheck $NLTELA suite-cu
 { printf 'SUITE_LISTA="%s\n' "$suite_lista"; echo '"'; } > "$TMP/b1"
 troca_bloco "$SUITE_SH" SUITE_LISTA_INICIO SUITE_LISTA_FIM "$TMP/b1" "$TMP/suite.sh"
 
+{ echo "NL_LOGO_MD5=\"$(md5 "$KIT/nl_logo")\""; echo "ARTE_MD5=\"$(md5 "$MARCA_FONTE/logo.jpg")\""; } > "$TMP/b5"
+troca_bloco "$LOGO_SH" LOGO_MD5_INICIO LOGO_MD5_FIM "$TMP/b5" "$TMP/suite-logo.sh"
+
 m_suite="$(md5 "$TMP/suite.sh")"
 m_curvas="$(md5 "$CURVAS_SH")"
 m_chaves="$(md5 "$CHAVES_SH")"
 m_diario="$(md5 "$DIARIO_SH")"
-{ echo "SUITE_MD5=\"$m_suite\""; echo "CURVAS_MD5=\"$m_curvas\""; echo "CHAVES_MD5=\"$m_chaves\""; echo "DIARIO_MD5=\"$m_diario\""; } > "$TMP/b2p"
+m_logo="$(md5 "$TMP/suite-logo.sh")"
+{ echo "SUITE_MD5=\"$m_suite\""; echo "CURVAS_MD5=\"$m_curvas\""; echo "CHAVES_MD5=\"$m_chaves\""; echo "DIARIO_MD5=\"$m_diario\""; echo "LOGO_MD5=\"$m_logo\""; } > "$TMP/b2p"
 troca_bloco "$PEDIDO_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2p" "$TMP/suite-pedido.sh"
 m_pedido="$(md5 "$TMP/suite-pedido.sh")"
-{ echo "SUITE_MD5=\"$m_suite\""; echo "PEDIDO_MD5=\"$m_pedido\""; echo "CURVAS_MD5=\"$m_curvas\""; echo "CHAVES_MD5=\"$m_chaves\""; echo "DIARIO_MD5=\"$m_diario\""; } > "$TMP/b2b"
+{ echo "SUITE_MD5=\"$m_suite\""; echo "PEDIDO_MD5=\"$m_pedido\""; echo "CURVAS_MD5=\"$m_curvas\""; echo "CHAVES_MD5=\"$m_chaves\""; echo "DIARIO_MD5=\"$m_diario\""; echo "LOGO_MD5=\"$m_logo\""; } > "$TMP/b2b"
 troca_bloco "$BOOT_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2b" "$TMP/suite-boot.sh"
 
 { printf 'KIT_OVERLAYS="'
@@ -105,15 +113,15 @@ mkdir -p "$TMP/kit"
 cp -r "$KIT"/. "$TMP/kit/"
 rm -rf "$TMP/kit/overlay" "$TMP/kit/marca"
 cp -r "$TMP/novo/overlay" "$TMP/novo/marca" "$TMP/kit/"
-cp "$TMP/suite.sh" "$TMP/suite-boot.sh" "$TMP/suite-pedido.sh" "$TMP/kit/"
+cp "$TMP/suite.sh" "$TMP/suite-boot.sh" "$TMP/suite-pedido.sh" "$TMP/suite-logo.sh" "$TMP/kit/"
 # shellcheck disable=SC2086
-lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh debloat-aprovados.txt pfl7560-suite.rc $APK kit/*.png $FONTES $OVL_LISTA $MARCA_LISTA; do md5sum "$f"; done)"
+lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh nl_logo suite-logo.sh debloat-aprovados.txt pfl7560-suite.rc $APK kit/*.png $FONTES $OVL_LISTA $MARCA_LISTA; do md5sum "$f"; done)"
 { printf 'KIT_LISTA="%s\n' "$lista"; echo '"'; } > "$TMP/b3"
 troca_bloco "$TMP/newlink_update.ovl.sh" KIT_LISTA_INICIO KIT_LISTA_FIM "$TMP/b3" "$TMP/newlink_update.sh"
 
 if [ "${1:-}" = "--check" ]; then
   rc=0
-  for f in suite.sh suite-boot.sh suite-pedido.sh newlink_update.sh; do
+  for f in suite.sh suite-boot.sh suite-pedido.sh suite-logo.sh newlink_update.sh; do
     cmp -s "$TMP/$f" "$KIT/$f" || { echo "FALHA: a lista md5 embutida no $f esta desatualizada (rode tests/atualizar-md5-kit.sh)"; rc=1; }
   done
   for d in overlay marca; do
@@ -124,7 +132,7 @@ if [ "${1:-}" = "--check" ]; then
   [ "$rc" = 0 ] && echo "listas md5 do kit e da suite em dia"
   exit "$rc"
 fi
-for f in suite.sh suite-boot.sh suite-pedido.sh newlink_update.sh; do
+for f in suite.sh suite-boot.sh suite-pedido.sh suite-logo.sh newlink_update.sh; do
   cmp -s "$TMP/$f" "$KIT/$f" || cat "$TMP/$f" > "$KIT/$f"
 done
 for d in overlay marca; do
@@ -132,4 +140,4 @@ for d in overlay marca; do
   for f in "$KIT/$d"/*; do [ -f "$f" ] && [ ! -e "$TMP/novo/$d/${f##*/}" ] && rm -f "$f"; done
   for f in "$TMP/novo/$d"/*; do cmp -s "$f" "$KIT/$d/${f##*/}" || cp "$f" "$KIT/$d/${f##*/}"; done
 done
-echo "listas md5 gravadas em suite.sh, suite-boot.sh, suite-pedido.sh e newlink_update.sh; overlay/ e marca/ do kit em dia"
+echo "listas md5 gravadas em suite.sh, suite-boot.sh, suite-pedido.sh, suite-logo.sh e newlink_update.sh; overlay/ e marca/ do kit em dia"

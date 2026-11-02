@@ -238,9 +238,13 @@ public final class Desenho {
         boolean vent = c.aba == Curvas.ABA_VENT;
         p.gradiente(0, 0, LARGURA, ALTURA, Tema.FUNDO, Tema.FUNDO_BASE);
         titulo(p, "Curvas do projetor", MX, ENT_TITULO);
-        String[] abas = {"Ventiladores", "Brilho do LED"};
-        for (int i = 0; i < 2; i++) {
+        String[] abas = {"Ventiladores", "Brilho do LED", "Logo do boot"};
+        for (int i = 0; i < abas.length; i++) {
             chip(p, MX + i * (300 + VAO), CV_ABA_Y, 300, abas[i], c.aba == i, c.zona == Curvas.ZONA_ABA && c.aba == i);
+        }
+        if (c.aba == Curvas.ABA_LOGO) {
+            painelLogo(p, m);
+            return;
         }
         String[] perfis = c.rotulosPerfil();
         float pw = vent ? 236 : 300;
@@ -271,6 +275,50 @@ public final class Desenho {
         else if (c.zona == Curvas.ZONA_GRAFICO) dica = c.editavel() ? "Esquerda e direita: escolher a bola    OK: pegar    Cima e baixo: mudar de linha"
                 : "Este perfil não se edita. Escolha Manual ou mexa numa bola de outro perfil.";
         else dica = "Setas: escolher    OK: aplicar (no botão)    Voltar: fechar";
+        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
+    }
+
+    static final float LG_CHAVE_Y = 250f;
+    static final float LG_INFO_Y = 400f;
+
+    private static void painelLogo(Pintor p, Modelo m) {
+        Curvas c = m.curvas;
+        boolean ligado = c.logoLigado();
+        boolean foco = c.zona == Curvas.ZONA_PERFIL;
+        float w = 900;
+        if (foco) {
+            p.retangulo(MX, LG_CHAVE_Y, w, 96, 18, Tema.LINHA);
+            p.contorno(MX - 6, LG_CHAVE_Y - 6, w + 12, 108, 24, 4, Tema.ROSA);
+        } else {
+            p.retangulo(MX, LG_CHAVE_Y, w, 96, 18, Tema.CARTAO);
+        }
+        p.texto("Logo automático", MX + 32, LG_CHAVE_Y + 60, Pintor.SANS_SEMI, 34, Tema.TEXTO, Pintor.ESQ);
+        String rot = c.pedindo != null ? "Enviando..." : "erro".equals(c.logoEstado) ? "Erro" : ligado ? "Ligado" : "Desligado";
+        float sx = MX + w - 220;
+        p.retangulo(sx, LG_CHAVE_Y + 22, 188, 52, 26, ligado ? Tema.VERDE : Tema.LINHA);
+        p.texto(rot, sx + 94, LG_CHAVE_Y + 58, Pintor.SANS_NEGRITO, 28, ligado ? Tema.FUNDO : Tema.TEXTO_2, Pintor.CENTRO);
+        String[][] linhas = {
+            {"Cantos do logo gravado", Curvas.rotuloCantos(c.logoCantos)},
+            {"Última gravação", c.logoHora == null || c.logoHora.isEmpty() ? "Nenhuma por aqui" : c.logoHora},
+            {"Última recusa", Curvas.rotuloMotivo(c.logoMotivo)},
+        };
+        float y = LG_INFO_Y;
+        for (String[] l : linhas) {
+            p.texto(l[0], MX, y, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+            p.texto(l[1], MX, y + 44, Pintor.SANS_SEMI, 32, Tema.TEXTO, Pintor.ESQ);
+            y += 118;
+        }
+        p.texto("Ligado, o projetor confere no boot se a correção de 4 pontos mudou e, se mudou,",
+                MX, 800, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        p.texto("regrava o logo de abertura no formato da tela, com backup e releitura.",
+                MX, 840, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        p.texto("No máximo uma gravação por boot. Na dúvida, não grava.",
+                MX, 880, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        p.texto("Socorro: o arquivo DESLIGAR-LOGO-AUTO.txt no pendrive do kit desliga a chave.",
+                MX, 920, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        String dica = foco ? "OK: ligar ou desligar (vale no próximo boot)    Cima: abas    Voltar: fechar"
+                : "Setas: escolher    Baixo: a chave    Voltar: fechar";
         p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
         if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
@@ -308,7 +356,7 @@ public final class Desenho {
             p.texto("100% obrigatório", (xf + CV_GX + CV_GW) / 2, CV_GY + 110, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
             float yp = cvY(Curvas.V_MIN, v0, v1);
             p.linha(CV_GX, yp, CV_GX + CV_GW, yp, 3, Tema.LARANJA);
-            p.texto("piso 30% (provisório)", CV_GX + 16, yp - 10, Pintor.SANS_SEMI, 24, Tema.LARANJA, Pintor.ESQ);
+            p.texto("piso 70%", CV_GX + 16, yp + 40, Pintor.SANS_SEMI, 24, Tema.LARANJA, Pintor.ESQ);
             float[] xy = new float[2 * (n + 2)];
             xy[0] = cvX(t0, t0, t1);
             xy[1] = cvY(v[0], v0, v1);
@@ -500,7 +548,7 @@ public final class Desenho {
             y += 60;
         }
         String[] regras = vent
-                ? new String[] {"100% a partir de 66 °C é obrigatório.", "O piso (30%) nunca deixa parar.", "Silencioso: silêncio primeiro; o brilho",
+                ? new String[] {"100% a partir de 66 °C é obrigatório.", "O piso (70%) nunca deixa parar.", "Silencioso: silêncio primeiro; o brilho",
                     "pode cair antes pela escada de 66 °C."}
                 : new String[] {"Só abaixo de 70 °C, sempre caindo.", "70 e 75 °C são do firmware.", "O botão Luz continua separado: a luz que",
                     "você escolhe lá multiplica esta curva."};
