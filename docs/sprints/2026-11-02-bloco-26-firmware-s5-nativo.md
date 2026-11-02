@@ -58,4 +58,6 @@ partição `logo` e se a arte reta poderia ir nele.
 
 - [x] S1
 - [x] S2 (conferiu a imagem e o 1º boot simulado; corrigiu o teste do `EXEC_LISTA`)
-- [ ] o dono decide quando gravar (depois da S4a provada)
+- [x] integrado na `integracao` (`c8129b9`)
+- [x] o dono decidiu (2026-11-02, AskUserQuestion: "S5 com o bloco 27" em vez de "Provar a S4a antes"): a S5
+  é remontada no bloco 28 com a home nova e gravada direto, sem a S4a antes. Risco e roteiro no doc 47 §12.
