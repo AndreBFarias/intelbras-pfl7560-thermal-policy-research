@@ -4,6 +4,14 @@ Arquivo para abrir sessão nova sem depender da conversa.
 
 ## Em voo (2026-11-02)
 
+**S5 GRAVADA E FUNCIONANDO (2026-11-02 ~11:20):** primeira build nossa gravada no aparelho; subiu limpa
+(`reboot,factory_reset`, sem panic no pstore), home e app versionCode 9, `ZYCustom.ini` `252ab7a7…`,
+`wifi_disconnect_on_boot=0`, `.rc` da suíte no `/vendor`, chip Wi-Fi em `on`, VLC fora. O pendrive ficou plugado
+no 1º boot, então o kit instalou primeiro: `vendor.pfl7560.semente=data_vence` (a cópia do `/vendor` não precisou
+agir; só fica provada num aparelho sem pendrive). Intelbras visto só no 1º boot: animação de boot (antes de o kit
+repor a marca em `/atv/bootvideo`) e o assistente de pareamento do controle (primeira configuração depois do
+reset). **Bloco 30 em voo:** HDMI e USB-C na home só com cabo (E1 avulso, árvore `bloco30`).
+
 **Agora (2026-11-02 ~10:40):** blocos 26 a 29, conferente final e documentação integrados no `main`. **S5 final
 montada:** `3f3023b06e500e354fa6d4ca4e236f5f` (duas gerações iguais, `--verificar` APROVADO, `test-semente-s5`
 66/0, 1399009468 B, record 14 +5251072 B, CRC do vendor `0x7ccdb8eb`), o `.bin` em `build-s5/` da árvore
