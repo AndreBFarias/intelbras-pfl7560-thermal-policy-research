@@ -24,6 +24,12 @@ firmware; S5 final com a home nova; backup; flash. Tarefa em `2026-11-02-bloco-2
 Pendente no aparelho quando ele voltar à rede: o dono pediu para desinstalar o VLC (`org.videolan.vlc`) se ainda
 estiver lá; confirmar pelo AskUserQuestion antes.
 
+**Sim do dono (2026-11-02):** "Já tem o meu sim" — gravar a S5 final depois do conferente final e do pré-voo
+verde, com backup feito; e desinstalar o VLC se ainda estiver no aparelho. Ordem de lançamento: bloco 28 assim que o
+26 for integrado (o F1 precisa do builder do 26); depois de 27 e 28 integrados, um workflow final com 2 agentes
+(conferente final que corrige + documentação atualizada e corrigida, incluindo os pendentes MAPA/pc.md e o `.md5`
+da S4b).
+
 ## Próximos passos
 
 1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
