@@ -30,6 +30,11 @@ verde, com backup feito; e desinstalar o VLC se ainda estiver no aparelho. Ordem
 (conferente final que corrige + documentação atualizada e corrigida, incluindo os pendentes MAPA/pc.md e o `.md5`
 da S4b).
 
+**Pendrive em modo resgate (2026-11-02, ~02:40):** o projetor travou ("zumbi") depois de o dono desligar segurando
+o POWER, com o pendrive no PC (nada foi gravado). Pendrive agora: `usb_update.bin` = stock (`28a2f280…`); a S4a foi
+para `.fw-guardado/S4a-usb_update.bin` e o `newlink_update.sh` para `.kit-guardado/` (o kit não roda no boot). Para
+voltar ao normal: devolver o `newlink_update.sh` à raiz e tirar o `usb_update.bin` (ou o pendrive da S5 final).
+
 ## Próximos passos
 
 1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
