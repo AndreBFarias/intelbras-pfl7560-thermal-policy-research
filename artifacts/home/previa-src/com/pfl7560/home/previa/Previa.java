@@ -114,7 +114,10 @@ public final class Previa {
         checarEntradas();
     }
 
-    /** Bloco 30: a fileira Entradas so com cabo. Sem cabo nenhum, nem o titulo; com os tres, HDMI 1, HDMI 2 e USB-C. */
+    /**
+     * Bloco 30: os HDMI so com cabo, o USB-C sempre (decisao do dono). Sem cabo HDMI, so o USB-C; com cabo no HDMI 2,
+     * HDMI 2 e USB-C; com os dois cabos, HDMI 1, HDMI 2 e USB-C.
+     */
     private static void previasCabos(File fontes, File saida, List<Item> firmware) throws Exception {
         Modelo s = semCabo();
         s.definirApps(firmware);
@@ -122,7 +125,7 @@ public final class Previa {
         s.bluetooth = "Bluetooth ligado";
         s.temperatura = "59";
         s.temperaturaPlaca = "47";
-        s.definirEntradas(Entradas.lista(false, false, false));
+        s.definirEntradas(Entradas.lista(false, false, true));
         salvar(s, fontes, new File(saida, "home-sem-cabo.png"));
 
         Modelo u = semCabo();
@@ -131,7 +134,7 @@ public final class Previa {
         u.bluetooth = "Bluetooth ligado";
         u.temperatura = "59";
         u.temperaturaPlaca = "47";
-        u.definirEntradas(Entradas.lista(false, true, false));
+        u.definirEntradas(Entradas.lista(false, true, true));
         salvar(u, fontes, new File(saida, "home-cabo-hdmi2.png"));
 
         Modelo t = semCabo();
@@ -174,31 +177,58 @@ public final class Previa {
         verdade(Entradas.temUsbC("1", "9") && Entradas.temUsbC("", "9") && !Entradas.temUsbC("", "")
                 && !Entradas.temUsbC("0", ""), "USB-C so no firmware que tem");
 
-        // estado por porta -> botoes (0 = cabo; 1 = sem cabo; sem entrada de TV = desconhecido, fica visivel)
+        // estado por porta -> botoes (0 = cabo; 1 = sem cabo; sem entrada de TV = desconhecido, fica visivel).
+        // O USB-C fica sempre (decisao do dono, doc 45 §14.4): o estado da porta 1 nao conta.
         int[] e = Entradas.estadosVazios();
         e[1] = 1;
         e[2] = 1;
         e[3] = 1;
-        verdade(Entradas.comCabo(3, 2, 1, e).length == 0, "sem cabo em nenhuma: nenhum botao");
+        Item[] semHdmi = Entradas.comCabo(3, 2, true, e);
+        verdade(semHdmi.length == 1 && semHdmi[0].acao.equals(Acoes.USBC), "sem cabo HDMI: so o USB-C");
+        verdade(Entradas.comCabo(3, 2, false, e).length == 0, "sem cabo HDMI e firmware sem USB-C: nenhum botao");
         e[3] = 0;
-        Item[] so1 = Entradas.comCabo(3, 2, 1, e);
-        verdade(so1.length == 1 && so1[0].acao.equals(Acoes.HDMI1), "cabo no HDMI 1 (porta 3): so HDMI 1");
+        Item[] so1 = Entradas.comCabo(3, 2, true, e);
+        verdade(so1.length == 2 && so1[0].acao.equals(Acoes.HDMI1) && so1[1].acao.equals(Acoes.USBC),
+                "cabo no HDMI 1 (porta 3): HDMI 1 e USB-C");
         e[3] = 1;
+        e[2] = 0;
+        Item[] so2 = Entradas.comCabo(3, 2, true, e);
+        verdade(so2.length == 2 && so2[0].acao.equals(Acoes.HDMI2) && so2[1].acao.equals(Acoes.USBC),
+                "cabo no HDMI 2 (porta 2): HDMI 2 e USB-C");
+        e[2] = 1;
         e[1] = 0;
-        Item[] soU = Entradas.comCabo(3, 2, 1, e);
-        verdade(soU.length == 1 && soU[0].acao.equals(Acoes.USBC), "cabo no USB-C (porta 1): so USB-C");
-        verdade(Entradas.comCabo(3, 2, -1, e).length == 0, "firmware sem USB-C: a porta 1 nao vira botao");
+        Item[] c1 = Entradas.comCabo(3, 2, true, e);
+        verdade(c1.length == 1 && c1[0].acao.equals(Acoes.USBC), "C1 = 0 (como no aparelho, sempre): nada muda");
+        verdade(Entradas.comCabo(3, 2, false, e).length == 0, "firmware sem USB-C: a porta 1 nao vira botao");
+        e[1] = 1;
+        verdade(Entradas.comCabo(3, 2, true, e).length == 1, "C1 = 1: o USB-C continua");
         e[2] = 0;
         e[3] = 0;
-        Item[] tres = Entradas.comCabo(3, 2, 1, e);
+        Item[] tres = Entradas.comCabo(3, 2, true, e);
         verdade(tres.length == 3 && tres[0].acao.equals(Acoes.HDMI1) && tres[1].acao.equals(Acoes.HDMI2)
                 && tres[2].acao.equals(Acoes.USBC), "os tres, na ordem HDMI 1, HDMI 2, USB-C");
         e[2] = Entradas.DESCONHECIDO;
         e[3] = 1;
-        e[1] = 1;
-        Item[] desc = Entradas.comCabo(3, 2, 1, e);
+        Item[] desc = Entradas.comCabo(3, 2, false, e);
         verdade(desc.length == 1 && desc[0].acao.equals(Acoes.HDMI2), "porta sem entrada de TV fica visivel");
         verdade(Entradas.semLeitura(false).length == 2 && Entradas.semLeitura(true).length == 3, "sem leitura: todas");
+
+        // o aparelho como ele e: USB-C sempre, HDMI liga e desliga
+        Modelo r = semCabo();
+        verdade(r.definirEntradas(ent(false, false, true)) && r.fileira == Modelo.ENTRADAS
+                && r.focado().acao.equals(Acoes.USBC), "abre sem cabo HDMI: foco no USB-C, o comeco da fileira");
+        verdade(r.definirEntradas(ent(true, false, true)) && r.focado().acao.equals(Acoes.USBC),
+                "HDMI 1 ligado: aparece a esquerda e o foco segue no USB-C");
+        verdade(r.mover(-1, 0) && r.focado().acao.equals(Acoes.HDMI1), "seta para a esquerda: HDMI 1");
+        verdade(r.definirEntradas(ent(false, false, true)) && r.fileira == Modelo.ENTRADAS
+                && r.focado().acao.equals(Acoes.USBC), "HDMI 1 tirado com o foco nele: foco no USB-C, que pega o lugar");
+        verdade(r.definirEntradas(ent(false, true, true)) && r.focado().acao.equals(Acoes.USBC),
+                "HDMI 2 ligado: o foco nao e roubado");
+        verdade(r.mover(-1, 0) && r.focado().acao.equals(Acoes.HDMI2), "seta para a esquerda: HDMI 2");
+        verdade(r.definirEntradas(ent(false, false, true)) && r.focado().acao.equals(Acoes.USBC),
+                "HDMI 2 tirado com o foco nele: foco no USB-C");
+        r.inicio();
+        verdade(r.fileira == Modelo.ENTRADAS && r.focado().acao.equals(Acoes.USBC), "HOME sem cabo HDMI: USB-C");
 
         // foco: abre sem entradas no primeiro atalho; a primeira leitura leva ao comeco
         Modelo m = semCabo();

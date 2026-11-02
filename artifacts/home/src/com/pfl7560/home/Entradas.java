@@ -8,7 +8,7 @@ package com.pfl7560.home;
  * "Dispositivo conectado") e marca a entrada da porta: 0 (INPUT_STATE_CONNECTED) com cabo, 1 sem. A entrada do
  * hardware se chama "<servico>/HDMI0000C<porta>" (HiHdmiTvInputService, HdmiDeviceInfo(0, porta)) e a porta e a
  * fonte menos 8 (zysys.source.hdmi1=11 -> 3, hdmi2=10 -> 2, typec1=9 -> 1), a mesma conta do HDMIService e do
- * teste de fabrica (NLAutoTest). Doc 45 §14.
+ * teste de fabrica (NLAutoTest). Doc 45 §14. So vale para os HDMI: o USB-C fica sempre (comCabo).
  */
 public final class Entradas {
     /** TvInputManager.INPUT_STATE_CONNECTED. */
@@ -20,7 +20,6 @@ public final class Entradas {
 
     public static final int PADRAO_HDMI1 = 11;
     public static final int PADRAO_HDMI2 = 10;
-    public static final int PADRAO_USBC = 9;
 
     public static final Item HDMI1 = new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1);
     public static final Item HDMI2 = new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2);
@@ -78,16 +77,20 @@ public final class Entradas {
     }
 
     /**
-     * O botao aparece com o cabo ligado (estado 0). Porta que nao aparece entre as entradas de TV fica visivel: sem o
-     * sinal, esconder tiraria o unico caminho para a entrada. portaUsbc = -1 quando o firmware nao tem USB-C.
+     * O botao HDMI aparece com o cabo ligado (estado 0). Porta que nao aparece entre as entradas de TV fica visivel:
+     * sem o sinal, esconder tiraria o unico caminho para a entrada.
      *
+     * O USB-C nao tem sinal de cabo: a ponte dele mantem a porta 1 sempre "conectada" (C1 = 0 e o 5 V do hdmirx
+     * sempre On, com e sem notebook ligado; doc 45 §14.4). Decisao do dono (2026-11-02): o USB-C fica sempre na
+     * fileira, no firmware que o tem, e o estado da porta dele nao e lido.
+     *
+     * @param usbc o firmware tem USB-C (temUsbC)
      * @param estado estado por porta (indice = porta), DESCONHECIDO onde nao ha entrada de TV
      */
-    public static Item[] comCabo(int portaHdmi1, int portaHdmi2, int portaUsbc, int[] estado) {
+    public static Item[] comCabo(int portaHdmi1, int portaHdmi2, boolean usbc, int[] estado) {
         boolean h1 = mostra(portaHdmi1, estado);
         boolean h2 = mostra(portaHdmi2, estado);
-        boolean uc = mostra(portaUsbc, estado);
-        return lista(h1, h2, uc);
+        return lista(h1, h2, usbc);
     }
 
     /** Sem leitura nenhuma (servico de TV fora do ar): todas as entradas do firmware, como antes do bloco 30. */

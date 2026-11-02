@@ -8,7 +8,7 @@ import android.os.Handler;
 import java.util.List;
 
 /**
- * Le quais portas tem cabo e avisa a home a cada ligar/desligar (bloco 30). O sinal e o estado das entradas de TV
+ * Le quais portas HDMI tem cabo e avisa a home a cada ligar/desligar (bloco 30; o USB-C fica sempre, Entradas.comCabo). O sinal e o estado das entradas de TV
  * do hardware HDMI (Entradas, doc 45 §14): API publica do TvInputManager, sem root nem permissao. Nada de
  * varredura: le uma vez ao ligar e de novo so quando o system_server avisa (TvInputCallback).
  *
@@ -107,7 +107,6 @@ final class Cabos {
         boolean usbc = Entradas.temUsbC(Leitor.prop("zysys.typec_count"), Leitor.prop("zysys.source.typec1"));
         int h1 = Entradas.porta(Leitor.prop("zysys.source.hdmi1"), Entradas.PADRAO_HDMI1);
         int h2 = Entradas.porta(Leitor.prop("zysys.source.hdmi2"), Entradas.PADRAO_HDMI2);
-        int uc = usbc ? Entradas.porta(Leitor.prop("zysys.source.typec1"), Entradas.PADRAO_USBC) : -1;
         if (tv == null) return Entradas.semLeitura(usbc);
         int[] estado = Entradas.estadosVazios();
         try {
@@ -122,6 +121,6 @@ final class Cabos {
             Guarda.anotar(app, "ler entradas de TV", e);
             return Entradas.semLeitura(usbc);
         }
-        return Entradas.comCabo(h1, h2, uc, estado);
+        return Entradas.comCabo(h1, h2, usbc, estado);
     }
 }
