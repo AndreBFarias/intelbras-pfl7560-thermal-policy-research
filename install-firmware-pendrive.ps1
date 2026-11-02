@@ -8,13 +8,13 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 $ZipNome = 'Software PFL7560.zip'
 $OficialMd5 = '28a2f280eee313a4b115567926b2ba4f'
-$NossoBin = 'PFL7560-S5-COMPLETO-NAO-GRADUADO.bin'
+$NossoBin = 'PFL7560-S6-COMPLETO-NAO-GRADUADO.bin'
 # o md5 aprovado vem do .md5 versionado ao lado do .ps1 (o mesmo do install.sh e do firmware/preflight-flash.sh)
 $NossoMd5Arq = Join-Path (Join-Path $PSScriptRoot 'firmware') ($NossoBin + '.md5')
 $NossoMd5 = ''
 if (Test-Path -LiteralPath $NossoMd5Arq) {
   foreach ($l in Get-Content -LiteralPath $NossoMd5Arq) {
-    if ($l -cmatch '^([0-9a-f]{32})  PFL7560-S5-COMPLETO-NAO-GRADUADO\.bin$') { $NossoMd5 = $Matches[1]; break }
+    if ($l -cmatch '^([0-9a-f]{32})  PFL7560-S6-COMPLETO-NAO-GRADUADO\.bin$') { $NossoMd5 = $Matches[1]; break }
   }
 }
 $ResgatePasta = 'resgate-oficial'
@@ -25,9 +25,9 @@ FIRMWARE OFICIAL DE FABRICA (V1.0.0.9) - RESGATE
 
 O PFL7560.bin desta pasta e o firmware OFICIAL de fabrica da Intelbras,
 V1.0.0.9, do aparelho COM entrada USB-C. Ele NAO esta ativo: o projetor so
-olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware S5
-(escada de brilho, wi-fi, xiri, a suite, a home e o app ja na imagem), que
-nunca foi provado no aparelho.
+olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware S6
+(escada de brilho, wi-fi, xiri, a suite, a home e o app ja na imagem). A S5,
+a anterior, foi gravada e funcionou; a S6 ainda nao foi provada no aparelho.
 
 QUANDO USAR
   So se o nosso firmware deixar o projetor sem ligar ou sem funcionar direito.

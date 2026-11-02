@@ -1,7 +1,7 @@
 #!/bin/sh
-# preflight-flash.sh - pre-voo do flash da S5 (bloco 28, doc 47 s12). So le: nao grava nada, nem no
+# preflight-flash.sh - pre-voo do flash da S6 (bloco 28, doc 47 s12 e s14). So le: nao grava nada, nem no
 # pendrive nem no PC. Recusa (sai 1) se QUALQUER item falhar:
-#   1. usb_update.bin na raiz do pendrive = a S5 aprovada (md5 do firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5);
+#   1. usb_update.bin na raiz do pendrive = a S6 aprovada (md5 do firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5);
 #   2. build_fix_bin.py --verificar desse usb_update.bin contra o stock, com o conteudo-s5.txt, APROVADO;
 #   3. kit do pendrive compativel com o .rc da S5: o newlink_update.sh dele aceita este .rc (RC_S5_MD5) e
 #      todos os arquivos da KIT_LISTA dele estao la com o md5 certo; sem DESINSTALAR-SUITE.txt;
@@ -16,7 +16,7 @@ export LC_ALL
 
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 STOCK_MD5="28a2f280eee313a4b115567926b2ba4f"
-MD5_ARQ="$RAIZ/firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5"
+MD5_ARQ="$RAIZ/firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5"
 MANIFESTO="$RAIZ/artifacts/bin-build/conteudo-s5.txt"
 RC_S5="$RAIZ/artifacts/bin-build/s5/pfl7560-suite.rc"
 VERIFICAR=""
@@ -64,25 +64,25 @@ if [ -z "$PEN_REAL" ] || [ ! -d "$PEN_REAL" ]; then
 fi
 PEN_MONTADO=0
 if command -v mountpoint >/dev/null 2>&1 && mountpoint -q "$PEN_REAL"; then PEN_MONTADO=1; fi
-echo "pre-voo do flash da S5: pendrive $PEN_REAL$([ "$PEN_MONTADO" = 1 ] && echo ' (ponto de montagem)')"
+echo "pre-voo do flash da S6: pendrive $PEN_REAL$([ "$PEN_MONTADO" = 1 ] && echo ' (ponto de montagem)')"
 
-# 1. usb_update.bin = a S5 aprovada
+# 1. usb_update.bin = a S6 aprovada
 BIN="$PEN_REAL/usb_update.bin"
 S5_MD5=""
 if [ -f "$MD5_ARQ" ]; then
-  S5_MD5="$(sed -n 's/^\([0-9a-f]\{32\}\)  PFL7560-S5-COMPLETO-NAO-GRADUADO\.bin$/\1/p' "$MD5_ARQ" | head -1)"
+  S5_MD5="$(sed -n 's/^\([0-9a-f]\{32\}\)  PFL7560-S6-COMPLETO-NAO-GRADUADO\.bin$/\1/p' "$MD5_ARQ" | head -1)"
 fi
 BIN_OK=0
 if [ -z "$S5_MD5" ]; then
-  falha "1. sem o md5 da S5 aprovada em $MD5_ARQ"
+  falha "1. sem o md5 da S6 aprovada em $MD5_ARQ"
 elif [ -L "$BIN" ] || [ ! -f "$BIN" ]; then
   falha "1. usb_update.bin ausente na raiz do pendrive, ou e um link"
 else
   m="$(md5 "$BIN")"
   if [ "$m" = "$S5_MD5" ]; then
-    ok "1. usb_update.bin = a S5 aprovada (md5 $m)"; BIN_OK=1
+    ok "1. usb_update.bin = a S6 aprovada (md5 $m)"; BIN_OK=1
   else
-    falha "1. usb_update.bin tem md5 ${m:-?}, a S5 aprovada e $S5_MD5"
+    falha "1. usb_update.bin tem md5 ${m:-?}, a S6 aprovada e $S5_MD5"
   fi
 fi
 
@@ -104,7 +104,7 @@ fi
 
 # 2. verificar_bin
 if [ "$BIN_OK" != 1 ] || [ "$RES_OK" != 1 ]; then
-  falha "2. verificar_bin nao rodou (precisa do usb_update.bin da S5 e do stock conferidos)"
+  falha "2. verificar_bin nao rodou (precisa do usb_update.bin da S6 e do stock conferidos)"
 else
   echo "   verificando o usb_update.bin contra o stock (leva um ou dois minutos)..."
   if [ -n "$VERIFICAR" ]; then

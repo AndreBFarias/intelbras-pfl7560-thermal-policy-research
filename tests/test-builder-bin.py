@@ -777,9 +777,9 @@ if ANT and os.path.isfile(ANT):
     caso_real("stock antigo + ini antigo", ANT, FIX_ANTIGO, os.environ.get('PFL_MD5_SAIDA_ANTIGO', MD5_S4A_ANTIGO))
     print("== builder: stock V1.0.0.9 + conteudo.txt, realocado (BIN-S4b) ==")
     caso_real_conteudo("stock antigo + conteudo.txt --realocar", ANT, FIX_ANTIGO, CONTEUDO)
-    print("== builder: stock V1.0.0.9 + conteudo-s5.txt, realocado (S5, suite nativa) ==")
+    print("== builder: stock V1.0.0.9 + conteudo-s5.txt, realocado (S6: a S5 com o kit de hoje, suite nativa) ==")
     caso_real_conteudo("stock antigo + conteudo-s5.txt --realocar", ANT, FIX_ANTIGO, CONTEUDO_S5,
-                       os.path.join(ROOT, 'firmware', 'PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5'))
+                       os.path.join(ROOT, 'firmware', 'PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5'))
 else:
     print("  (PFL_STOCK_ANTIGO nao definido: stock real V1.0.0.9 pulado)")
 if NOV and os.path.isfile(NOV):

@@ -10,7 +10,7 @@ md5(){ md5sum "$1" | cut -d' ' -f1; }
 
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
-NOSSO_BIN="PFL7560-S5-COMPLETO-NAO-GRADUADO.bin"
+NOSSO_BIN="PFL7560-S6-COMPLETO-NAO-GRADUADO.bin"
 
 fw_falso(){
   local d="$1"
@@ -151,14 +151,14 @@ env PFL_TESTE=1 PFL_FIRMWARE_DIR="$FW" PFL_FW_OFICIAL_MD5="$OFICIAL_MD5" PFL_FW_
 afirma '[ "$RC" != 0 ] && grep -q "esperado e 11111111111111111111111111111111" "$TMP/saida.log"' "md5 do nosso errado passou: rc=$RC"
 afirma '! bash "$ROOT/install.sh" --conferir-firmware --pendrive "$D" >/dev/null 2>&1 && [ -z "$(ls -A "$D")" ]' "aceitou --conferir-firmware junto com --pendrive"
 
-CASO="o md5 aprovado da S5 vem do .md5 (o mesmo arquivo e formato do firmware/preflight-flash.sh)"
+CASO="o md5 aprovado da S6 vem do .md5 (o mesmo arquivo e formato do firmware/preflight-flash.sh)"
 confere_md5arq(){ env PFL_TESTE=1 PFL_FIRMWARE_DIR="$FW" PFL_FW_OFICIAL_MD5="$OFICIAL_MD5" ${1:+PFL_FW_NOSSO_MD5_ARQ="$1"} bash "$ROOT/install.sh" --conferir-firmware > "$TMP/saida.log" 2>&1; RC=$?; }
 printf '%s  %s\n' "$NOSSO_MD5" "$NOSSO_BIN" > "$TMP/s5.md5"
 confere_md5arq "$TMP/s5.md5"
 afirma '[ "$RC" = 0 ] && grep -q "md5 $NOSSO_MD5" "$TMP/saida.log"' "o .md5 certo nao bastou: rc=$RC $(tail -2 "$TMP/saida.log" | tr '\n' ' ')"
 printf '%s  %s\n' "22222222222222222222222222222222" "$NOSSO_BIN" > "$TMP/s5.md5"
 confere_md5arq "$TMP/s5.md5"
-afirma '[ "$RC" != 0 ] && grep -q "esperado e 22222222222222222222222222222222" "$TMP/saida.log"' "o .md5 de outra S5 passou: rc=$RC"
+afirma '[ "$RC" != 0 ] && grep -q "esperado e 22222222222222222222222222222222" "$TMP/saida.log"' "o .md5 de outra S6 passou: rc=$RC"
 printf '%s  firmware/%s\n' "$NOSSO_MD5" "$NOSSO_BIN" > "$TMP/s5.md5"
 confere_md5arq "$TMP/s5.md5"
 afirma '[ "$RC" != 0 ] && grep -q "sem o md5 aprovado" "$TMP/saida.log"' "aceitou um .md5 fora do formato do pre-voo: rc=$RC"
@@ -291,9 +291,10 @@ afirma 'sed -n "/^:do_pendrive/,/^goto :menu/p" "$BAT" | grep -q "install-firmwa
 afirma '[ "$(grep -n "Modo conferir" "$BAT" | head -1 | cut -d: -f1)" -lt "$(grep -n "copy /y \"%SRC%\\\\kit" "$BAT" | head -1 | cut -d: -f1)" ]' "o firmware nao e conferido ANTES de copiar o kit no install.bat"
 afirma '[ "$(grep -n "Modo copiar" "$BAT" | head -1 | cut -d: -f1)" -gt "$(grep -n "NAO confere com a lista" "$BAT" | head -1 | cut -d: -f1)" ]' "o firmware e copiado antes da conferencia do kit no install.bat"
 afirma '[ "$(sed -n "s/^\$OficialMd5 = .\([0-9a-f]*\).$/\1/p" "$PS1")" = "$(sed -n "s/^FW_OFICIAL_MD5=\"\([0-9a-f]*\)\".*/\1/p" "$ROOT/install.sh")" ]' "md5 do oficial difere entre o .ps1 e o install.sh"
-afirma '! grep -qE "^FW_NOSSO_MD5=\"[0-9a-f]{32}\"" "$ROOT/install.sh" && ! grep -qE "^\\\$NossoMd5 = .[0-9a-f]{32}." "$PS1"' "o install.sh ou o .ps1 voltaram a fixar o md5 da S5 (tem de vir do .md5)"
+afirma '! grep -qE "^FW_NOSSO_MD5=\"[0-9a-f]{32}\"" "$ROOT/install.sh" && ! grep -qE "^\\\$NossoMd5 = .[0-9a-f]{32}." "$PS1"' "o install.sh ou o .ps1 voltaram a fixar o md5 da S6 (tem de vir do .md5)"
 afirma 'grep -q "^FW_NOSSO_MD5_ARQ=\"\$HERE/firmware/\$FW_NOSSO_BIN.md5\"$" "$ROOT/install.sh" && grep -qF "\$NossoMd5Arq = Join-Path (Join-Path \$PSScriptRoot '"'"'firmware'"'"') (\$NossoBin + '"'"'.md5'"'"')" "$PS1"' "o install.sh ou o .ps1 nao leem o firmware/$NOSSO_BIN.md5"
-afirma 'grep -qF "PFL7560-S5-COMPLETO-NAO-GRADUADO\.bin\$" "$PS1" && grep -qF "PFL7560-S5-COMPLETO-NAO-GRADUADO\\.bin\$/" "$ROOT/install.sh" && grep -qF "PFL7560-S5-COMPLETO-NAO-GRADUADO\\.bin\$/" "$ROOT/firmware/preflight-flash.sh"' "o formato da linha do .md5 difere entre o .ps1, o install.sh e o pre-voo"
+afirma 'grep -qF "PFL7560-S6-COMPLETO-NAO-GRADUADO\.bin\$" "$PS1" && grep -qF "PFL7560-S6-COMPLETO-NAO-GRADUADO\\.bin\$/" "$ROOT/install.sh" && grep -qF "PFL7560-S6-COMPLETO-NAO-GRADUADO\\.bin\$/" "$ROOT/firmware/preflight-flash.sh"' "o formato da linha do .md5 difere entre o .ps1, o install.sh e o pre-voo"
+afirma 'grep -qE "^[0-9a-f]{32}  $NOSSO_BIN\$" "$ROOT/firmware/$NOSSO_BIN.md5"' "falta o firmware/$NOSSO_BIN.md5 (uma linha <md5>, dois espacos, o nome) que o install.sh, o .ps1 e o pre-voo leem"
 afirma 'grep -q "^FW_NOSSO_BIN=\"$NOSSO_BIN\"$" "$ROOT/install.sh" && grep -q "^\$NossoBin = .$NOSSO_BIN.$" "$PS1"' "o install.sh ou o .ps1 nao levam o $NOSSO_BIN"
 afirma 'diff <(sed -n "/^fw_leiame(){/,/^LEIAME\$/p" "$ROOT/install.sh" | sed "1,2d;\$d") <(sed -n "/^\$LeiameResgate = @.\$/,/^.@\$/p" "$PS1" | sed "1d;\$d") >/dev/null' "o LEIA-ME do resgate difere entre o install.sh e o .ps1"
 afirma '[ "$(sed -n "/^fw_leiame(){/,/^LEIAME\$/p" "$ROOT/install.sh" | grep -c .)" -gt 5 ]' "o install.sh sem o texto do LEIA-ME do resgate"

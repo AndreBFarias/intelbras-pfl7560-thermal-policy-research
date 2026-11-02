@@ -202,9 +202,9 @@ LISTA
 FW_DIR="${PFL_FIRMWARE_DIR:-$HERE/firmware}"
 FW_OFICIAL_ZIP="Software PFL7560.zip"
 FW_OFICIAL_MD5="28a2f280eee313a4b115567926b2ba4f"
-FW_NOSSO_BIN="PFL7560-S5-COMPLETO-NAO-GRADUADO.bin"
+FW_NOSSO_BIN="PFL7560-S6-COMPLETO-NAO-GRADUADO.bin"
 # o md5 aprovado vem do .md5 versionado (o mesmo arquivo e o mesmo formato que o firmware/preflight-flash.sh le):
-# remontar a S5 so muda o .md5, e o pendrive sai com o usb_update.bin que o pre-voo aceita
+# remontar a S6 so muda o .md5, e o pendrive sai com o usb_update.bin que o pre-voo aceita
 FW_NOSSO_MD5_ARQ="$HERE/firmware/$FW_NOSSO_BIN.md5"
 FW_RESGATE_PASTA="resgate-oficial"
 FW_LEGADO_PASTA="firmware-nosso-NAO-GRADUADO"
@@ -214,7 +214,7 @@ if [ "${PFL_TESTE:-}" = "1" ]; then
 else
   unset PFL_FW_OFICIAL_MD5 PFL_FW_NOSSO_MD5 PFL_FW_NOSSO_MD5_ARQ
 fi
-FW_NOSSO_MD5="$(sed -n 's/^\([0-9a-f]\{32\}\)  PFL7560-S5-COMPLETO-NAO-GRADUADO\.bin$/\1/p' "$FW_NOSSO_MD5_ARQ" 2>/dev/null | head -n 1)"
+FW_NOSSO_MD5="$(sed -n 's/^\([0-9a-f]\{32\}\)  PFL7560-S6-COMPLETO-NAO-GRADUADO\.bin$/\1/p' "$FW_NOSSO_MD5_ARQ" 2>/dev/null | head -n 1)"
 if [ "${PFL_TESTE:-}" = "1" ]; then FW_NOSSO_MD5="${PFL_FW_NOSSO_MD5:-$FW_NOSSO_MD5}"; fi
 FW_MEMBRO=""
 
@@ -272,9 +272,9 @@ FIRMWARE OFICIAL DE FABRICA (V1.0.0.9) - RESGATE
 
 O PFL7560.bin desta pasta e o firmware OFICIAL de fabrica da Intelbras,
 V1.0.0.9, do aparelho COM entrada USB-C. Ele NAO esta ativo: o projetor so
-olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware S5
-(escada de brilho, wi-fi, xiri, a suite, a home e o app ja na imagem), que
-nunca foi provado no aparelho.
+olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware S6
+(escada de brilho, wi-fi, xiri, a suite, a home e o app ja na imagem). A S5,
+a anterior, foi gravada e funcionou; a S6 ainda nao foi provada no aparelho.
 
 QUANDO USAR
   So se o nosso firmware deixar o projetor sem ligar ou sem funcionar direito.
