@@ -34,6 +34,13 @@ public final class Desenho {
     static final float APP_W = (CONTEUDO - (APPS_VISIVEIS - 1) * VAO) / APPS_VISIVEIS;
 
     static final float ESTADO_BASE = 1000f;
+    /**
+     * O nome do sistema no canto inferior direito (bloco 30), na fonte da marca (Plex Condensed Bold). A cor e o roxo
+     * a 80% sobre o fundo (#9F7ED2): a mistura de tokens mais perto do #9D7AD0 da marca (doc 44 §14), sem cor nova.
+     */
+    static final String MARCA = "MeowCast";
+    static final float MARCA_TAM = 34f;
+    static final int MARCA_COR = Tema.misturar(Tema.ROXO, Tema.FUNDO, 0.8f);
 
     static final float TITULO_TAM = 30f;
 
@@ -134,14 +141,6 @@ public final class Desenho {
             p.texto(s, MX + CONTEUDO / 2, APP_Y + APP_H / 2 + 11, Pintor.SANS, 32, Tema.TEXTO_2, Pintor.CENTRO);
             return;
         }
-        String cont;
-        if (n <= APPS_VISIVEIS) {
-            cont = n == 1 ? "1 app" : n + " apps";
-        } else {
-            int fim = Math.min(n, m.primeiroApp + APPS_VISIVEIS);
-            cont = (m.primeiroApp + 1) + "–" + fim + " de " + n;
-        }
-        p.texto(cont, DIREITA, APP_TITULO, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.DIR);
         int fim = Math.min(n, m.primeiroApp + APPS_VISIVEIS);
         for (int i = m.primeiroApp; i < fim; i++) {
             Item a = m.apps.get(i);
@@ -181,8 +180,11 @@ public final class Desenho {
             if (m.temperatura != null) x = graus(p, "LED", m.temperatura, x, t) + 32;
             if (m.temperaturaPlaca != null) graus(p, "Placa", m.temperaturaPlaca, x, t);
         }
+        // a marca no canto inferior direito (bloco 30); o aviso fica logo a esquerda dela
+        p.texto(MARCA, DIREITA, ESTADO_BASE, Pintor.SANS_NEGRITO, MARCA_TAM, MARCA_COR, Pintor.DIR);
         if (m.aviso != null) {
-            p.texto(m.aviso, DIREITA, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
+            float xa = DIREITA - p.largura(MARCA, Pintor.SANS_NEGRITO, MARCA_TAM) - 48;
+            p.texto(m.aviso, xa, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
         }
     }
 
