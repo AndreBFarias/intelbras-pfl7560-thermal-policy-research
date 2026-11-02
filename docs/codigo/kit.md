@@ -186,6 +186,13 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - **Vigia do pedido:** o `inotifyd` do toybox ignora a 1ª letra da máscara (2026-10-30: `:wy` vigiava só `y`, `:n`
   dava Invalid argument, `:nwy` entregava `w`). Por isso `:wwy`. Sem `inotifyd`, laço de `VIGIA_INTERVALO`. Um
   pedido que já estava na pasta antes do vigia não gera evento: é tratado uma vez na largada.
+- **VLC fora do usuário 0 (2026-11-02, pedido do dono):** `tirar_vlc`, em segundo plano junto com os apps
+  desligados e as chaves, roda `pm uninstall --user 0 org.videolan.vlc` **uma vez**: depois de conseguir (ou de ver
+  que o pacote já não está no usuário 0) cria a marca `$SUITE/vlc-tirado` e não tenta mais; se o `pm` não responde
+  ou o uninstall falha, tenta no boot seguinte. O APK continua no `/vendor/app/VLC` e nada da imagem muda.
+  Desfazer: `cmd package install-existing org.videolan.vlc`. O `--desinstalar` apaga a marca com a pasta da suíte,
+  mas não devolve o VLC (o desfazer é à mão). Não é chave nem debloat: o `deb_vlc` e o `debloat-aprovados.txt`
+  seguem sem o VLC (`test-chaves.sh`, `test-suite.sh`).
 - O processo fica vivo enquanto o vigia vive (`wait`): nada depende de como o init trata o fim de um oneshot.
 - Log próprio: a saída de um serviço do init vai para `/dev/null`.
 
@@ -241,7 +248,8 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 
 - Onze chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone
   pop_disp` (o `pop_disp` entrou no bloco 27, no fim, para não mexer na posição das outras).
-  "Ligada" = a medida está aplicada (app desligado, porta caída...). Cada chave **lê o estado real** do aparelho e volta
+  "Ligada" = a medida está aplicada (app desligado, porta caída...). Desde o bloco 27 a home mostra o contrário, o
+  **serviço** (ligado = funciona), e esconde o `wifi_pwr`; a inversão é só dela, o protocolo e a prop não mudam. Cada chave **lê o estado real** do aparelho e volta
   pela mesma chave; nada se desliga sem o dono ligar a chave (ou sem o padrão da instalação, abaixo).
 - Comandos: `boot` (reaplica o que o dono escolheu), `pedido` (chamado pelo `suite-pedido.sh`), `aplicar <id>
   ligar|desligar`, `resgate` (desliga todas), `pacotes-fora` (lista que o `desligar_apps` do boot respeita).
@@ -256,7 +264,8 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - Grupos: `deb_seg` (autotest, factorymenu, tvtestingtools, hikeymasterprovision, ijkplayerdemo, location.fused),
   `deb_ota` (`com.newlink.service`, `service2`), `deb_hisi` (music, videoplayer, tvui, tv.menu; **nunca** `higallery`:
   é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (só o Office desde o bloco 27; o
-  id ficou `deb_vlc` para não mudar a prop. O VLC é do dono e o kit não mexe nele, nem pelo `debloat-aprovados.txt`).
+  id ficou `deb_vlc` para não mudar a prop. As chaves e o debloat não mexem no VLC; quem o tira do usuário 0, uma
+  vez, é o `suite-boot.sh`, acima).
 - Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` acha o USB
   `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
   e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot); `pop_disp` = `setprop
