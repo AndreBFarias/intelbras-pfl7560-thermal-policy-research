@@ -126,6 +126,9 @@ afirma 'grep -qx "on property:sys.boot_completed=1" "$S5/pfl7560-suite.rc" && gr
 KIT_SUITE="$(sed -n '/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p' "$KIT/newlink_update.sh" | grep -oE '[0-9a-f]{32}  [^"]+$' \
   | grep -v -e '  ZYCustom.ini$' -e '  pfl7560-suite.rc$' -e '  pfl7560.apk$' -e '  pfl7560-home.apk$' -e '  overlay/' -e '  marca/bootanimation.zip$')"
 afirma '[ "$LISTA" = "$KIT_SUITE" ]' "SEMENTE_LISTA difere da suite que o kit instala"
+# os executaveis: a semente da 0755 so ao que esta no EXEC_LISTA; um executavel novo no KIT_EXEC sem par aqui
+# sairia 0600 no /data e a suite nao o rodaria
+afirma '[ -n "$EXEC" ] && [ "$EXEC" = "$(sed -n "s/^KIT_EXEC=\"\(.*\)\"$/\1/p" "$KIT/newlink_update.sh")" ]' "EXEC_LISTA da semente difere do KIT_EXEC do kit"
 for n in $NOMES; do
   afirma '[ "$(md5 "$KIT/$n")" = "$(md5_lista "$n")" ]' "$n: md5 do kit difere da SEMENTE_LISTA"
 done
