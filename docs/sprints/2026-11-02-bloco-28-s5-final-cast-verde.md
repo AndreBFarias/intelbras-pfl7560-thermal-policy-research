@@ -83,4 +83,5 @@ Começa só depois que os blocos 26 (S2) e 27 forem integrados no `main` (o 28 m
 - [ ] S5 final montada pelo coordenador (duas gerações, `--verificar`, `test-semente-s5.sh` com `PFL_S5_BIN`, `.md5`)
   + pendrive pelo `install.sh --com-firmware` + pré-voo verde
 - [ ] backup (o ensaio do pré-voo usou o `antes-s5-20261102-0201`; refazer perto do flash)
-- [ ] flash (sim do dono na hora, depois do backup; S5 direto, sem a S4a e a S4b: decisão e risco no doc 47 §12)
+- [ ] flash (sim do dono já dado em 2026-11-02, valendo com o pré-voo verde e o backup feito; S5 direto, sem a
+  S4a e a S4b: decisão e risco no doc 47 §12)
