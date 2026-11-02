@@ -53,7 +53,7 @@ d1b0b118aa713b541c0514687eab1609  suite-logo.sh
 127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 dd1aa6239eef55535f3ad17853595109  pfl7560.apk
-1bf673e89c8dd43fc43d6943cdb80437  pfl7560-home.apk
+c47111dbad9ce3903cfedd9ba3d348b8  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
