@@ -64,5 +64,6 @@ STATE.md
 .continue/
 .github/copilot-instructions.md
 
-# ===== Temporarios da build S5 (bloco 26) =====
+# ===== Temporarios das builds S5 (bloco 26) e S6 =====
 build-s5/
+build-s6/
