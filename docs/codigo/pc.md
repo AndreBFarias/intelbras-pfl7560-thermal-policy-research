@@ -162,10 +162,10 @@ Os scripts com ajuda (`install.sh`, `pfl7560-lcd-color.sh`, `pfl7560-marca.sh`, 
 - `install.sh --pendrive`: copia o kit e confere cada arquivo contra a `KIT_LISTA` embutida no `newlink_update.sh`
   (a mesma que o aparelho confere). O `newlink_update.sh` não está na lista (não pode conter o próprio md5) e o
   `LEIA-ME.txt` também não: os dois são comparados byte a byte com a origem.
-- `install.sh --com-firmware` (decisão do dono, bloco 21; a S5 desde o conferente final de 2026-11-02): o nosso
-  `.bin` (`PFL7560-S5-COMPLETO-NAO-GRADUADO.bin`) vai na raiz como `usb_update.bin`; o md5 aprovado é lido do
-  `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5` (linha `<md5>  <nome>`, a mesma regra do
-  `firmware/preflight-flash.sh`), então remontar a S5 só muda o `.md5` e o pendrive sai aceito pelo pré-voo. O
+- `install.sh --com-firmware` (decisão do dono, bloco 21; a S5 desde o conferente final de 2026-11-02, a S6 desde
+  a montagem dela): o nosso `.bin` (`PFL7560-S6-COMPLETO-NAO-GRADUADO.bin`) vai na raiz como `usb_update.bin`; o
+  md5 aprovado é lido do `firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5` (linha `<md5>  <nome>`, a mesma regra
+  do `firmware/preflight-flash.sh`), então remontar a S6 só muda o `.md5` e o pendrive sai aceito pelo pré-voo. O
   oficial V1.0.0.9 (`Software PFL7560.zip`, md5 do `.bin` `28a2f280…`) vai em `resgate-oficial/PFL7560.bin` com um
   LEIA-ME. Nunca o `Firmware PFL7560.zip` (sem USB-C). Tudo é conferido antes de copiar e de novo depois; a pasta
   do arranjo antigo (`firmware-nosso-NAO-GRADUADO/`) sai do pendrive. `PFL_FIRMWARE_DIR=<pasta>` aponta outra

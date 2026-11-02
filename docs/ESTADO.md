@@ -74,8 +74,9 @@ Kit, home e app (versão 5) instalados no aparelho em 2026-10-31 pelo adb; o res
 Layout decidido pelo dono em 2026-10-31 (bloco 21), gerado por `./install.sh --pendrive <ponto> --com-firmware`:
 
 - o kit completo na raiz, com o md5 de cada arquivo conferido depois da cópia;
-- `usb_update.bin` na raiz = **o nosso** `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` desde 2026-11-02 (antes, a S4a),
-  conferido pelo md5 do `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5`, nunca gravado no aparelho. Ligar
+- `usb_update.bin` na raiz = **o nosso** `PFL7560-S6-COMPLETO-NAO-GRADUADO.bin` desde a montagem da S6 (antes, a
+  S5, gravada e funcionando desde 2026-11-02; antes dela, a S4a), conferido pelo md5 do
+  `firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5`; a S6 ainda não foi gravada no aparelho. Ligar
   **segurando o POWER** com o pendrive plugado grava esse firmware;
 - `resgate-oficial/PFL7560.bin` = o oficial V1.0.0.9 (md5 `28a2f280…`), com um `LEIA-ME.txt`. Para o resgate,
   ele vai para a raiz de outro pendrive como `usb_update.bin` ([guia 16](guide/16-recuperacao-brick.md)).
@@ -84,8 +85,8 @@ O pendrive físico do dono (`sda`, Cruzer Fit, FAT32 "PFL7560") estava no arranj
 `.bin` antigo em `firmware-nosso-NAO-GRADUADO/`) e é regravado no fechamento do bloco 21. Antes de gravar, a S4a
 tem de estar em `firmware/` do repositório principal (o `install.sh --com-firmware` recusa sem ela). Com a S4a na
 raiz, **ligar segurando o POWER com este pendrive plugado grava a S4a**; ligar normalmente só roda o kit. (Isso era
-o bloco 21; desde 2026-11-02 o `--com-firmware` põe a S5, e o `firmware/preflight-flash.sh` confere o pendrive do
-flash: [doc 47 §12](research/47-build-completa.md).)
+o bloco 21; desde 2026-11-02 o `--com-firmware` pôs a S5 e, desde a montagem da S6, põe a S6; o
+`firmware/preflight-flash.sh` confere o pendrive do flash: [doc 47 §12 e §14](research/47-build-completa.md).)
 
 ## Build
 

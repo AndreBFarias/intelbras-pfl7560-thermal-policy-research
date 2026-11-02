@@ -114,9 +114,10 @@ Em uso no projetor do dono desde 2026-10-31. **Provisório:** tirar da tomada co
 fina de foco (desligada até ganhar passo relativo, doc 46 §11), algumas telas que ainda faltam olhar com o controle e o modelo sem
 USB-C (só testado em simulação). A **S5** (os 3 fixes, a suíte, a home e o app já na imagem, e o logo na
 partição `logo`) foi a primeira build `.bin` nossa gravada: em 2026-11-02, direto, sem gravar antes a S4a e a S4b, e
-subiu funcionando (sem panic, suíte rodando, 19 itens e 0 atenções na verificação). O `install.sh --com-firmware` a
-põe na raiz do pendrive e o `firmware/preflight-flash.sh` confere tudo antes; o relato e o roteiro para a próxima
-gravação (a S6, com o bloco 30) estão no [doc 47 §13](docs/research/47-build-completa.md). Lista completa e
+subiu funcionando (sem panic, suíte rodando, 19 itens e 0 atenções na verificação). A **S6** (a S5 com a home do bloco 30) está
+montada e ainda não foi gravada; o `install.sh --com-firmware` a põe na raiz do pendrive e o
+`firmware/preflight-flash.sh` confere tudo antes. O relato da S5 e o roteiro estão no
+[doc 47 §13](docs/research/47-build-completa.md); a S6, no §14. Lista completa e
 atualizada: [`docs/ESTADO.md`](docs/ESTADO.md).
 
 O relatório para o CSIRT da Intelbras está pronto e ainda não foi enviado

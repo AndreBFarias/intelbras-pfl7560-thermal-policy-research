@@ -132,10 +132,11 @@ sem nenhum `.bin`, um power-hold acidental não regrava nada. Com `--com-firmwar
 (`./install.sh --pendrive /caminho/do/pendrive --com-firmware`; no Windows, `install.bat` opção 5, resposta `s`
 à pergunta do firmware), o instalador põe também, pela decisão do dono de 2026-10-31:
 
-- na raiz, como `usb_update.bin`, o **nosso** `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` (md5 de
-  `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5`, o mesmo que o `firmware/preflight-flash.sh` confere): os 3
-  fixes térmicos, a suíte, a home e o app já na imagem, **nunca provado no aparelho**
-  ([doc 47](docs/research/47-build-completa.md) §12). Ligar **segurando o power**
+- na raiz, como `usb_update.bin`, o **nosso** `PFL7560-S6-COMPLETO-NAO-GRADUADO.bin` (md5 de
+  `firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5`, o mesmo que o `firmware/preflight-flash.sh` confere): os 3
+  fixes térmicos, a suíte, a home e o app já na imagem. A S5, a anterior, foi gravada e funcionou em 2026-11-02;
+  a S6 (a S5 com a home do bloco 30) **ainda não foi gravada** ([doc 47](docs/research/47-build-completa.md) §13
+  e §14). Ligar **segurando o power**
   com este pendrive plugado grava esse firmware e apaga o `/data`;
 - em `resgate-oficial/PFL7560.bin`, o **oficial V1.0.0.9** (tirado do `firmware/Software PFL7560.zip`, md5
   `28a2f280eee313a4b115567926b2ba4f`), com um `LEIA-ME.txt`. O loader só lê o `usb_update.bin` da raiz: para o

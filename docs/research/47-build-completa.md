@@ -621,3 +621,88 @@ kit.
    (o passo 6 do guia 16 vale: com ele plugado, um novo power-hold regrava).
 3. Resgate, se travar: o mesmo da §8, com o stock `28a2f280…` como `usb_update.bin` na raiz de **outro** pendrive.
    Desta vez ele não foi preciso.
+
+---
+
+## 14. Build S6: a S5 com a home do bloco 30 (2026-11-02)
+
+**Veredito: a S6 `a1edaca90e40cf4efdb7f9aaf4f984a1` está montada e conferida no PC. Ainda NÃO foi gravada.** É a
+S5 (§12, gravada e funcionando, §13) com o kit de hoje: o mesmo manifesto (`conteudo-s5.txt`), o mesmo `.rc`
+(`RC_S5_MD5` `8596084a…`), a mesma semente e a mesma arte do record 6. O que muda é só o que o bloco 30 mudou no
+kit: a **home versionCode 10** (`pfl7560-home.apk` `c0ce997a381628fa20893a3c2cb49e18`: HDMI 1/2 só com cabo, USB-C
+sempre visível, sem o contador "N apps", "MeowCast" no canto inferior direito). O app (`dd1aa623…`, versionCode 9),
+as sobreposições, a suíte (`SEMENTE_LISTA` e `EXEC_LISTA`) e o `ZYCustom.ini` (`252ab7a7…`) são os da S5.
+
+**Montagem** (o roteiro da §12, passo 2, com as lições da §13.1), na árvore `integracao` em `6dbf9e0`, em
+`build-s6/` (ignorada pelo git, como a `build-s5/`), com `TMPDIR=build-s6/tmp` só na montagem:
+
+```bash
+mkdir -p build-s6/tmp && export TMPDIR="$PWD/build-s6/tmp"
+sha256sum "firmware/Software PFL7560.zip"          # 08d37bbb… (o zip de verdade, não o ponteiro LFS)
+unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d build-s6/   # md5 28a2f280…
+python3 artifacts/bin-build/build_fix_bin.py build-s6/PFL7560.bin artifacts/ZYCustom_390.ini build-s6/S6-1.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt
+python3 artifacts/bin-build/build_fix_bin.py build-s6/PFL7560.bin artifacts/ZYCustom_390.ini build-s6/S6-2.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt
+```
+
+Na árvore `integracao` o zip é um ponteiro LFS de 134 B; o stock saiu do zip do repositório principal, com o
+sha256 conferido. O `.bin` final é `build-s6/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin` (o mesmo arquivo que o
+`S6-1.bin`, por link): para o `install.sh --com-firmware`, ele vai para `firmware/` do repositório de onde o
+pendrive for montado.
+
+| Build | md5 | Tamanho | CRC do vendor | Record 14 | Record 6 | Blocos livres no vendor |
+|---|---|---|---|---|---|---|
+| **S6** (bloco 30: home 10) | **`a1edaca90e40cf4efdb7f9aaf4f984a1`** | 1399013564 B (+4096 B contra a S5) | `0x3d19ae9e` | 85848212 B (+5255168 B contra o stock) | 106496 B, igual ao da S5 | 53448 de 76800 |
+| S5, gravada (§13) | `3f3023b06e500e354fa6d4ca4e236f5f` | 1399009468 B | `0x7ccdb8eb` | 85844116 B (+5251072 B) | 106496 B | 53449 de 76800 |
+
+(Os 53477 blocos livres citados na §12 são da S5 do bloco 28; a S5 gravada tem 53449, medido agora do `.bin`.)
+
+**Provas no PC:**
+
+- duas gerações com o mesmo md5 `a1edaca9…`, logs iguais fora do nome do arquivo; o `check-bin` com o stock real
+  gerou mais duas, o mesmo md5;
+- `build_fix_bin.py --verificar <S6> <stock> --conteudo artifacts/bin-build/conteudo-s5.txt`: **APROVADO** (78
+  entradas, 2 linhas no `build.prop`, records 6 e 14); com o `conteudo.txt`, REPROVADO ("record 6: difere do
+  stock"), como deve;
+- `PFL_S5_BIN=<S6> bash tests/test-semente-s5.sh` (o vendor tirado do record 14 do `.bin`): **66 verificações,
+  0 falhas** (inclui o `EXEC_LISTA` da semente contra o `KIT_EXEC`); sem o `.bin`, com o vendor do manifesto,
+  também 66/0;
+- `PFL_STOCK_ANTIGO=<stock> python3 tests/test-builder-bin.py` (o `check-bin` com o stock real): **818
+  verificações, 0 falhas**; a S4a continua `a6e5da14…`; a S6 confere com o `firmware/PFL7560-S6-…bin.md5`;
+- `e2fsck -fn` do vendor extraído da S6: limpo, 800 inodes, 23352 de 76800 blocos usados;
+- **S5 contra S6, arquivo a arquivo** (os dois vendors extraídos e despejados com o `debugfs rdump`): **só o
+  `/vendor/app/PFL7560Home/PFL7560Home.apk` difere** (`1bf673e8…` na S5, `c0ce997a…` na S6), com o mesmo inode,
+  modo `0644`, dono `0:0` e rótulo `vendor_app_file`; a pasta dele igual (`0755`, `0:0`, `vendor_app_file`). Cada
+  um dos 52 arquivos do manifesto tem no vendor da S6 o md5 da origem no kit; o `.rc` tem o `RC_S5_MD5`; as 2
+  linhas do `build.prop` estão no fim;
+- **records da S5 contra os da S6:** 0 a 13 iguais (entrada da tabela e payload), inclusive o record 6 (a arte);
+  o 14 difere (o vendor); 15 a 18 com o payload igual e o offset 4096 B adiante (o record 14 cresceu um bloco).
+
+**O que mudou no repositório com a S6** (o mínimo para o pendrive e o pré-voo usarem a S6):
+
+- `firmware/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin.md5` (o formato do da S5: `<md5>  <nome>`, dois espaços); o da S5
+  fica como registro da build gravada;
+- `install.sh`, `install-firmware-pendrive.ps1` e `firmware/preflight-flash.sh` leem o `.md5` da S6 e levam ou
+  aceitam só a S6 (a S5 no `usb_update.bin` é recusada no item 1 do pré-voo); o texto do `LEIA-ME.txt` do resgate
+  e o do kit falam da S6. O `.rc` e o `RC_S5_MD5` não mudam: a S6 usa o `.rc` da S5;
+- `tests/test-builder-bin.py` compara a geração do `conteudo-s5.txt` com o `.md5` da S6;
+  `tests/test-preflight-flash.sh` e `tests/test-preparar-pendrive.sh` montam a S6 e recusam o `.md5` da S5, e o
+  segundo confere que o `firmware/PFL7560-S6-…bin.md5` existe no formato que os três leem;
+- o `.md5` da **S4b** também mudou (o `conteudo.txt` leva a home): `73773135c369db5d973a724732607adb`, 1397289148
+  B, record 14 +3530752 B, CRC `0x90d718d1`. O `2b1836b8…` anterior já não batia com o kit antes do bloco 30 (a S4b
+  de hoje tem 98304 B a mais que ela, e a home nova só explica 4096 B; o resto é o app versionCode 9 e o que veio
+  depois dela); o `check-bin` com o stock real o acusaria.
+
+**O que falta, e é do dono com o coordenador** (o roteiro da §12, passos 3 a 7, com a §13.5):
+
+1. copiar a S6 para `firmware/` do repositório de onde sai o pendrive e montar o pendrive com
+   `./install.sh --pendrive <ponto> --com-firmware`;
+2. backup com `adb shell id -u` = `0`, md5 do tar igual nos dois lados;
+3. `sh firmware/preflight-flash.sh <ponto> --backup <pasta> --resgate <stock fora do pendrive>`: só grave com
+   `PRE-VOO APROVADO`;
+4. decidir antes se o pendrive fica plugado no 1º boot (§13.5, item 2): sem ele, a S6 prova a semente
+   (`copiada`, depois `em_dia`), o que a S5 não provou;
+5. no aparelho, depois: a home com versionCode 10, `vendor.pfl7560.semente` e o `semente.log`.
+
+**PROVISÓRIO até o aparelho:** o que a §13.4 deixa em aberto continua (a semente num `/data` vazio sem pendrive,
+a arte 4:4:4 do record 6 aos olhos do dono, o tempo do 1º boot sem o kit), mais o que o bloco 30 deixou: que o
+USB-C da home dá imagem com um aparelho que tenha vídeo pelo USB-C (doc 45 §14.4).
