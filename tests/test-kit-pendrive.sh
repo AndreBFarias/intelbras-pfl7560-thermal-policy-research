@@ -1297,7 +1297,7 @@ exec "$T/bin/pm.orig" "$@"'
 c_bloco25(){
   local L aapt2
   novo_cenario "bloco 25: o kit instala nl_logo, suite-logo.sh e a arte reta na suite (executaveis 755, md5 do kit)"; aparelho_ok
-  afirma '[ "$APP_VC" = 8 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 8 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 9 ]' "versionCode do app nao e 8 ou o da home nao e 9 (blocos 27 e 28)"
+  afirma '[ "$APP_VC" = 9 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 9 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 9 ]' "versionCode do app nao e 9 (visor, bloco 29) ou o da home nao e 9 (bloco 28)"
   # shellcheck disable=SC2012
   aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
   if [ -n "$aapt2" ]; then
@@ -1577,8 +1577,17 @@ c_estaticos(){
     afirma '"$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^package: name='"'"'com.pfl7560.verificar'"'"' versionCode='"'"'$APP_VC'"'"'"' "versionCode do apk difere do APP_VERSION_CODE"
     afirma '[ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^launchable-activity")" = 2 ] && [ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^leanback-launchable-activity")" = 2 ]' "o apk nao tem as duas atividades com LAUNCHER e LEANBACK_LAUNCHER"
     afirma '[ -z "$("$aapt2" dump permissions "$KIT/pfl7560.apk" | grep "^uses-permission")" ] && "$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^targetSdkVersion:.28."' "o apk pede permissao ou nao tem targetSdk 28"
+    afirma '"$aapt2" dump xmltree --file AndroidManifest.xml "$KIT/pfl7560.apk" | grep -A7 "android:name(0x01010003)=\".Visor\"" | tr -d " " | grep -q "exported(0x01010010)=false" && "$aapt2" dump xmltree --file AndroidManifest.xml "$KIT/pfl7560.apk" | grep -A7 "android:name(0x01010003)=\".Visor\"" | tr -d " " | grep -q "launchMode(0x0101001d)=2"' "o visor nao esta no apk, esta exportado ou nao e singleTask (bloco 29)"
   else
     echo "  (aapt2 ausente: conferencia do versionCode do apk pulada)"
+  fi
+  afirma 'cmp -s "$ROOT/artifacts/app/res/drawable-nodpi/visor_fundo.jpg" "$ROOT/artifacts/tema/marca/logo.jpg"' "o fundo do visor difere do logo MeowCast da abertura (artifacts/tema/marca/logo.jpg)"
+  if command -v javac >/dev/null && command -v java >/dev/null; then
+    local vm; vm="$(mktemp -d)"
+    afirma 'javac --release 8 -Xlint:-options -encoding UTF-8 -d "$vm" "$ROOT/artifacts/app/src/com/pfl7560/verificar/VisorModelo.java" "$ROOT/artifacts/app/teste/TesteVisorModelo.java" && java -Djava.io.tmpdir="$vm" -cp "$vm" com.pfl7560.verificar.TesteVisorModelo > "$vm/saida" 2>&1' "modelo do visor (Voltar grava o pedido; trocar a imagem nao fecha): $(cat "$vm/saida" 2>/dev/null)"
+    rm -rf "$vm"
+  else
+    echo "  (javac/java ausentes: teste do modelo do visor pulado)"
   fi
   afirma '[ "$(sed -n "s/^LVDSCTL_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/lvdsctl")" ]' "LVDSCTL_MD5 do cor.sh difere do md5 do lvdsctl"
   afirma '[ "$(sed -n "s/^NLCAM_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/nl_camcheck")" ]' "NLCAM_MD5 do cor.sh difere do md5 do nl_camcheck do kit"

@@ -2,7 +2,7 @@
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
   PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
-  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_ESPERA_OK_VOLTAS PFL_VARRE_LIGADA
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_NLTELA PFL_NLTELA_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_ESPERA_OK_VOLTAS PFL_VARRE_LIGADA PFL_APP_UID_MIN
 fi
 LC_ALL=C; export LC_ALL
 R="${PFL_ROOT:-}"
@@ -17,6 +17,9 @@ INCOMPLETAS_ARQ="$SUITE/incompletas"
 GERA_DIR="$SUITE/tela"
 TELA_DIR="$R/sdcard/pfl7560-suite"
 PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
+VISOR_DIR="$PEDIDO_DIR/visor"
+CANCELAR_ARQ="$PEDIDO_DIR/cancelar-suite"
+VISOR_COMP="com.pfl7560.verificar/.Visor"
 RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
 VIDEO="$R/dev/video0"
 INI_VENDOR="$R/vendor/etc/ZYCustom.ini"
@@ -28,6 +31,7 @@ WLAN_ESTADO="$R/sys/class/net/wlan0/operstate"
 NLCAM="${PFL_NLCAMCHECK:-$SUITE/nl_camcheck}"
 NLTELA="${PFL_NLTELA:-$SUITE/nl_tela}"
 DONO_UID=0
+APP_UID_MIN=10000
 
 # SUITE_LISTA_INICIO
 SUITE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
@@ -61,6 +65,7 @@ NLCAM_MD5=$(lista_md5 nl_camcheck)
 NLTELA_MD5=$(lista_md5 nl_tela)
 if [ "${PFL_TESTE:-}" = "1" ]; then
   [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
+  [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
   [ -n "${PFL_NLCAMCHECK_MD5:-}" ] && NLCAM_MD5="$PFL_NLCAMCHECK_MD5"
   [ -n "${PFL_NLTELA_MD5:-}" ] && NLTELA_MD5="$PFL_NLTELA_MD5"
 fi
@@ -104,6 +109,7 @@ MODO_AUTO=1
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_MODO_AUTO:-}" ] && MODO_AUTO="$PFL_MODO_AUTO"
 CAM_TENTATIVAS=3
 ESPERA_OK_VOLTAS=0
+ESPERA_OK_JANELA=5
 VARRE_LIGADA=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_VARRE_LIGADA:-}" ] && VARRE_LIGADA="$PFL_VARRE_LIGADA"
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_ESPERA_OK_VOLTAS:-}" ] && ESPERA_OK_VOLTAS="$PFL_ESPERA_OK_VOLTAS"
@@ -166,6 +172,12 @@ RAMPA_ATIVA=0
 VARRE_ATIVA=0
 VARRE_P0=""
 LOGCAT_PID=""
+VISOR=0
+VISOR_ABERTO=0
+CANCELADO=0
+FASE_FINAL=0
+FECHOU_NO_CONTROLE=0
+DORMIR_PID=""
 pegar_lock(){ mkdir "$LOCK" 2>/dev/null && TRAVA_MINHA=1; }
 rampa_limpar(){
   _ri=0
@@ -195,10 +207,14 @@ sair(){
     res foco_varredura interrompida
   fi
   parar_logcat
+  [ -n "$DORMIR_PID" ] && kill "$DORMIR_PID" 2>/dev/null
   if [ "$TRAVA_MINHA" = "1" ]; then
     date +%s > "$FIM_ARQ.new" 2>/dev/null && mv -f "$FIM_ARQ.new" "$FIM_ARQ"
     rm -f "$INCOMPLETAS_ARQ"
-    if [ -f "$RES.new" ]; then
+    if [ "$CANCELADO" = "1" ]; then
+      rm -f "$RES.new" "$SUITE/dicas.tmp" "$SUITE/estados.tmp"
+      ir_para_inicio
+    elif [ -f "$RES.new" ]; then
       res fim "$(date +%s 2>/dev/null)"
       mv -f "$RES.new" "$RES"
     fi
@@ -221,6 +237,7 @@ contar_inicio(){
 copiar_log_pendrive(){
   [ "$MODO" = "pendrive" ] && [ -n "$MP" ] && [ -d "$MP" ] || return 0
   cp "$LOGF" "$MP/newlink_suite.log" 2>/dev/null
+  [ "$CANCELADO" = "1" ] && return 0
   [ -f "$RES" ] && cp "$RES" "$MP/newlink_suite_resultados.txt" 2>/dev/null
   return 0
 }
@@ -230,6 +247,93 @@ preparar_telas(){
   mkdir -p "$TELA_DIR" 2>/dev/null && chmod 755 "$TELA_DIR" 2>/dev/null
   rm -rf "$GERA_DIR" 2>/dev/null
   ( umask 077; mkdir "$GERA_DIR" 2>/dev/null )
+  visor_preparar
+}
+# Visor do app (bloco 29): uma activity do com.pfl7560.verificar que fica aberta a suite inteira
+# sobre o fundo MeowCast e troca a imagem dentro de si (a home nao aparece entre as telas). As
+# telas vao para a pasta privada do app ($VISOR_DIR, do root, 0755, arquivos 0644): o arquivo que
+# o root cria ali herda o tipo app_data_file da pasta e fica no nivel s0, que o untrusted_app le
+# (TE: appdomain le app_data_file; MLS: o nivel do app domina s0). Sem o visor (app velho, sem a
+# pasta do app), a galeria do sistema volta como antes, com aviso no log.
+app_uid(){
+  APP_UID=""
+  [ -d "$PEDIDO_DIR" ] && [ ! -L "$PEDIDO_DIR" ] || return 1
+  # shellcheck disable=SC2046
+  set -- $(ls -ldn "$PEDIDO_DIR" 2>/dev/null)
+  case "${3:-}" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$3" -ge "$APP_UID_MIN" ] || return 1
+  APP_UID="$3"
+}
+visor_dir_ok(){
+  [ -d "$VISOR_DIR" ] && [ ! -L "$VISOR_DIR" ] || return 1
+  # shellcheck disable=SC2046
+  set -- $(ls -ldn "$VISOR_DIR" 2>/dev/null)
+  [ "${1:-}" = "drwxr-xr-x" ] || [ "${1:-}" = "drwxr-xr-x." ] || return 1
+  [ "${3:-}" = "$DONO_UID" ]
+}
+visor_preparar(){
+  VISOR=0; VISOR_ABERTO=0
+  if ! app_uid; then LOG "[AVISO] visor: pasta do app $PEDIDO_DIR ausente, link ou de outro dono - telas pela galeria."; return 1; fi
+  _vr=$(cmd package resolve-activity --brief -n "$VISOR_COMP" 2>/dev/null | tail -1)
+  if [ "$_vr" != "$VISOR_COMP" ]; then LOG "[AVISO] visor: o app instalado nao tem o $VISOR_COMP (app velho?) - telas pela galeria."; return 1; fi
+  if [ -e "$VISOR_DIR" ] || [ -L "$VISOR_DIR" ]; then
+    visor_dir_ok || rm -rf "$VISOR_DIR" 2>/dev/null
+  fi
+  [ -d "$VISOR_DIR" ] || { mkdir "$VISOR_DIR" 2>/dev/null && chmod 755 "$VISOR_DIR" 2>/dev/null; }
+  if ! visor_dir_ok; then LOG "[AVISO] visor: $VISOR_DIR nao ficou uma pasta do root 0755 - telas pela galeria."; return 1; fi
+  rm -f "$VISOR_DIR"/* "$VISOR_DIR"/.n-* 2>/dev/null
+  VISOR=1
+  LOG "visor: telas no app ($VISOR_COMP), fundo MeowCast entre elas"
+}
+visor_mostrar(){
+  _vn="${1##*/}"
+  case "$_vn" in ''|*[!a-z0-9.-]*|[.-]*|*..*) return 1 ;; esac
+  case "$_vn" in *.png) ;; *) return 1 ;; esac
+  visor_dir_ok || return 1
+  rm -f "$VISOR_DIR"/* 2>/dev/null
+  cp "$1" "$VISOR_DIR/.n-$_vn" 2>/dev/null && chmod 644 "$VISOR_DIR/.n-$_vn" 2>/dev/null && mv -f "$VISOR_DIR/.n-$_vn" "$VISOR_DIR/$_vn" 2>/dev/null || return 1
+  _vo=$(am start -n "$VISOR_COMP" --es tela "$_vn" 2>&1)
+  case "$_vo" in *Error*|*Exception*) LOG "[AVISO] visor: am start falhou ($(limpo "$_vo" 100))"; return 1 ;; esac
+  VISOR_ABERTO=1
+}
+visor_fechar(){
+  [ "$VISOR_ABERTO" = "1" ] || return 0
+  VISOR_ABERTO=0
+  if [ "$CANCELADO" = "1" ] || cancelou; then return 0; fi
+  am start -n "$VISOR_COMP" --ez fechar true >/dev/null 2>&1
+}
+# Voltar/Sair no visor = cancelar (bloco 29). O visor grava $CANCELAR_ARQ com o UID do app (o dono
+# da pasta, como o pedir-verificacao); a suite confere entre as etapas e dentro das esperas e para
+# sem resumo e sem gravar resultado. Depois do resumo na tela, o mesmo pedido so fecha a tela.
+cancelou(){
+  [ -f "$CANCELAR_ARQ" ] && [ ! -L "$CANCELAR_ARQ" ] || return 1
+  app_uid || return 1
+  # shellcheck disable=SC2046
+  set -- $(ls -ln "$CANCELAR_ARQ" 2>/dev/null)
+  [ "${3:-}" = "$APP_UID" ]
+}
+limpar_cancelar(){ [ -L "$PEDIDO_DIR" ] || rm -f "$CANCELAR_ARQ" 2>/dev/null; }
+checar_cancelar(){
+  cancelou || return 0
+  limpar_cancelar
+  VISOR_ABERTO=0
+  if [ "$FASE_FINAL" = "1" ]; then LOG "tela fechada pelo controle"; return 1; fi
+  LOG "cancelado pelo controle: suite parada sem resumo e sem gravar resultado"
+  CANCELADO=1
+  exit 0
+}
+dormir(){
+  checar_cancelar || return 1
+  case "${1:-0}" in ''|0|*[!0-9]*) return 0 ;; esac
+  sleep "$1" &
+  DORMIR_PID=$!
+  while kill -0 "$DORMIR_PID" 2>/dev/null; do
+    if cancelou; then kill "$DORMIR_PID" 2>/dev/null; wait "$DORMIR_PID" 2>/dev/null; DORMIR_PID=""; checar_cancelar; return 1; fi
+    sleep 1
+  done
+  wait "$DORMIR_PID" 2>/dev/null
+  DORMIR_PID=""
+  checar_cancelar
 }
 nltela_ok(){
   [ -n "$NLTELA_MD5" ] && arq_seguro "$NLTELA" && [ -x "$NLTELA" ] && [ "$(md5_de "$NLTELA")" = "$NLTELA_MD5" ]
@@ -273,18 +377,27 @@ fechar_alertas(){
   LOG "[AVISO] o alerta do sistema nao fechou depois de 4 teclas"
   return 1
 }
-mostrar_arq(){
-  fechar_alertas
-  LOG "tela: ${1##*/}"
+galeria_pacote(){
   _pk=$(cmd package resolve-activity --brief -a android.intent.action.VIEW -d "file://${1#"$R"}" -t image/png 2>/dev/null | tail -1)
   _pk="${_pk%%/*}"
   case "$_pk" in
     ''|android|*[!A-Za-z0-9._]*) _pk="com.hisilicon.higallery" ;;
   esac
   GALERIA="$_pk"
+}
+mostrar_arq(){
+  checar_cancelar
+  fechar_alertas
+  LOG "tela: ${1##*/}"
+  if [ "$VISOR" = "1" ]; then
+    if visor_mostrar "$1"; then dormir "$TEMPO_TELA"; return 0; fi
+    VISOR=0
+    LOG "[AVISO] visor: a tela ${1##*/} nao abriu no visor - da aqui em diante pela galeria."
+  fi
+  galeria_pacote "$1"
   am force-stop "$_pk" >/dev/null 2>&1
   am start -a android.intent.action.VIEW -d "file://${1#"$R"}" -t image/png >/dev/null 2>&1
-  sleep "$TEMPO_TELA"
+  dormir "$TEMPO_TELA"
 }
 mostrar_estatica(){
   if ! confere "$SUITE/kit/$1.png" "kit/$1.png"; then
@@ -300,8 +413,11 @@ tela(){
   return 1
 }
 ir_para_inicio(){
+  visor_fechar
   am force-stop "${GALERIA:-com.hisilicon.higallery}" >/dev/null 2>&1
   input keyevent KEYCODE_HOME >/dev/null 2>&1
+  limpar_cancelar
+  visor_dir_ok && rm -f "$VISOR_DIR"/* 2>/dev/null
 }
 campo(){ printf '%s=%s\n' "$1" "$2" >> "$CAMPOS"; }
 novos_campos(){ CAMPOS="$GERA_DIR/$1.txt"; rm -f "$CAMPOS"; : > "$CAMPOS"; }
@@ -311,15 +427,17 @@ aguardar_autofoco(){
   while [ "$_t" -lt "$1" ]; do
     [ "$(getprop sys.newlink.auto 2>/dev/null)" = "1" ] && break
     if [ "$2" = "1" ] && [ "$(getprop vendor.focus.camera.is_focused 2>/dev/null)" = "true" ]; then _viu=1; break; fi
+    checar_cancelar
     sleep 1; _t=$(( _t + 1 ))
   done
   if [ "$(getprop sys.newlink.auto 2>/dev/null)" = "1" ]; then
     _viu=1; _t=0
     while [ "$_t" -lt "$AUTOFOCO_FIM" ] && [ "$(getprop sys.newlink.auto 2>/dev/null)" = "1" ]; do
+      checar_cancelar
       sleep 2; _t=$(( _t + 2 ))
     done
   fi
-  sleep "$AUTOFOCO_FOLGA"
+  dormir "$AUTOFOCO_FOLGA"
   [ "$_viu" = "1" ]
 }
 disparar_autofoco(){
@@ -363,7 +481,7 @@ etapa_abertura(){
   passos_fila fila fila fila fila
   campo tom normal
   tela aviso abertura "$CAMPOS" aguarde
-  sleep "$TEMPO_ABERTURA"
+  dormir "$TEMPO_ABERTURA"
   case "$MODO" in
     tomada|pendrive) aguardar_autofoco "$AUTOFOCO_INICIO_BOOT" 1 && LOG "autofoco de boot terminou" ;;
     *) aguardar_autofoco 0 0 ;;
@@ -413,6 +531,7 @@ etapa_cor(){
     : > "$SUITE/cor.log"
     sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" suite >>"$SUITE/cor.log" 2>&1 </dev/null
     cat "$SUITE/cor.log"
+    if [ "$VISOR" = "1" ]; then galeria_pacote "$TELA_DIR/x.png"; am force-stop "$GALERIA" >/dev/null 2>&1; fi
     if arq_seguro "$SUITE/cor-resultado.txt"; then
       COR_RES=$(ler_cor cor_resultado)
       COR_ANTES=$(ler_cor cor_formato_antes)
@@ -467,11 +586,15 @@ esperar_ok_camera(){
   tela aviso camera "$CAMPOS"
   LOG "camera sem leitura: esperando uma tecla do controle, sem prazo"
   _eo=0
-  until getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'; do
+  while :; do
+    checar_cancelar
+    timeout "$ESPERA_OK_JANELA" getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN' && break
     _eo=$(( _eo + 1 ))
     if [ "$ESPERA_OK_VOLTAS" != "0" ] && [ "$_eo" -ge "$ESPERA_OK_VOLTAS" ]; then LOG "(teste) espera encerrada"; return 1; fi
-    sleep 1
   done
+  # a tecla pode ter sido o Voltar do visor: o pedido de cancelar chega logo depois
+  sleep 1
+  checar_cancelar
   LOG "tecla recebida: seguindo"
   return 0
 }
@@ -870,13 +993,13 @@ etapa_rampa(){
   rm -f "$_lc"
   timeout 120 logcat -v time -T 1 -s ZYThermalManager > "$_lc" 2>&1 </dev/null &
   LOGCAT_PID=$!
-  sleep "$RAMPA_ANTES"
+  dormir "$RAMPA_ANTES"
   LOG "rampa: injetando $INJETADO mC (WARNING=$_w, EMERGENCY=$_e) por ${RAMPA_INJETADO}s"
   RAMPA_ATIVA=1
   setprop "$PROP_OVERRIDE" "$INJETADO"
-  sleep "$RAMPA_INJETADO"
+  dormir "$RAMPA_INJETADO"
   if rampa_limpar; then _limpo=ok; else _limpo=falhou; fi
-  sleep "$RAMPA_DEPOIS"
+  dormir "$RAMPA_DEPOIS"
   fechar_alertas
   parar_logcat
   _nw=$(grep -ac 'Overheat Warning' "$_lc" 2>/dev/null)
@@ -984,8 +1107,14 @@ etapa_resumo(){
   mv -f "$_c2" "$CAMPOS"
   res dicas "$(grep -c '' "$SUITE/dicas.tmp" 2>/dev/null)"
   LOG "resumo: $N_ITENS itens, $N_CORR correcao(oes), $N_ATEN atencao(oes)"
+  checar_cancelar
+  FASE_FINAL=1
   if tela resumo resumo "$CAMPOS"; then
-    if timeout "$TEMPO_RESUMO" getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'; then LOG "resumo fechado por tecla"; fi
+    if timeout "$TEMPO_RESUMO" getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'; then
+      LOG "resumo fechado por tecla"
+      sleep 1
+      checar_cancelar || FECHOU_NO_CONTROLE=1
+    fi
   else
     LOG "[AVISO] resumo sem tela gerada: o resultado esta em $RES"
   fi
@@ -993,6 +1122,7 @@ etapa_resumo(){
 etapa_final_pendrive(){
   [ -f "$RES.new" ] && cp "$RES.new" "$RES" 2>/dev/null
   copiar_log_pendrive
+  if [ "$FECHOU_NO_CONTROLE" = "1" ]; then LOG "final do pendrive pulado: o resumo foi fechado com Voltar"; return 0; fi
   novos_campos final
   campo titulo "Pode tirar o pendrive."
   if [ "$AVISO_ARG" = "termica-falhou" ]; then
@@ -1007,6 +1137,7 @@ etapa_final_pendrive(){
   tela aviso final "$CAMPOS" "$_est"
   _t=0
   while [ "$_t" -lt "$ESPERA_TIRAR" ] && [ -f "$MP/newlink_update.sh" ]; do
+    checar_cancelar || break
     sleep 2; _t=$(( _t + 2 ))
   done
 }
@@ -1116,7 +1247,8 @@ modo_desinstalar(){
     if [ -L "$_dd" ]; then rm -f "$_dd"; elif [ -e "$_dd" ]; then rm -rf "$_dd"; fi
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done
-  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" "$PEDIDO_DIR/descanso-inicio" "$PEDIDO_DIR/descanso-fim" 2>/dev/null
+  [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" "$PEDIDO_DIR/descanso-inicio" "$PEDIDO_DIR/descanso-fim" "$CANCELAR_ARQ" 2>/dev/null
+  [ -L "$PEDIDO_DIR" ] || [ -L "$VISOR_DIR" ] || rm -rf "$VISOR_DIR" 2>/dev/null
   [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" "$R/data/data/com.pfl7560.home/curva-vent" "$R/data/data/com.pfl7560.home/curva-led" "$R/data/data/com.pfl7560.home/chave" "$R/data/data/com.pfl7560.home/diario" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"
@@ -1159,11 +1291,17 @@ rm -f "$RES.new" "$SUITE/dicas.tmp" "$SUITE/estados.tmp"
 : > "$RES.new"; : > "$SUITE/dicas.tmp"
 res modo "$MODO"; res inicio "$RUN_ID"
 P_COR=fila; P_GEO=fila; P_TEMP=fila; P_RAMPA=fila; I_QP=""; QP=a_ler; TERMICA=""
+if cancelou; then LOG "pedido de cancelar antigo (de antes desta suite) apagado"; fi
+limpar_cancelar
 preparar_telas
 etapa_abertura
+checar_cancelar
 etapa_cor
+checar_cancelar
 etapa_geometria
+checar_cancelar
 etapa_temperatura
+checar_cancelar
 etapa_rampa
 etapa_resumo
 [ "$MODO" = "pendrive" ] && etapa_final_pendrive

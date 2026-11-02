@@ -42,3 +42,59 @@ ele sempre mostra o background da home. Coloca entre as transições de telas o 
 |---|---|---|
 | T1 | Opus, high | visor + cancelar (app e kit), com testes |
 | T2 | Opus, high | confere, corrige e regressão |
+
+## Feito (T1, bloco 29)
+
+**Visor no app** (`com.pfl7560.verificar`, versionCode 9): `Visor.java`, não exportado, `singleTask` em tarefa própria
+(`taskAffinity` `com.pfl7560.verificar.visor`), tema `TemaVisor` com o logo MeowCast da abertura como fundo da janela
+(`res/drawable-nodpi/visor_fundo.jpg`, byte a byte o `artifacts/tema/marca/logo.jpg`). A suíte abre com
+`am start -n com.pfl7560.verificar/.Visor --es tela NOME.png`; cada tela seguinte chega por `onNewIntent`: a imagem velha
+some (aparece o fundo MeowCast), a nova acende. No fim, `--ez fechar true` fecha antes do `HOME`. Regras em
+`VisorModelo.java` (Java puro), testadas pelo `tests/test-kit-pendrive.sh` (`teste/TesteVisorModelo.java`).
+
+**Onde ficam as telas e por que o app lê com SELinux enforcing:** `/data/data/com.pfl7560.verificar/visor/NOME.png`
+(pasta do root `0755`, arquivo `0644`; a suíte copia para `.n-NOME` e faz `mv`). É a pasta do canal que o app já usa
+(`pedir-verificacao`, `descanso-*`): o arquivo que o root cria ali herda o tipo da pasta (`app_data_file`, não há
+`type_transition` do `vendor_shell` para lá) e nasce no nível `s0` do processo que cria; o `untrusted_app` (o app está
+em `/vendor/app` sem ser privilegiado) tem `allow appdomain app_data_file:file` de leitura, e no MLS o nível do app
+(`s0:c512,c768`) domina `s0`. DAC: o app é dono da pasta pai e lê a `visor/` `0755` e os `0644`. Hoje o aparelho está
+`Permissive` (doc 49), então nada nega de qualquer jeito; a conta acima é para quando estiver `Enforcing`.
+`/sdcard` foi descartado: o app precisaria de `READ_EXTERNAL_STORAGE` (permissão de tempo de execução no targetSdk 28).
+A suíte recria a `visor/` se ela for link ou não for do root `0755` (o alvo do link fica intocado).
+
+**Fallback:** sem a pasta do app (ou com UID abaixo de 10000), sem o `.Visor` no app instalado (app v8: o
+`cmd package resolve-activity --brief -n` não devolve o componente) ou com o `am start` do visor dando `Error`, a
+suíte volta à galeria como antes, com `[AVISO] visor: ...` no `ultimo.log`.
+
+**Voltar/Sair = cancelar:** o visor grava `cancelar-suite` (dono = UID do app, `fsync`) no `onKeyDown` de Voltar (4) ou
+Esc (111) e fecha. A suíte (`cancelou`: arquivo comum, não link, dono = dono da pasta do app >= 10000) confere antes de
+cada tela, entre as etapas, a cada segundo das esperas fixas (`dormir`: abertura, tela, folga do autofoco, as três da
+rampa), a cada volta das esperas do autofoco, e na espera da câmera sem prazo (agora em janelas de 5 s do
+`getevent -qlc 3`, para conferir entre elas; depois de uma tecla, 1 s e confere de novo, porque a tecla pode ter sido
+o Voltar). Ao cancelar: loga "cancelado pelo controle", `exit 0`; o `sair` limpa o override da rampa e o foco como
+antes, grava `ultimo-fim` e zera `incompletas` (cancelar não é suíte interrompida), **apaga o `resultados.txt.new`** (o
+`resultados.txt` anterior fica), no pendrive copia só o log, e vai à home (galeria fechada, `HOME`). Depois que o resumo
+aparece, Voltar só fecha a tela: o resultado fica gravado e, no modo pendrive, a tela final é pulada. Pedido velho
+(de antes da suíte) é apagado no início. O `suite-pedido.sh` ignora `cancelar-suite` (cai no `*) exit 0`).
+`--desinstalar` apaga `cancelar-suite` e a `visor/`.
+
+**Provas no PC:** `tests/test-suite.sh` caso `c_visor_cancelar` (visor nas telas sem galeria entre elas, fechar antes do
+HOME, pasta do root `0755` limpa no fim; app velho; `am start` com erro; `visor/` link; UID baixo; cancelar na etapa 3
+nos modos tomada, pedido e pendrive; na espera da câmera com e sem tecla; nos 40 s da rampa com o override limpo;
+pedido link ignorado; pedido velho apagado; Voltar no resumo só fecha, tomada e pendrive; o `suite-pedido.sh` não
+apaga o pedido; estático: nenhum `sleep` longo fora do `dormir`) e `--desinstalar` no `c_desinstalar`.
+
+**Limites conhecidos:** as telas do `cor.sh` (calibração, escada, corrigida) seguem pela galeria, por cima do visor:
+Voltar ali fecha a galeria (aparece o visor) e só o segundo Voltar cancela; durante o `cor.sh` o cancelar vale quando
+ele termina. A suíte fecha a galeria do `cor.sh` por trás do visor depois dele, para o Voltar no visor não revelar uma
+tela velha. Uma tecla que cair na virada da janela de 5 s da câmera pode se perder (a pessoa aperta de novo).
+
+**Conferir no aparelho:**
+1. Qual tecla o "Sair" do controle manda (`getevent -l` como root): se não for `KEY_BACK` nem `KEY_ESC`, o visor não a
+   trata e é preciso acrescentar o código no `VisorModelo.cancela`.
+2. Suíte pelo ícone "Verificar projetor": entre as telas aparece o fundo MeowCast, nunca a home; o `ultimo.log` diz
+   `visor: telas no app`.
+3. Voltar na tela da etapa 3: volta à home em até ~2 s, `ultimo.log` termina em "cancelado pelo controle",
+   `resultados.txt` com o `inicio=` da suíte anterior, e o `override` limpo (`getprop vendor.zy.power.tm.temp` vazio).
+4. Voltar na tela "A câmera não conseguiu ler a tela" (tampar a lente): cancela.
+5. `ls -lZ /data/data/com.pfl7560.verificar/visor` durante a suíte: `root root`, `app_data_file`.

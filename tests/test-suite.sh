@@ -76,9 +76,23 @@ printf "%s=%s\n" "$1" "${2:-}" >> "$T/props.novo"; mv "$T/props.novo" "$T/props"
   stub getevent 'echo "getevent $*" >> "$T/calls.log"
 k=$(head -1 "$T/keys"); sed -i 1d "$T/keys"
 [ "$k" = "key" ] && echo "/dev/input/event2: EV_KEY       KEY_OK                DOWN"
+if [ "$k" = "voltar" ]; then echo "/dev/input/event2: EV_KEY       KEY_BACK              DOWN"; : > "$PFL_ROOT/data/data/com.pfl7560.verificar/cancelar-suite"; fi
 exit 0'
   stub am 'echo "am $*" >> "$T/calls.log"
 [ "$1" = "start" ] || exit 0
+[ -f "$T/am-erro" ] && { echo "Error: Activity class {com.pfl7560.verificar/com.pfl7560.verificar.Visor} does not exist."; exit 0; }
+case "$*" in
+  *"-n com.pfl7560.verificar/.Visor --es tela "*)
+    n=${*##*--es tela }; n=${n%% *}
+    [ -f "$PFL_ROOT/data/data/com.pfl7560.verificar/visor/$n" ] || echo "VISOR_ARQUIVO_AUSENTE $n" >> "$T/calls.log"
+    b=${n%.png}; b=${b%-[0-9][0-9][0-9][0-9][0-9][0-9]*}
+    if [ -f "$T/voltar-na-tela" ] && [ "$b" = "$(cat "$T/voltar-na-tela")" ]; then
+      if [ -f "$T/voltar-link" ]; then ln -s "$T/calls.log" "$PFL_ROOT/data/data/com.pfl7560.verificar/cancelar-suite"
+      else : > "$PFL_ROOT/data/data/com.pfl7560.verificar/cancelar-suite"; fi
+    fi
+    exit 0 ;;
+  *"-n com.pfl7560.verificar/.Visor"*) exit 0 ;;
+esac
 f=$(echo "$*" | sed "s#.*-d file://\([^ ]*\).*#\1#")
 [ -f "$PFL_ROOT$f" ] || echo "AM_ARQUIVO_AUSENTE $f" >> "$T/calls.log"
 exit 0'
@@ -92,6 +106,10 @@ case "$1 $2" in
   "overlay disable") sed -i "s/^\[x\] $3\$/[ ] $3/" "$T/overlay.db"; exit 0 ;;
 esac
 case "$*" in *query-services*) [ -f "$T/sem-descanso" ] || echo "com.pfl7560.verificar/.Descanso"; exit 0 ;; esac
+case "$*" in *"-n com.pfl7560.verificar/.Visor"*)
+  if [ -f "$T/visor" ]; then echo "priority=0 preferredOrder=0 match=0x0 specificIndex=-1 isDefault=false"; echo "com.pfl7560.verificar/.Visor"; else echo "No activity found"; fi
+  exit 0 ;;
+esac
 echo "priority=0 isDefault=false"; echo "com.hisilicon.higallery/.NetworkHiGallery"'
   stub logcat 'echo "logcat $*" >> "$T/calls.log"; [ -f "$T/logcat-saida" ] && cat "$T/logcat-saida"; exit 0'
   stub hidebug 'in=$(cat 2>/dev/null | tr "\n" " ")
@@ -157,6 +175,7 @@ if [ "$2" = "1" ]; then printf "\001"; else printf "\000"; fi | dd of="$pp" bs=1
 exit 0'
   stub sleep 'echo "sleep $*" >> "$T/calls.log"
 if [ -f "$T/mata-no-sleep" ] && [ "$1" = "$(cat "$T/mata-no-sleep")" ]; then rm -f "$T/mata-no-sleep"; kill -TERM "$PPID"; fi
+if [ -f "$T/voltar-no-sleep" ] && [ "$1" = "$(cat "$T/voltar-no-sleep")" ]; then rm -f "$T/voltar-no-sleep"; : > "$PFL_ROOT/data/data/com.pfl7560.verificar/cancelar-suite"; fi
 if [ -f "$T/sleep-cria" ] && [ "$1" = 30 ]; then while IFS= read -r f; do : > "$f"; done < "$T/sleep-cria"; rm -f "$T/sleep-cria"; fi
 if [ -f "$T/restr-pendente" ]; then
   n=$(cat "$T/restr-atraso" 2>/dev/null || echo 0)
@@ -250,7 +269,8 @@ res(){ sed -n "s/^$1=//p" "$S/resultados.txt" 2>/dev/null | head -1; }
 ult_hist(){ tail -1 "$S/historico-boot.txt" 2>/dev/null; }
 tem_chamada(){ grep -qF -- "$1" "$T/calls.log" 2>/dev/null; }
 chamadas(){ grep -c "^$1" "$T/calls.log" 2>/dev/null || true; }
-telas(){ grep '^am start' "$T/calls.log" 2>/dev/null | sed 's#.*/\([a-z0-9-]*\)\.png.*#\1#' | sed 's/-[0-9]\{6,\}$//' | tr '\n' ' '; }
+telas(){ grep '^am start' "$T/calls.log" 2>/dev/null | grep '[.]png' | sed -e 's#.*--es tela \([a-z0-9-]*\)\.png.*#\1#' -e 's#.*/\([a-z0-9-]*\)\.png.*#\1#' | sed 's/-[0-9]\{6,\}$//' | tr '\n' ' '; }
+telas_visor(){ grep '^am start -n com.pfl7560.verificar/.Visor --es tela ' "$T/calls.log" 2>/dev/null | sed 's#.*--es tela \([a-z0-9-]*\)\.png.*#\1#' | sed 's/-[0-9]\{6,\}$//' | tr '\n' ' '; }
 campos(){ local f r=""; for f in "$T"/campos-*-"$1"-"$2".txt; do [ -e "$f" ] && r="$f"; done; echo "$r"; }
 pp_md5(){ md5 "$R/dev/block/by-name/panelparam"; }
 rampa_reage(){ printf '%s\n' "10-30 19:40:01.000 I/ZYThermalManager( 1): Overheat Warning" \
@@ -1064,6 +1084,7 @@ c_desinstalar(){
   echo "$vp" > "$R/dev/pfl7560-suite.vigia"
   mkdir -p "$R/sdcard/pfl7560-suite" "$PED"; : > "$PED/pedir-verificacao"; : > "$PED/do-app"
   : > "$PED/descanso-inicio"; : > "$PED/descanso-fim"; mkdir -p "$R/dev/pfl7560-suite.lock"
+  : > "$PED/cancelar-suite"; mkdir -p "$PED/visor"; : > "$PED/visor/resumo-1.png"
   printf '%s\n' "persist.sys.boot.reason=pfl7560,ligado" >> "$T/props"
   printf 'secure screensaver_components=com.pfl7560.verificar/.Descanso\nsecure screensaver_default_component=com.pfl7560.verificar/.Descanso\n' > "$T/settings.db"
   : > "$MP/DESINSTALAR-SUITE.txt"; : > "$T/calls.log"
@@ -1075,6 +1096,7 @@ c_desinstalar(){
   afirma '[ ! -e "$S" ] && [ ! -e "$PED/pedir-verificacao" ] && [ ! -e "$R/sdcard/pfl7560-suite" ]' "pasta da suite, o pedido ou a pasta das telas ficou"
   afirma '[ -f "$PED/do-app" ]' "desinstalar apagou arquivo do app (a pasta e dele)"
   afirma '[ ! -e "$PED/descanso-inicio" ] && [ ! -e "$PED/descanso-fim" ]' "os sinais do descanso ficaram na pasta do app"
+  afirma '[ ! -e "$PED/cancelar-suite" ] && [ ! -e "$PED/visor" ]' "o pedido de cancelar ou a pasta do visor ficaram na pasta do app"
   afirma '[ ! -e "$R/dev/pfl7560-suite.lock" ]' "a trava de uma suite morta pelo ctl.stop ficou"
   afirma '[ "$vrc" = 143 ]' "o vigia nao foi encerrado com TERM (wait=$vrc)"
   afirma '[ ! -e "$R/dev/pfl7560-suite.vigia" ]' "pid do vigia ficou"
@@ -1627,6 +1649,127 @@ MOTIVOS
   roda_suite tomada
   unset NLTELA_MD5_TESTE
   afirma '! grep -q "calibracao.png" "$T/calls.log"' "mostrou a calibracao adulterada"
+  limpa
+}
+
+# bloco 29: o visor do app (fundo MeowCast entre as telas) e Voltar/Sair = cancelar
+c_visor_cancelar(){
+  local ws
+  novo_cenario "visor: telas da suite no app, sem fechar e abrir; fecha no fim antes do HOME"
+  etapa_feliz; : > "$T/visor"
+  roda_suite tomada
+  afirma '[ "$RC" = 0 ] && grep -q "visor: telas no app" "$S/ultimo.log"' "rc=$RC ou visor nao ligou: $(grep -a visor "$S/ultimo.log" | head -2)"
+  afirma '[ "$(telas_visor)" = "abertura calibracao calibracao etapa3 etapa4 resumo " ]' "telas no visor: '$(telas_visor)'"
+  afirma '[ "$(telas)" = "abertura calibracao calibracao escada-1 calibracao etapa3 etapa4 resumo " ]' "telas: '$(telas)'"
+  afirma '[ -z "$(grep "^am start -a android.intent.action.VIEW" "$T/calls.log" | grep -E "/(abertura|etapa3|etapa4|resumo)-")" ]' "tela da suite pela galeria com o visor ligado"
+  afirma '! grep -q "VISOR_ARQUIVO_AUSENTE\|AM_ARQUIVO_AUSENTE" "$T/calls.log"' "tela aberta sem o arquivo: $(grep ARQUIVO_AUSENTE "$T/calls.log" | head -2)"
+  afirma '[ "$(tail -3 "$T/calls.log" | tr "\n" "|")" = "am start -n com.pfl7560.verificar/.Visor --ez fechar true|am force-stop com.hisilicon.higallery|input keyevent KEYCODE_HOME|" ]' "fim: $(tail -3 "$T/calls.log" | tr '\n' '|')"
+  ws=$(stat -c '%A %u' "$PED/visor")
+  afirma '[ "$ws" = "drwxr-xr-x $(id -u)" ] && [ -z "$(find "$PED/visor" -mindepth 1)" ]' "pasta do visor: $ws / $(find "$PED/visor" -mindepth 1 | tr '\n' ' ')"
+  afirma '[ "$(res itens)" = 19 ] && ! grep -q "cancelado pelo controle" "$S/ultimo.log"' "resultado incompleto sem cancelar"
+  afirma 'grep -A3 "cor: rodando cor.sh" "$T/calls.log" >/dev/null; tem_chamada "am force-stop com.hisilicon.higallery"' "a galeria do cor.sh nao foi fechada atras do visor"
+  limpa
+
+  novo_cenario "visor: app velho (sem o Visor) = galeria, com aviso no log"
+  etapa_feliz
+  roda_suite tomada
+  afirma 'grep -q "\[AVISO\] visor: o app instalado nao tem o com.pfl7560.verificar/.Visor" "$S/ultimo.log" && [ -z "$(telas_visor)" ] && [ "$(res itens)" = 19 ]' "sem aviso ou usou o visor: $(grep -a visor "$S/ultimo.log" | head -2)"
+  limpa
+
+  novo_cenario "visor: am start do visor falha = cai na galeria no meio, com aviso"
+  etapa_feliz; : > "$T/visor"; : > "$T/am-erro"
+  roda_suite tomada
+  afirma 'grep -q "\[AVISO\] visor: am start falhou" "$S/ultimo.log" && grep -q "da aqui em diante pela galeria" "$S/ultimo.log" && [ "$(res itens)" = 19 ]' "$(grep -a visor "$S/ultimo.log" | head -3 | tr '\n' '|')"
+  afirma 'tem_chamada "am start -a android.intent.action.VIEW -d file:///sdcard/pfl7560-suite/resumo-"' "o resumo nao foi pela galeria"
+  limpa
+
+  novo_cenario "visor: pasta visor/ do app e link = o link sai, o alvo fica intocado, a pasta nasce do root"
+  etapa_feliz; : > "$T/visor"; mkdir -p "$T/alvo"; echo x > "$T/alvo/guardado"; ln -s "$T/alvo" "$PED/visor"
+  roda_suite tomada
+  afirma '[ -d "$PED/visor" ] && [ ! -L "$PED/visor" ] && [ "$(cat "$T/alvo/guardado")" = x ] && [ "$(find "$T/alvo" -mindepth 1)" = "$T/alvo/guardado" ]' "seguiu o link: $(find "$T/alvo" -mindepth 1 | tr '\n' ' ')"
+  afirma '[ "$(telas_visor)" = "abertura calibracao calibracao etapa3 etapa4 resumo " ]' "telas no visor: '$(telas_visor)'"
+  limpa
+
+  novo_cenario "visor: pasta do app com UID abaixo do minimo = sem visor e o pedido de cancelar e ignorado"
+  etapa_feliz; : > "$T/visor"; echo etapa3 > "$T/voltar-na-tela"; APP_UID_MIN_TESTE=99999999
+  : > "$PED/cancelar-suite"
+  roda_suite tomada
+  APP_UID_MIN_TESTE=
+  afirma '[ -z "$(telas_visor)" ] && grep -q "\[AVISO\] visor: pasta do app" "$S/ultimo.log" && [ "$(res itens)" = 19 ] && ! grep -q cancelado "$S/ultimo.log"' "$(grep -a "visor\|cancel" "$S/ultimo.log" | head -3 | tr '\n' '|')"
+  limpa
+
+  local modo
+  for modo in tomada pedido pendrive; do
+    novo_cenario "cancelar ($modo): Voltar no visor na etapa 3 = para sem resumo, sem resultado, volta a home"
+    etapa_feliz; : > "$T/visor"; echo etapa3 > "$T/voltar-na-tela"
+    echo "modo=antigo" > "$S/resultados.txt"
+    if [ "$modo" = pendrive ]; then pendrive; roda_suite pendrive "$MP"; else roda_suite "$modo"; fi
+    afirma '[ "$RC" = 0 ] && grep -q "cancelado pelo controle" "$S/ultimo.log"' "rc=$RC log: $(tail -3 "$S/ultimo.log" | tr '\n' '|')"
+    afirma '[ "$(telas_visor)" = "abertura calibracao calibracao etapa3 " ] && [ -z "$(campos resumo resumo)" ] && ! grep -q "nl_tela resumo" "$T/calls.log"' "telas: '$(telas)' / resumo gerado"
+    afirma '[ "$(cat "$S/resultados.txt")" = "modo=antigo" ] && [ ! -e "$S/resultados.txt.new" ]' "o resultado foi gravado: $(head -2 "$S/resultados.txt" | tr '\n' '|')"
+    afirma '! tem_chamada "setprop $PROP_OV 71000" && ! grep -q "suite terminada" "$S/ultimo.log"' "a suite seguiu depois do cancelar"
+    afirma '[ "$(tail -2 "$T/calls.log" | tr "\n" "|")" = "am force-stop com.hisilicon.higallery|input keyevent KEYCODE_HOME|" ] && ! tem_chamada "--ez fechar true"' "fim: $(tail -3 "$T/calls.log" | tr '\n' '|')"
+    afirma '[ ! -e "$PED/cancelar-suite" ] && [ -z "$(find "$PED/visor" -mindepth 1)" ] && [ ! -d "$R/dev/pfl7560-suite.lock" ] && [ -s "$S/ultimo-fim" ] && [ ! -e "$S/incompletas" ]' "fim sujo: pedido, telas, trava, ultimo-fim ou incompletas"
+    if [ "$modo" = pendrive ]; then
+      afirma '[ -s "$MP/newlink_suite.log" ] && grep -q "cancelado pelo controle" "$MP/newlink_suite.log" && [ ! -e "$MP/newlink_suite_resultados.txt" ] && [ -z "$(campos aviso final)" ]' "pendrive: log, resultado antigo ou tela final"
+    fi
+    limpa
+  done
+
+  novo_cenario "cancelar: Voltar durante a espera da camera (sem prazo) = para ali, sem cor e sem resumo"
+  etapa_feliz; : > "$T/visor"; echo 3 > "$T/cam-faixas-falhas"; echo voltar > "$T/keys"
+  roda_suite tomada
+  afirma 'grep -q "camera sem leitura: esperando uma tecla do controle, sem prazo" "$S/ultimo.log" && grep -q "cancelado pelo controle" "$S/ultimo.log"' "log: $(tail -4 "$S/ultimo.log" | tr '\n' '|')"
+  afirma '! grep -q "cor: rodando cor.sh" "$S/ultimo.log" && ! grep -q "tecla recebida: seguindo" "$S/ultimo.log" && [ ! -e "$S/resultados.txt" ]' "seguiu depois do Voltar"
+  limpa
+
+  novo_cenario "cancelar: o pedido chega na espera da camera sem tecla (antes do getevent) = para"
+  etapa_feliz; : > "$T/visor"; echo 3 > "$T/cam-faixas-falhas"; printf 'nokey\nnokey\n' > "$T/keys"; echo camera > "$T/voltar-na-tela"
+  roda_suite tomada
+  afirma 'grep -q "cancelado pelo controle" "$S/ultimo.log" && [ "$(chamadas getevent)" = 0 ]' "log: $(tail -3 "$S/ultimo.log" | tr '\n' '|') getevent=$(chamadas getevent)"
+  limpa
+
+  novo_cenario "cancelar: Voltar durante os 40 s da rampa = override limpo, sem resultado"
+  etapa_feliz; : > "$T/visor"; echo 40 > "$T/voltar-no-sleep"
+  roda_suite tomada
+  afirma '[ "$RC" = 0 ] && grep -q "cancelado pelo controle" "$S/ultimo.log" && tem_chamada "sleep 40"' "rc=$RC $(tail -3 "$S/ultimo.log" | tr '\n' '|')"
+  afirma 'tem_chamada "setprop $PROP_OV 71000" && [ "$(grep -n "^setprop $PROP_OV" "$T/calls.log" | tail -1 | cut -d" " -f3-)" = "" ] && [ -z "$(awk -F= -v k="$PROP_OV" "\$1==k{print \$2}" "$T/props")" ]' "override ficou: $(grep "^setprop $PROP_OV" "$T/calls.log" | tr '\n' '|')"
+  afirma '[ ! -e "$S/resultados.txt" ] && [ -z "$(campos resumo resumo)" ] && tem_chamada "input keyevent KEYCODE_HOME"' "resultado gravado, resumo ou sem HOME"
+  limpa
+
+  novo_cenario "cancelar: pedido que e link (nao do app) = ignorado, a suite vai ate o fim"
+  etapa_feliz; : > "$T/visor"; echo etapa3 > "$T/voltar-na-tela"; : > "$T/voltar-link"
+  roda_suite tomada
+  afirma '! grep -q "cancelado pelo controle" "$S/ultimo.log" && [ "$(res itens)" = 19 ] && [ "$(telas_visor)" = "abertura calibracao calibracao etapa3 etapa4 resumo " ]' "$(grep -a cancel "$S/ultimo.log" | head -2)"
+  limpa
+
+  novo_cenario "cancelar: pedido velho (de antes da suite) e apagado no inicio"
+  etapa_feliz; : > "$T/visor"; : > "$PED/cancelar-suite"
+  roda_suite tomada
+  afirma 'grep -q "pedido de cancelar antigo" "$S/ultimo.log" && ! grep -q "cancelado pelo controle" "$S/ultimo.log" && [ "$(res itens)" = 19 ]' "$(grep -a cancel "$S/ultimo.log" | head -2)"
+  limpa
+
+  for modo in tomada pendrive; do
+    novo_cenario "resumo ($modo): Voltar no resumo so fecha a tela; o resultado fica gravado"
+    etapa_feliz; : > "$T/visor"; echo voltar > "$T/keys"
+    if [ "$modo" = pendrive ]; then pendrive; roda_suite pendrive "$MP"; else roda_suite tomada; fi
+    afirma '[ "$(res itens)" = 19 ] && grep -q "tela fechada pelo controle" "$S/ultimo.log" && ! grep -q "cancelado pelo controle" "$S/ultimo.log" && grep -q "suite terminada" "$S/ultimo.log"' "$(grep -a "cancel\|fechad" "$S/ultimo.log" | tr '\n' '|')"
+    afirma '[ ! -e "$PED/cancelar-suite" ] && ! tem_chamada "--ez fechar true" && [ "$(tail -1 "$T/calls.log")" = "input keyevent KEYCODE_HOME" ]' "fim: $(tail -2 "$T/calls.log" | tr '\n' '|')"
+    if [ "$modo" = pendrive ]; then
+      afirma '[ -s "$MP/newlink_suite_resultados.txt" ] && [ -z "$(campos aviso final)" ] && grep -q "final do pendrive pulado" "$S/ultimo.log"' "pendrive: resultado ou tela final"
+    fi
+    limpa
+  done
+
+  novo_cenario "suite-pedido.sh ignora o cancelar-suite (quem le e a suite) e nao o apaga"
+  instala_suite; : > "$PED/cancelar-suite"
+  roda_pedido w "$PED" cancelar-suite
+  afirma '[ "$RC" = 0 ] && [ -f "$PED/cancelar-suite" ] && [ "$(chamadas setsid)" = 0 ]' "rc=$RC ou mexeu no pedido de cancelar"
+  limpa
+
+  novo_cenario "estatico: toda espera longa da suite passa pelo dormir (cancelavel)"
+  afirma '! grep -nE "^[[:space:]]*sleep \"\\\$(TEMPO_|RAMPA_|AUTOFOCO_|ESPERA_)" "$KIT/suite.sh"' "sleep direto: $(grep -nE "sleep \"\\\$(TEMPO_|RAMPA_|AUTOFOCO_|ESPERA_)" "$KIT/suite.sh" | head -3)"
+  afirma '[ "$(grep -c "^checar_cancelar$" "$KIT/suite.sh")" -ge 4 ]' "sem checagem entre as etapas"
   limpa
 }
 
@@ -2579,7 +2722,7 @@ echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
 for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot c_vlc_boot \
-         c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente \
+         c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_visor_cancelar c_ambiente c_conferente \
          c_curvas_vent_pedido c_curvas_led_pedido c_curvas_vent_laco c_curvas_led_laco c_curvas_boot \
          c_curvas_fio c_curvas_standby c_standby_escolha c_curvas_ini c_curvas_debloat c_logo_boot}; do
   echo "  $c"

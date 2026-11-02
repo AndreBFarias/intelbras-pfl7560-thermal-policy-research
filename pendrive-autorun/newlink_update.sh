@@ -23,7 +23,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="8"
+APP_VERSION_CODE="9"
 ESPERA_REBOOT=8
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
@@ -42,9 +42,9 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-e8f7948153b78854673c5536ab20ba30  suite.sh
-368b9057a2d4666760f0c2ac9fef8b73  suite-boot.sh
-794858512c34b592e496293ac1ef535d  suite-pedido.sh
+4c1c1085e065c2c96acc88ec1dc30502  suite.sh
+f5ac1daab6fadab8e6e43f46f93cd428  suite-boot.sh
+e9adf12208f78bffc91cbe96471f896a  suite-pedido.sh
 7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
 ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
@@ -52,7 +52,7 @@ ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 d1b0b118aa713b541c0514687eab1609  suite-logo.sh
 127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-1cb9ab7a70651d91558924b89643e284  pfl7560.apk
+dd1aa6239eef55535f3ad17853595109  pfl7560.apk
 1bf673e89c8dd43fc43d6943cdb80437  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
