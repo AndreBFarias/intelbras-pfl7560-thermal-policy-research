@@ -340,6 +340,24 @@ c_boot(){
   afirma '[ "$(grep -c "^sleep" "$T/calls.log")" -ge 2 ]' "nao esperou o pm"
   limpa
 
+  novo_cenario "boot: a espera do pm nao segura a trava (o resgate passa)"
+  instala
+  touch "$T/pm-mudo"
+  stub pm 'echo "pm $*" >> "$T/calls.log"
+if [ -f "$T/pm-mudo" ]; then [ -d "$PFL_ROOT/dev/pfl7560-chaves.trava" ] && echo TRAVADA-NA-ESPERA >> "$T/calls.log"; exit 0; fi
+case "$1 $2" in
+  "list packages")
+    if [ "$3" = "-d" ]; then sed "s/^/package:/" "$T/pm-desligados"; exit 0; fi
+    echo package:android; sed "s/^/package:/" "$T/pm-instalados"; exit 0 ;;
+  "disable-user --user") grep -qx "$4" "$T/pm-desligados" || echo "$4" >> "$T/pm-desligados"; exit 0 ;;
+esac
+exit 0'
+  stub sleep 'echo "sleep $*" >> "$T/calls.log"; rm -f "$T/pm-mudo"'
+  ch boot
+  afirma '! tem_chamada TRAVADA-NA-ESPERA' "o boot segurou a trava enquanto esperava o pm"
+  afirma '[ "$(estado)" = "1111110000" ]' "depois da espera: $(estado)"
+  limpa
+
   novo_cenario "boot: trava velha (processo morto) nao prende"
   instala
   mkdir -p "$R/dev/pfl7560-chaves.trava"; echo 999999 > "$R/dev/pfl7560-chaves.trava/pid"
@@ -363,6 +381,28 @@ c_resgate(){
   afirma '[ "$(estado)" = "0000000000" ]' "o boot reaplicou depois do resgate: $(estado)"
   afirma '! tem_chamada "pm disable-user" && ! tem_chamada "setprop log.tag.HI_VPLUGIN S"' "o boot ligou algo depois do resgate"
   afirma '[ "$(ls -A "$S" | grep -c "revertido\|resgate")" = 0 ]' "o resgate deixou marca"
+  limpa
+
+  novo_cenario "resgate: trava presa por outra rodada viva ainda grava 0 em todas"
+  instala
+  tudo_ligado
+  mkdir -p "$R/dev/pfl7560-chaves.trava"; echo "$$" > "$R/dev/pfl7560-chaves.trava/pid"
+  : > "$T/calls.log"
+  ch resgate
+  afirma '[ "$RC" != 0 ] && grep -q "escolhas gravadas em 0" "$T/ch.out"' "resgate sem trava nao avisou: $(tail -1 "$T/ch.out")"
+  for i in $IDS; do afirma '[ "$(escolha "$i")" = 0 ]' "sem a trava, a escolha de $i nao ficou 0"; done
+  afirma '[ "$(grep -c "^sleep" "$T/calls.log")" -ge 179 ]' "o resgate desistiu da trava cedo demais"
+  rm -rf "$R/dev/pfl7560-chaves.trava"
+  ch boot
+  afirma '[ "$(estado)" = "0000000000" ]' "o boot seguinte nao desligou o que ficou: $(estado)"
+  limpa
+
+  novo_cenario "resgate: chave que nao confere ainda fica com escolha 0"
+  instala
+  tudo_ligado
+  touch "$T/ip-falha"
+  ch resgate
+  afirma '[ "$(escolha eth0)" = 0 ]' "eth0 nao confirmou e a escolha ficou '$(escolha eth0)' (o boot religaria)"
   limpa
 
   novo_cenario "resgate: aparelho sem eth0 e sem chip nao quebra"

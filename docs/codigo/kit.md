@@ -219,7 +219,9 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
   e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot).
 - **Resgate:** o arquivo `DESLIGAR-CHAVES.txt` no pendrive desliga todas a cada plugada e grava escolha 0 em todas
-  (sem marca de "feito"). Pedido da home: `v1 ler` ou `v1 <id> ligar|desligar`; id e ação fora da lista são recusados.
+  (sem marca de "feito"). A escolha 0 é gravada **antes** da trava, e o boot só toma a trava depois de esperar o
+  `pm`: o `newlink_update.sh` e o `suite-boot.sh` sobem juntos no `boot_completed`, e o resgate não pode perder a
+  vez (espera a trava até 180 s; sem ela, as escolhas já ficaram 0 e o boot seguinte desliga). Pedido da home: `v1 ler` ou `v1 <id> ligar|desligar`; id e ação fora da lista são recusados.
 - As ações de cada chave vão para `$SUITE/diario.fila` (`<uptime> <id> <acao> <resultado>`, máx. 60), de onde o diário
   as lê quando existir.
 

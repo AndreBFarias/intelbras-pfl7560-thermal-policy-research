@@ -339,12 +339,12 @@ fazer(){
 
 # ---- trava ----------------------------------------------------------------
 trava(){
-  _tk=0
+  _tk=0; _tmax="${1:-60}"
   while ! mkdir "$CTRAVA" 2>/dev/null; do
     _tp=$(head -n 1 "$CTRAVA/pid" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
     if [ -z "$_tp" ] || ! kill -0 "$_tp" 2>/dev/null; then rm -rf "$CTRAVA"; continue; fi
     _tk=$(( _tk + 1 ))
-    [ "$_tk" -ge 60 ] && return 1
+    [ "$_tk" -ge "$_tmax" ] && return 1
     sleep 1
   done
   echo "$$" > "$CTRAVA/pid"
@@ -354,12 +354,15 @@ destrava(){ rm -rf "$CTRAVA"; }
 # ---- comandos -------------------------------------------------------------
 cmd_boot(){
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - chaves nao reaplicadas."; return 1; }
-  trava || { LOG "[AVISO] outra rodada das chaves esta em curso - boot nao reaplicou."; return 0; }
   _pm=0
   for _i in $IDS; do
     case "$_i" in deb_*) [ "$(quer_ligado "$_i")" = 1 ] || [ "$(escolha_de "$_i")" = 0 ] && _pm=1 ;; esac
   done
+  # espera o pm ANTES da trava: o resgate do pendrive (newlink_update.sh) sobe no
+  # mesmo boot_completed e nao pode ficar parado atras desta espera
   if [ "$_pm" = 1 ] && ! esperar_pm; then LOG "[AVISO] o pm nao respondeu em $PM_TENTATIVAS consultas - grupos de apps nao reaplicados."; fi
+  trava || { LOG "[AVISO] outra rodada das chaves esta em curso - boot nao reaplicou."; return 0; }
+  [ "$PM_OK" = 1 ] && carregar_pm
   for _i in $IDS; do
     # a escolha pode ter mudado enquanto esperavamos (resgate do pendrive)
     _q=$(quer_ligado "$_i"); _e=$(escolha_de "$_i")
@@ -377,9 +380,12 @@ cmd_boot(){
 }
 cmd_resgate(){
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - resgate nao feito."; return 1; }
-  trava || { LOG "[ERRO] outra rodada das chaves esta em curso - resgate nao feito."; return 1; }
+  # a escolha 0 vai antes da trava: o boot rele a escolha chave a chave e para de
+  # ligar o que faltava, e o proximo boot desliga o que ja estava ligado
+  for _i in $IDS; do gravar_escolha "$_i" 0; done
+  trava 180 || { LOG "[ERRO] outra rodada das chaves esta em curso - escolhas gravadas em 0, mas nada desligado agora (o proximo boot desliga)."; return 1; }
   LOG "resgate: desligando todas as chaves"
-  carregar_pm
+  esperar_pm
   for _i in $IDS; do
     _s=$(estado_de "$_i")
     case "$_s" in 1|p) fazer "$_i" desligar guardar ;; *) gravar_escolha "$_i" 0 ;; esac
