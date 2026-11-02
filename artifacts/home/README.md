@@ -24,8 +24,8 @@ O atalho **Curvas** (sétimo, antes de Configurações) abre a tela de curvas: a
 (Silencioso, Balanceado, Agressivo e Manual nos ventiladores; Padrão, Silencioso e Manual no LED), o gráfico com 5
 bolinhas (3 no LED) e o modo de aplicar (ao vivo, gravar no .ini ou os dois; nos ventiladores só o ao vivo vale, e
 gravar responde com um aviso). Setas movem a bolinha pegada, OK pega
-e solta, BACK solta e depois fecha. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 30 %
-(PROVISÓRIO); o LED só edita abaixo de 70 C e a bolinha não sobe acima da escada do firmware (66 a 70 C). A home grava o pedido na pasta dela e o root (`suite-curvas.sh`)
+e solta, BACK solta e depois fecha. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 70 %
+(bloco 25: a bolinha não desce abaixo e o root recusa); o LED só edita abaixo de 70 C e a bolinha não sobe acima da escada do firmware (66 a 70 C). A home grava o pedido na pasta dela e o root (`suite-curvas.sh`)
 aplica. Formatos e limites: [doc 44 §17](../../docs/research/44-suite-de-boot.md).
 
 ![curva dos ventiladores](previa/home-curvas-vent-silencioso.png)

@@ -276,8 +276,8 @@ public final class Previa {
         m.abrirCurvas();
         Curvas c = m.curvas;
         verdade(m.curvasAberta && c.aba == Curvas.ABA_VENT && c.zona == Curvas.ZONA_PERFIL && c.perfilVent == 0, "abre em Ventiladores, Silencioso");
-        verdade(c.pedido().equals("v1 silencioso vivo 30:30 45:30 55:40 61:60 66:100"), "pedido do Silencioso: " + c.pedido());
-        verdade(c.mover(1, 0) && c.nomePerfil().equals("balanceado") && c.pedido().startsWith("v1 balanceado vivo 30:40"), "perfil Balanceado");
+        verdade(c.pedido().equals("v1 silencioso vivo 30:70 45:70 55:75 61:85 66:100"), "pedido do Silencioso: " + c.pedido());
+        verdade(c.mover(1, 0) && c.nomePerfil().equals("balanceado") && c.pedido().equals("v1 balanceado vivo 30:70 45:75 55:85 60:95 66:100"), "perfil Balanceado");
         verdade(c.mover(1, 0) && c.nomePerfil().equals("agressivo") && !c.editavel(), "Agressivo nao se edita");
         verdade(c.pedido().equals("v1 agressivo vivo 30:100 40:100 50:100 60:100 66:100"), "pedido Agressivo: " + c.pedido());
         verdade(c.mover(0, 1) && c.zona == Curvas.ZONA_GRAFICO, "desce para o grafico");
@@ -298,12 +298,12 @@ public final class Previa {
         c.mover(-1, 0);
         verdade(c.bola == 1 && c.ok() == Curvas.NADA && c.pegando, "pega a bola 2");
         for (int i = 0; i < 30; i++) c.mover(0, 1);
-        verdade(c.ventV[1] == 30, "o piso e 30%: " + c.ventV[1]);
+        verdade(c.ventV[1] == 70, "o piso e 70%: " + c.ventV[1]);
         for (int i = 0; i < 30; i++) c.mover(0, -1);
         verdade(c.ventV[1] == c.ventV[2], "a bola 2 nao passa da 3 em velocidade: " + c.ventV[1] + "/" + c.ventV[2]);
         for (int i = 0; i < 60; i++) c.mover(-1, 0);
         verdade(c.ventT[1] == c.ventT[0] + 1, "a bola 2 nao passa da 1 em temperatura");
-        for (int i = 0; i < 4; i++) verdade(c.ventT[i] < c.ventT[i + 1] && c.ventV[i] <= c.ventV[i + 1] && c.ventV[i] >= 30 && c.ventT[i] >= 25, "ordem das bolas " + i);
+        for (int i = 0; i < 4; i++) verdade(c.ventT[i] < c.ventT[i + 1] && c.ventV[i] <= c.ventV[i + 1] && c.ventV[i] >= 70 && c.ventT[i] >= 25, "ordem das bolas " + i);
         c.voltar();
         c.mover(0, -1);
         c.mover(-1, 0);

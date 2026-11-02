@@ -307,7 +307,7 @@ public final class Desenho {
             p.texto("100% obrigatório", (xf + CV_GX + CV_GW) / 2, CV_GY + 110, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
             float yp = cvY(Curvas.V_MIN, v0, v1);
             p.linha(CV_GX, yp, CV_GX + CV_GW, yp, 3, Tema.LARANJA);
-            p.texto("piso 30% (provisório)", CV_GX + 16, yp - 10, Pintor.SANS_SEMI, 24, Tema.LARANJA, Pintor.ESQ);
+            p.texto("piso 70%", CV_GX + 16, yp + 40, Pintor.SANS_SEMI, 24, Tema.LARANJA, Pintor.ESQ);
             float[] xy = new float[2 * (n + 2)];
             xy[0] = cvX(t0, t0, t1);
             xy[1] = cvY(v[0], v0, v1);
@@ -388,7 +388,7 @@ public final class Desenho {
             y += 60;
         }
         String[] regras = vent
-                ? new String[] {"100% a partir de 66 °C é obrigatório.", "O piso (30%) nunca deixa parar.", "Silencioso: silêncio primeiro; o brilho",
+                ? new String[] {"100% a partir de 66 °C é obrigatório.", "O piso (70%) nunca deixa parar.", "Silencioso: silêncio primeiro; o brilho",
                     "pode cair antes pela escada de 66 °C."}
                 : new String[] {"Só abaixo de 70 °C, sempre caindo.", "70 e 75 °C são do firmware.", "O botão Luz continua separado: a luz que",
                     "você escolhe lá multiplica esta curva."};

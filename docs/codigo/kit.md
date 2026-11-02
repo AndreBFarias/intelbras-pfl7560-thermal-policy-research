@@ -243,5 +243,5 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 | `cor.sh` | `preparar_tela` | E1-e: a galeria abre PNG fora de `/sdcard` | 41 |
 | `cor.sh` | `esperar_tecla` | E1-d: `getevent -ql` sem bufferização num pipe | 41 |
 | `cor.sh` | gancho `nlsu` | E1-c: o init executa o `update_after_boot.sh` | 41 |
-| `suite-curvas.sh` | piso 300, `LED_MIN=850`, standby 600/660 s, `KEYCODE_POWER` = tecla do IR, `mWakefulness=Dreaming`, Luz (`picture`) x `sbri` | 44 §17 |
+| `suite-curvas.sh` | piso 700 (70 %, bloco 25), `LED_MIN=850`, standby 600/660 s, `KEYCODE_POWER` = tecla do IR, `mWakefulness=Dreaming`, Luz (`picture`) x `sbri` | 44 §17 |
 | `newlink_update.sh` | lançamento destacado | o `exec` do init é bloqueante e não mata o grupo no fim | 41 |

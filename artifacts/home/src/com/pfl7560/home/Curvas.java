@@ -18,7 +18,7 @@ public final class Curvas {
 
     public static final int T_MIN = 25;
     public static final int T_CHEIA = 66;
-    public static final int V_MIN = 30;
+    public static final int V_MIN = 70;
     public static final int V_MAX = 100;
     public static final int V_PASSO = 5;
 
@@ -39,7 +39,7 @@ public final class Curvas {
         {30, 45, 55, 61, 66}, {30, 45, 55, 60, 66}, {30, 40, 50, 60, 66},
     };
     private static final int[][] PRE_VENT_V = {
-        {30, 30, 40, 60, 100}, {40, 45, 60, 80, 100}, {100, 100, 100, 100, 100},
+        {70, 70, 75, 85, 100}, {70, 75, 85, 95, 100}, {100, 100, 100, 100, 100},
     };
     private static final int[] ESCADA_T = {66000, 67500, 69000, 70000, 71500, 73000};
     private static final int[] ESCADA_B = {1000, 950, 900, 850, 850, 850};

@@ -24,7 +24,7 @@ DONO_UID=0
 NORM_OK="bfc8d66bd6bde87feff69fc572a6fe30"
 NORM_OK_NOTYPEC="c917f8faa8f28702a26feb8ffa99fcb7"
 
-FAN_PISO=300
+FAN_PISO=700
 FAN_MAX=1000
 TEMP_CHEIA=660
 TEMP_LED_LIMITE=700
@@ -234,7 +234,7 @@ vent_valida(){
     _t=${_p%%:*}; _v=${_p#*:}
     num "$_t" && num "$_v" || return 1
     [ "$_t" -ge 25 ] && [ "$_t" -le 66 ] || return 1
-    [ "$_v" -ge 30 ] && [ "$_v" -le 100 ] && [ $(( _v % 5 )) = 0 ] || return 1
+    [ "$_v" -ge 70 ] && [ "$_v" -le 100 ] && [ $(( _v % 5 )) = 0 ] || return 1
     [ "$_t" -gt "$_pt" ] && [ "$_v" -ge "$_pv" ] || return 1
     _pt=$_t; _pv=$_v; _n=$(( _n + 1 ))
     eval "VT$_n=\$_t; VV$_n=\$_v"
@@ -544,7 +544,7 @@ modo_pedido_vent(){
     destrava; exit 0 ;;
   esac
   if ! vent_valida "$@"; then
-    LOG "[AVISO] curva dos ventiladores recusada (fora das travas: 25 a 66 C, 30 a 100 por cento de 5 em 5, nao decrescente, 100 por cento no ultimo ponto) - ventiladores em 1000."
+    LOG "[AVISO] curva dos ventiladores recusada (fora das travas: 25 a 66 C, 70 a 100 por cento de 5 em 5, nao decrescente, 100 por cento no ultimo ponto) - ventiladores em 1000."
     trava || exit 1
     parar_vent; prop vent padrao; prop vent_aviso pedido
     destrava; exit 0

@@ -707,9 +707,10 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
 
 - **Formato do pedido** (arquivo `curva-vent` na pasta privada da home, até 200 bytes): `v1 <perfil> <modo> t:v x5`.
   Perfis `silencioso`, `balanceado`, `agressivo`, `manual`; modos `vivo`, `gravar`, `ambos`. Faixa: temperatura de 25
-  a 66 °C, estritamente crescente; velocidade de 30 a 100 % em passos de 5, não decrescente, e o **último ponto é
+  a 66 °C, estritamente crescente; velocidade de **70** a 100 % em passos de 5 (piso de 70 %, decisão do dono no
+  bloco 25), não decrescente, e o **último ponto é
   100 % a 66 °C** (trava do dono). A tela prende a bolinha na faixa; o root recusa o que sair dela.
-- **Ao vivo:** o laço lê `zysys.env_temp` a cada 5 s, interpola a curva, aplica `sfs 0 N` e `sfs 1 N` (N de 300 a
+- **Ao vivo:** o laço lê `zysys.env_temp` a cada 5 s, interpola a curva, aplica `sfs 0 N` e `sfs 1 N` (N de 700 a
   1000) com histerese (sobe na hora; só desce quando a queda passa de 100) e relê com `gfs`. Se o firmware reescrever
   3 vezes seguidas, o laço desiste, grava a marca `curva-vent.desistiu` e avisa a home pela prop `vent_aviso`.
   Falha do laço, do `hidebug` ou pedido inválido = ventiladores em 1000.
@@ -731,7 +732,13 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
   sozinhos. O mesmo vale contra o laço: a releitura com `gfs` pode acusar briga (desiste e fica em 1000) ou não
   ver a rampa, conforme o que o `gfs` devolve (velocidade pedida ou duty; não medido). Em todos os casos os
   ventiladores só sobem.
-- Silencioso é "silêncio primeiro": o piso é baixo e o brilho pode cair mais cedo pela escada de 66 °C.
+- Silencioso é "silêncio primeiro": fica no piso até 45 °C e o brilho pode cair mais cedo pela escada de 66 °C.
+- **Piso de 70 % (bloco 25, decisão do dono, 2026-11-01).** Era 30 % provisório. Pelo binário, abaixo de 50 % de
+  velocidade o firmware usa o mesmo duty mínimo (doc 49 §4.3), então um piso baixo não silenciava nada a mais.
+  A tela prende as bolinhas em ≥ 70 % e escreve "piso 70%" sob a linha; o root (`FAN_PISO=700`, `vent_valida`)
+  recusa qualquer ponto abaixo de 70 % (ventiladores em 1000). Perfis refeitos para começar em 70 % e chegar a
+  100 % em 66 °C: Silencioso `30:70 45:70 55:75 61:85 66:100`, Balanceado `30:70 45:75 55:85 60:95 66:100`;
+  Agressivo continua 100 % em tudo.
 
 ### 17.2 Curva do LED
 
@@ -792,7 +799,7 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
 | Item | Onde |
 |---|---|
 | Curva dos ventiladores gravada: só depois da decisão da dona sobre a `[ThermalPolicy]` (qual sensor) | §17.1 |
-| Piso de 30 % (em `sfs` dá duty 200/325, doc 49 §4.3) e os valores dos perfis Silencioso/Balanceado | `suite-curvas.sh`, `Curvas.java` |
+| Os valores dos perfis Silencioso/Balanceado (o piso de 70 % é decisão do dono, bloco 25) | `suite-curvas.sh`, `Curvas.java` |
 | O que o `gfs` devolve depois de um `sfs` (velocidade pedida ou duty) | §17.1 |
 | Piso de brilho 850 | `suite-curvas.sh` |
 | Composição da Luz (`picture`) com `sbri`/escada (`custom`) | §17.2 |
