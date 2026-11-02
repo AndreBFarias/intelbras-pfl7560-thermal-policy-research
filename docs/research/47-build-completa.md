@@ -404,7 +404,12 @@ ligadas, debloat, descanso de tela, curvas, chaves, diário e o logo automático
 - duas gerações, o mesmo md5; `verificar_bin` com o `conteudo-s5.txt` APROVADO (78 entradas e 2 linhas no
   `build.prop`); sem o manifesto, ele REPROVA (arquivos novos fora do manifesto), como deve;
 - `e2fsck -fn` do vendor extraído limpo; 53478 blocos livres de 76800 (o stock tem 54726);
-- `tests/test-semente-s5.sh`: 65 verificações, 0 falhas, com o vendor montado do manifesto e com
+- conferência independente (S2): uma 3ª geração deu o mesmo md5; os 18 records fora do 14, o cabeçalho (fora do
+  `checksum1`, do tamanho total e da tabela) e a cauda iguais ao stock byte a byte; dos 714 inodes do stock nenhum
+  sumiu nem mudou de modo, dono ou xattr, e só os 3 fixes mudaram de conteúdo; os 78 novos são exatamente os do
+  manifesto, sem escrita para grupo ou outros e com o rótulo do vizinho no stock (as pastas de app e de tema saem
+  `0:0`, como o kit as cria no aparelho, e as do stock são `0:2000`: o modo `0755` é o mesmo);
+- `tests/test-semente-s5.sh`: 66 verificações, 0 falhas (o `EXEC_LISTA` da semente conferido contra o `KIT_EXEC`), com o vendor montado do manifesto e com
   `PFL_S5_BIN=<.bin>` (o vendor tirado do record 14 do `.bin` de verdade): 1º boot com o `/data` vazio, kit mais
   novo já no `/data`, `/vendor` mais novo, cópia interrompida, `/vendor` adulterado e pastas inseguras;
 - `test-kit-pendrive.sh` (`c_bloco26`): o `.rc` da S5 com a semente vale como "já instalado" e não abre o `/vendor`;

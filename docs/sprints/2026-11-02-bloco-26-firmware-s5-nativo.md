@@ -56,6 +56,6 @@ partição `logo` e se a arte reta poderia ir nele.
 
 ## Estado
 
-- [ ] S1
-- [ ] S2
+- [x] S1
+- [x] S2 (conferiu a imagem e o 1º boot simulado; corrigiu o teste do `EXEC_LISTA`)
 - [ ] o dono decide quando gravar (depois da S4a provada)
