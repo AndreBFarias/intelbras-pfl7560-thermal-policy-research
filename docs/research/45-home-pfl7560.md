@@ -391,7 +391,8 @@ lê, portanto, sem root: a suíte não precisa publicar prop `vendor.pfl7560.*` 
   - `comCabo(...)` monta a fileira na ordem fixa **HDMI 1, HDMI 2, USB-C**.
   - **Um botão por porta com cabo**: as portas são fontes diferentes (`SourceName` 11, 10, 9), então dois cabos
     dão dois botões.
-  - O USB-C só entra no firmware que o tem (`zysys.typec_count` ou `zysys.source.typec1`, como no §13).
+  - O USB-C só entra no firmware que o tem (`zysys.typec_count` ou `zysys.source.typec1`, como no §13) e, nele,
+    fica sempre: não tem sinal de cabo (§14.4). Sem cabo HDMI, a fileira mostra só o USB-C.
 - **`Cabos.java`** lê numa thread própria (`home-cabos`) e entrega a lista à thread da interface. Ele lê uma vez
   a cada `onResume` e de novo só quando o `system_server` avisa (`onInputStateChanged`, `onInputAdded`,
   `onInputRemoved`, `onInputUpdated`). Não varre nada, não usa logcat, não roda `getprop` em laço. O callback é
@@ -420,8 +421,8 @@ lê, portanto, sem root: a suíte não precisa publicar prop `vendor.pfl7560.*` 
   - o foco em cada caso acima, inclusive com o painel de luz aberto e numa sequência de liga/desliga que nunca
     deixa o foco nulo.
 - Prévias novas:
-  - `home-sem-cabo.png`: sem Entradas, foco em Verificar projetor;
-  - `home-cabo-hdmi2.png`: só HDMI 2;
+  - `home-sem-cabo.png`: sem cabo HDMI, a fileira só com o USB-C (foco nele, o começo da fileira);
+  - `home-cabo-hdmi2.png`: HDMI 2 e USB-C;
   - `home-cabos-todos.png`: HDMI 1, HDMI 2 e USB-C.
 - As prévias de antes usam cabo no HDMI 1 e no HDMI 2, então a fileira Entradas delas não mudou; mudaram só
   pelo §14.5 (sem contador, com "MeowCast").
@@ -453,8 +454,13 @@ lê, portanto, sem root: a suíte não precisa publicar prop `vendor.pfl7560.*` 
     estado do USB-C. O `zysys.usb_signal_enable` (0) não tem leitor nos binários extraídos.
   - O relógio TMDS (`CKDT`/`SCDT`) só é lido na porta em uso; ler o port0 exigiria trocar de fonte.
   - O `hipluginserver` é o servidor do keystone (`vplugin`), sem relação com cabo.
-- **Falta:** uma medição com uma fonte de vídeo ligada no USB-C (pedida ao coordenador). Se nada mudar, a
-  decisão é do dono: o botão USB-C sempre visível ou fora da home.
+- **Medido com um notebook ligado no USB-C** (2026-11-02, sem trocar de entrada): `dumpsys tv_input`, o
+  `OffLineDetStatus` do hdmirx, `/sys/bus/usb/devices` e `getprop` ficaram idênticos aos lidos com a porta
+  vazia. Só o `dmesg` mudou, e foi a reconexão do port2 (HDMI 1), não o USB-C. Não há sinal de presença no USB-C
+  sem trocar de entrada.
+- **Decisão do dono (2026-11-02): o USB-C fica sempre visível** na fileira Entradas, no firmware que o tem
+  (`zysys.typec_count`/`zysys.source.typec1`, §13). HDMI 1 e HDMI 2 continuam só com cabo. O estado da porta 1
+  não é lido (`Entradas.comCabo` recebe só "o firmware tem USB-C").
 
 ### 14.5 Contador de apps fora, MeowCast no canto (pedido do dono, 2026-11-02)
 
