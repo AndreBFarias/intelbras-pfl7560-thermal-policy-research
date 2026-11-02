@@ -36,6 +36,18 @@ Começa só depois que os blocos 26 (S2) e 27 forem integrados no `main` (o 28 m
 4. **Pendrive do flash:** o roteiro do doc 47 §12 diz o que vai no pendrive (o `.bin` como `usb_update.bin` + o kit
    do bloco 26 em diante). O coordenador monta o pendrive, não o agente.
 
+5. **Pré-voo do flash** (decisão do dono, 2026-11-02): script (ex.: `firmware/preflight-flash.sh <pendrive>`) que
+   recusa se qualquer item falhar: `usb_update.bin` = S5 aprovada (md5 do `.md5`), `verificar_bin` aprovado, kit do
+   pendrive compatível com o `.rc` da S5, backup presente no PC, stock de resgate (md5 `28a2f280…`) guardado fora do
+   pendrive. Com teste, e um ensaio contra uma cópia do pendrive feita no PC.
+
+## Depois do bloco 28 (decisão do dono)
+
+- **Conferente final** (Opus, high), com tudo integrado no `main` (26, 27 e 28): regressão no todo, corrige os erros
+  finais, um commit por correção.
+- Depois dele, **o coordenador** monta a S5 final no PC (duas gerações, mesmo md5), roda o pré-voo, faz o backup e
+  grava com o sim do dono.
+
 ## Fora
 
 - Corrigir o `.md5` velho da S4b (anotado no ESTADO).
@@ -57,7 +69,8 @@ Começa só depois que os blocos 26 (S2) e 27 forem integrados no `main` (o 28 m
 | agente | modelo | o quê |
 |---|---|---|
 | F1 | Opus, high | Cast verde, gate do record 6, S5 final |
-| F2 | Opus, high | confere e corrige (formato da partição logo, CRC, reprodutibilidade, regressão) |
+| F2 | Opus, high | confere e corrige (formato da partição logo, CRC, reprodutibilidade, pré-voo, regressão) |
+| final | Opus, high | depois da integração dos blocos 26, 27 e 28: regressão no todo e correções |
 
 ## Estado
 
@@ -65,5 +78,7 @@ Começa só depois que os blocos 26 (S2) e 27 forem integrados no `main` (o 28 m
 - [ ] F1
 - [ ] F2
 - [ ] prévias aprovadas
+- [ ] conferente final
+- [ ] S5 final montada pelo coordenador + pré-voo verde
 - [ ] backup
 - [ ] flash (sim do dono)
