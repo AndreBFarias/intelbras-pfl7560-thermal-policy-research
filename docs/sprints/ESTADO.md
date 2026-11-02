@@ -4,6 +4,15 @@ Arquivo para abrir sessão nova sem depender da conversa.
 
 ## Em voo (2026-11-02)
 
+**S6 PRONTA PARA GRAVAR (2026-11-02 ~15:30):** `a1edaca90e40cf4efdb7f9aaf4f984a1` copiada para `firmware/` do
+`main`; pendrive (sdc1 `PFL7560`) refeito com `install.sh --pendrive --com-firmware` (S6 como `usb_update.bin`, kit
+55 arquivos, stock `28a2f280…` em `resgate-oficial/`); backup `backups-projetor/antes-s6-20261102-1524` (`id -u` = 0,
+tar 82 entradas, `00b3148a…` igual no aparelho e no PC); **PRÉ-VOO APROVADO**. Stock de resgate fora do pendrive:
+`.arvores/integracao/build-s6/resgate/PFL7560.bin` (do `Software PFL7560.zip`; o `Firmware PFL7560.zip` tem outro
+`.bin`, `89f82720…`). Decisão do dono: **tirar o pendrive quando o gravador terminar**, para provar a semente do
+`/vendor` (`vendor.pfl7560.semente=copiada`, depois `em_dia`). Próximo: o dono grava; depois ler por adb a semente,
+home versionCode 10, cor, marca, pop-up.
+
 **S6 MONTADA, ainda NÃO gravada (2026-11-02 ~14:30):** `a1edaca90e40cf4efdb7f9aaf4f984a1`, 1399013564 B, o `.bin`
 em `build-s6/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin` da árvore `integracao` (fora do git). É a S5 com a home
 versionCode 10 do bloco 30: no `/vendor`, só o `PFL7560Home.apk` (`c0ce997a…`) difere da S5; records 0 a 13 iguais
