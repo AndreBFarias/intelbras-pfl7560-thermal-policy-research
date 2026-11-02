@@ -12,6 +12,13 @@ Decisões da rodada final (2026-11-02): logo automático com a chave **ligada**;
 `deb_hisi`; curva gravada na `[ThermalPolicy]` vira tarefa do próximo bloco; `DESLIGAR-CHAVES.txt` não desliga o
 diário (ok assim).
 
+Instalado no aparelho em 2026-11-02 (kit 53 arquivos, home e app versionCode 7, boot ok). Bloco 26 (S5, só PC)
+em voo no workflow `watw88g3r`, branch `bloco-26`.
+
+**Bloco 27 (próximo):** home limpa, rápida e com navegação previsível, mais "Lendo…" nas Ajustes e a chave do
+pop-up do `nlprovision`. Tarefa e decisões do dono em `2026-11-02-bloco-27-home-limpa.md`. Ainda sem agente.
+Conflito previsto com o bloco 26 só nas listas md5 do kit (resolver com `tests/atualizar-md5-kit.sh`).
+
 ## Próximos passos
 
 1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
