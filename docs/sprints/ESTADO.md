@@ -4,9 +4,10 @@ Arquivo para abrir sessão nova sem depender da conversa.
 
 ## Em voo (2026-11-02)
 
-**Próximo passo (atualizado):** workflow final `wyei23aii` em voo na árvore `integracao` (2e do painel Luz já feita,
-`8851957`). Quando ele voltar: bloco 29 = `2026-11-02-tarefa-testes-cancelar-e-fundo.md` (T1 + T2, decidido entrar na
-S5); depois o coordenador monta a S5 final, pendrive pelo `install.sh --com-firmware`, pré-voo e flash (sim dado).
+**Próximo passo (atualizado 05:20):** conferente final verde (integracao até `8c5afa5`; docs ainda em voo). Bloco 29
+em voo (workflow `wxnye8rv4`, árvore `bloco29`): testes cancelam com Voltar + fundo MeowCast, e `wifi_pwr` sai das
+escolhas (causava kernel panic no driver do Wi-Fi; desligado no aparelho às 05:10). Depois: integrar o 29, montar a
+S5 final, pendrive, pré-voo, flash (sim dado).
 
 Blocos 23, 24 e 25 integrados no `main` (`3399c4a`, via branch `integracao`): todos os `tests/test-*.sh` com
 0 falha, `make check` ok, `shellcheck` limpo, versionCode 7 nos dois apps. Timer do diário ligado no PC
