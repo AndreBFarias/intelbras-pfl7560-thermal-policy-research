@@ -8,8 +8,11 @@ Arquivo para abrir sessão nova sem depender da conversa.
 montada:** `3f3023b06e500e354fa6d4ca4e236f5f` (duas gerações iguais, `--verificar` APROVADO, `test-semente-s5`
 66/0, 1399009468 B, record 14 +5251072 B, CRC do vendor `0x7ccdb8eb`), o `.bin` em `build-s5/` da árvore
 `integracao` (fora do git). Regressão: todos os `tests/test-*.sh` com 0 falha (o `test-preparar-pendrive` falha
-só nas árvores com o zip em ponteiro LFS; rodar no `main`). **Próximo:** pendrive pelo `install.sh --com-firmware`,
-pré-voo, flash com o dono (sim dado).
+só nas árvores com o zip em ponteiro LFS; rodar no `main`). **Pendrive pronto** (sdc1: S5 como `usb_update.bin`, kit
+55 arquivos, stock em `resgate-oficial/`), **PRÉ-VOO APROVADO** às 10:35. Backup novo às 10:44:
+`backups-projetor/antes-s5-20261102-1100/` (`28b123d7…`, 76 entradas, igual no aparelho). Boot das 10:40 limpo,
+chip Wi-Fi em `on`. **Próximo:** o dono grava (POWER segurado); 1º boot lento, reconfigurar o Wi-Fi; conferir
+`vendor.pfl7560.semente=copiada`, logo, visor dos testes, pop-up.
 
 **Bloco 29 (2026-11-02):** testes automáticos no visor do app sobre o fundo MeowCast (a home não aparece entre as
 telas), Voltar/Esc cancela sem resultado e volta à home (inclusive na etapa de cor, que reverte o lvds_fmt se já
