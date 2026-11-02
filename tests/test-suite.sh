@@ -135,6 +135,7 @@ VESA="235 235 235 231 192 148 105 86 220 212 156 90 185 116 195 128"
 saida(){ for v in $1; do echo $v; done; echo "$2"; exit 0; }
 case "$1" in
   faixas)
+    [ -f "$T/voltar-no-faixas" ] && { rm -f "$T/voltar-no-faixas"; : > "$PFL_ROOT/data/data/com.pfl7560.verificar/cancelar-suite"; }
     [ -f "$T/cam-faixas-rc" ] && { echo "faixas achadas: 15 (esperadas 16)"; exit 3; }
     if [ -f "$T/cam-faixas-falhas" ]; then
       f=$(cat "$T/cam-faixas-falhas"); if [ "$f" -gt 0 ]; then echo $((f-1)) > "$T/cam-faixas-falhas"; echo "faixas achadas: 8 (esperadas 16)"; exit 3; fi
@@ -1727,6 +1728,13 @@ c_visor_cancelar(){
   etapa_feliz; : > "$T/visor"; echo 3 > "$T/cam-faixas-falhas"; printf 'nokey\nnokey\n' > "$T/keys"; echo camera > "$T/voltar-na-tela"
   roda_suite tomada
   afirma 'grep -q "cancelado pelo controle" "$S/ultimo.log" && [ "$(chamadas getevent)" = 0 ]' "log: $(tail -3 "$S/ultimo.log" | tr '\n' '|') getevent=$(chamadas getevent)"
+  limpa
+
+  novo_cenario "cancelar: Voltar durante a leitura da camera (faixas ok) = o cor.sh nao roda por cima da home"
+  etapa_feliz; : > "$T/visor"; : > "$T/voltar-no-faixas"
+  roda_suite tomada
+  afirma '[ "$RC" = 0 ] && grep -q "cancelado pelo controle" "$S/ultimo.log" && tem_chamada "nl_camcheck faixas"' "rc=$RC log: $(tail -3 "$S/ultimo.log" | tr '\n' '|')"
+  afirma '! grep -q "cor: rodando cor.sh" "$S/ultimo.log" && ! grep -q "escada-1" "$T/calls.log" && [ ! -e "$S/resultados.txt" ] && tem_chamada "input keyevent KEYCODE_HOME"' "o cor.sh rodou depois do Voltar: $(grep -a "cor:" "$S/ultimo.log" | head -2 | tr '\n' '|')"
   limpa
 
   novo_cenario "cancelar: Voltar durante os 40 s da rampa = override limpo, sem resultado"

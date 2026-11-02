@@ -526,6 +526,9 @@ etapa_cor(){
     if [ "$MODO_AUTO" = "1" ] && [ -e "$VIDEO" ] && nlcam_ok && ! ler_faixas_tentando "$SUITE/faixas-cor.txt"; then
       esperar_ok_camera 1
     fi
+    # o Voltar pode ter chegado durante a leitura da camera (ate 30 s sem conferir): sem isto o
+    # cor.sh abriria as telas dele pela galeria por cima da home, depois do cancelar
+    checar_cancelar
     fechar_alertas
     LOG "cor: rodando cor.sh no modo suite"
     : > "$SUITE/cor.log"
