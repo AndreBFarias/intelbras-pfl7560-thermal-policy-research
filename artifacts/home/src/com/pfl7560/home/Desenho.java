@@ -270,12 +270,10 @@ public final class Desenho {
             p.retangulo(ax, CV_MODO_Y, 300, CV_CHIP_H, 14, Tema.CARTAO);
             p.texto(rot, ax + 150, CV_MODO_Y + 40, Pintor.SANS_NEGRITO, 32, Tema.TEXTO_2, Pintor.CENTRO);
         }
-        String dica;
-        if (c.zona == Curvas.ZONA_GRAFICO && c.pegando) dica = "Setas: mover a bola    OK ou Voltar: soltar";
-        else if (c.zona == Curvas.ZONA_GRAFICO) dica = c.editavel() ? "Esquerda e direita: escolher a bola    OK: pegar    Cima e baixo: mudar de linha"
-                : "Este perfil não se edita. Escolha Manual ou mexa numa bola de outro perfil.";
-        else dica = "Setas: escolher    OK: aplicar (no botão)    Voltar: fechar";
-        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        // a unica dica que fica: com a bola pega, as setas mudam de papel
+        if (c.zona == Curvas.ZONA_GRAFICO && c.pegando) {
+            p.texto("Setas: mover a bola    OK ou Voltar: soltar", MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        }
         if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
 
@@ -309,17 +307,6 @@ public final class Desenho {
             p.texto(l[1], MX, y + 44, Pintor.SANS_SEMI, 32, Tema.TEXTO, Pintor.ESQ);
             y += 118;
         }
-        p.texto("Ligado, o projetor confere no boot se a correção de 4 pontos mudou e, se mudou,",
-                MX, 800, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        p.texto("regrava o logo de abertura no formato da tela, com backup e releitura.",
-                MX, 840, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        p.texto("No máximo uma gravação por boot. Na dúvida, não grava.",
-                MX, 880, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        p.texto("Socorro: o arquivo DESLIGAR-LOGO-AUTO.txt no pendrive do kit desliga a chave.",
-                MX, 920, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
-        String dica = foco ? "OK: ligar ou desligar (vale no próximo boot)    Cima: abas    Voltar: fechar"
-                : "Setas: escolher    Baixo: a chave    Voltar: fechar";
-        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
         if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
 
@@ -370,8 +357,7 @@ public final class Desenho {
         } else {
             float xf = cvX(70, t0, t1);
             p.retangulo(xf, CV_GY, CV_GX + CV_GW - xf, CV_GH, 0, Tema.misturar(Tema.VERMELHO, Tema.CARTAO, 0.22f));
-            p.texto("70 e 75 °C: escada do", (xf + CV_GX + CV_GW) / 2, CV_GY + 40, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
-            p.texto("firmware, intocável", (xf + CV_GX + CV_GW) / 2, CV_GY + 72, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
+            p.texto("do firmware", (xf + CV_GX + CV_GW) / 2, CV_GY + 40, Pintor.SANS_SEMI, 24, Tema.VERMELHO, Pintor.CENTRO);
             if (c.perfilLed == 0) {
                 p.linha(cvX(t0, t0, t1), cvY(1000, v0, v1), xf, cvY(1000, v0, v1), 6, Tema.COMENTARIO);
                 p.texto("sem curva: o firmware decide", CV_GX + 20, cvY(1000, v0, v1) + 44, Pintor.SANS, 26, Tema.TEXTO_2, Pintor.ESQ);
@@ -538,15 +524,6 @@ public final class Desenho {
         } else {
             p.texto("Sem curva", x, y, Pintor.MONO_SEMI, 44, Tema.TEXTO_2, Pintor.ESQ);
             y += 60;
-        }
-        String[] regras = vent
-                ? new String[] {"100% a partir de 66 °C é obrigatório.", "O piso (70%) nunca deixa parar.", "Silencioso: silêncio primeiro; o brilho",
-                    "pode cair antes pela escada de 66 °C."}
-                : new String[] {"Só abaixo de 70 °C, sempre caindo.", "70 e 75 °C são do firmware.", "O botão Luz continua separado: a luz que",
-                    "você escolhe lá multiplica esta curva."};
-        for (String r : regras) {
-            p.texto(r, x, y, Pintor.SANS, 24, Tema.TEXTO_2, Pintor.ESQ);
-            y += 32;
         }
         y += 24;
         String ativo = vent ? c.ventEstado : c.ledEstado;
