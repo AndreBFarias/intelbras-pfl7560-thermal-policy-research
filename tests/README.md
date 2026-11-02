@@ -23,6 +23,7 @@ Nada aqui fala com o projetor nem com a câmera: os scripts do kit e do PC rodam
 | `atualizar-md5-kit.sh --check` | as listas de md5 embutidas no kit estão em dia |
 | `test-kit-pendrive.sh` | `newlink_update.sh` e `cor.sh` reais: térmica, cor, app, home, sobreposições, marca, desinstalar, instaladores |
 | `test-suite.sh` | `suite.sh`, `suite-boot.sh` e `suite-pedido.sh` reais: gatilhos, etapas, vigia, descanso, luz, resumo |
+| `test-chaves.sh` | `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24): estado lido, aplicar/voltar, padroes do boot, resgate, pedido da home, pacotes intocaveis |
 | `test-preparar-pendrive.sh` | `install.sh --pendrive [--com-firmware]` e `preparar-pendrive.sh` com discos de mentira e `.bin` falsos pequenos |
 | `test-processos.sh` | `pfl7560-processos.sh` com uma saída de `top` gravada (`fixtures/processos/`) |
 | `test-pc-marca-vlc.sh` | `pfl7560-marca.sh` e `pfl7560-vlc.sh` (a partição `logo` vira um arquivo) |

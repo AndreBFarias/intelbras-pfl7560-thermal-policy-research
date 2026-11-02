@@ -38,14 +38,15 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-c1cc1a0b5f037521afcca3e35a74766a  suite.sh
-b3738dd88f5c30ed6d659247ba6e7c2e  suite-boot.sh
-872c367a870ccda2437afc16d3f7362a  suite-pedido.sh
+322ab8b0cab3f28f5a87a792e50533e2  suite.sh
+c341d80daf43d439afbd1ab715ef89aa  suite-boot.sh
+1b6260d6cca19c8572a62f97bd525cc1  suite-pedido.sh
 60aa994d0f34b6dd002a1a4a5ba7668b  suite-curvas.sh
+bdf8936e37eb56dc7f3989b486175879  suite-chaves.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 26e2f517f862d19ecf452cdf3d56ae74  pfl7560.apk
-3ef23cd52b078c3b41c60d60d0351170  pfl7560-home.apk
+c3ee9e5fba67f03d7cd5216466d32a9d  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -198,7 +199,7 @@ if ! preparar_trabalho; then
 fi
 KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
-KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh"
+KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh"
 kit_subpastas(){ echo "$1" | sed -n 's|/.*||p' | sort -u; }
 copiar_preparo(){
   rm -rf "$PREP"
@@ -476,7 +477,18 @@ debloat_pendrive(){
     LOG "REAPLICAR-DEBLOAT.txt no pendrive: marca de reversao tirada, a lista volta a valer no proximo boot"
   fi
 }
+chaves_pendrive(){
+  dir_seguro "$SUITE" || return 0
+  [ -e "$MP/DESLIGAR-CHAVES.txt" ] || return 0
+  LOG "DESLIGAR-CHAVES.txt no pendrive: desligando todas as chaves de ajuste (resgate)"
+  if trabalho_ok && trabalho_conferir suite-chaves.sh >/dev/null 2>&1; then
+    sh "$WORK/suite-chaves.sh" resgate
+  else
+    LOG "[ERRO] suite-chaves.sh nao conferiu - chaves NAO desligadas agora."
+  fi
+}
 [ "$SUITE_OK" = "1" ] && debloat_pendrive
+[ "$SUITE_OK" = "1" ] && chaves_pendrive
 APP_PEND=0
 if [ "$SUITE_OK" = "1" ]; then
   for _ka in $KIT_APPS; do app_conforme "${_ka%%:*}" "${_ka#*:}" || APP_PEND=1; done

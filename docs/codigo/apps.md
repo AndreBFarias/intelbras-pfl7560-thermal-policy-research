@@ -147,3 +147,14 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   3,0:1 no fundo, este dá 7,7:1).
 - `Previa` (PC): hora e data fixas; apps do firmware V1.0.0.9 com MAIN+LAUNCHER, menos a lista de exclusão; "MinhaRede" e os apps "(exemplo)" são de exemplo; 59 °C é a média do sensor do LED em regime (doc 40). Também confere
   a navegação do D-pad.
+
+## Home: tela "Ajustes do sistema" (bloco 24)
+
+- `Ajustes` é modelo puro (sem Android): `IDS`, rótulos, o que a chave faz, o risco (baixo, médio, alto), quem pede OK
+  duas vezes para **ligar** (eth0 e chip Wi-Fi), `ok()`, `pedido()` e `pedidoValido()`. O estado vem da prop
+  `vendor.pfl7560.chaves` (um caractere por chave); o aviso, de `chaves_aviso`.
+- A entrada é o cartão "Ajustes do sistema" na fileira Apps (a fileira de atalhos já tem 7 cartões; um oitavo
+  quebraria a grade). D-pad: cima/baixo escolhe, OK liga ou desliga, Voltar fecha. A mensagem de risco aparece embaixo
+  da linha em foco, em vermelho no risco alto.
+- O pedido é escrito na pasta da home (arquivo `chave`); o root é quem aplica. A home só relê a prop depois de um tempo.
+- Prévias novas em `artifacts/home/previa-ajustes/` (4 PNG); as prévias existentes não mudam (byte-exact).

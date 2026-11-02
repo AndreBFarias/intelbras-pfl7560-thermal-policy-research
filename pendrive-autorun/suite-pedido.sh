@@ -13,6 +13,7 @@ HOME_DIR="$R/data/data/com.pfl7560.home"
 PEDIDO_DIR="$VERIF_DIR"
 LUZ_ARQ="$SUITE/luz"
 CURVAS="$SUITE/suite-curvas.sh"
+CHAVES="$SUITE/suite-chaves.sh"
 HIDEBUG="$R/vendor/bin/hidebug"
 INTERVALO_MIN=600
 DONO_UID=0
@@ -21,8 +22,9 @@ APP_UID_MIN=10000
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="c1cc1a0b5f037521afcca3e35a74766a"
+SUITE_MD5="322ab8b0cab3f28f5a87a792e50533e2"
 CURVAS_MD5="60aa994d0f34b6dd002a1a4a5ba7668b"
+CHAVES_MD5="bdf8936e37eb56dc7f3989b486175879"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -140,6 +142,17 @@ tratar_curva(){
   curvas_chamar pedido "${1#curva-}" "$2"
 }
 
+chaves_chamar(){
+  if ! { arq_seguro "$CHAVES" && [ "$(md5_de "$CHAVES")" = "$CHAVES_MD5" ]; }; then
+    LOG "[ERRO] suite-chaves.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."
+    return 1
+  fi
+  timeout 120 sh "$CHAVES" "$@"
+}
+tratar_chave(){
+  chaves_chamar pedido "$1"
+}
+
 if [ "${1:-}" = "aplicar-luz" ]; then
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - luz nao reaplicada."; exit 1; }
   [ -e "$LUZ_ARQ" ] || exit 0
@@ -181,7 +194,7 @@ tratar_descanso(){
 NOME="${3:-}"
 case "$NOME" in
   pedir-verificacao|descanso-inicio|descanso-fim) PEDIDO_DIR="$VERIF_DIR" ;;
-  luz|curva-vent|curva-led) PEDIDO_DIR="$HOME_DIR" ;;
+  luz|curva-vent|curva-led|chave) PEDIDO_DIR="$HOME_DIR" ;;
   *) exit 0 ;;
 esac
 [ "${2%/}" = "$PEDIDO_DIR" ] || exit 0
@@ -193,6 +206,7 @@ if [ "$DO_APP" = "1" ]; then
   case "$NOME" in
     luz) ler_pedido_app luz 16 || DO_APP=0 ;;
     curva-vent|curva-led) ler_pedido_app "$NOME" 200 || DO_APP=0 ;;
+    chave) ler_pedido_app chave 64 || DO_APP=0 ;;
   esac
 fi
 rm -f "$PEDIDO_DIR/$NOME"
@@ -208,6 +222,7 @@ if [ -e "$PEDIDO_DIR/$NOME" ] || [ -L "$PEDIDO_DIR/$NOME" ]; then
 fi
 if [ "$DO_APP" != "1" ]; then LOG "[AVISO] o pedido nao veio do app (dono do arquivo nao e o da pasta do app) - ignorado."; exit 0; fi
 if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
+if [ "$NOME" = "chave" ]; then tratar_chave "$LUZ_BRUTO"; exit 0; fi
 case "$NOME" in curva-*) tratar_curva "$NOME" "$LUZ_BRUTO"; exit 0 ;; esac
 case "$NOME" in descanso-*) tratar_descanso "${NOME#descanso-}"; exit 0 ;; esac
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi

@@ -35,6 +35,7 @@ SUITE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 60aa994d0f34b6dd002a1a4a5ba7668b  suite-curvas.sh
+bdf8936e37eb56dc7f3989b486175879  suite-chaves.sh
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -1072,6 +1073,9 @@ modo_desinstalar(){
       if [ -n "$_ovsobra" ]; then LOG "[ERRO] nao consegui remover as sobreposicoes:$_ovsobra"; _drc=1; else LOG "[OK] sobreposicoes de tema removidas de /vendor/overlay"; fi
     fi
   fi
+  if confere "$SUITE/suite-chaves.sh" suite-chaves.sh; then
+    sh "$SUITE/suite-chaves.sh" resgate && LOG "[OK] chaves: todas desligadas (apps religados, porta, chip Wi-Fi, servicos e props de volta)"
+  fi
   if confere "$SUITE/suite-curvas.sh" suite-curvas.sh; then
     sh "$SUITE/suite-curvas.sh" parar && LOG "[OK] curvas: laco parado, ventiladores em 1000 e brilho solto"
     sh "$SUITE/suite-curvas.sh" debloat-reverter
@@ -1109,7 +1113,7 @@ modo_desinstalar(){
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done
   [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" "$PEDIDO_DIR/descanso-inicio" "$PEDIDO_DIR/descanso-fim" 2>/dev/null
-  [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" "$R/data/data/com.pfl7560.home/curva-vent" "$R/data/data/com.pfl7560.home/curva-led" 2>/dev/null
+  [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" "$R/data/data/com.pfl7560.home/curva-vent" "$R/data/data/com.pfl7560.home/curva-led" "$R/data/data/com.pfl7560.home/chave" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"
 }

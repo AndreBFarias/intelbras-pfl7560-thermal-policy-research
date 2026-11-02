@@ -22,9 +22,10 @@ DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="c1cc1a0b5f037521afcca3e35a74766a"
-PEDIDO_MD5="872c367a870ccda2437afc16d3f7362a"
+SUITE_MD5="322ab8b0cab3f28f5a87a792e50533e2"
+PEDIDO_MD5="1b6260d6cca19c8572a62f97bd525cc1"
 CURVAS_MD5="60aa994d0f34b6dd002a1a4a5ba7668b"
+CHAVES_MD5="bdf8936e37eb56dc7f3989b486175879"
 # SUITE_MD5_FIM
 
 MARCA_LIGADO="pfl7560,ligado"
@@ -201,6 +202,13 @@ RESTR_ESPERA=2
 [ -n "${PFL_RAPIDO:-}" ] && RESTR_ESPERA=0
 restr_gravado(){ grep -a "name=\"$1\"" "$PKG_RESTR" 2>/dev/null | grep -aq 'enabled="3"'; }
 DEBLOAT_REVERTIDO="$SUITE/debloat-revertido"
+aplicar_chaves(){
+  if ! confere "$SUITE/suite-chaves.sh" "$CHAVES_MD5"; then
+    LOG "[ERRO] suite-chaves.sh ausente, link, de outro dono ou com md5 diferente - chaves NAO reaplicadas."
+    return 0
+  fi
+  sh "$SUITE/suite-chaves.sh" boot
+}
 desligar_apps(){
   if ! confere "$SUITE/suite-curvas.sh" "$CURVAS_MD5"; then
     LOG "[ERRO] suite-curvas.sh ausente, link, de outro dono ou com md5 diferente - lista de debloat NAO lida, nada desligado."
@@ -220,9 +228,13 @@ desligar_apps(){
   done
   _todos=$(timeout 15 pm list packages 2>/dev/null)
   _dis=$(timeout 15 pm list packages -d 2>/dev/null)
+  _fora=""
+  if confere "$SUITE/suite-chaves.sh" "$CHAVES_MD5"; then _fora=$(sh "$SUITE/suite-chaves.sh" pacotes-fora); fi
   _novos=""
   for _ap in $_lista; do
-    if ! printf '%s\n' "$_todos" | grep -qx "package:$_ap"; then
+    if [ -n "$_fora" ] && printf '%s\n' "$_fora" | grep -qx "$_ap"; then
+      LOG "apps: $_ap esta num grupo que o dono desligou nas chaves - nada a desligar"
+    elif ! printf '%s\n' "$_todos" | grep -qx "package:$_ap"; then
       LOG "apps: $_ap nao esta instalado - nada a desligar"
     elif printf '%s\n' "$_dis" | grep -qx "package:$_ap"; then
       LOG "apps: $_ap ja estava desligado"
@@ -258,7 +270,7 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
-    for _cn in curva-vent curva-led; do
+    for _cn in curva-vent curva-led chave; do
       if [ -f "$HOME_DIR/$_cn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
         sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn"
       fi
@@ -297,7 +309,7 @@ ligar_vigia(){
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  for _cn in curva-vent curva-led; do
+  for _cn in curva-vent curva-led chave; do
     if [ -f "$HOME_DIR/$_cn" ]; then
       LOG "pedido de $_cn pendente de antes do vigia: tratando agora"
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn" >>"$SUITE/vigia.log" 2>&1 </dev/null
@@ -320,7 +332,7 @@ if ! dir_seguro "$SUITE"; then
   exit 1
 fi
 if [ -f "$BOOT_LOG" ]; then tail -n "$LOG_MAX" "$BOOT_LOG" > "$BOOT_LOG.new" 2>/dev/null && mv -f "$BOOT_LOG.new" "$BOOT_LOG"; fi
-for _f in lancador.log vigia.log; do
+for _f in lancador.log vigia.log chaves.log; do
   [ -f "$SUITE/$_f" ] && tail -n "$LOG_MAX" "$SUITE/$_f" > "$SUITE/$_f.new" 2>/dev/null && mv -f "$SUITE/$_f.new" "$SUITE/$_f"
 done
 exec >>"$BOOT_LOG" 2>&1 </dev/null
@@ -339,7 +351,7 @@ reaplicar_luz
 ligar_curvas
 ligar_descanso &
 ligar_overlays &
-desligar_apps &
+{ desligar_apps; aplicar_chaves; } &
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then

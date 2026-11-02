@@ -38,6 +38,9 @@ public final class Modelo {
     public final Curvas curvas = new Curvas();
     public boolean curvasAberta;
 
+    public final Ajustes ajustes = new Ajustes();
+    public boolean ajustesAberta;
+
     public int fileira = ENTRADAS;
     public int coluna = 0;
     public int primeiroApp = 0;
@@ -118,9 +121,20 @@ public final class Modelo {
         curvas.pegando = false;
     }
 
+    public void abrirAjustes() {
+        ajustesAberta = true;
+        ajustes.abrir();
+    }
+
+    public void fecharAjustes() {
+        ajustesAberta = false;
+        ajustes.confirmando = -1;
+    }
+
     public void inicio() {
         luzAberta = false;
         fecharCurvas();
+        fecharAjustes();
         fileira = ENTRADAS;
         coluna = 0;
         primeiroApp = 0;

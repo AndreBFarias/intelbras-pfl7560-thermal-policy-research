@@ -10,7 +10,10 @@ trap 'rm -rf "$B"' EXIT
 
 javac --release 8 -Xlint:-options -encoding UTF-8 -d "$B" \
   "$SRC/Pintor.java" "$SRC/Tema.java" "$SRC/Item.java" "$SRC/Icones.java" "$SRC/Acoes.java" \
-  "$SRC/Modelo.java" "$SRC/Curvas.java" "$SRC/Desenho.java" \
+  "$SRC/Modelo.java" "$SRC/Curvas.java" "$SRC/Ajustes.java" "$SRC/Desenho.java" \
   "$AQUI"/previa-src/com/pfl7560/home/previa/*.java
 java -Djava.awt.headless=true -cp "$B" com.pfl7560.home.previa.Previa \
   "$RAIZ/pendrive-autorun/fontes" "$AQUI/previa"
+# Ajustes do sistema (bloco 24): previas e conferencias numa pasta a parte, sem tocar nas de cima.
+java -Djava.awt.headless=true -cp "$B" com.pfl7560.home.previa.PreviaAjustes \
+  "$RAIZ/pendrive-autorun/fontes" "$AQUI/previa-ajustes"

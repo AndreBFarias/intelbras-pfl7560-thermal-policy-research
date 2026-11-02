@@ -41,6 +41,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `suite.sh` | a suíte: cor, ângulo, foco, nitidez, temperatura, rampa, resumo; `--desinstalar` | autorun, `suite-boot.sh`, `suite-pedido.sh` | `test-suite.sh` | 44 |
 | `suite-boot.sh` | gatilho do boot, luz, descanso, sobreposições, apps desligados, vigia | serviço de boot | `test-suite.sh` | 44 |
 | `suite-pedido.sh` | pedidos do app e da home (verificação, luz, descanso) | vigia | `test-suite.sh` | 44 §13, §14 |
+| `suite-chaves.sh` | as dez chaves de ajuste do sistema, estado real, reaplicação no boot, resgate | `suite-pedido.sh`, `suite-boot.sh` | `test-chaves.sh` | bloco 24 |
 | `pfl7560-suite.rc` | o serviço de boot | autorun copia para `/vendor/etc/init` | `test-suite.sh` | 44 §2 |
 | `ZYCustom.ini` | a correção térmica (md5 `252ab7a7…`) | autorun | `make check` | 08, 34 |
 | `lvdsctl`, `nl_camcheck`, `nl_tela` | binários ARM (cópias de `artifacts/`) | `cor.sh`, `suite.sh` | `test-camcheck.sh`, `test-tela.sh` | 28, 41, 44 |
@@ -105,6 +106,10 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `/data/data/com.pfl7560.verificar/pedir-verificacao`, `descanso-inicio`, `descanso-fim` | app | `suite-pedido.sh` | pedidos do app |
 | `/data/data/com.pfl7560.home/luz` | home | `suite-pedido.sh` (move para a pasta do root) | pedido de luz (10 a 100) |
 | prop `vendor.pfl7560.luz` | `suite-pedido.sh` | home | a luz aplicada, de volta ao app |
+| `/data/data/com.pfl7560.home/chave` | home | `suite-pedido.sh` (move para a pasta do root) | pedido `v1 ler` ou `v1 <id> ligar\|desligar` |
+| props `vendor.pfl7560.chaves`, `vendor.pfl7560.chaves_aviso` | `suite-chaves.sh` | home | estado posicional das 10 chaves; aviso da última ação |
+| `/data/vendor/pfl7560-suite/chaves.escolhas`, `diario.fila` | `suite-chaves.sh` | `suite-chaves.sh`, diário | escolhas do dono; fila de eventos |
+| `DESLIGAR-CHAVES.txt` (raiz do pendrive) | pessoa | `suite-chaves.sh resgate` | desliga todas as chaves |
 | prop `vendor.newlink.launcher.package`, `vendor.nl.filemanage_file` (no `/vendor/build.prop`) | autorun | `nlprovision`, gerenciador de arquivos | home nova; gerenciador abrindo na lista |
 | prop `persist.sys.boot.reason` = `pfl7560,ligado` | `suite-boot.sh` | `suite-boot.sh` no boot seguinte | marca de "energia caiu ligado" |
 | prop `vendor.zy.power.tm.temp` | rampa da suíte, `--vivacidade` | laço térmico | override de 71000 m°C, limpo no fim |

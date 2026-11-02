@@ -19,6 +19,9 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static final long AVISO_MS = 5000L;
     private static final long LUZ_RELER_MS = 4000L;
     private static final long CURVA_ESPERA_MS = 2500L;
+    private static final long CHAVE_ESPERA_MS = 1000L;
+    private static final int CHAVE_TENTATIVAS = 20;
+    private static final long CHAVE_LER_MS = 2500L;
 
     private final Handler principal = new Handler(Looper.getMainLooper());
     private Modelo modelo;
@@ -159,6 +162,12 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             vista.invalidate();
             return;
         }
+        if (modelo.ajustesAberta) {
+            modelo.fecharAjustes();
+            modelo.aviso = null;
+            vista.invalidate();
+            return;
+        }
         if (modelo.luzAberta) {
             modelo.fecharLuz();
             modelo.aviso = null;
@@ -200,6 +209,97 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                 });
             }
         }, "home-curva");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
+    }
+
+    @Override
+    public void aplicarChave() {
+        final Ajustes aj = modelo.ajustes;
+        if (aj.pedindo != null) return;
+        final String id = aj.idEmFoco();
+        final String pedido = aj.pedido();
+        aj.pedindo = id;
+        modelo.aviso = null;
+        final Context app = getApplicationContext();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final String antes = Leitor.propRoot("chaves_aviso");
+                final boolean ok = Leitor.pedirChave(app, pedido);
+                String aviso = antes;
+                if (ok) {
+                    for (int i = 0; i < CHAVE_TENTATIVAS; i++) {
+                        try {
+                            Thread.sleep(CHAVE_ESPERA_MS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        aviso = Leitor.propRoot("chaves_aviso");
+                        if (!aviso.equals(antes) && aviso.startsWith(id + ":")) break;
+                    }
+                }
+                final String lido = Leitor.propRoot("chaves");
+                final String av = aviso;
+                final boolean mudou = ok && !av.equals(antes) && av.startsWith(id + ":");
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        aj.pedindo = null;
+                        if (!lido.isEmpty()) aj.estado = lido;
+                        if (!ok) {
+                            modelo.aviso = "Não consegui pedir ao projetor";
+                        } else if (!mudou) {
+                            modelo.aviso = "O projetor não respondeu ao pedido";
+                        } else {
+                            modelo.aviso = Ajustes.rotuloAviso(Ajustes.codigoDoAviso(av, id));
+                        }
+                        vista.invalidate();
+                        principal.removeCallbacks(apagarAviso);
+                        principal.postDelayed(apagarAviso, AVISO_MS);
+                    }
+                });
+            }
+        }, "home-chave");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
+    }
+
+    private void lerChavesAssincrono() {
+        final Context app = getApplicationContext();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final String antes = Leitor.propRoot("chaves");
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        if (!antes.isEmpty()) modelo.ajustes.estado = antes;
+                        vista.invalidate();
+                    }
+                });
+                // pede uma leitura nova ao projetor (a propriedade so muda quando ele publica)
+                if (!Leitor.pedirChave(app, Ajustes.PEDIDO_LER)) return;
+                try {
+                    Thread.sleep(CHAVE_LER_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+                final String depois = Leitor.propRoot("chaves");
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed() || depois.isEmpty()) return;
+                        modelo.ajustes.estado = depois;
+                        vista.invalidate();
+                    }
+                });
+            }
+        }, "home-chaves-estado");
         t.setPriority(Thread.MIN_PRIORITY);
         t.start();
     }
@@ -255,6 +355,13 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             modelo.abrirLuz();
             modelo.aviso = null;
             vista.invalidate();
+            return;
+        }
+        if (Acoes.AJUSTES.equals(item.acao)) {
+            modelo.abrirAjustes();
+            modelo.aviso = null;
+            vista.invalidate();
+            lerChavesAssincrono();
             return;
         }
         if (Acoes.CURVAS.equals(item.acao)) {

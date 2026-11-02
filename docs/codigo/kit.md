@@ -199,6 +199,31 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - Descanso de tela: luz a 10 % enquanto ele estiver na tela (pedido do dono, 2026-10-31); não mexe no nível
   guardado e não age com a suíte rodando.
 
+## `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24)
+
+- Dez chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone`.
+  "Ligada" = a medida está aplicada (app desligado, porta caída...). Cada chave **lê o estado real** do aparelho e volta
+  pela mesma chave; nada se desliga sem o dono ligar a chave (ou sem o padrão da instalação, abaixo).
+- Comandos: `boot` (reaplica o que o dono escolheu), `pedido` (chamado pelo `suite-pedido.sh`), `aplicar <id>
+  ligar|desligar`, `resgate` (desliga todas), `pacotes-fora` (lista que o `desligar_apps` do boot respeita).
+- Estado posicional em `vendor.pfl7560.chaves` (um caractere por chave: `1` ligada, `0` desligada, `p` parcial, `-` não
+  existe, `?` não li). O aviso da última ação em `vendor.pfl7560.chaves_aviso` = `id:codigo:epoch`. Escolhas do dono em
+  `$SUITE/chaves.escolhas`; a escolha só é gravada se o estado relido confirmou (ou se a chave não existe aqui).
+- Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat e o log do vplugin ligados; eth0, chip Wi-Fi,
+  web/cmdsrv e keystone desligados. `debloat-revertido` segura só `deb_vlc`. `deb_lnch` só liga com a home instalada
+  e ativa. O protetor de tela não entra no debloat.
+- Grupos: `deb_seg` (autotest, factorymenu, tvtestingtools, hikeymasterprovision, ijkplayerdemo, location.fused),
+  `deb_ota` (`com.newlink.service`, `service2`), `deb_hisi` (music, videoplayer, tvui, tv.menu; **nunca** `higallery`:
+  é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (VLC e Office).
+- Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` acha o USB
+  `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
+  e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot).
+- **Resgate:** o arquivo `DESLIGAR-CHAVES.txt` no pendrive desliga todas a cada plugada e grava escolha 0 em todas
+  (sem marca de "feito"). Pedido da home: `v1 ler` ou `v1 <id> ligar|desligar`; id e ação fora da lista são recusados.
+- As ações de cada chave vão para `$SUITE/diario.fila` (`<uptime> <id> <acao> <resultado>`, máx. 60), de onde o diário
+  as lê quando existir.
+
+
 ## Provisório (o aparelho confirma)
 
 | Arquivo | Constante ou função | O que falta | Doc |

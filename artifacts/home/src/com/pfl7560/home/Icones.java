@@ -22,6 +22,7 @@ public final class Icones {
     public static final int JOGO = 19;
     public static final int LUZ = 20;
     public static final int CURVAS = 21;
+    public static final int AJUSTES = 22;
 
     private static final int[] CORES_MONOGRAMA = {Tema.ROXO, Tema.ROSA, Tema.CIANO, Tema.VERDE, Tema.LARANJA};
 
@@ -141,6 +142,12 @@ public final class Icones {
                 p.polilinha(pts(x, y, s, 14, 46, 28, 42, 38, 28, 52, 14), false, e, cor);
                 p.circulo(x + 28 * s, y + 42 * s, 5 * s, cor);
                 p.circulo(x + 38 * s, y + 28 * s, 5 * s, cor);
+                break;
+            case AJUSTES:
+                p.linha(x + 8 * s, y + 22 * s, x + 56 * s, y + 22 * s, e, cor);
+                p.circulo(x + 22 * s, y + 22 * s, 7 * s, cor);
+                p.linha(x + 8 * s, y + 43 * s, x + 56 * s, y + 43 * s, e, cor);
+                p.circulo(x + 42 * s, y + 43 * s, 7 * s, cor);
                 break;
             default:
                 break;

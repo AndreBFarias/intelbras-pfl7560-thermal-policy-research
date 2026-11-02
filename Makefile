@@ -10,6 +10,7 @@ check-kit:
 	bash tests/atualizar-md5-kit.sh --check
 	bash tests/test-kit-pendrive.sh
 	bash tests/test-suite.sh
+	bash tests/test-chaves.sh
 	bash tests/test-preparar-pendrive.sh
 	bash tests/test-processos.sh
 	bash tests/test-pc-marca-vlc.sh
