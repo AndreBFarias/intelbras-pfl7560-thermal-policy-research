@@ -266,8 +266,10 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (só o Office desde o bloco 27; o
   id ficou `deb_vlc` para não mudar a prop. As chaves e o debloat não mexem no VLC; quem o tira do usuário 0, uma
   vez, é o `suite-boot.sh`, acima).
-- Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` acha o USB
-  `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
+- Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` **não é
+  mais uma escolha** (bloco 29): o `auto` no `power/control` do chip (USB `a69c:8d80/8d81`) derrubava o kernel
+  (NULL em `aicwf_usb_bus_start`, doc 49 §2.2.1). `aplicar`/`pedido` recusam o id, o boot e o resgate apagam a linha
+  `wifi_pwr=` e escrevem `on`; a posição na prop fica sempre `-`. `web_cmd` = `stop|start boa`
   e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot); `pop_disp` = `setprop
   vendor.newlink.hisi.hdmiisdialog 0` (o pop-up "Dispositivo conectado" é do `com.zhiying.settings`, que só abre a
   janela com a prop != 0; de fábrica 1). Não é persist: o boot reaplica, e desligar devolve o valor do
