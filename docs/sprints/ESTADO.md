@@ -19,6 +19,11 @@ em voo no workflow `watw88g3r`, branch `bloco-26`.
 pop-up do `nlprovision`. Tarefa e decisões do dono em `2026-11-02-bloco-27-home-limpa.md`. Ainda sem agente.
 Conflito previsto com o bloco 26 só nas listas md5 do kit (resolver com `tests/atualizar-md5-kit.sh`).
 
+**Bloco 28 (depois do 26 e do 27):** "Cast" verde Dracula no logo, na animação e na home; logo na partição do
+firmware; S5 final com a home nova; backup; flash. Tarefa em `2026-11-02-bloco-28-s5-final-cast-verde.md`.
+Pendente no aparelho quando ele voltar à rede: o dono pediu para desinstalar o VLC (`org.videolan.vlc`) se ainda
+estiver lá; confirmar pelo AskUserQuestion antes.
+
 ## Próximos passos
 
 1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
