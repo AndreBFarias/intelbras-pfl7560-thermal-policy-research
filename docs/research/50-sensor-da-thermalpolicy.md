@@ -206,8 +206,13 @@ um `sfs`, o alvo da política tem que ser igual ao pedido").
    ventiladores e brilho ficam onde estavam. Hoje, com 1000 fixo, o congelamento é sempre em 1000 e não aparece.
    **Com a curva, pode congelar no piso.** Nesse estado o `env_temp` também para de ser atualizado (é publicado
    depois do teste de erro), então o laço do kit lê um valor velho.
-4. **`THRESHOLD` e `SPEED` de tamanhos diferentes:** o lambda lê `Y[i]` sem conferir o tamanho; um `SPEED` mais curto
-   leva a leitura fora do vetor. Limiar repetido zera o divisor `X[i+1] − X[i]`. O gerador tem que garantir os dois.
+4. **`THRESHOLD` e `SPEED` de tamanhos diferentes:** o lambda lê `Y[i]` e `Y[i+1]` sem conferir o tamanho; um `SPEED`
+   mais curto leva a leitura fora do vetor (acima do último limiar ele devolve o último elemento do `SPEED`,
+   `0x21fc4e`-`0x21fc50`, seja qual for o tamanho). Limiar repetido **não** zera o divisor (correção do C1): a busca
+   pega o primeiro `i` com `X[i+1] > T` (`0x21fc32`-`0x21fc3a`) e chega lá com `X[i] ≤ T` (o `i` anterior não
+   casou, e `i = 0` só chega com `T > X[0]`), então `X[i+1] − X[i] > 0`. O ponto repetido só fica inalcançável. O
+   gerador tem que garantir o mesmo tamanho e limiares estritamente crescentes (para a curva ser a que o dono
+   desenhou).
 5. **Troca de política pela interface:** se algo chamar `setThermalPolicy`/`cus_SetThermalPolicy` com
    `COOLING`/`QUIET`/`FAST`/`NONE` (`RunCheckAndUpdate`, `0x1fc8dc` → `updatePolicy`), o nome não existe no `.ini`
    (`"No Define Value of %s"`) e vale o `FALLBACK` (`0x9f4e8`-`0x9f51a`: vetores vazios), que dá 1000 ao ventilador 0
@@ -235,9 +240,16 @@ um `sfs`, o alvo da política tem que ser igual ao pedido").
   `.ini` sem reiniciar o serviço não foi varrido em toda a lib.
 - **Briga limitada com o arredondamento** (risco 6).
 - **Se alguma tela do sistema chama `setThermalPolicy`:** o caminho existe por binder; quem chama, não foi visto.
-- **Nada foi conferido ao vivo:** o aparelho estava fora da rede. Previsão verificável quando voltar, só leitura:
+- **Ao vivo, só em parte:** o aparelho estava fora da rede na sessão do R1. Previsão verificável, só leitura:
   `getprop zysys.env_temp` deve bater com o `gtt1` e `zysys.light_temp` com o `gtt0` (doc 34), e um `logcat -d`
   curto não deve mostrar `No Define Value of STANDARD` nem `of 2ND_STANDARD`.
+- **Conferência do C1 (2026-11-02, só leitura, sem `gtt`):** `zysys.env_temp = 65.5℃`, `zysys.light_temp = 31.9℃`,
+  `zysys.screen_temp` e `vendor.zy.power.tm.temp` vazias, `vendor.zy.power.tm.enable = true`: o LED quente na 2ª e a
+  placa fria na 1ª, como na §1.3. Um `logcat -d` de 1305 linhas (42 min depois de ligar) não tem `No Define Value`,
+  mas o buffer pode já não cobrir a subida do serviço: inconclusivo. O casamento `env_temp` = `gtt1` continua por
+  conferir (pede `gtt`, proibido). No binário, o C1 refez os endereços das §1.1, §1.2, §1.3, §2, §3.1 e §5.1
+  (`llvm-objdump` do NDK r27c, mesmo md5) e a simulação da rampa do risco 1 (60/56 avaliações, PWM final 992/999,
+  descida 102/92): batem. Única correção: o divisor do risco 4.
 
 ## 8. Achado fora do escopo (uma linha)
 
