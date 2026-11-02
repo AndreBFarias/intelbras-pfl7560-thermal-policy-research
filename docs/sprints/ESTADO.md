@@ -28,7 +28,7 @@ diário (ok assim).
 - Curva do dono gravada nas duas políticas da `[ThermalPolicy]` (doc 50 §proposta): o kit precisa aceitar a
   variante do `.ini`. Decidido para o próximo bloco.
 - Pedido do dono (2026-11-02): chave na home para desligar o pop-up de "dispositivo conectado" que aparece ao
-  plugar o pendrive. Achar qual app mostra (provável serviço da NewLink/HiSilicon) e fazer uma chave reversível.
+  plugar o pendrive. Achar qual app mostra (a suíte de 2026-11-02 viu um alerta de `com.newlink.nlprovision` que não fechou com 4 teclas OK) e fazer uma chave reversível.
 - `le_temp` (`suite-curvas.sh`) não detecta `env_temp` congelado com anéis defasados (doc 37). Achado do R1 no
   bloco 25; vira tarefa do próximo bloco.
 - Roteiro de medida do doc 49 (bloco 22): o dono decidiu pular; o uso do dia a dia confirma.
