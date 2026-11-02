@@ -72,6 +72,12 @@ Compile da raiz, com o caminho relativo: o `assert` da `stb_truetype` grava o ca
   decodificador (o IDCT do NEON e o do SSE2 diferem em bits). Por isso o teste no PC vale para o aparelho.
 - **JPEG 4:4:4 q95** pelo `stb_image_write` (ele só faz 4:4:4 acima de q90), o que o Pillow faz com
   `subsampling=0`. Os tamanhos ficam perto (86 a 100 KiB contra 85 a 98 KiB).
+- **Cabeçalho igual ao do Pillow, byte a byte (bloco 25, C1).** O `stb_image_write` põe as 2 tabelas de
+  quantização num DQT só e as 4 de Huffman num DHT só; o Pillow (libjpeg) escreve um segmento por tabela, e é esse
+  arranjo que o carregador já leu (logo de fábrica, arte reta, logo do `pfl7560-marca.sh`). Os bytes das tabelas são
+  os mesmos; o `separar_tabelas` reescreve o cabeçalho com um segmento por tabela e copia do SOS em diante sem
+  tocar. O `test-logo.sh` exige o SOI-até-SOS igual ao do `gerar-marca.py` nos 5 conjuntos de cantos; só os dados
+  comprimidos diferem.
 - **Cantos retos com arte JPEG = cópia da arte:** é o que o `gerar-marca.py` grava nesse caso, e o `suite-logo.sh`
   reconhece a partição de fábrica do kit pelo md5 da arte.
 - **Conferência da partição antes de qualquer conta:** os 120 primeiros bytes (`###\0`, `LOGO_TABLE`,

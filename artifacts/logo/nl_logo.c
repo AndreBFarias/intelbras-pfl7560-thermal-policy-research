@@ -276,6 +276,70 @@ static void juntar(void *ctx, void *dados, int n) {
   s->n += n;
 }
 
+/* O stb_image_write poe as 2 tabelas de quantizacao num DQT so e as 4 de Huffman num DHT so. Os bytes das
+   tabelas sao os mesmos do Pillow (libjpeg), que escreve um segmento por tabela, e e esse arranjo que o carregador
+   ja leu (logo de fabrica, arte reta e o logo do pfl7560-marca.sh). Reescreve o cabecalho com um segmento por
+   tabela; do SOS em diante copia sem tocar. Qualquer coisa fora do esperado: falha (nao grava). */
+static int emitir(unsigned char *o, long *k, long cap, const unsigned char *b, long n) {
+  if (n < 0 || *k + n > cap) return -1;
+  memcpy(o + *k, b, (size_t)n);
+  *k += n;
+  return 0;
+}
+
+static int emitir_tabela(unsigned char *o, long *k, long cap, unsigned char m, const unsigned char *t, long tl) {
+  unsigned char c[4] = {0xff, m, (unsigned char)((tl + 2) >> 8), (unsigned char)((tl + 2) & 0xff)};
+  if (tl + 2 > 0xffff) return -1;
+  return emitir(o, k, cap, c, 4) == 0 && emitir(o, k, cap, t, tl) == 0 ? 0 : -1;
+}
+
+static int separar_tabelas(Saida *s) {
+  const unsigned char *b = s->b;
+  long n = s->n, cap = n + 1024, k = 0, pos = 2;
+  if (n < 4 || b[0] != 0xff || b[1] != 0xd8) return -1;
+  unsigned char *o = malloc((size_t)cap);
+  if (!o) return -1;
+  if (emitir(o, &k, cap, b, 2) != 0) goto falha;
+  for (;;) {
+    if (pos + 4 > n || b[pos] != 0xff) goto falha;
+    unsigned char m = b[pos + 1];
+    long len = (long)b[pos + 2] << 8 | b[pos + 3];
+    if (len < 2 || pos + 2 + len > n) goto falha;
+    long p = pos + 4, fim = pos + 2 + len;
+    if (m == 0xda) {
+      if (emitir(o, &k, cap, b + pos, n - pos) != 0) goto falha;
+      break;
+    } else if (m == 0xdb) {
+      while (p < fim) {
+        long tl = 1 + ((b[p] >> 4) ? 128 : 64);
+        if (p + tl > fim || emitir_tabela(o, &k, cap, m, b + p, tl) != 0) goto falha;
+        p += tl;
+      }
+    } else if (m == 0xc4) {
+      while (p < fim) {
+        if (p + 17 > fim) goto falha;
+        long tl = 17;
+        for (int i = 1; i <= 16; i++) tl += b[p + i];
+        if (p + tl > fim || emitir_tabela(o, &k, cap, m, b + p, tl) != 0) goto falha;
+        p += tl;
+      }
+    } else if ((m >= 0xe0 && m <= 0xef) || m == 0xc0 || m == 0xfe) {
+      if (emitir(o, &k, cap, b + pos, 2 + len) != 0) goto falha;
+    } else {
+      goto falha;
+    }
+    pos = fim;
+  }
+  free(s->b);
+  s->b = o;
+  s->n = k;
+  s->cap = cap;
+  return 0;
+falha:
+  free(o);
+  return -1;
+}
+
 static int termina_com(const char *s, const char *fim) {
   size_t a = strlen(s), b = strlen(fim);
   return a >= b && strcmp(s + a - b, fim) == 0;
@@ -349,6 +413,8 @@ static int cmd_gerar(const char *entrada, char **arg, const char *saida) {
   free(dst);
   if (!ok || s.falhou || !jpeg_ok(s.b, s.n)) {
     erro("falha ao codificar o JPEG (%ld bytes)", s.n);
+  } else if (separar_tabelas(&s) != 0 || !jpeg_ok(s.b, s.n)) {
+    erro("cabecalho do JPEG fora do esperado (DQT/DHT)");
   } else if (s.n > MAX_JPEG) {
     erro("JPEG gerado com %ld bytes, acima do limite", s.n);
   } else {

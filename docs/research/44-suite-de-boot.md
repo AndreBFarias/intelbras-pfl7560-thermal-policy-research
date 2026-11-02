@@ -868,7 +868,7 @@ devolve, chave, resgate). Mais `c_logo_boot` no `test-suite.sh` e `c_bloco25` no
 
 | Item | Onde |
 |---|---|
-| O bootloader decodifica o JPEG do `stb_image_write` (q95, 4:4:4, baseline) como decodificava o do Pillow | `nl_logo.c` |
+| O bootloader decodifica o JPEG do `stb_image_write` (q95, 4:4:4, baseline) como decodificava o do Pillow. Do SOI ao SOS os bytes já são os do Pillow (um DQT e um DHT por tabela, como o logo que o carregador já leu); só os dados comprimidos vêm de outro codificador | `nl_logo.c` |
 | `MAX_JPEG` de 256 KiB (os logos reais tinham 44 e 95 KB; o gerado tem 86 a 100 KiB) | `nl_logo.c` |
 | Recusa por área menor que 25 % e a regra do quadrante (escolha, não medição) | `nl_logo.c` |
 | Espera de 60 s + até 40 x 30 s pela trava da suíte | `suite-logo.sh` |

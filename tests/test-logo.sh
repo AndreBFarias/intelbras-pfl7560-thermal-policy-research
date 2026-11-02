@@ -90,18 +90,26 @@ for i, c in enumerate(sys.argv[5:]):
     a = Image.open(sai + ".ppm").tobytes(); b = ref.tobytes()
     cru = sum(1 for x, y in zip(a, b) if x != y) if len(a) == len(b) else -1
     jn = Image.open(sai + ".jpg")
-    jr = Image.open(io.BytesIO(gm.jpeg(ref)))
+    jb = gm.jpeg(ref)
+    jr = Image.open(io.BytesIO(jb))
+    def cab(d):
+        i = 2
+        while d[i] == 0xff and d[i + 1] != 0xda:
+            i += 2 + (d[i + 2] << 8 | d[i + 3])
+        return d[:i + 2 + (d[i + 2] << 8 | d[i + 3])]
+    mesmo_cab = int(cab(open(sai + ".jpg", "rb").read()) == cab(jb))
     from PIL import JpegImagePlugin
     amostra = JpegImagePlugin.get_sampling(jn)
     pa = jn.convert("RGB").tobytes(); pb = jr.convert("RGB").tobytes()
     d = [abs(x - y) for x, y in zip(pa, pb)]
     media = sum(d) / len(d)
-    print("%d cru=%d media=%.4f max=%d amostra=%d tam=%d dim=%dx%d" % (i, cru, media, max(d), amostra, os.path.getsize(sai + ".jpg"), jn.size[0], jn.size[1]))
+    print("%d cru=%d media=%.4f max=%d amostra=%d tam=%d dim=%dx%d cab=%d" % (i, cru, media, max(d), amostra, os.path.getsize(sai + ".jpg"), jn.size[0], jn.size[1], mesmo_cab))
 PY
   afirma '[ "$(grep -c "cru=0 " "$TMP/px.out")" = 5 ]' "a saida crua do nl_logo difere da do gerar-marca.py (Pillow): $(tr '\n' '|' < "$TMP/px.out")"
   afirma '[ "$(awk "{split(\$3,m,\"=\"); split(\$4,x,\"=\"); if (m[2] < 0.5 && x[2] <= 64) n++} END {print n+0}" "$TMP/px.out")" = 5 ]' "JPEG do nl_logo longe do gerar-marca.py (media >= 0.5 ou max > 64): $(tr '\n' '|' < "$TMP/px.out")"
   afirma '[ "$(grep -c "amostra=0 .*dim=1920x1080" "$TMP/px.out")" = 5 ]' "JPEG do nl_logo nao e 4:4:4 1920x1080: $(tr '\n' '|' < "$TMP/px.out")"
   afirma 'cmp -s "$TMP/px/s0.jpg" "$ARTE"' "cantos retos nao devolvem a arte byte a byte"
+  afirma '[ "$(grep -c " cab=1$" "$TMP/px.out")" = 5 ]' "cabecalho do JPEG do nl_logo (SOI ate o SOS: um DQT e um DHT por tabela) difere do do Pillow que o carregador ja leu: $(tr '\n' '|' < "$TMP/px.out")"
   echo "  $(tr '\n' ' ' < "$TMP/px.out")"
 else
   falha "sem Pillow (python3 -I -c 'import PIL'): o teste contra o gerar-marca.py nao rodou"

@@ -56,6 +56,10 @@ Decisões:
   `gerar-marca.py`), centro do pixel em (x+0,5, y+0,5) e o `bicubic_filter32RGB` do Pillow (a = -1, recorte e
   truncamento iguais). A saída crua é idêntica byte a byte à do `gerar-marca.py` (provado em 5 conjuntos de
   cantos); o JPEG difere só pelo codificador (média de 0,03 por canal, máximo 15).
+- **Cabeçalho do JPEG igual ao do Pillow.** O `stb_image_write` junta as 2 tabelas de quantização num DQT e as 4
+  de Huffman num DHT; o Pillow escreve um segmento por tabela, o arranjo que o carregador já leu. As tabelas são
+  as mesmas (q95, Huffman padrão); o `separar_tabelas` reescreve o cabeçalho com um segmento por tabela. Do SOI ao
+  SOS o JPEG do `nl_logo` é byte a byte o do `gerar-marca.py` (o `test-logo.sh` confere).
 - **`MAX_JPEG` de 256 KiB.** O JPEG gerado tem 86 a 100 KiB; acima disso algo saiu errado e o `gerar` recusa.
   PROVISÓRIO: o limite do que o bootloader lê não foi medido; os dois logos reais tinham 44 e 95 KB.
 - **`MAX_ENTRADA` de 8 MiB** para a arte e para o JPEG extraído da partição.
