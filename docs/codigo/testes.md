@@ -108,3 +108,23 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
   recusado; `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`; versionCode 6; `suite-curvas.sh` e a lista do debloat no
   `KIT_LISTA`/`KIT_EXEC`).
 - Home: `Previa.java` confere o modelo das curvas e a navegação (`gerar-previas.sh`).
+
+## Bloco 25: logo automático (`test-logo.sh`)
+
+- **`nl_logo` no host** (o mesmo `.c`, `-Wall -Wextra -ffp-contract=off`, zero aviso): a saída crua (PPM) é igual
+  byte a byte à do `gerar-marca.py` (o módulo é carregado pelo caminho e o `distorcida` roda no mesmo PPM de
+  entrada) em 5 conjuntos de cantos (retos, os do dono, os antigos e dois tortos); o JPEG fica a menos de 0,5 de
+  média e 64 de máximo do JPEG do Pillow, é 4:4:4 e 1920x1080; cantos retos devolvem a arte byte a byte. Recusas de
+  cantos com o código de saída e o motivo. `cabecalho`/`extrair`/`montar` numa partição sintética com a arte real e
+  com 7 mutações do cabeçalho; os backups reais, se estiverem em `backups-projetor/logo/` (fora do git).
+- **ARM:** ELF do Android, igual ao `pendrive-autorun/nl_logo` e, com o NDK, igual ao recompilado.
+- **`suite-logo.sh` sob `dash`** numa raiz falsa, com o `nl_logo` do host (`PFL_NLLOGO`/`PFL_NLLOGO_MD5`, só com
+  `PFL_TESTE=1`), `blockdev`/`dd`/`sync`/`sleep` de mentira (o `dd` acrescenta `conv=notrunc` ao escrever num
+  arquivo comum, como no `test-pc-marca-vlc.sh`): adota sem escrever, grava só as duas regiões com os dois backups
+  e a releitura, uma vez por boot, não regrava com os mesmos cantos, volta aos retos byte a byte; cada recusa de
+  cantos e cada conferência antes de escrever (programa, arte, modelo, tamanho, cabeçalho, trava da suíte, backup)
+  deixa a partição intacta; releitura errada devolve o backup (ou diz que restaure pelo PC) e desliga a chave;
+  chave, pendrive, pasta insegura, registro adulterado, pedido `logo-auto` pelo `suite-pedido.sh`.
+- `test-suite.sh` (`c_logo_boot`): o `suite-boot.sh` roda o `suite-logo.sh` conferido, recusa o adulterado e trata o
+  pedido pendente. `test-kit-pendrive.sh` (`c_bloco25`): instalação dos dois arquivos e da arte reta na suíte,
+  `KIT_LISTA`/`KIT_EXEC`, o `DESLIGAR-LOGO-AUTO.txt` (também com `DESINSTALAR-SUITE.txt`) e a pasta insegura.

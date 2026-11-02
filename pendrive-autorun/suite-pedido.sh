@@ -13,6 +13,7 @@ HOME_DIR="$R/data/data/com.pfl7560.home"
 PEDIDO_DIR="$VERIF_DIR"
 LUZ_ARQ="$SUITE/luz"
 CURVAS="$SUITE/suite-curvas.sh"
+LOGO_SH="$SUITE/suite-logo.sh"
 HIDEBUG="$R/vendor/bin/hidebug"
 INTERVALO_MIN=600
 DONO_UID=0
@@ -23,6 +24,7 @@ APP_UID_MIN=10000
 # SUITE_MD5_INICIO
 SUITE_MD5="40a977bb67192e9123757669206a81e6"
 CURVAS_MD5="bd4da978560a5c41802d400ba186dda3"
+LOGO_MD5="a7899d47ee60fb41ed1c465b24af9826"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -139,6 +141,18 @@ tratar_curva(){
   fi
   curvas_chamar pedido "${1#curva-}" "$2"
 }
+tratar_logo(){
+  case "$1" in
+    ligado|desligado) ;;
+    *) LOG "[AVISO] pedido de logo-auto recusado (conteudo '$(limpo "$1")': so ligado ou desligado)."; return 0 ;;
+  esac
+  if ! { arq_seguro "$LOGO_SH" && [ "$(md5_de "$LOGO_SH")" = "$LOGO_MD5" ]; }; then
+    LOG "[ERRO] suite-logo.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."
+    return 1
+  fi
+  LOG "logo automatico: chave $1 pela home"
+  timeout 30 sh "$LOGO_SH" chave "$1"
+}
 
 if [ "${1:-}" = "aplicar-luz" ]; then
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - luz nao reaplicada."; exit 1; }
@@ -182,7 +196,7 @@ tratar_descanso(){
 NOME="${3:-}"
 case "$NOME" in
   pedir-verificacao|descanso-inicio|descanso-fim) PEDIDO_DIR="$VERIF_DIR" ;;
-  luz|curva-vent|curva-led) PEDIDO_DIR="$HOME_DIR" ;;
+  luz|curva-vent|curva-led|logo-auto) PEDIDO_DIR="$HOME_DIR" ;;
   *) exit 0 ;;
 esac
 [ "${2%/}" = "$PEDIDO_DIR" ] || exit 0
@@ -193,6 +207,7 @@ LUZ_BRUTO=""
 if [ "$DO_APP" = "1" ]; then
   case "$NOME" in
     luz) ler_pedido_app luz 16 || DO_APP=0 ;;
+    logo-auto) ler_pedido_app logo-auto 16 || DO_APP=0 ;;
     curva-vent|curva-led) ler_pedido_app "$NOME" 200 || DO_APP=0 ;;
   esac
 fi
@@ -209,6 +224,7 @@ if [ -e "$PEDIDO_DIR/$NOME" ] || [ -L "$PEDIDO_DIR/$NOME" ]; then
 fi
 if [ "$DO_APP" != "1" ]; then LOG "[AVISO] o pedido nao veio do app (dono do arquivo nao e o da pasta do app) - ignorado."; exit 0; fi
 if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
+if [ "$NOME" = "logo-auto" ]; then tratar_logo "$LUZ_BRUTO"; exit 0; fi
 case "$NOME" in curva-*) tratar_curva "$NOME" "$LUZ_BRUTO"; exit 0 ;; esac
 case "$NOME" in descanso-*) tratar_descanso "${NOME#descanso-}"; exit 0 ;; esac
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi

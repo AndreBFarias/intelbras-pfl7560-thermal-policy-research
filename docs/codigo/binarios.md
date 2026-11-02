@@ -1,8 +1,8 @@
-# Notas do código: binários do kit em C (`nl_tela`, `nl_camcheck`, `lvdsctl`)
+# Notas do código: binários do kit em C (`nl_tela`, `nl_camcheck`, `lvdsctl`, `nl_logo`)
 
-O porquê das decisões nos três programas em C que vão para o pendrive. Uso, compilação e provas: os READMEs de
-[`tela`](../../artifacts/tela/README.md), [`camcheck`](../../artifacts/camcheck/README.md) e
-[`lcd-color-fix`](../../artifacts/lcd-color-fix/README.md). Mapa geral: [`../MAPA.md`](../MAPA.md).
+O porquê das decisões nos quatro programas em C que vão para o pendrive. Uso, compilação e provas: os READMEs de
+[`tela`](../../artifacts/tela/README.md), [`camcheck`](../../artifacts/camcheck/README.md),
+[`lcd-color-fix`](../../artifacts/lcd-color-fix/README.md) e [`logo`](../../artifacts/logo/README.md). Mapa geral: [`../MAPA.md`](../MAPA.md).
 
 Os binários versionados (`artifacts/*/nl_*`, `pendrive-autorun/nl_*`) são compilados destes fontes com o NDK r27c;
 `tests/test-tela.sh` e `tests/test-camcheck.sh` recompilam e comparam byte a byte quando o NDK está na máquina.
@@ -61,3 +61,23 @@ Compile da raiz, com o caminho relativo: o `assert` da `stb_truetype` grava o ca
 - Chama `HiPanelCtrl::SetLvdsFormat` (e as de `swap`, `bit` e `map`) da `libhitvservice.so` por `dlopen`. O
   `SetLvdsFormat` **persiste na hora** na `panelparam` (doc 40 §1). O código de saída não é confiável: quem confirma
   é a releitura do byte. Compilar com `-ldl`.
+
+## `nl_logo.c` (logo do boot, bloco 25)
+
+- **Réplica do Pillow, não "parecido".** O `gerar-marca.py` usa `Image.transform(PERSPECTIVE, BICUBIC)`. O C refaz:
+  coeficientes pelo mesmo Gauss-Jordan 8x8 do Python (pivô parcial, o primeiro máximo), amostra no centro do pixel
+  (x+0,5, y+0,5), o filtro bicúbico de 4x4 do `bicubic_filter32RGB` (a = -1, `clip8` e truncamento iguais) e fundo
+  preto fora da arte. Resultado: saída crua igual byte a byte; o resto da diferença é só o codificador JPEG.
+- **Determinismo PC = ARM.** `-ffp-contract=off` (sem FMA a conta em `double` é a do Python) e `STBI_NO_SIMD` no
+  decodificador (o IDCT do NEON e o do SSE2 diferem em bits). Por isso o teste no PC vale para o aparelho.
+- **JPEG 4:4:4 q95** pelo `stb_image_write` (ele só faz 4:4:4 acima de q90), o que o Pillow faz com
+  `subsampling=0`. Os tamanhos ficam perto (86 a 100 KiB contra 85 a 98 KiB).
+- **Cantos retos com arte JPEG = cópia da arte:** é o que o `gerar-marca.py` grava nesse caso, e o `suite-logo.sh`
+  reconhece a partição de fábrica do kit pelo md5 da arte.
+- **Conferência da partição antes de qualquer conta:** os 120 primeiros bytes (`###\0`, `LOGO_TABLE`,
+  `LOGO_KEY_FLAG`, `LOGO_KEY_LEN`) são os dos dois backups reais e são exigidos byte a byte; o resto até o 8192 tem
+  de ser zero; o `LOGO_KEY_LEN` tem de fechar com `FFD9`. Qualquer desvio: o formato não é o conhecido e nada se
+  monta.
+- **`montar` lê a base e escreve um arquivo novo** (não altera a base): o `suite-logo.sh` compara o md5 da partição
+  relida com o desta imagem, como o `pfl7560-marca.sh`.
+

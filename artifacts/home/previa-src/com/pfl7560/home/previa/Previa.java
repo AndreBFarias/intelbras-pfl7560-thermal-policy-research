@@ -140,6 +140,25 @@ public final class Previa {
         e.curvas.mover(0, -1);
         e.curvas.mover(1, 0);
         salvar(e, fontes, new File(saida, "home-curvas-led-padrao.png"));
+
+        Modelo f = painelCurvas(firmware);
+        f.curvas.mover(0, -1);
+        f.curvas.mover(1, 0);
+        f.curvas.mover(1, 0);
+        f.curvas.mover(0, 1);
+        f.curvas.logoEstado = "ligado";
+        f.curvas.logoCantos = "95,915 1715,1030 40,25 1775,35";
+        f.curvas.logoHora = "2026-11-01 21:40";
+        salvar(f, fontes, new File(saida, "home-curvas-logo-ligado.png"));
+
+        Modelo g = painelCurvas(firmware);
+        g.curvas.mover(0, -1);
+        g.curvas.mover(1, 0);
+        g.curvas.mover(1, 0);
+        g.curvas.logoEstado = "desligado";
+        g.curvas.logoCantos = Curvas.LOGO_RETO;
+        g.curvas.logoMotivo = "releitura_devolvido";
+        salvar(g, fontes, new File(saida, "home-curvas-logo-recusa.png"));
     }
 
     private static List<Item> completo(List<Item> firmware) {
@@ -342,6 +361,22 @@ public final class Previa {
         verdade(Curvas.pedidoValido(c.pedido()) && !Curvas.pedidoValido("v2 x vivo") && !Curvas.pedidoValido("v1 x ao-vivo") && !Curvas.pedidoValido(null), "pedidoValido");
         verdade(Curvas.rotuloEstado("silencioso:vivo").equals("Silencioso, ao vivo") && Curvas.rotuloEstado("").equals("Padrão do firmware"), "rotulos de estado");
         verdade(Curvas.rotuloAviso("firmware", true).contains("100%") && Curvas.rotuloAviso("", true).isEmpty(), "rotulos de aviso");
+        c.zona = Curvas.ZONA_ABA;
+        verdade(c.mover(1, 0) && c.aba == Curvas.ABA_LOGO && !c.mover(1, 0), "terceira aba: Logo do boot, a ultima");
+        verdade(c.ok() == Curvas.NADA && c.mover(0, 1) && c.zona == Curvas.ZONA_PERFIL && !c.mover(0, 1), "na aba do logo so ha a chave abaixo das abas");
+        verdade(!c.mover(1, 0) && !c.mover(-1, 0) && c.aba == Curvas.ABA_LOGO, "esquerda e direita na chave nao trocam de aba");
+        verdade(c.logoLigado() && c.pedidoLogo().equals("desligado") && c.ok() == Curvas.LOGO, "chave ligada por padrao; OK pede desligar");
+        c.logoEstado = "desligado";
+        verdade(!c.logoLigado() && c.pedidoLogo().equals("ligado"), "desligada: OK pede ligar");
+        c.pedindo = "ligado";
+        verdade(c.ok() == Curvas.NADA, "nao pede de novo enquanto envia");
+        c.pedindo = null;
+        verdade(Curvas.pedidoLogoValido("ligado") && Curvas.pedidoLogoValido("desligado") && !Curvas.pedidoLogoValido("sim") && !Curvas.pedidoLogoValido(null), "pedidoLogoValido");
+        verdade(Curvas.rotuloCantos(Curvas.LOGO_RETO).startsWith("Retos") && Curvas.rotuloCantos("").startsWith("Ainda") && Curvas.rotuloCantos("1,2 3,4 5,6 7,8").contains("Inf. dir. 7,8"), "rotulos dos cantos");
+        verdade(Curvas.rotuloMotivo("").equals("Nenhuma") && Curvas.rotuloMotivo("nao_convexo").contains("quadril") && Curvas.rotuloMotivo("xyz").contains("xyz"), "rotulos das recusas");
+        String[] motivos = {"formato", "fora_da_tela", "nao_convexo", "canto_trocado", "area_pequena", "programa", "arte", "modelo", "particao", "cabecalho", "suite_rodando", "pendrive", "backup", "primeiro", "mudou", "releitura_devolvido", "releitura_sem_volta", "trabalho", "gerar", "montar"};
+        for (String mo : motivos) verdade(!Curvas.rotuloMotivo(mo).startsWith("Não gravado ("), "motivo sem texto: " + mo);
+        verdade(c.mover(0, -1) && c.zona == Curvas.ZONA_ABA && c.mover(-1, 0) && c.aba == Curvas.ABA_LED, "volta para a aba LED");
         m.inicio();
         verdade(!m.curvasAberta, "HOME fecha o painel de curvas");
     }

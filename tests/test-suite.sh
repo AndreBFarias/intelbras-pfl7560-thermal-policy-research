@@ -2247,6 +2247,30 @@ c_curvas_standby(){
   limpa
 }
 
+c_logo_boot(){
+  local L
+  novo_cenario "logo/boot: suite-boot.sh roda o suite-logo.sh conferido por md5, em segundo plano, uma vez"
+  instala_suite; cp "$KIT/suite-logo.sh" "$S/suite-logo.sh"; chmod 755 "$S/suite-logo.sh"
+  L="$R/data/vendor/pfl7560-logo"
+  roda_boot
+  afirma 'grep -q "==== boot" "$L/logo.log" && [ "$(cat "$L/motivo")" = programa ] && [ "$(prop_de logo_motivo)" = programa ] && [ "$(prop_de logo)" = ligado ]' "o boot nao rodou o suite-logo.sh: $(lista_dir "$L") $(grep -i logo "$S/boot.log" | tr '\n' '|')"
+  afirma '[ -d "$R/dev/pfl7560-logo.boot" ] && [ "$(stat -c %a "$L")" = 700 ]' "sem a marca de uma vez por boot ou pasta do logo aberta"
+  limpa
+
+  novo_cenario "logo/boot: suite-logo.sh adulterado = nao roda, diz no boot.log"
+  instala_suite; cp "$KIT/suite-logo.sh" "$S/suite-logo.sh"; echo "# x" >> "$S/suite-logo.sh"
+  roda_boot
+  afirma '[ ! -e "$R/data/vendor/pfl7560-logo" ] && grep -q "logo automatico NAO conferido" "$S/boot.log"' "rodou o adulterado: $(grep -i logo "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "logo/boot: pedido logo-auto pendente de antes do vigia = tratado no boot"
+  instala_suite; cp "$KIT/suite-logo.sh" "$S/suite-logo.sh"; chmod 755 "$S/suite-logo.sh"
+  printf 'desligado' > "$PEDH/logo-auto"
+  roda_boot
+  afirma '[ -e "$R/data/vendor/pfl7560-logo/desligado" ] && [ ! -e "$PEDH/logo-auto" ]' "o pedido pendente nao desligou a chave: $(tail -3 "$S/vigia.log" | tr '\n' '|')"
+  limpa
+}
+
 ini_muta(){ cp "$KIT/ZYCustom.ini" "$T/ini.mut"; sed -i "$1" "$T/ini.mut"; }
 
 c_curvas_ini(){
@@ -2436,7 +2460,7 @@ echo "== cenarios sob dash =="
 for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot \
          c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente \
          c_curvas_vent_pedido c_curvas_led_pedido c_curvas_vent_laco c_curvas_led_laco c_curvas_boot \
-         c_curvas_fio c_curvas_standby c_curvas_ini c_curvas_debloat}; do
+         c_curvas_fio c_curvas_standby c_curvas_ini c_curvas_debloat c_logo_boot}; do
   echo "  $c"
   "$c"
 done

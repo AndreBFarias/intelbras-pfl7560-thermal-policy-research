@@ -30,6 +30,16 @@ aplica. Formatos e limites: [doc 44 §17](../../docs/research/44-suite-de-boot.m
 
 ![curva dos ventiladores](previa/home-curvas-vent-silencioso.png)
 
+## Logo do boot (bloco 25)
+
+A terceira aba da tela Curvas liga e desliga o logo automático (ligado por padrão) e mostra os cantos do logo
+gravado, a hora da última gravação e o último motivo de recusa. OK na chave grava o pedido `logo-auto` na pasta da
+home; o root (`suite-logo.sh`) muda a chave, que vale no boot seguinte. A gravação em si só acontece no boot, nunca
+pela home. Formatos e conferências: [doc 44 §18](../../docs/research/44-suite-de-boot.md). Se a tela de Ajustes do
+bloco 24 entrar, a chave pode mudar para lá.
+
+![logo do boot](previa/home-curvas-logo-ligado.png)
+
 ## Sem Espelhamento nem os apps desligados (bloco 16B)
 
 O atalho Espelhamento saiu e a fileira Apps nunca mostra o Office, o iOSCast nem o Espelhamento (`Modelo.OCULTOS`),

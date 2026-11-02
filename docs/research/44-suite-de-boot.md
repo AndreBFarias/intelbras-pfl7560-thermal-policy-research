@@ -807,3 +807,70 @@ prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulaç�
 | Pedido durante a suíte é recusado com `*_aviso=suite` | `suite-pedido.sh` |
 | O laço pode tocar os ventiladores no boot antes de a suíte pegar a trava | `suite-boot.sh` |
 | A marca `.desistiu` persiste entre boots até um pedido novo | `suite-curvas.sh` |
+
+## 18. Logo automático do boot (bloco 25, 2026-11-01)
+
+O logo de abertura (partição `logo`) é a arte do kit distorcida pelos 4 cantos da correção de 4 pontos, para sair
+reto na parede (doc 46, `artifacts/tema/gerar-marca.py`, gravado pelo PC com o `pfl7560-marca.sh`). Quando a dona
+muda os cantos, o logo antigo sai torto. Agora o próprio aparelho regera e regrava, no boot, com a mesma conta.
+
+### 18.1 Fluxo no boot
+
+1. `suite-boot.sh` confere o md5 do `suite-logo.sh` (`LOGO_MD5`) e o roda em segundo plano (`suite-logo.sh boot`)
+   depois de lançar a suíte. Adulterado: não roda e registra `logo automatico NAO conferido`.
+2. Uma vez por boot (`mkdir /dev/pfl7560-logo.boot`). Pendrive com `DESLIGAR-LOGO-AUTO.txt`: desliga a chave.
+   Chave desligada: só publica o estado.
+3. Espera 60 s e a trava da suíte (`/dev/pfl7560-suite.lock`, até 40 x 30 s): o logo nunca é gravado com a suíte
+   rodando. Ainda ocupada: `suite_rodando`, tenta no boot seguinte.
+4. Lê `persist.sys.keystone.lt/rt/lb/rb`; `nl_logo cantos` recusa o que estiver fora da tela, não for convexo,
+   tiver um canto no quadrante de outro ou cobrir menos de 25 % da tela.
+5. Confere modelo (`PFL7560`), md5 do `nl_logo` e da arte (`marca/logo.jpg` da suíte), tamanho da partição
+   (41943040) e o `LOGO_TABLE` (`nl_logo cabecalho`).
+6. Decide se mudou: os cantos registrados só valem se o md5 registrado é o do JPEG que está na partição; JPEG igual
+   à arte = cantos retos. Mesmos cantos: nada. Senão gera (`nl_logo gerar`); se o JPEG gerado é o que já está lá,
+   só adota (registra sem escrever).
+7. Grava como o `pfl7560-marca.sh`: backup inteiro (`ultimo.img`, e `primeiro.img` só na primeira vez), conferido
+   por tamanho e md5; `LOGO_TABLE` do backup; `nl_logo montar` (imagem nova = backup com o JPEG no 8192 e o
+   `LOGO_KEY_LEN` em 0x78); a partição ainda igual ao backup; `dd` do JPEG (`bs=4096 seek=2`) e do `keylen.bin`
+   (`bs=1 seek=120`), `sync`; md5 da partição inteira relida igual ao da imagem montada.
+8. Releitura errada: `dd` do backup inteiro de volta, conferido; motivo `releitura_devolvido` (ou
+   `releitura_sem_volta`, que pede restaurar pelo PC com o `pfl7560-marca.sh` e o backup) e a chave desliga.
+   Qualquer falha antes do `dd`: não grava, registra o motivo.
+
+### 18.2 Arquivos e props
+
+| O quê | Onde |
+|---|---|
+| Programa e arte | `$SUITE/nl_logo`, `$SUITE/marca/logo.jpg` (md5 no bloco `LOGO_MD5` do `suite-logo.sh`) |
+| Estado (0700, só root, fora da suíte: sobrevive ao `--desinstalar`) | `/data/vendor/pfl7560-logo/`: `desligado`, `cantos`, `jpeg-md5`, `gravado-em`, `motivo`, `primeiro.img`, `ultimo.img`, `logo.log` |
+| Chave pela home | pedido `logo-auto` (`ligado`/`desligado`) → `suite-pedido.sh` → `suite-logo.sh chave` |
+| Props para a home | `vendor.pfl7560.logo` (`ligado`/`desligado`/`erro`), `logo_cantos`, `logo_hora`, `logo_motivo` |
+| Resgate | arquivo vazio `DESLIGAR-LOGO-AUTO.txt` na raiz do pendrive (o `newlink_update.sh` desliga a chave, com ou sem suíte; o `suite-logo.sh` também confere no boot) |
+
+Motivos: `formato`, `fora_da_tela`, `nao_convexo`, `canto_trocado`, `area_pequena` (cantos); `programa`, `arte`,
+`modelo`, `particao`, `cabecalho`, `trabalho`, `gerar`, `backup`, `primeiro`, `montar`, `mudou` (conferências
+antes de escrever); `suite_rodando`; `pendrive`; `releitura_devolvido`, `releitura_sem_volta`.
+
+### 18.3 Home
+
+Terceira aba da tela Curvas, "Logo do boot": a chave (OK alterna; ligada por padrão), os cantos do logo gravado,
+a hora da última gravação e o último motivo de recusa traduzido. A chave vale no boot seguinte; a home nunca
+grava a partição.
+
+### 18.4 Provas no PC
+
+`tests/test-logo.sh`: a saída crua do `nl_logo` é idêntica byte a byte à do `gerar-marca.py` em 5 conjuntos de
+cantos (retos, os de hoje, os antigos e dois tortos); o JPEG fica a 0,001 a 0,032 de média e no máximo 15 do JPEG do
+Pillow; o `suite-logo.sh` roda sob `dash` numa partição de mentira com todos os caminhos (grava, adota, recusa,
+devolve, chave, resgate). Mais `c_logo_boot` no `test-suite.sh` e `c_bloco25` no `test-kit-pendrive.sh`.
+
+### 18.5 O que ficou PROVISÓRIO neste bloco
+
+| Item | Onde |
+|---|---|
+| O bootloader decodifica o JPEG do `stb_image_write` (q95, 4:4:4, baseline) como decodificava o do Pillow | `nl_logo.c` |
+| `MAX_JPEG` de 256 KiB (os logos reais tinham 44 e 95 KB; o gerado tem 86 a 100 KiB) | `nl_logo.c` |
+| Recusa por área menor que 25 % e a regra do quadrante (escolha, não medição) | `nl_logo.c` |
+| Espera de 60 s + até 40 x 30 s pela trava da suíte | `suite-logo.sh` |
+| `dd` do toybox no bloco `/dev/block/by-name/logo` sem `conv`: provado só pelo `pfl7560-marca.sh` (pelo `adb`) | `suite-logo.sh` |
+| A home relê as props 2,5 s depois do pedido; se o root demorar, mostra o estado antigo até a próxima leitura | `HomeActivity` |

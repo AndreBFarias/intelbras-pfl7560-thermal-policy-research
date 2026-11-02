@@ -23,8 +23,9 @@ DONO_UID=0
 
 # SUITE_MD5_INICIO
 SUITE_MD5="40a977bb67192e9123757669206a81e6"
-PEDIDO_MD5="b05420e903f7df039b7a4cc688819a6a"
+PEDIDO_MD5="8daeb3ecdc2b8204992632422ac818dc"
 CURVAS_MD5="bd4da978560a5c41802d400ba186dda3"
+LOGO_MD5="a7899d47ee60fb41ed1c465b24af9826"
 # SUITE_MD5_FIM
 
 MARCA_LIGADO="pfl7560,ligado"
@@ -127,6 +128,14 @@ ligar_curvas(){
     sh "$SUITE/suite-curvas.sh" boot
   else
     LOG "[ERRO] suite-curvas.sh ausente, link, de outro dono ou com md5 diferente - curvas NAO religadas (ventiladores seguem no firmware)."
+  fi
+}
+
+ligar_logo(){
+  if confere "$SUITE/suite-logo.sh" "$LOGO_MD5"; then
+    sh "$SUITE/suite-logo.sh" boot
+  else
+    LOG "[ERRO] suite-logo.sh ausente, link, de outro dono ou com md5 diferente - logo automatico NAO conferido neste boot."
   fi
 }
 
@@ -258,7 +267,7 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
-    for _cn in curva-vent curva-led; do
+    for _cn in curva-vent curva-led logo-auto; do
       if [ -f "$HOME_DIR/$_cn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
         sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn"
       fi
@@ -297,7 +306,7 @@ ligar_vigia(){
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  for _cn in curva-vent curva-led; do
+  for _cn in curva-vent curva-led logo-auto; do
     if [ -f "$HOME_DIR/$_cn" ]; then
       LOG "pedido de $_cn pendente de antes do vigia: tratando agora"
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn" >>"$SUITE/vigia.log" 2>&1 </dev/null
@@ -354,5 +363,6 @@ if [ "$DECISAO" = "sim" ]; then
     LOG "[ERRO] suite.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."
   fi
 fi
+ligar_logo &
 wait
 exit 0

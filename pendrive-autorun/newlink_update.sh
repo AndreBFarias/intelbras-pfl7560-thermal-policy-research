@@ -39,9 +39,11 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 40a977bb67192e9123757669206a81e6  suite.sh
-a7b6b19988e0907f47bdce9289b87bde  suite-boot.sh
-b05420e903f7df039b7a4cc688819a6a  suite-pedido.sh
+fcbf8decceaf47d28e0e61f113885f78  suite-boot.sh
+8daeb3ecdc2b8204992632422ac818dc  suite-pedido.sh
 bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
+ac5303cab8881c2175622cab10642a66  nl_logo
+a7899d47ee60fb41ed1c465b24af9826  suite-logo.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 26e2f517f862d19ecf452cdf3d56ae74  pfl7560.apk
@@ -198,7 +200,7 @@ if ! preparar_trabalho; then
 fi
 KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
-KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh"
+KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela nl_logo suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-logo.sh"
 kit_subpastas(){ echo "$1" | sed -n 's|/.*||p' | sort -u; }
 copiar_preparo(){
   rm -rf "$PREP"
@@ -233,7 +235,7 @@ if ! trabalho_conferir $KIT_COPIA; then
 fi
 COR_MD5=$(kit_md5_esperado cor.sh)
 
-suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$' -e '^overlay/' -e '^marca/'; }
+suite_nomes(){ kit_nomes | grep -v -e '^ZYCustom.ini$' -e '^pfl7560-suite.rc$' -e '^pfl7560.apk$' -e '^pfl7560-home.apk$' -e '^overlay/' -e '^marca/bootanimation.zip$'; }
 suite_dir_ok(){
   if dir_seguro "$SUITE"; then
     for _sd in $(kit_subpastas "$(suite_nomes)"); do
@@ -477,6 +479,24 @@ debloat_pendrive(){
   fi
 }
 [ "$SUITE_OK" = "1" ] && debloat_pendrive
+LOGO_DIR="$R/data/vendor/pfl7560-logo"
+logo_pendrive(){
+  [ -e "$MP/DESLIGAR-LOGO-AUTO.txt" ] || return 0
+  if [ ! -e "$LOGO_DIR" ] && [ ! -L "$LOGO_DIR" ]; then
+    mkdir -p "${LOGO_DIR%/*}" 2>/dev/null
+    ( umask 077; mkdir "$LOGO_DIR" 2>/dev/null ) && chmod 700 "$LOGO_DIR" 2>/dev/null
+  fi
+  if ! dir_seguro "$LOGO_DIR"; then
+    LOG "[ERRO] DESLIGAR-LOGO-AUTO.txt no pendrive, mas $LOGO_DIR nao e uma pasta so do root - chave NAO mexida."
+    return 0
+  fi
+  ( umask 077; : > "$LOGO_DIR/desligado" )
+  ( umask 077; printf 'pendrive\n' > "$LOGO_DIR/motivo.novo" ) && mv -f "$LOGO_DIR/motivo.novo" "$LOGO_DIR/motivo"
+  setprop vendor.pfl7560.logo desligado 2>/dev/null
+  setprop vendor.pfl7560.logo_motivo pendrive 2>/dev/null
+  LOG "DESLIGAR-LOGO-AUTO.txt no pendrive: logo automatico desligado (a particao logo nao e mais escrita; religa pela home)"
+}
+logo_pendrive
 APP_PEND=0
 if [ "$SUITE_OK" = "1" ]; then
   for _ka in $KIT_APPS; do app_conforme "${_ka%%:*}" "${_ka#*:}" || APP_PEND=1; done

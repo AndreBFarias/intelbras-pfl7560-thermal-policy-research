@@ -26,6 +26,7 @@ Nada aqui fala com o projetor nem com a câmera: os scripts do kit e do PC rodam
 | `test-preparar-pendrive.sh` | `install.sh --pendrive [--com-firmware]` e `preparar-pendrive.sh` com discos de mentira e `.bin` falsos pequenos |
 | `test-processos.sh` | `pfl7560-processos.sh` com uma saída de `top` gravada (`fixtures/processos/`) |
 | `test-pc-marca-vlc.sh` | `pfl7560-marca.sh` e `pfl7560-vlc.sh` (a partição `logo` vira um arquivo) |
+| `test-logo.sh` | `nl_logo` contra o `gerar-marca.py` (pixel a pixel e JPEG), recusas e partição; `suite-logo.sh` sob `dash` (grava, recusa, devolve, chave, resgate) |
 | `test-qualidade.sh` | `pfl7560-qualidade.sh` (os ajustes de imagem num arquivo) |
 
 Os testes imprimem `N verificacoes, 0 falha(s)` (o `make check` imprime `integridade OK`) e saem diferente de 0

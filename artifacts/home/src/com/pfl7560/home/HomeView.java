@@ -12,6 +12,8 @@ final class HomeView extends View {
         void aplicarLuz(int nivel);
 
         void aplicarCurva();
+
+        void alternarLogo();
     }
 
     private final Modelo modelo;
@@ -100,7 +102,9 @@ final class HomeView extends View {
             case KeyEvent.KEYCODE_ENTER:
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
                 if (ev.getRepeatCount() == 0) {
-                    if (modelo.curvas.ok() == Curvas.APLICAR) ouvinte.aplicarCurva();
+                    int r = modelo.curvas.ok();
+                    if (r == Curvas.APLICAR) ouvinte.aplicarCurva();
+                    else if (r == Curvas.LOGO) ouvinte.alternarLogo();
                     invalidate();
                 }
                 return true;

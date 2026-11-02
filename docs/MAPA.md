@@ -40,11 +40,12 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `cor.sh` | cor pela câmera (VESA/JEIDA), backup, journal, gancho | autorun, `suite.sh`, gancho | `test-kit-pendrive.sh` | 41 |
 | `suite.sh` | a suíte: cor, ângulo, foco, nitidez, temperatura, rampa, resumo; `--desinstalar` | autorun, `suite-boot.sh`, `suite-pedido.sh` | `test-suite.sh` | 44 |
 | `suite-boot.sh` | gatilho do boot, luz, descanso, sobreposições, apps desligados, vigia | serviço de boot | `test-suite.sh` | 44 |
-| `suite-pedido.sh` | pedidos do app e da home (verificação, luz, descanso, curvas) | vigia | `test-suite.sh` | 44 §13, §14, §17 |
+| `suite-pedido.sh` | pedidos do app e da home (verificação, luz, descanso, curvas, chave do logo) | vigia | `test-suite.sh`, `test-logo.sh` | 44 §13, §14, §17, §18 |
 | `suite-curvas.sh` | curva dos ventiladores e do LED (ao vivo e no `.ini`), standby pelo descanso, debloat reversível, variantes do `.ini` | `suite-pedido.sh`, `suite-boot.sh`, `newlink_update.sh` | `test-suite.sh`, `test-kit-pendrive.sh` | 44 §17 |
+| `suite-logo.sh` | logo automático do boot: confere os cantos, gera com o `nl_logo` e grava a partição `logo` com backup e releitura; chave e estado | `suite-boot.sh`, `suite-pedido.sh` | `test-logo.sh`, `test-suite.sh` | 44 §18 |
 | `pfl7560-suite.rc` | o serviço de boot | autorun copia para `/vendor/etc/init` | `test-suite.sh` | 44 §2 |
 | `ZYCustom.ini` | a correção térmica (md5 `252ab7a7…`) | autorun | `make check` | 08, 34 |
-| `lvdsctl`, `nl_camcheck`, `nl_tela` | binários ARM (cópias de `artifacts/`) | `cor.sh`, `suite.sh` | `test-camcheck.sh`, `test-tela.sh` | 28, 41, 44 |
+| `lvdsctl`, `nl_camcheck`, `nl_tela`, `nl_logo` | binários ARM (cópias de `artifacts/`) | `cor.sh`, `suite.sh`, `suite-logo.sh` | `test-camcheck.sh`, `test-tela.sh`, `test-logo.sh` | 28, 41, 44 |
 | `pfl7560.apk`, `pfl7560-home.apk`, `overlay/*.apk`, `marca/*` | cópias de `artifacts/` | autorun instala | `atualizar-md5-kit.sh --check` | 44 §15, 45, 48 |
 | `kit/*.png`, `fontes/*`, `LEIA-ME.txt` | telas estáticas, IBM Plex (OFL), leia-me | `cor.sh`, `nl_tela`, pessoa | `simula-padroes-kit.py`, `test-tela.sh` | 41 |
 
@@ -76,6 +77,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `overlay/recolorir.py`, `molde-alvo.py` | imagens recoloridas e ids do alvo (uma vez por firmware) | à mão, `build.sh` | `conferir.py` | 48 |
 | `overlay/gerar-previa*.py` | folhas de prévia por bloco | à mão | — | 48 |
 | `tela/nl_tela.c` | telas da suíte em PNG | `suite.sh` | `test-tela.sh` | 44 §5 |
+| `logo/nl_logo.c` | logo do boot distorcido pelos 4 cantos (a conta do `gerar-marca.py`) e conferência da partição `logo` | `suite-logo.sh` | `test-logo.sh` | 44 §18 |
 | `camcheck/nl_camcheck.c` | câmera: faixas, níveis, geometria, nitidez | `cor.sh`, `suite.sh` | `test-camcheck.sh` | 41, 44 |
 | `lcd-color-fix/lvdsctl.c` | troca o formato LVDS ao vivo | `cor.sh`, `pfl7560-lcd-color.sh` | `atualizar-md5-kit.sh` (md5 fixo) | 28, 40 |
 | `bin-build/build_fix_bin.py`, `sparse.py` | gera e confere o `.bin` | à mão | `test-builder-bin.py` | 47, 15 |
@@ -88,6 +90,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `test-kit-pendrive.sh`, `test-suite.sh` | kit e suíte reais contra aparelho de mentira |
 | `test-camcheck.sh`, `test-tela.sh` | binários do host sobre quadros reais e exemplos; recompila o ARM com o NDK |
 | `test-preparar-pendrive.sh`, `test-processos.sh`, `test-pc-marca-vlc.sh`, `test-qualidade.sh`, `test-fix-modelo.sh` | scripts do PC com `adb` e discos de mentira |
+| `test-logo.sh` | `nl_logo` contra o `gerar-marca.py` e o `suite-logo.sh` numa partição de mentira |
 | `test-builder-bin.py` | gerador do `.bin` (`make check-bin`) |
 | `simula-padroes-kit.py`, `gerar-padroes-kit.py` | telas de cor do kit |
 | `atualizar-md5-kit.sh` | regrava (ou `--check`) as listas de md5 embutidas no kit |

@@ -227,6 +227,34 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   (`ini_variante_ok`); `debloat_pendrive` lê `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`.
 - Detalhes, formatos e o PROVISÓRIO: [44 §17](../research/44-suite-de-boot.md).
 
+## `suite-logo.sh` (bloco 25: logo automático do boot)
+
+- Três modos: `boot` (do `suite-boot.sh`, em segundo plano, depois do lançamento da suíte), `chave ligado|desligado`
+  (do `suite-pedido.sh`, pedido `logo-auto` da home, até 16 bytes) e `estado` (só publica as props).
+- **Estado numa pasta só do root fora da suíte** (`/data/vendor/pfl7560-logo`, 0700): sobrevive ao
+  `--desinstalar` da suíte, porque os backups da partição moram lá. `desligado` (marca; sem ela = ligado),
+  `cantos`, `jpeg-md5`, `gravado-em`, `motivo`, `primeiro.img`, `ultimo.img`, `logo.log`.
+- **O que se compara é o JPEG da partição, não o registro.** Os cantos registrados só valem se o md5 registrado é o
+  do JPEG que está na partição; a arte reta é reconhecida pelo md5 da arte. Registro perdido ou adulterado = gera
+  de novo e, se o JPEG gerado é o que já está lá, só adota.
+- **As conferências do `pfl7560-marca.sh`, na mesma ordem:** modelo, md5 do `nl_logo` e da arte (bloco
+  `LOGO_MD5`), tamanho da partição, `LOGO_TABLE`; backup inteiro conferido por tamanho e md5 contra a partição;
+  `LOGO_TABLE` do backup; imagem montada com `LOGO_KEY_LEN` = tamanho do JPEG; a partição ainda igual ao backup;
+  só então os dois `dd` (JPEG com `bs=4096 seek=2`, `keylen.bin` com `bs=1 seek=120`, sem `conv`), `sync` e o md5
+  da partição inteira igual ao da imagem montada. Errado: `dd` do backup inteiro de volta, conferido, e a chave
+  desliga.
+- **Uma vez por boot:** `mkdir /dev/pfl7560-logo.boot` (o `/dev` é tmpfs). Espera 60 s e depois a trava da suíte
+  (até 40 x 30 s); com a suíte rodando ainda, desiste neste boot (`suite_rodando`).
+- **Props para a home:** `vendor.pfl7560.logo` (`ligado`, `desligado`, `erro`), `logo_cantos`, `logo_hora`,
+  `logo_motivo`. Motivos: os do `nl_logo cantos` mais `programa`, `arte`, `modelo`, `particao`, `cabecalho`,
+  `trabalho`, `gerar`, `backup`, `primeiro`, `montar`, `mudou`, `suite_rodando`, `pendrive`, `releitura_devolvido`,
+  `releitura_sem_volta`.
+- `newlink_update.sh`: `nl_logo` e `suite-logo.sh` no `KIT_EXEC`; a arte `marca/logo.jpg` agora também vai para a
+  suíte (o `suite_nomes` só tira a `bootanimation.zip`); `logo_pendrive` roda sempre (com ou sem suíte) e,
+  com `DESLIGAR-LOGO-AUTO.txt`, cria a pasta do logo se faltar, põe a marca `desligado` e o motivo `pendrive`.
+- O md5 do `suite-logo.sh` vai no `suite-boot.sh` e no `suite-pedido.sh` (`LOGO_MD5`); os do `nl_logo` e da arte no
+  próprio `suite-logo.sh`. Gancho de teste só com `PFL_TESTE=1`: `PFL_NLLOGO`, `PFL_NLLOGO_MD5`.
+
 ## Provisório (o aparelho confirma)
 
 | Arquivo | Constante ou função | O que falta | Doc |
@@ -245,3 +273,5 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 | `cor.sh` | gancho `nlsu` | E1-c: o init executa o `update_after_boot.sh` | 41 |
 | `suite-curvas.sh` | piso 700 (70 %, bloco 25), `LED_MIN=850`, standby 600/660 s, `KEYCODE_POWER` = tecla do IR, `mWakefulness=Dreaming`, Luz (`picture`) x `sbri` | 44 §17 |
 | `newlink_update.sh` | lançamento destacado | o `exec` do init é bloqueante e não mata o grupo no fim | 41 |
+| `suite-logo.sh` | `dd` na partição sem `conv`, espera 60 s + trava da suíte | o bootloader lê o JPEG do `stb_image_write`; o `dd` do toybox no bloco como no PC | 44 §18 |
+| `nl_logo.c` | `MAX_JPEG` 256 KiB, `AREA_MIN_PCT` 25, regra do quadrante | limite do bootloader; o que é canto "absurdo" | 44 §18 |

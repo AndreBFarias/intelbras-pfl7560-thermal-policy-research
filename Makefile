@@ -13,6 +13,7 @@ check-kit:
 	bash tests/test-preparar-pendrive.sh
 	bash tests/test-processos.sh
 	bash tests/test-pc-marca-vlc.sh
+	bash tests/test-logo.sh
 	bash tests/test-qualidade.sh
 
 check-bin:
