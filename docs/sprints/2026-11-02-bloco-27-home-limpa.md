@@ -35,6 +35,16 @@ tão legal." Decisões pelo AskUserQuestion na mesma hora, transcritas abaixo.
    - `eth0`: o projetor não tem porta de cabo. Some da tela e o kit não mexe nela (fica desligada).
    - `deb_vlc` ("VLC e Office embutidos"): o dono pediu "Remove vlc e office". Some da tela; o estado atual
      (ligada = os dois desligados) fica como está.
+5b. **Revisto pelo dono na mesma hora (vale sobre o item 5):**
+   - `eth0` **fica na tela**: "se é uma coisa na placa então faz sentido ela continuar e poder ser desabilitada".
+     Nome "Porta de rede por cabo", ligado = funciona.
+   - VLC é do dono (instalado por ele, já desinstalado): **o kit deixa de mexer no VLC**. A linha `deb_vlc` vira só
+     **"Office do fabricante"** (`com.mobisystems.editor.office_registered`), ligado = funciona; o dono quer
+     desativado (estado atual). O id `deb_vlc` e a posição na prop ficam; sai o `org.videolan.vlc` da lista do id e
+     do `debloat-aprovados.txt`, e o estado da linha passa a olhar só o Office (sem "parcial" por causa do VLC).
+   - **USB-C:** o bloco "USB-C" sai de Entradas (a porta continua funcionando). **Só pesquisar e relatar** (docs,
+     dumps e firmware já no repositório, nada no aparelho): existe um jeito seguro e reversível de cortar a energia
+     da porta USB-C (chip/regulador, sysfs, gpio)? Quanto economiza? Sem implementar.
 6. **Configurações** fica na tela inicial (decidido).
 6b. **A chave vira o serviço** (o dono: "até o termo chaves é zuado. Eu não quero nada ali ativado"; "Sério"):
    - o switch mostra **o serviço**, como no Android: **ligado = o serviço funciona**; desligado = desativado. Hoje é o
