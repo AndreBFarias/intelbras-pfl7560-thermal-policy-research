@@ -74,15 +74,18 @@ Kit, home e app (versão 5) instalados no aparelho em 2026-10-31 pelo adb; o res
 Layout decidido pelo dono em 2026-10-31 (bloco 21), gerado por `./install.sh --pendrive <ponto> --com-firmware`:
 
 - o kit completo na raiz, com o md5 de cada arquivo conferido depois da cópia;
-- `usb_update.bin` na raiz = **o nosso** `PFL7560-S4a-NAO-GRADUADO.bin` (md5 `a6e5da14…`), nunca gravado no
-  aparelho. Ligar **segurando o POWER** com o pendrive plugado grava esse firmware;
+- `usb_update.bin` na raiz = **o nosso** `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` desde 2026-11-02 (antes, a S4a),
+  conferido pelo md5 do `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5`, nunca gravado no aparelho. Ligar
+  **segurando o POWER** com o pendrive plugado grava esse firmware;
 - `resgate-oficial/PFL7560.bin` = o oficial V1.0.0.9 (md5 `28a2f280…`), com um `LEIA-ME.txt`. Para o resgate,
   ele vai para a raiz de outro pendrive como `usb_update.bin` ([guia 16](guide/16-recuperacao-brick.md)).
 
 O pendrive físico do dono (`sda`, Cruzer Fit, FAT32 "PFL7560") estava no arranjo antigo (oficial na raiz e o
 `.bin` antigo em `firmware-nosso-NAO-GRADUADO/`) e é regravado no fechamento do bloco 21. Antes de gravar, a S4a
 tem de estar em `firmware/` do repositório principal (o `install.sh --com-firmware` recusa sem ela). Com a S4a na
-raiz, **ligar segurando o POWER com este pendrive plugado grava a S4a**; ligar normalmente só roda o kit.
+raiz, **ligar segurando o POWER com este pendrive plugado grava a S4a**; ligar normalmente só roda o kit. (Isso era
+o bloco 21; desde 2026-11-02 o `--com-firmware` põe a S5, e o `firmware/preflight-flash.sh` confere o pendrive do
+flash: [doc 47 §12](research/47-build-completa.md).)
 
 ## Build
 
@@ -90,9 +93,11 @@ raiz, **ligar segurando o POWER com este pendrive plugado grava a S4a**; ligar n
 `0x883b40d6`): só os 3 fixes (escada de brilho no `ZYCustom.ini`, Wi-Fi no `build.prop`, `xiriservice` desligado no
 `init.bigfish.rc`), nos mesmos blocos do stock, com o layout de chunks, o slot e o `checksum1` do stock. Regerada
 no fim do bloco 21 a partir do stock V1.0.0.9 com o gerador sem comentário: o mesmo md5. É a que vai para o
-pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`31702b647ba9b2bca98e6da625231e69`,
-CRC `0xd8e4e78b`, refeita com os APKs novos), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
-saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram gravadas**. Detalhes, ordem e roteiro:
+pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`2b1836b8a86ac1d998e0a06a3000478f`,
+CRC `0x251ba2e0`, refeita em 2026-11-02 com o app 8 e a home 9), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
+saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram gravadas**. **2026-11-02:** o dono decidiu
+gravar a **S5** direto (a suíte, a home, o app e o logo na imagem), sem a S4a e a S4b antes; o md5 da S5 final sai
+na montagem final, depois do conferente final (doc 47 §12, com o risco). Detalhes, ordem e roteiro:
 [doc 47](research/47-build-completa.md) §8, §10 e §11; tabela das builds: [`firmware/README.md`](../firmware/README.md).
 
 ## Só com o dono no projetor
@@ -111,8 +116,9 @@ saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram grav
    cima (mesmo `versionCode` 5, md5 novo) e a home ainda como tela inicial; um descanso de tela **sem** nível
    escolhido no botão Luz (a luz tem de voltar ao nível de antes); `mount | grep vendor` para saber se o `/vendor`
    tem `auto_da_alloc` ou `nodelalloc` (o `sync` antes do `mv` está no doc 44 §11).
-7. Se quiser: gravar a S4a (gate BIN-S4a) com o resgate oficial pronto num **outro** pendrive, pelo roteiro do
-   doc 47 §8. Só o aparelho prova que o loader grava a S4a e que o Android sobe com os 3 fixes; a S4b só depois.
+7. Gravar a S5 (decisão do dono de 2026-11-02, no lugar da S4a e da S4b), com backup, pré-voo aprovado e o
+   resgate oficial pronto num **outro** pendrive, pelo roteiro do doc 47 §12. Só o aparelho prova que o loader grava
+   uma build nossa e que o Android sobe com ela.
 
 Fica de fora do tema, por decisão: o branco global do Android (`@android:color/white`), porque trocá-lo muda
 todo branco do sistema. Doc 48 §13.4.
@@ -121,7 +127,7 @@ todo branco do sistema. Doc 48 §13.4.
 
 | ID | O que falta | Doc |
 |---|---|---|
-| BIN-S4a / BIN-S4b | gravar a S4a no aparelho e, se subir limpa, a S4b | [47](research/47-build-completa.md) §11 |
+| BIN-S5 (no lugar de BIN-S4a / BIN-S4b) | montar a S5 final, pré-voo, backup e gravar a S5 direto (decisão de 2026-11-02) | [47](research/47-build-completa.md) §12 |
 | LSADC-S2 | o experimento de 2 min com `gtt 0` em número ímpar (braços P0 a P3); prioridade máxima da pesquisa LSADC | [37](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) §8 e §11 |
 | LSADC-S1 | campanha passiva de ~30 h sob uso real (aberto, despriorizado) | [37](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) §11, [35](research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md) |
 | LCD-S1 (c) | o fluxo completo do `pfl7560-lcd-color.sh` rodado no aparelho | [guia 32](guide/32-guia-troca-painel-lcd.md), [29](archive/29-roadmap-troca-lcd.md) (arquivado) |

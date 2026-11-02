@@ -1,10 +1,12 @@
 package com.pfl7560.home;
 
 /**
- * Tela "Ajustes do sistema" (bloco 24): as chaves de ajuste do projetor. Modelo puro, sem Android.
- * "Ligada" quer dizer "a medida esta aplicada" (o app desligado, a porta de cabo caida...). O estado vem
- * do projetor numa propriedade posicional, um caractere por chave, na ordem de IDS:
- * 1 ligada, 0 desligada, p parcial, - nao existe neste projetor, ? nao consegui ler.
+ * Tela "Ajustes do sistema": a aba Servicos (bloco 27) e a aba Diario. Modelo puro, sem Android.
+ *
+ * O projetor publica o estado numa propriedade posicional, um caractere por id, na ordem de IDS, e fala da
+ * MEDIDA: 1 aplicada (o servico desativado), 0 nao aplicada (o servico funciona), p parcial, - nao existe
+ * neste projetor, ? nao li. A tela mostra o SERVICO, como no Android: ligado = o servico funciona. A inversao
+ * fica so aqui; o pedido continua "v1 <id> ligar|desligar" no sentido da medida.
  */
 public final class Ajustes {
     public static final int ZONA_ABA = 0;
@@ -14,86 +16,94 @@ public final class Ajustes {
     public static final int PEDIR = 1;
     public static final int CONFIRMAR = 2;
 
-    public static final int ABA_CHAVES = 0;
+    public static final int ABA_SERVICOS = 0;
     public static final int ABA_DIARIO = 1;
-    public static final String[] ABAS = {"Chaves", "Diário"};
+    public static final String[] ABAS = {"Serviços", "Diário"};
 
+    /** A ordem do projetor: nao muda, so cresce no fim. */
     public static final String[] IDS = {
         "deb_seg", "deb_ota", "deb_hisi", "deb_lnch", "deb_vlc", "log_vplug", "eth0", "wifi_pwr", "web_cmd", "keystone",
+        "pop_disp",
     };
+    /** O que aparece na tela, na ordem da tela. O chip Wi-Fi (wifi_pwr) nao e um servico: fica fora. */
+    public static final int[] VISIVEIS = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10};
     public static final String[] ROTULOS = {
         "Apps de teste e de fábrica",
-        "Telemetria e atualização do fabricante",
-        "Players e menus da HiSilicon",
+        "Telemetria do fabricante",
+        "Players da HiSilicon",
         "Tela inicial de fábrica",
-        "VLC e Office embutidos",
-        "Silenciar o log do vplugin",
-        "Porta de cabo de rede (eth0)",
-        "Chip Wi-Fi dorme (AIC8800)",
-        "Servidor web (porta 80) e cmdsrv",
-        "Mecanismo do keystone",
+        "Office do fabricante",
+        "Log do vplugin",
+        "Porta de rede por cabo",
+        "Chip Wi-Fi",
+        "Servidor web e cmdsrv",
+        "Keystone automático",
+        "Aviso de dispositivo conectado",
     };
+    /** O texto de baixo do item em foco: curto, sobre o servico. */
     public static final String[] FAZ = {
-        "Desliga apps de teste e de fábrica que não servem no dia a dia (autoteste, menu de fábrica, ferramentas de teste).",
-        "Desliga os serviços de telemetria e de atualização pela internet do fabricante.",
-        "Desliga os players de música e de vídeo e os menus de TV da HiSilicon. O visor de fotos fica ligado.",
-        "Desliga a tela inicial de fábrica. Só liga com a home nova instalada.",
-        "Desliga o VLC e o Office que vêm no projetor.",
-        "Cala as mensagens do vplugin no log do sistema.",
-        "Derruba a porta de cabo de rede (eth0). O Wi-Fi não muda.",
-        "Deixa o chip de Wi-Fi e Bluetooth dormir quando está parado (suspensão automática).",
-        "Para o servidor web da porta 80 e o serviço cmdsrv de fábrica.",
-        "Desliga a correção automática do trapézio (keystone). Só vale no próximo reinício.",
+        "Autoteste, menu de fábrica e ferramentas de teste.",
+        "Telemetria e atualização pela internet do fabricante.",
+        "Players de música e vídeo e menus de TV da HiSilicon.",
+        "A tela inicial que veio no projetor.",
+        "O Office que veio no projetor.",
+        "Mensagens do vplugin no log do sistema.",
+        "A porta de cabo de rede. O Wi-Fi não muda.",
+        "Chip de Wi-Fi e Bluetooth sempre acordado.",
+        "Painel web da porta 80 e controle por rede de fábrica.",
+        "Correção automática do trapézio. Muda no próximo reinício.",
+        "Janela que oferece abrir a entrada quando um aparelho é ligado.",
     };
-    public static final String[] RISCO = {
-        "Desligando a chave, os apps voltam.",
-        "O projetor deixa de receber avisos do fabricante e o descanso de tela pode se comportar diferente.",
-        "O menu de imagem pode mudar: teste logo depois. Se algo faltar, desligue a chave.",
-        "Se esta home travar, não há tela de reserva. Desligando a chave, a tela de fábrica volta.",
-        "Desligando a chave, os dois voltam.",
-        "Só silencia mensagens; volta ao desligar a chave ou ao reiniciar.",
-        "Se o projetor usa só o cabo, perde a rede e o adb por cabo. Pelo Wi-Fi nada muda.",
-        "Pode derrubar o Wi-Fi e o adb, e a rede não volta sozinha. Resgate: arquivo DESLIGAR-CHAVES.txt no pendrive.",
-        "O painel web e o controle por rede deixam de responder até desligar a chave.",
-        "Se a imagem ficar torta, desligue a chave e reinicie o projetor.",
-    };
-    public static final String[] NIVEIS = {"Risco baixo: ", "Risco médio: ", "Risco alto: "};
-    // 0 baixo, 1 medio, 2 alto
-    public static final int[] NIVEL_RISCO = {0, 1, 1, 1, 0, 0, 2, 2, 1, 1};
-    // quem derruba rede pede OK duas vezes para LIGAR
-    public static final boolean[] CONFIRMA = {false, false, false, false, false, false, true, true, false, false};
+    /** Desativar o que derruba rede pede OK duas vezes. */
+    public static final boolean[] CONFIRMA = {false, false, false, false, false, false, true, true, false, false, false};
 
     // aba Diario: duas linhas
     public static final String[] DIARIO_ROTULOS = {"Gravar o diário", "Enviar agora ao PC"};
     public static final String[] DIARIO_FAZ = {
-        "Grava uma linha por minuto no projetor: temperaturas, ventilador, luz, rede e memória. Guarda no máximo 512 KB.",
-        "Só marca o pedido de envio. Quem busca o diário é o PC, a cada 2 minutos, quando o projetor está na rede.",
-    };
-    public static final String[] DIARIO_RISCO = {
-        "Desligado, o diário para de gravar e o que já foi gravado fica.",
-        "Se o PC não estiver ligado e na rede, o pedido espera.",
+        "Uma linha por minuto, até 512 KB.",
+        "O PC busca o diário a cada 2 minutos.",
     };
     public static final long DIARIO_MAX_BYTES = 512L * 1024L;
+
+    /*
+     * "Desligar no descanso" (tarefa 2026-11-02): a ultima linha da aba Servicos. Nao e uma medida do
+     * suite-chaves.sh (fora dos IDS): o vigia do standby (suite-curvas.sh) le a escolha. O projetor publica
+     * vendor.pfl7560.standby_conf = "<1|0>:<minutos>"; a home pede "v1 ligado|desligado <minutos>" ou "v1 ler".
+     * OK liga/desliga; esquerda/direita NESTA linha trocam o tempo (nas outras, a aba).
+     */
+    public static final String DESCANSO_ROTULO = "Desligar no descanso";
+    public static final String DESCANSO_FAZ = "Desliga o projetor depois desse tempo no descanso de tela.";
+    public static final String DESCANSO_TECLAS = "Esquerda e direita: tempo    OK: liga ou desliga";
+    public static final int[] DESCANSO_MINUTOS = {10, 20, 30, 60};
+    public static final String PEDIDO_DESCANSO_LER = "v1 ler";
     public static final String PEDIDO_DIARIO_LER = "v1 ler";
     public static final String PEDIDO_DIARIO_ENVIAR = "v1 enviar";
 
-    public int aba = ABA_CHAVES;
+    public int aba = ABA_SERVICOS;
     public int zona = ZONA_LINHAS;
     public int linha = 0;
+    /** vendor.pfl7560.chaves como veio; "" enquanto nao li. */
     public String estado = "";
     /** vendor.pfl7560.diario: "<1|0>:<bytes>:<pedido 0|1>"; "" se nao li. */
     public String diario = "";
     /** vendor.pfl7560.diario_envio: "AAAA-MM-DDTHH:MM:SS" do ultimo envio, "" se nunca. */
     public String diarioEnvio = "";
-    public String aviso = "";
-    public String pedindo;
     public int confirmando = -1;
+    /** Por id: a medida pedida e ainda nao confirmada ('1' ou '0'), ou 0. A tela ja mostra o alvo. */
+    public final char[] aplicando = new char[IDS.length];
+    /** Diario: '1'/'0' gravar pedido, 'e' envio pedido, 0 nada em curso. */
+    public char diarioAplicando;
+    /** vendor.pfl7560.standby_conf: "<1|0>:<minutos>"; "" enquanto nao li. */
+    public String descanso = "";
+    /** Desligar no descanso: o alvo pedido e ainda nao confirmado ("1:20"), ou null. A tela ja mostra o alvo. */
+    public String descansoAplicando;
+    /** Conta os pedidos do descanso: so a resposta do ultimo tira o "Aplicando…" (as setas podem mandar varios). */
+    public int descansoPedidos;
 
     public void abrir() {
-        aba = ABA_CHAVES;
+        aba = ABA_SERVICOS;
         zona = ZONA_LINHAS;
         linha = 0;
-        pedindo = null;
         confirmando = -1;
     }
 
@@ -102,33 +112,41 @@ public final class Ajustes {
     }
 
     public int linhas() {
-        return aba == ABA_DIARIO ? DIARIO_ROTULOS.length : IDS.length;
+        return aba == ABA_DIARIO ? DIARIO_ROTULOS.length : VISIVEIS.length + 1;
     }
 
+    /** O foco esta na linha "Desligar no descanso" (a ultima da aba Servicos)? */
+    public boolean naLinhaDescanso() {
+        return aba == ABA_SERVICOS && zona == ZONA_LINHAS && linha == VISIVEIS.length;
+    }
+
+    /** O indice em IDS da linha em foco (so na aba Servicos). */
+    public int indice() {
+        return VISIVEIS[Math.max(0, Math.min(linha, VISIVEIS.length - 1))];
+    }
+
+    /**
+     * Setas. Esquerda/direita trocam a aba, menos na linha "Desligar no descanso", onde trocam o tempo: ai o
+     * retorno diz se o tempo mudou, e a home manda o pedido ({@link #pedidoDescanso}).
+     */
     public boolean mover(int dx, int dy) {
         confirmando = -1;
+        if (dx != 0 && dy == 0 && naLinhaDescanso()) return trocarMinutos(dx);
+        if (dx != 0 && dy == 0) return trocarAba(aba + dx);
         if (zona == ZONA_ABA) {
             if (dy > 0) {
                 zona = ZONA_LINHAS;
                 return true;
             }
-            int n = aba + dx;
-            if (dx == 0 || n < 0 || n >= abas()) return false;
-            aba = n;
-            linha = 0;
-            return true;
+            return false;
         }
-        if (dx != 0) return false;
         if (dy < 0) {
             if (linha > 0) {
                 linha--;
                 return true;
             }
-            if (abas() > 1) {
-                zona = ZONA_ABA;
-                return true;
-            }
-            return false;
+            zona = ZONA_ABA;
+            return true;
         }
         if (dy > 0 && linha < linhas() - 1) {
             linha++;
@@ -137,26 +155,68 @@ public final class Ajustes {
         return false;
     }
 
+    private boolean trocarAba(int nova) {
+        if (nova < 0 || nova >= abas() || nova == aba) return false;
+        aba = nova;
+        linha = 0;
+        return true;
+    }
+
+    /** Ja li o estado do projetor alguma vez? Antes disso a tela diz "Lendo…". */
+    public boolean lido() {
+        return estado != null && !estado.isEmpty();
+    }
+
+    /** O caractere da MEDIDA para o id i, como o projetor publicou. Id alem da prop (kit antigo) = nao existe. */
     public char estadoDe(int i) {
-        if (estado == null || i < 0 || i >= estado.length()) return '?';
+        if (!lido() || i < 0) return '?';
+        if (i >= estado.length()) return '-';
         char c = estado.charAt(i);
         return c == '0' || c == '1' || c == 'p' || c == '-' ? c : '?';
     }
 
+    /** A medida esta aplicada (o servico desativado)? */
     public boolean ligada(int i) {
         return estadoDe(i) == '1';
     }
 
+    /** Medida -> servico: '1' o servico funciona, '0' desativado; p, - e ? passam iguais. */
+    public static char servicoDaMedida(char medida) {
+        return medida == '1' ? '0' : medida == '0' ? '1' : medida;
+    }
+
+    /** Servico -> medida (o caminho de volta, para o pedido). */
+    public static char medidaDoServico(char servico) {
+        return servicoDaMedida(servico);
+    }
+
+    /** O que a tela mostra para o id i: o servico, ja no alvo se o pedido esta em curso. */
+    public char servico(int i) {
+        if (i >= 0 && i < IDS.length && aplicando[i] != 0) return servicoDaMedida(aplicando[i]);
+        return servicoDaMedida(estadoDe(i));
+    }
+
+    public boolean emCurso(int i) {
+        return i >= 0 && i < IDS.length && aplicando[i] != 0;
+    }
+
+    public String rotuloServico(int i) {
+        if (!lido()) return "Lendo…";
+        if (emCurso(i)) return "Aplicando…";
+        return rotuloEstado(servico(i));
+    }
+
+    /** Rotulo de um caractere do SERVICO. */
     public static String rotuloEstado(char c) {
         switch (c) {
             case '1':
-                return "Ligada";
+                return "Ligado";
             case '0':
-                return "Desligada";
+                return "Desligado";
             case 'p':
                 return "Parcial";
             case '-':
-                return "Não existe neste projetor";
+                return "Não existe aqui";
             default:
                 return "Não consegui ler";
         }
@@ -164,15 +224,22 @@ public final class Ajustes {
 
     /** OK na linha em foco: o que a tela deve fazer. */
     public int ok() {
-        if (zona != ZONA_LINHAS || pedindo != null) return NADA;
+        if (zona != ZONA_LINHAS) return NADA;
+        if (naLinhaDescanso()) {
+            confirmando = -1;
+            return descansoLido() ? PEDIR : NADA;
+        }
         if (aba == ABA_DIARIO) {
-            if (!diarioLido()) return NADA;
+            if (!diarioLido() || diarioAplicando != 0) return NADA;
             if (linha == 1 && diarioPedido()) return NADA;
             return PEDIR;
         }
-        char c = estadoDe(linha);
+        int i = indice();
+        if (emCurso(i)) return NADA;
+        char c = estadoDe(i);
         if (c == '-' || c == '?') return NADA;
-        if (c != '1' && CONFIRMA[linha] && confirmando != linha) {
+        // desativar o servico (aplicar a medida) da porta de rede pede confirmacao
+        if (c != '1' && CONFIRMA[i] && confirmando != linha) {
             confirmando = linha;
             return CONFIRMAR;
         }
@@ -181,16 +248,62 @@ public final class Ajustes {
     }
 
     public String idEmFoco() {
-        return aba == ABA_DIARIO ? "diario" : IDS[linha];
+        if (naLinhaDescanso()) return "descanso";
+        return aba == ABA_DIARIO ? "diario" : IDS[indice()];
     }
 
-    /** O pedido que a linha em foco manda: liga se nao esta ligada, desliga se esta. */
+    /** O pedido que a linha em foco manda: inverte o servico, no sentido da medida do projetor. */
     public String pedido() {
         if (aba == ABA_DIARIO) {
             if (linha == 1) return PEDIDO_DIARIO_ENVIAR;
             return diarioLigado() ? "v1 desligar" : "v1 ligar";
         }
-        return "v1 " + IDS[linha] + (ligada(linha) ? " desligar" : " ligar");
+        if (naLinhaDescanso()) return pedidoDescanso(alvoDescanso(!descansoLigado(), minutosDescanso()));
+        int i = indice();
+        return "v1 " + IDS[i] + (ligada(i) ? " desligar" : " ligar");
+    }
+
+    /**
+     * OK aceito: a tela muda na hora para o alvo ("Aplicando…") e devolve o pedido a mandar. O projetor confirma
+     * depois em {@link #confirmar}.
+     */
+    public String marcarAplicando() {
+        String p = pedido();
+        if (naLinhaDescanso()) {
+            descansoAplicando = alvoDescanso(!descansoLigado(), minutosDescanso());
+            descansoPedidos++;
+            return p;
+        }
+        if (aba == ABA_DIARIO) {
+            diarioAplicando = linha == 1 ? 'e' : diarioLigado() ? '0' : '1';
+        } else {
+            aplicando[indice()] = p.endsWith(" desligar") ? '0' : '1';
+        }
+        return p;
+    }
+
+    /** A resposta do projetor para o id: o estado relido manda, o "aplicando" sai. */
+    public void confirmar(String id, String lidoAgora) {
+        for (int i = 0; i < IDS.length; i++) if (IDS[i].equals(id)) aplicando[i] = 0;
+        if (lidoAgora != null && !lidoAgora.isEmpty()) estado = lidoAgora;
+    }
+
+    public void confirmarDiario(String lidoAgora, String envio) {
+        diarioAplicando = 0;
+        if (lidoAgora != null && !lidoAgora.isEmpty()) diario = lidoAgora;
+        if (envio != null) diarioEnvio = envio;
+    }
+
+    /** Algum pedido desta tela ainda espera a resposta do projetor? */
+    public boolean algumEmCurso() {
+        if (diarioAplicando != 0 || descansoAplicando != null) return true;
+        for (char c : aplicando) if (c != 0) return true;
+        return false;
+    }
+
+    /** Falta ler algo desta tela? Enquanto faltar, a home tenta de novo a cada 2,5 s. */
+    public boolean precisaLer() {
+        return !lido() || !diarioLido() || !descansoLido();
     }
 
     public static final String PEDIDO_LER = "v1 ler";
@@ -206,6 +319,89 @@ public final class Ajustes {
 
     public static boolean pedidoDiarioValido(String s) {
         return "v1 ligar".equals(s) || "v1 desligar".equals(s) || "v1 enviar".equals(s) || PEDIDO_DIARIO_LER.equals(s);
+    }
+
+    /** "v1 ligado 10" ... "v1 desligado 60" ou "v1 ler": a lista fechada que o suite-curvas.sh aceita. */
+    public static boolean pedidoDescansoValido(String s) {
+        if (PEDIDO_DESCANSO_LER.equals(s)) return true;
+        for (int m : DESCANSO_MINUTOS) {
+            if (("v1 ligado " + m).equals(s) || ("v1 desligado " + m).equals(s)) return true;
+        }
+        return false;
+    }
+
+    private static boolean descansoValido(String v) {
+        if (v == null) return false;
+        for (int m : DESCANSO_MINUTOS) {
+            if (("1:" + m).equals(v) || ("0:" + m).equals(v)) return true;
+        }
+        return false;
+    }
+
+    /** O projetor publicou a escolha do descanso no formato esperado? */
+    public boolean descansoLido() {
+        return descansoValido(descanso);
+    }
+
+    /** O que a tela mostra: o alvo em curso, se houver, senao o lido. */
+    private String descansoMostrado() {
+        return descansoAplicando != null ? descansoAplicando : descanso;
+    }
+
+    public boolean descansoLigado() {
+        String v = descansoMostrado();
+        return descansoValido(v) && v.charAt(0) == '1';
+    }
+
+    /** Os minutos mostrados; 10 (o padrao) enquanto nao li. */
+    public int minutosDescanso() {
+        String v = descansoMostrado();
+        return descansoValido(v) ? Integer.parseInt(v.substring(2)) : DESCANSO_MINUTOS[0];
+    }
+
+    /** Estado do servico da linha: '1' ligado, '0' desligado, '?' nao li; ja no alvo se o pedido esta em curso. */
+    public char estadoDescanso() {
+        if (!descansoValido(descansoMostrado())) return '?';
+        return descansoLigado() ? '1' : '0';
+    }
+
+    public String rotuloDescanso() {
+        if (descansoAplicando != null) return "Aplicando…";
+        char c = estadoDescanso();
+        return c == '1' ? "Ligado" : c == '0' ? "Desligado" : "Lendo…";
+    }
+
+    public static String alvoDescanso(boolean ligado, int minutos) {
+        return (ligado ? "1:" : "0:") + minutos;
+    }
+
+    /** O pedido que leva ao alvo "<1|0>:<min>". */
+    public static String pedidoDescanso(String alvo) {
+        return "v1 " + (alvo.charAt(0) == '1' ? "ligado " : "desligado ") + alvo.substring(2);
+    }
+
+    /** O pedido do alvo em curso (depois de {@link #marcarAplicando} ou de uma seta na linha). */
+    public String pedidoDescanso() {
+        return descansoAplicando == null ? null : pedidoDescanso(descansoAplicando);
+    }
+
+    /** Esquerda/direita na linha do descanso: o tempo anda na lista, sem dar a volta; a tela ja mostra o alvo. */
+    private boolean trocarMinutos(int dx) {
+        if (!descansoLido()) return false;
+        int atual = minutosDescanso();
+        int k = 0;
+        for (int i = 0; i < DESCANSO_MINUTOS.length; i++) if (DESCANSO_MINUTOS[i] == atual) k = i;
+        int n = k + (dx > 0 ? 1 : -1);
+        if (n < 0 || n >= DESCANSO_MINUTOS.length) return false;
+        descansoAplicando = alvoDescanso(descansoLigado(), DESCANSO_MINUTOS[n]);
+        descansoPedidos++;
+        return true;
+    }
+
+    /** A resposta do projetor ao pedido numero n: o lido manda; so a do ultimo pedido tira o "Aplicando…". */
+    public void confirmarDescanso(int n, String lidoAgora) {
+        if (n == descansoPedidos) descansoAplicando = null;
+        if (descansoValido(lidoAgora)) descanso = lidoAgora;
     }
 
     /** O projetor publicou o estado do diario no formato esperado? */
@@ -226,8 +422,9 @@ public final class Ajustes {
         return Long.parseLong(diario.substring(2, diario.lastIndexOf(':')));
     }
 
-    /** Estado da chave Gravar o diario no mesmo alfabeto das chaves: 1, 0 ou ? (nao li). */
+    /** Estado de Gravar o diario: 1, 0 ou ? (nao li), ja no alvo se o pedido esta em curso. */
     public char estadoDiario() {
+        if (diarioAplicando == '1' || diarioAplicando == '0') return diarioAplicando;
         return !diarioLido() ? '?' : diarioLigado() ? '1' : '0';
     }
 
@@ -246,11 +443,12 @@ public final class Ajustes {
     }
 
     public String rotuloEstadoDiario() {
+        if (diarioAplicando == '1' || diarioAplicando == '0') return "Aplicando…";
         char c = estadoDiario();
-        return c == '1' ? "Gravando" : c == '0' ? "Parado" : "Não consegui ler";
+        return c == '1' ? "Gravando" : c == '0' ? "Parado" : "Lendo…";
     }
 
-    /** Texto do que o projetor respondeu em chaves_aviso ("id:codigo:hora"); "" se nao e dessa chave. */
+    /** Texto do que o projetor respondeu em chaves_aviso ("id:codigo:hora"); "" se nao e desse id. */
     public static String codigoDoAviso(String aviso, String id) {
         if (aviso == null || id == null || !aviso.startsWith(id + ":")) return "";
         String r = aviso.substring(id.length() + 1);
@@ -261,11 +459,12 @@ public final class Ajustes {
     public static String rotuloAviso(String codigo) {
         if (codigo == null || codigo.isEmpty()) return "";
         if ("ok".equals(codigo)) return "Feito";
-        if ("sem-home".equals(codigo)) return "Não liguei: a home nova não está instalada";
+        if ("sem-home".equals(codigo)) return "Só com a home nova instalada";
         if ("ausente".equals(codigo)) return "Este projetor não tem isso";
-        if ("sem-ip".equals(codigo)) return "Não liguei: o projetor não tem o comando de rede";
+        if ("sem-ip".equals(codigo)) return "O projetor não tem o comando de rede";
         if ("recusado".equals(codigo)) return "O projetor recusou o pedido";
-        if (codigo.startsWith("nao-confere")) return "Pedi, mas o projetor não confirmou a mudança";
+        if ("sumiu".equals(codigo)) return "Sumiu com a mudança: reinicie o projetor";
+        if (codigo.startsWith("nao-confere")) return "O projetor não confirmou a mudança";
         return "Não consegui: " + codigo;
     }
 }

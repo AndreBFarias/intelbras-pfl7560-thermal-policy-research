@@ -1,8 +1,8 @@
 # Home PFL7560 (`com.pfl7560.home`, bloco 10A)
 
-Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1,
-HDMI 2 e, no modelo que tem, USB-C), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Imagem, Luz, Configurações),
-**Apps** e uma linha de estado (rede e temperatura do LED). Só D-pad, com o foco em rosa. Pesquisa, intents,
+Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1 e
+HDMI 2; o USB-C saiu no bloco 27), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Luz, Curvas, Configurações),
+**Apps** e uma linha de estado (rede, Bluetooth, temperatura do LED e da placa). Só D-pad, com o foco em rosa. Pesquisa, intents,
 riscos e desenho: [doc 45](../../docs/research/45-home-pfl7560.md).
 
 ![prévia](previa/home-foco-entrada.png)
@@ -10,7 +10,7 @@ riscos e desenho: [doc 45](../../docs/research/45-home-pfl7560.md).
 ## Luz (bloco 15)
 
 O atalho **Luz** mostra o valor atual por baixo ("100%") e, com OK, abre o painel "Luz do projetor" com 5
-níveis (100, 80, 60, 40 e 25 "Econômico"). Setas escolhem, OK aplica, BACK fecha. O app não fala com o
+níveis (100, 80, 60, 40 e 25 "Econômico"). Setas escolhem (cima = mais luz, baixo = menos), OK aplica, BACK fecha. O app não fala com o
 `hidebug` (só roda como root): grava o número, só dígitos, no arquivo `luz` da pasta privada dele
 (`getDataDir()`), e o vigia root do kit (`suite-pedido.sh`) aplica com `sbl N`, confere com `gbl` e devolve o
 valor na prop `vendor.pfl7560.luz` (lida de volta pelo app com `getprop`). O nível escolhido fica guardado pelo kit e é reaplicado em todo
@@ -20,11 +20,11 @@ boot (`suite-boot.sh`). Doc 44 (vigia) e doc 45 (home).
 
 ## Curvas (bloco 23)
 
-O atalho **Curvas** (sétimo, antes de Configurações) abre a tela de curvas: abas Ventiladores e LED, perfis
+O atalho **Curvas** (antes de Configurações) abre a tela de curvas: abas Ventiladores e LED, perfis
 (Silencioso, Balanceado, Agressivo e Manual nos ventiladores; Padrão, Silencioso e Manual no LED), o gráfico com 5
 bolinhas (3 no LED) e o modo de aplicar (ao vivo, gravar no .ini ou os dois; nos ventiladores só o ao vivo vale, e
 gravar responde com um aviso). Setas movem a bolinha pegada, OK pega
-e solta, BACK solta e depois fecha. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 70 %
+e solta, BACK solta a bolinha pegada ou, sem ela, fecha a tela. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 70 %
 (bloco 25: a bolinha não desce abaixo e o root recusa); o LED só edita abaixo de 70 C e a bolinha não sobe acima da escada do firmware (66 a 70 C). A home grava o pedido na pasta dela e o root (`suite-curvas.sh`)
 aplica. Formatos e limites: [doc 44 §17](../../docs/research/44-suite-de-boot.md).
 
@@ -35,15 +35,29 @@ aplica. Formatos e limites: [doc 44 §17](../../docs/research/44-suite-de-boot.m
 A terceira aba da tela Curvas liga e desliga o logo automático (ligado por padrão) e mostra os cantos do logo
 gravado, a hora da última gravação e o último motivo de recusa. OK na chave grava o pedido `logo-auto` na pasta da
 home; o root (`suite-logo.sh`) muda a chave, que vale no boot seguinte. A gravação em si só acontece no boot, nunca
-pela home. Formatos e conferências: [doc 44 §18](../../docs/research/44-suite-de-boot.md). Se a tela de Ajustes do
-bloco 24 entrar, a chave pode mudar para lá.
+pela home. Formatos e conferências: [doc 44 §18](../../docs/research/44-suite-de-boot.md).
 
 ![logo do boot](previa/home-curvas-logo-ligado.png)
+
+## Ajustes do sistema (blocos 24 e 27)
+
+O cartão **Ajustes do sistema**, na fileira Apps, abre duas abas. **Serviços**: cada linha é um serviço do
+fabricante com o seu estado, como no Android (ligado = funciona): Apps de teste e de fábrica, Telemetria do
+fabricante, Players da HiSilicon, Tela inicial de fábrica, Office do fabricante, Log do vplugin, Porta de rede por
+cabo, Servidor web e cmdsrv, Keystone automático, Aviso de dispositivo conectado e, por último, **Desligar no
+descanso** (liga/desliga com OK, 10/20/30/60 min com as setas do lado; padrão ligado, 10 min). **Diário**: gravar o
+diário e enviar ao PC. Antes de o projetor responder, a linha diz "Lendo…"; depois de OK, "Aplicando…" até ele
+confirmar. Esquerda/direita trocam a aba, Voltar fecha. A home só grava o pedido na pasta dela; quem aplica é o root
+(`suite-chaves.sh`, `suite-diario.sh`, `suite-curvas.sh`). Notas do código:
+[`docs/codigo/apps.md`](../../docs/codigo/apps.md). Prévias em `previa-ajustes/`.
+
+![serviços](previa-ajustes/home-ajustes-padroes.png)
 
 ## Sem Espelhamento nem os apps desligados (bloco 16B)
 
 O atalho Espelhamento saiu e a fileira Apps nunca mostra o Office, o iOSCast nem o Espelhamento (`Modelo.OCULTOS`),
-que o dono mandou desligar. Doc 45 §12.
+que o dono mandou desligar. Doc 45 §12. Desde o bloco 27 também saem o atalho Imagem e o gerenciador de arquivos
+(os dois estão dentro de Configurações).
 
 ## Ligar e desligar
 
@@ -68,8 +82,8 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 7`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
-ambas normais.
+`minSdk 28`, `targetSdk 28`, `versionCode 9`. Permissões: `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` e `BLUETOOTH`,
+todas normais.
 
 ## Código
 

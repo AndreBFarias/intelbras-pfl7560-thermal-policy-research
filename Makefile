@@ -9,6 +9,7 @@ check-kit:
 	bash tests/test-tela.sh
 	bash tests/atualizar-md5-kit.sh --check
 	bash tests/test-kit-pendrive.sh
+	bash tests/test-semente-s5.sh
 	bash tests/test-suite.sh
 	bash tests/test-chaves.sh
 	bash tests/test-diario.sh
@@ -18,6 +19,7 @@ check-kit:
 	bash tests/test-logo.sh
 	bash tests/test-qualidade.sh
 	bash tests/test-pc-diario.sh
+	bash tests/test-preflight-flash.sh
 
 check-bin:
 	python3 tests/test-builder-bin.py

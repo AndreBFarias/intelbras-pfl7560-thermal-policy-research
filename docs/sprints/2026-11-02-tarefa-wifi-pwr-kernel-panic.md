@@ -32,3 +32,16 @@
 
 - `tests/test-chaves.sh`: `aplicar wifi_pwr ligar` recusa e não escreve `auto`; boot com `wifi_pwr=1` no arquivo
   apaga a linha e escreve `on`; a prop mostra `-` na posição 8. Vai no bloco 29, junto com a tarefa dos testes.
+
+## Feito (T1, bloco 29)
+
+- `suite-chaves.sh`: `RETIRADOS="wifi_pwr"`; `estado_de wifi_pwr` = `-` sempre; `aplicar`/`pedido` recusam (rc 2,
+  "nao e mais uma escolha" no `chaves.log`); `gravar_escolha` nunca grava o id; `boot` e `resgate` chamam
+  `wifi_acordado` (acha o chip por `a69c:8d80/8d81`, escreve `on` se não estiver `on`, registra a troca) e
+  `apagar_retirados` (tira a linha `wifi_pwr=` do `chaves.escolhas`, 600, sem tocar as outras). O `boot` faz o
+  `wifi_acordado` antes de tudo, mesmo se a pasta da suíte não estiver segura.
+- `tests/test-chaves.sh`: estados com `-` na posição 8; `c_wifi_retirado` (aplicar/pedido/home recusam e nada escreve
+  `auto`; boot com `wifi_pwr=1` e chip em `auto` apaga a linha e escreve `on`, achando o chip pelo id em `2-1`; id
+  errado não é tocado; sem chip não quebra); o resgate não grava escolha do id e acorda o chip.
+- Doc 49 §2.2.1 com o trecho do ramoops; §0.1 e §5.2 apontam para ela. `docs/codigo/kit.md` (linhas da
+  `suite-chaves.sh`) ainda descreve o `wifi_pwr` antigo: fica para quem atualiza a documentação.

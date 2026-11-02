@@ -16,8 +16,8 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   instale por cima do anterior. Não serve para loja.
 - `VERSAO_CODIGO` sobe a cada APK novo (o kit instala por cima quando muda). No app, o `APP_VERSION_CODE` do
   `newlink_update.sh` tem de ser o mesmo (o harness confere). Depois de um APK novo, `bash tests/atualizar-md5-kit.sh`.
-- `VERSAO_CODIGO` está em 7 nos dois apps (bloco 24: a home ganhou as abas Chaves e Diário; o app subiu junto para o kit
-  instalar os dois por cima). O `APP_VERSION_CODE="7"` do `newlink_update.sh` acompanha.
+- `VERSAO_CODIGO` está em 8 no app ("Cast" verde no descanso, bloco 28) e em 9 na home (8 = home limpa do bloco 27;
+  9 = "Desligar no descanso", 2026-11-02). O `APP_VERSION_CODE="8"` do `newlink_update.sh` acompanha o app.
 - Só o `build.sh` do app copia para o kit; o da home e o das sobreposições não (a integração é do coordenador).
 - O app leva só a fonte Bold (o nome do descanso de tela), com a licença; a home leva as cinco do kit em `assets/`.
 - A home confere a paleta (`artifacts/tema/dracula.txt`, `res/values/colors.xml` e `Tema.java`) antes de compilar.
@@ -103,6 +103,8 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   pasta temporária, para não sobrescrever os versionados com os cantos de outro aparelho). O `bootanimation.zip` é
   `ZIP_STORED` (o Android exige zip sem compressão) e com data fixa. Fundo "um roxo bem escuro, quase desligado" e
   o nome no roxo a ~80 % (pedido do dono, 2026-10-31); desenho em 2× e redução para a borda do texto sair limpa.
+  Desde o bloco 28, `PARTES`: "Meow" no roxo da marca (`#9D7AD0`) e "Cast" no verde Dracula (`#50FA7B`), cada parte
+  na posição que tem dentro do "MeowCast" inteiro, então o conjunto continua centrado e com o mesmo desenho.
 - `gerar-icones.py` (app): sem emoji, formas simples na paleta; supersampling; saída determinística.
 
 ## App `com.pfl7560.verificar` (Java)
@@ -116,7 +118,8 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   (`descanso-inicio`) e a volta (`descanso-fim`) numa thread só, para o início chegar sempre antes do fim; sem o
   pedido, a luz só não muda. Desde o bloco 23 (versionCode 6) consulta a prop `vendor.pfl7560.standby` a cada 5 s a
   partir do minuto 9 e, em `aviso`/`agora`, mostra no rodapé a contagem de 60 s para o standby; qualquer tecla acorda
-  o descanso e cancela (doc 44 §17.3).
+  o descanso e cancela (doc 44 §17.3). Desde o versionCode 8 (bloco 28) o nome sai em duas cores, "Meow" no roxo e
+  "Cast" no verde Dracula, como no logo. A home não escreve "MeowCast" em lugar nenhum.
 
 ## Home `com.pfl7560.home` (Java)
 
@@ -140,16 +143,21 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   os nossos; os desligados pelo dono ficam em `Modelo.OCULTOS`, para sumirem mesmo que voltem a ligar. O Android 9
   esconde o SSID do `WifiInfo` sem permissão de localização; o `extraInfo` da rede ativa ainda o traz. A
   temperatura é `zysys.env_temp` (o `gtt1`, no bloco do LED, doc 40 §3), `null` se o SELinux não deixar ler.
-  `SystemProperties.get` por reflexão (API escondida, liberada para targetSdk 28). USB-C: `zysys.typec_count > 0`
-  ou `zysys.source.typec1` (o V1.0.0.1 não tem nenhuma).
+  `SystemProperties.get` por reflexão (API escondida, liberada para targetSdk 28). Desde o bloco 27 o rodapé traz
+  também a temperatura da placa (`zysys.light_temp`, o termistor 0 do POLICY_0, doc 50; nunca `gtt`/`stp`) e o
+  estado do Bluetooth (`desligado`, `ligado` ou `conectado` por A2DP/fone; relido quando o sistema avisa).
+- **Tela inicial (bloco 27):** Entradas só com HDMI 1 e HDMI 2 (o cartão USB-C saiu; a porta continua funcionando)
+  e seis atalhos (Verificar projetor, Wi-Fi, Bluetooth, Luz, Curvas, Configurações): o atalho Imagem saiu, e o
+  gerenciador de arquivos entrou em `Modelo.OCULTOS` (os dois estão dentro de Configurações).
 - **Luz:** a home grava só os dígitos no arquivo `luz` da pasta dela; o root aplica e publica o valor em
   `vendor.pfl7560.luz`, que a home relê depois de um tempo. O root não escreve na pasta do app (revisão de
-  segurança). Sem aviso no OK: o nível marcado no painel já mostra (pedido do dono).
-- **Curvas (bloco 23):** sétimo atalho, com ícone próprio. `Curvas` (Java puro, sem Android) guarda o modelo: 5
+  segurança). Sem aviso no OK: o nível marcado no painel já mostra (pedido do dono). Nenhuma seta é engolida
+  (2026-11-02, `Modelo.moverLuz`): esquerda/direita andam nos níveis, cima vai para mais luz e baixo para menos.
+- **Curvas (bloco 23):** atalho próprio, com ícone próprio. `Curvas` (Java puro, sem Android) guarda o modelo: 5
   bolinhas de ventilador (25 a 66 °C, 70 a 100 % desde o bloco 25, passo 5, a última presa em 66 °C/100 %) ou 3 do LED (40 a 69 °C,
   850 a 1000, não crescente, nunca acima da escada do firmware de 66 a 70 °C: `Curvas.escada`), perfis e modo (ao vivo,
   gravar, ambos; nos ventiladores o kit só aplica ao vivo e responde `vent_aviso=gravar`, que a tela traduz). Setas movem a bolinha pegada, OK pega e solta,
-  BACK solta antes de fechar. Mexer numa bolinha vira Manual (cópia guardada). `Desenho.painelCurvas` desenha o
+  BACK solta a bolinha pegada; sem bolinha pegada, fecha a tela de uma vez (bloco 27). Mexer numa bolinha vira Manual (cópia guardada). `Desenho.painelCurvas` desenha o
   gráfico em 1920x1080. A home grava o pedido (`curva-vent`/`curva-led`) na pasta privada, espera 2,5 s e relê as
   props `vent`, `led`, `vent_aviso`, `led_aviso` numa thread à parte. Formatos: doc 44 §17. `Previa` confere ~40
   casos das curvas e gera cinco prévias.
@@ -166,20 +174,34 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
 - `Previa` (PC): hora e data fixas; apps do firmware V1.0.0.9 com MAIN+LAUNCHER, menos a lista de exclusão; "MinhaRede" e os apps "(exemplo)" são de exemplo; 59 °C é a média do sensor do LED em regime (doc 40). Também confere
   a navegação do D-pad.
 
-## Home: tela "Ajustes do sistema" (bloco 24)
+## Home: tela "Ajustes do sistema" (blocos 24 e 27)
 
-- `Ajustes` é modelo puro (sem Android): `IDS`, rótulos, o que a chave faz, o risco (baixo, médio, alto), quem pede OK
-  duas vezes para **ligar** (eth0 e chip Wi-Fi), `ok()`, `pedido()` e `pedidoValido()`. O estado vem da prop
-  `vendor.pfl7560.chaves` (um caractere por chave); o aviso, de `chaves_aviso`.
-- A entrada é o cartão "Ajustes do sistema" na fileira Apps (a fileira de atalhos já tem 7 cartões; um oitavo
-  quebraria a grade). D-pad: cima/baixo escolhe, OK liga ou desliga, Voltar fecha. A mensagem de risco aparece embaixo
-  da linha em foco, em vermelho no risco alto.
-- O pedido é escrito na pasta da home (arquivo `chave`); o root é quem aplica. A home só relê a prop depois de um tempo.
-- Prévias novas em `artifacts/home/previa-ajustes/` (6 PNG); as prévias de `previa/` não mudam (byte-exact). Com a
-  segunda aba, as 4 prévias das chaves ganharam a fileira de abas.
-- **Aba "Diário"** (esquerda/direita na fileira de abas, que se alcança subindo da primeira linha): "Gravar o diário"
-  (chave liga/desliga, estado `Gravando`/`Parado`/`Não consegui ler`) e "Enviar agora ao PC" (só marca o pedido). Mostra
-  o tamanho (`X KB de 512 KB`) e o último envio (`DD/MM/AAAA HH:MM`, ou `nunca`). O estado vem de
+- `Ajustes` é modelo puro (sem Android): `IDS` (a ordem do projetor, só cresce no fim: 11 ids, o `pop_disp` por
+  último), `VISIVEIS` (o que aparece, na ordem da tela; o `wifi_pwr` fica fora, não é um serviço e o risco é derrubar
+  a rede), rótulos curtos do serviço, o texto de baixo só do item em foco (`FAZ`), `ok()`, `pedido()` e
+  `pedidoValido()`. Abas **Serviços** e **Diário**; o termo "chave" não aparece na tela.
+- **A tela mostra o serviço** (bloco 27, pedido do dono): ligado = o serviço funciona. O projetor publica a **medida**
+  em `vendor.pfl7560.chaves` (`1` = aplicada = serviço desativado); `servicoDaMedida`/`medidaDoServico` invertem só
+  na home, e o pedido continua `v1 <id> ligar|desligar` no sentido da medida. Desativar a porta de rede por cabo
+  (`eth0`) pede OK duas vezes (`CONFIRMA`).
+- **Lendo e aplicando:** antes da 1ª leitura a linha diz "Lendo…" (o projetor publica a prop ~60 s depois do boot);
+  com a tela aberta e algo ainda sem ler, a home relê as props a cada 2,5 s e, a cada 4 voltas, manda `v1 ler`
+  (nunca com um pedido na fila). OK muda a linha na hora para o alvo ("Aplicando…") e o projetor confirma depois;
+  os pedidos vão por uma fila de um thread só (`ExecutorService`), fora do thread principal.
+- **Navegação:** cima/baixo escolhe; esquerda/direita trocam a aba (na linha "Desligar no descanso", trocam o
+  tempo); subindo da 1ª linha chega-se à fileira de abas. Voltar fecha a tela de uma vez. A tela sempre abre na aba
+  Serviços.
+- **"Desligar no descanso"** (última linha de Serviços, home versionCode 9): liga/desliga com OK e escolhe 10, 20,
+  30 ou 60 min com as setas do lado; o pedido (`v1 ligado|desligado <min>` ou `v1 ler`) vai para o arquivo
+  `standby` da pasta da home e o estado volta por `vendor.pfl7560.standby_conf` (`<1|0>:<min>`). Não é um id do
+  `suite-chaves.sh`: quem lê a escolha é o vigia do standby (`suite-curvas.sh`). Só a resposta do último pedido tira
+  o "Aplicando…" (as setas podem mandar vários). Com um kit sem `standby_conf`, a linha fica em "Lendo…" e a home
+  relê a cada 2,5 s enquanto a tela estiver aberta.
+- A entrada é o cartão "Ajustes do sistema" na fileira Apps.
+- O pedido é escrito na pasta da home (arquivo `chave`, `diario` ou `standby`); o root é quem aplica.
+- Prévias em `artifacts/home/previa-ajustes/`; as de `previa/` não mudam (byte-exact).
+- **Aba "Diário":** "Gravar o diário" (liga/desliga, estado `Gravando`/`Parado`) e "Enviar agora ao PC" (só marca o
+  pedido). Mostra o tamanho (`X KB de 512 KB`) e o último envio (`DD/MM/AAAA HH:MM`, ou `nunca`). O estado vem de
   `vendor.pfl7560.diario` (`<1|0>:<bytes>:<pedido>`) e `diario_envio`; o pedido (`v1 ligar|desligar|enviar|ler`) vai
   para o arquivo `diario` da pasta da home. Com o estado ilegível, OK não pede nada; com o pedido de envio já marcado,
-  "Enviar agora" espera. A tela sempre abre na aba Chaves.
+  "Enviar agora" espera.

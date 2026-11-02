@@ -13,8 +13,10 @@ L, A = 1920, 1080
 
 FUNDO = (0x12, 0x0B, 0x1A)
 NOME = (0x9D, 0x7A, 0xD0)
+CAST = (0x50, 0xFA, 0x7B)
 SUPER = 2
 TEXTO = "MeowCast"
+PARTES = (("Meow", NOME), ("Cast", CAST))
 
 CANTOS_DONO = ("95,915", "1715,1030", "40,25", "1775,35")
 
@@ -23,7 +25,15 @@ def plana():
     d = ImageDraw.Draw(im)
     f = ImageFont.truetype(FONTE, 160 * SUPER)
     x0, y0, x1, y1 = d.textbbox((0, 0), TEXTO, font=f)
-    d.text(((L * SUPER - (x1 - x0)) // 2 - x0, (A * SUPER - (y1 - y0)) // 2 - y0), TEXTO, font=f, fill=NOME)
+    x, y = (L * SUPER - (x1 - x0)) // 2 - x0, (A * SUPER - (y1 - y0)) // 2 - y0
+    # bloco 28: "Meow" no roxo da marca e "Cast" no verde Dracula. Cada parte vai na posicao que tem dentro do
+    # texto inteiro (avanco do texto menos o da parte que segue: conta o kerning entre elas), entao o
+    # conjunto continua centrado e com o mesmo desenho do "MeowCast" de uma cor so
+    feito = 0
+    for parte, cor in PARTES:
+        dx = f.getlength(TEXTO) - f.getlength(TEXTO[feito:])
+        d.text((x + dx, y), parte, font=f, fill=cor)
+        feito += len(parte)
     return im.resize((L, A), Image.LANCZOS)
 
 def resolve(m, v):

@@ -202,16 +202,20 @@ LISTA
 FW_DIR="${PFL_FIRMWARE_DIR:-$HERE/firmware}"
 FW_OFICIAL_ZIP="Software PFL7560.zip"
 FW_OFICIAL_MD5="28a2f280eee313a4b115567926b2ba4f"
-FW_NOSSO_BIN="PFL7560-S4a-NAO-GRADUADO.bin"
-FW_NOSSO_MD5="a6e5da14cb3f53b42a457eb92bd91814"
+FW_NOSSO_BIN="PFL7560-S5-COMPLETO-NAO-GRADUADO.bin"
+# o md5 aprovado vem do .md5 versionado (o mesmo arquivo e o mesmo formato que o firmware/preflight-flash.sh le):
+# remontar a S5 so muda o .md5, e o pendrive sai com o usb_update.bin que o pre-voo aceita
+FW_NOSSO_MD5_ARQ="$HERE/firmware/$FW_NOSSO_BIN.md5"
 FW_RESGATE_PASTA="resgate-oficial"
 FW_LEGADO_PASTA="firmware-nosso-NAO-GRADUADO"
 if [ "${PFL_TESTE:-}" = "1" ]; then
   FW_OFICIAL_MD5="${PFL_FW_OFICIAL_MD5:-$FW_OFICIAL_MD5}"
-  FW_NOSSO_MD5="${PFL_FW_NOSSO_MD5:-$FW_NOSSO_MD5}"
+  FW_NOSSO_MD5_ARQ="${PFL_FW_NOSSO_MD5_ARQ:-$FW_NOSSO_MD5_ARQ}"
 else
-  unset PFL_FW_OFICIAL_MD5 PFL_FW_NOSSO_MD5
+  unset PFL_FW_OFICIAL_MD5 PFL_FW_NOSSO_MD5 PFL_FW_NOSSO_MD5_ARQ
 fi
+FW_NOSSO_MD5="$(sed -n 's/^\([0-9a-f]\{32\}\)  PFL7560-S5-COMPLETO-NAO-GRADUADO\.bin$/\1/p' "$FW_NOSSO_MD5_ARQ" 2>/dev/null | head -n 1)"
+if [ "${PFL_TESTE:-}" = "1" ]; then FW_NOSSO_MD5="${PFL_FW_NOSSO_MD5:-$FW_NOSSO_MD5}"; fi
 FW_MEMBRO=""
 
 fw_conferir(){
@@ -228,6 +232,10 @@ fw_conferir(){
   fi
   if [ ! -f "$nosso" ]; then
     err "falta '$nosso' (o nosso .bin; e 'local only', nao vem no git: copie-o para $FW_DIR). Nada foi copiado."
+    return 1
+  fi
+  if [ -z "$FW_NOSSO_MD5" ]; then
+    err "sem o md5 aprovado de $FW_NOSSO_BIN em '$FW_NOSSO_MD5_ARQ' (linha '<md5>  $FW_NOSSO_BIN'). Nada foi copiado."
     return 1
   fi
   n="$(unzip -Z1 "$zip" 2>/dev/null | grep -E '(^|/)PFL7560\.bin$')"
@@ -264,9 +272,9 @@ FIRMWARE OFICIAL DE FABRICA (V1.0.0.9) - RESGATE
 
 O PFL7560.bin desta pasta e o firmware OFICIAL de fabrica da Intelbras,
 V1.0.0.9, do aparelho COM entrada USB-C. Ele NAO esta ativo: o projetor so
-olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware (escada
-de brilho, wi-fi, xiri e o servico da suite), que nunca foi provado no
-aparelho.
+olha o usb_update.bin da RAIZ do pendrive, e esse e o NOSSO firmware S5
+(escada de brilho, wi-fi, xiri, a suite, a home e o app ja na imagem), que
+nunca foi provado no aparelho.
 
 QUANDO USAR
   So se o nosso firmware deixar o projetor sem ligar ou sem funcionar direito.

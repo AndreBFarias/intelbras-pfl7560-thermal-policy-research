@@ -15,11 +15,15 @@ JOURNAL="$WORK/journal"
 SUITE="$R/data/vendor/pfl7560-suite"
 RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
 RC_SUITE_NOVO="$R/vendor/etc/pfl7560-suite.rc.new"
+SEMENTE_S5="$R/vendor/etc/pfl7560-suite/suite-semente.sh"
+# RC_S5_INICIO
+RC_S5_MD5="8596084ac54cc48eb7589106d20a2677"
+# RC_S5_FIM
 ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="7"
+APP_VERSION_CODE="9"
 ESPERA_REBOOT=8
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
@@ -34,22 +38,22 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-0dbcf2861f96e24e728342732ce54340  cor.sh
+13fd41c554dea560277267cdb461b463  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-af325be828a13918768db9904c056b48  suite.sh
-144baca56fdff51f1e3d8175efb28011  suite-boot.sh
-7035acd497fc1205a6e09aa8e938185f  suite-pedido.sh
-bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
-d1c3f7f398cfe5a481935b2a2ae9de9a  suite-chaves.sh
+e0f46982cf6003bf159446bf0b232985  suite.sh
+d3eccfa3a6dc9aee4b27648a21f5a917  suite-boot.sh
+be9328964c163e6a521444be60e4f1b7  suite-pedido.sh
+7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
+ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 2760b4c77e6639632f63a156859520bc  nl_logo
-2e9220bb030f2a6ed045eb60e79defad  suite-logo.sh
-1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
+d1b0b118aa713b541c0514687eab1609  suite-logo.sh
+127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-6c43460eb4d234436541ffded0113c69  pfl7560.apk
-ab54f172bbba1e25e306fe5f7d3e0a96  pfl7560-home.apk
+dd1aa6239eef55535f3ad17853595109  pfl7560.apk
+1bf673e89c8dd43fc43d6943cdb80437  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -84,8 +88,8 @@ b55ae3ac05c47c796b0be4850825d63a  overlay/PFL7560TemaPackageInstaller.apk
 e3d36ef64f492794af92f7ccd1ca993a  overlay/PFL7560TemaZYSetting.apk
 93fa43136f60237a758fcd5e2bad433a  overlay/PFL7560TemaZYSpeakerModel.apk
 463a24b47859e15aaecd477c3a99540a  overlay/PFL7560TemaAndroid.apk
-3f33a5898aaaff385d9e6cf42762677a  marca/logo.jpg
-85256535f156d25e65af2752de3fb90d  marca/bootanimation.zip
+78b23ececb6a42622424e11d4098fdbe  marca/logo.jpg
+a349d47043ccbed8e5feec3b66838c75  marca/bootanimation.zip
 "
 # KIT_LISTA_FIM
 
@@ -286,9 +290,14 @@ instalar_suite_arquivos(){
 # shellcheck disable=SC2012
 rotulo_de(){ ls -Z "$1" 2>/dev/null | tr ' ' '\n' | grep '^u:object_r:[a-z0-9_]*:s0$' | head -1; }
 rotulo_alvo(){ _ra=$(rotulo_de "$RC"); if [ -n "$_ra" ]; then echo "$_ra"; else echo "$ROTULO_PADRAO"; fi; }
+rc_s5(){
+  [ "$1" = "$RC_SUITE" ] && [ -f "$SEMENTE_S5" ] && [ ! -L "$SEMENTE_S5" ] \
+    && [ "$(md5sum "$1" 2>/dev/null | cut -d' ' -f1)" = "$RC_S5_MD5" ]
+}
 rc_conforme(){
   _rcf="$1"
-  [ -f "$_rcf" ] && [ ! -L "$_rcf" ] && cmp -s "$WORK/pfl7560-suite.rc" "$_rcf" || return 1
+  [ -f "$_rcf" ] && [ ! -L "$_rcf" ] || return 1
+  cmp -s "$WORK/pfl7560-suite.rc" "$_rcf" || rc_s5 "$_rcf" || return 1
   # shellcheck disable=SC2046
   set -- $(ls -ln "$_rcf" 2>/dev/null)
   case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
@@ -701,7 +710,11 @@ fi
 
 if [ "$SUITE_OK" = "1" ]; then
   if [ "$SUITE_RC_PEND" = "0" ]; then
-    LOG "suite: servico de boot ja estava instalado"
+    if rc_s5 "$RC_SUITE"; then
+      LOG "suite: servico de boot ja estava instalado (o da build S5, que semeia a suite do /vendor)"
+    else
+      LOG "suite: servico de boot ja estava instalado"
+    fi
   elif [ "$VENDOR_RW" = "1" ]; then
     instalar_rc
   fi

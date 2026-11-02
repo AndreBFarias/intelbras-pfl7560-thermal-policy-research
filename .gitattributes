@@ -82,3 +82,6 @@ pendrive-autorun/overlay/*.apk      -text byte-exact
 pendrive-autorun/marca/*            -text byte-exact
 # Saidas cruas do aparelho (ps, top, dumpsys) coletadas pelos blocos de pesquisa: evidencia, byte a byte
 artifacts/re-termico/coleta-*/*     -text byte-exact
+# Build S5 (bloco 26): o .rc e a semente que o firmware grava no /vendor; ASCII puro, o md5 do
+# .rc esta no RC_S5_MD5 do newlink_update.sh e o da S5 inteira em firmware/*.md5.
+artifacts/bin-build/s5/*        -text byte-exact

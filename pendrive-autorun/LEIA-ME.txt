@@ -127,6 +127,10 @@ TEMA E MARCA (bloco 14; pastas "overlay" e "marca" do pendrive)
   Com DESINSTALAR-SUITE.txt tudo isso volta ao de fabrica. A imagem do carregador
   (particao "logo") e o VLC NAO vem no pendrive: no PC, PFL_IP=<ip> ./pfl7560-marca.sh
   e PFL_IP=<ip> ./pfl7560-vlc.sh (docs/research/44-suite-de-boot.md, secao 15).
+  VLC (pedido do dono, 2026-11-02): no boot a suite tira o org.videolan.vlc do
+  usuario 0 UMA vez (pm uninstall --user 0; o apk continua no /vendor). Para
+  voltar, pelo adb: cmd package install-existing org.videolan.vlc
+  (o DESINSTALAR-SUITE.txt nao o devolve).
 
 COMO SABER QUE FUNCIONOU (3 sinais)
   - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos;
@@ -215,8 +219,8 @@ OBSERVACOES
       PC: ./install.sh --pendrive <pasta> --com-firmware, ou
       tests/preparar-pendrive.sh <dispositivo> para formatar e preparar do zero).
       Desde 2026-10-31 (decisao do dono) o usb_update.bin da raiz e o NOSSO
-      firmware (PFL7560-S4a-NAO-GRADUADO.bin: escada, wi-fi e xiri gravados
-      nos mesmos blocos do stock; nunca provado no aparelho, gate BIN-S4a) e o
+      firmware (PFL7560-S5-COMPLETO-NAO-GRADUADO.bin: escada, wi-fi, xiri, a
+      suite, a home e o app ja na imagem; nunca provado no aparelho) e o
       de FABRICA V1.0.0.9 fica em
       resgate-oficial/PFL7560.bin, com um LEIA-ME que ensina a troca.
       SO para o aparelho COM entrada USB-C (V1.0.0.9): no modelo sem USB-C
@@ -233,7 +237,7 @@ OBSERVACOES
   - Regra pratica do arranjo (B): mantenha o pendrive DESCONECTADO no uso
     normal. Plugue so quando for usar um dos dois papeis, e tire depois.
   - usb_update.bin so pode ser um dos dois .bin que o install.sh confere: o nosso
-    (md5 em firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5) ou o DE FABRICA
+    (md5 em firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5) ou o DE FABRICA
     (Software PFL7560.zip), md5 28a2f280eee313a4b115567926b2ba4f. NUNCA outro
     .bin de correcao: o prototipo sem rotulo SELinux brica o boot, e ai o
     power-hold nao resgata - piora.
@@ -252,17 +256,32 @@ CURVAS, STANDBY E DEBLOAT (bloco 23)
     falha ou pedido invalido deixa os ventiladores em 100%. O kit aceita o
     ZYCustom.ini com a curva do LED gravada (nao trata como arquivo
     desconhecido). Piso de 70% (decisao do dono); perfis PROVISORIOS.
-  - Standby: com o descanso de tela ativo por mais de 10 minutos aparece um aviso
-    de 60 segundos; qualquer tecla cancela, senao o projetor recebe o POWER do
-    controle (KEYCODE_POWER), que DESLIGA o aparelho; ligar de novo e pelo
-    controle, boot completo. So acontece com o descanso ainda na tela.
+  - Standby: com o descanso de tela ativo pelo tempo escolhido (padrao: ligado,
+    10 minutos; na home, Ajustes do sistema > Servicos > "Desligar no descanso":
+    liga/desliga e 10, 20, 30 ou 60 minutos) aparece um aviso de 60 segundos;
+    qualquer tecla cancela, senao o projetor recebe o POWER do controle
+    (KEYCODE_POWER), que DESLIGA o aparelho; ligar de novo e pelo controle, boot
+    completo. So acontece com o descanso ainda na tela.
   - Debloat: o kit desliga (pm disable-user, reversivel) so os apps de
-    debloat-aprovados.txt (Office, VLC, cast e miracast). Para religar tudo, crie
+    debloat-aprovados.txt (Office, cast e miracast). Para religar tudo, crie
     um arquivo VAZIO REVERTER-DEBLOAT.txt na raiz do pendrive e ligue o projetor.
     REAPLICAR-DEBLOAT.txt (vazio) volta a desligar no boot seguinte.
   - O pendrive agora leva tambem: suite-curvas.sh e debloat-aprovados.txt (copie
     junto com os outros arquivos da raiz). Detalhes: docs/research/44-suite-de-boot.md,
     secao 17.
+
+SERVICOS DO FABRICANTE (blocos 24 e 27)
+  - Na home, Ajustes do sistema > Servicos: cada linha e um servico do
+    fabricante, ligado = funciona. O kit instala com estes DESLIGADOS: apps de
+    teste e de fabrica, telemetria, players da HiSilicon, tela inicial de
+    fabrica (so com a home MeowCast ativa), Office do fabricante, log do
+    vplugin e o aviso de "dispositivo conectado" que aparece ao plugar um
+    aparelho. Porta de rede por cabo, servidor web e keystone automatico ficam
+    como vieram. Tudo reversivel pela propria linha. O VLC nao e um desses
+    servicos.
+  - Resgate: crie um arquivo VAZIO DESLIGAR-CHAVES.txt na raiz do pendrive e
+    ligue o projetor com ele: tudo volta a funcionar como de fabrica (a cada
+    plugada; tire o arquivo depois).
 
 LOGO AUTOMATICO DO BOOT (bloco 25)
   - Ligado por padrao. A cada boot o projetor confere se a correcao de 4 pontos

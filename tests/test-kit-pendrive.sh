@@ -64,6 +64,7 @@ n=$(cat "$T/n-getevent" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-gete
 [ -f "$T/linka-lvdsctl-$n" ] && { cp "$T/bin/lvdsctl" "$T/lvdsctl.copia"; rm -f "$T/bin/lvdsctl"; ln -s "$T/lvdsctl.copia" "$T/bin/lvdsctl"; }
 k=$(head -1 "$T/keys"); sed -i 1d "$T/keys"
 [ "$k" = "key" ] && echo "/dev/input/event2: EV_KEY       KEY_OK                DOWN"
+[ "$k" = "voltar" ] && echo "/dev/input/event2: EV_KEY       KEY_BACK              DOWN"
 exit 0'
   stub am 'echo "am $*" >> "$T/calls.log"
 [ "$1" = "force-stop" ] && exit 0
@@ -206,9 +207,12 @@ roda(){
   amb $SHELL_BIN_RUN "$T/root/mnt/media_rw/USB1/newlink_update.sh" USB1 > "$T/out.log" 2>&1
   RC=$?
   local i=0
-  while [ -z "${SEM_ESPERA:-}" ] && grep -q "lancando a " "$T/out.log" && [ ! -f "$T/setsid.done" ] && [ "$i" -lt 100 ]; do
+  while [ -z "${SEM_ESPERA:-}" ] && grep -q "lancando a " "$T/out.log" && [ ! -f "$T/setsid.done" ] && [ "$i" -lt 1800 ]; do
     sleep 0.1; i=$((i+1))
   done
+  if [ -z "${SEM_ESPERA:-}" ] && grep -q "lancando a " "$T/out.log" && [ ! -f "$T/setsid.done" ]; then
+    falha "a fase destacada (setsid) nao terminou em 180 s: o cenario seria lido pela metade"
+  fi
   [ -f "$T/root/data/vendor/pfl7560-kit/cor.log" ] && cp "$T/root/data/vendor/pfl7560-kit/cor.log" "$T/cor.log.copia" 2>/dev/null
   return 0
 }
@@ -263,6 +267,25 @@ c_tecla_tecla(){
   local pp1; pp1="$(pp_md5)"; : > "$T/calls.log"
   roda nokey
   afirma '[ "$(pp_md5)" = "$pp1" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "2a execucao mexeu em algo"
+  limpa
+}
+
+# bloco 29: Voltar/Esc nas telas do cor.sh = cancelar (nao e resposta): desfaz o que escreveu, sem tela de resultado
+c_tecla_voltar(){
+  novo_cenario "Voltar na 1a espera = nada escrito, sem tela de resultado, home"; aparelho_ok
+  roda voltar
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ] && [ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ]' "escreveu com Voltar: lvdsctl=$(chamadas lvdsctl)"
+  afirma 'log_tudo | grep -q "cancelado pelo controle (tecla Voltar/Esc)" && log_tudo | grep -q "nada foi escrito na panelparam"' "log sem o cancelar"
+  afirma '! grep -q "pfl7560-kit/pronto.png\|pfl7560-kit/erro.png\|pfl7560-kit/escada-2.png" "$T/calls.log" && tem_chamada "input keyevent KEYCODE_HOME"' "tela de resultado ou sem HOME: $(telas)"
+  limpa
+
+  novo_cenario "tecla + Voltar = reverte o lvds_fmt e confere, sem tela de resultado"; aparelho_ok
+  roda key voltar
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(pp_byte)" = 0 ]' "a particao nao voltou ao original"
+  afirma 'tem_chamada "lvdsctl fmt 1" && [ "$(grep "^lvdsctl" "$T/calls.log" | tail -1)" = "lvdsctl fmt 0" ]' "esperava fmt 1 (teste) e fmt 0 (reversao): $(grep "^lvdsctl" "$T/calls.log" | tr '\n' '|')"
+  afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
+  afirma 'log_tudo | grep -q "revertido no cancelar: lvds_fmt=0 e a particao confere com o backup" && ! log_tudo | grep -q "segunda tecla"' "log sem a reversao do cancelar"
+  afirma '! grep -q "pfl7560-kit/pronto.png\|pfl7560-kit/erro.png" "$T/calls.log" && tem_chamada "input keyevent KEYCODE_HOME"' "tela de resultado ou sem HOME: $(telas)"
   limpa
 }
 
@@ -1267,8 +1290,8 @@ exec "$T/bin/pm.orig" "$@"'
   printf 'package:org.videolan.vlc\npackage:com.mobisystems.editor.office_registered\npackage:com.outro.app\n' > "$T/desligados"
   : > "$T/root/mnt/media_rw/USB1/REVERTER-DEBLOAT.txt"
   roda nokey
-  afirma 'tem_chamada "^pm enable --user 0 org.videolan.vlc" && tem_chamada "^pm enable --user 0 com.mobisystems.editor.office_registered"' "nao religou VLC e Office: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
-  afirma '! tem_chamada "^pm enable --user 0 com.outro.app" && ! tem_chamada "^pm disable"' "religou pacote fora da lista ou desligou algo"
+  afirma 'tem_chamada "^pm enable --user 0 com.mobisystems.editor.office_registered"' "nao religou o Office: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  afirma '! tem_chamada "^pm enable --user 0 com.outro.app" && ! tem_chamada "^pm enable --user 0 org.videolan.vlc" && ! tem_chamada "^pm disable"' "religou pacote fora da lista (o VLC e do dono desde 2026-11-02) ou desligou algo"
   afirma '[ -e "$(S14)/debloat-revertido" ] && [ -f "$(S14)/debloat-aprovados.txt" ]' "sem a marca de reversao ou sem a lista na pasta da suite"
   afirma 'log_tudo | grep -q "REVERTER-DEBLOAT.txt no pendrive"' "log sem o aviso da reversao"
   rm -f "$T/root/mnt/media_rw/USB1/REVERTER-DEBLOAT.txt"; : > "$T/root/mnt/media_rw/USB1/REAPLICAR-DEBLOAT.txt"
@@ -1294,11 +1317,11 @@ exec "$T/bin/pm.orig" "$@"'
 c_bloco25(){
   local L aapt2
   novo_cenario "bloco 25: o kit instala nl_logo, suite-logo.sh e a arte reta na suite (executaveis 755, md5 do kit)"; aparelho_ok
-  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 7 ]' "versionCode do app ou da home nao e 7"
+  afirma '[ "$APP_VC" = 9 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 9 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 9 ]' "versionCode do app nao e 9 (visor, bloco 29) ou o da home nao e 9 (bloco 28)"
   # shellcheck disable=SC2012
   aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
   if [ -n "$aapt2" ]; then
-    afirma '"$aapt2" dump badging "$KIT/pfl7560-home.apk" | grep -q "^package: name='"'"'com.pfl7560.home'"'"' versionCode='"'"'7'"'"'"' "versionCode do apk da home nao e 7"
+    afirma '"$aapt2" dump badging "$KIT/pfl7560-home.apk" | grep -q "^package: name='"'"'com.pfl7560.home'"'"' versionCode='"'"'9'"'"'"' "versionCode do apk da home nao e 9"
   fi
   roda nokey
   afirma '[ "$(stat -c %a "$(S14)/nl_logo")" = 755 ] && [ "$(stat -c %a "$(S14)/suite-logo.sh")" = 755 ] && cmp -s "$(S14)/nl_logo" "$KIT/nl_logo" && cmp -s "$(S14)/suite-logo.sh" "$KIT/suite-logo.sh"' "nl_logo/suite-logo.sh nao instalados como executaveis iguais aos do kit"
@@ -1499,6 +1522,45 @@ c_bloco14(){
   limpa
 }
 
+# Bloco 26 (build S5): o .rc da S5 e outro arquivo (roda a semente do /vendor). O kit o aceita no
+# lugar do dele so com a semente presente, e nao abre o /vendor por causa dele.
+S5RC(){ echo "$ROOT/artifacts/bin-build/s5/pfl7560-suite.rc"; }
+VRC(){ echo "$T/root/vendor/etc/init/pfl7560-suite.rc"; }
+poe_s5(){
+  cp "$(S5RC)" "$(VRC)"; chmod 644 "$(VRC)"
+  if [ "${1:-}" = semente ]; then
+    mkdir -p "$T/root/vendor/etc/pfl7560-suite"
+    cp "$ROOT/artifacts/bin-build/s5/suite-semente.sh" "$T/root/vendor/etc/pfl7560-suite/suite-semente.sh"
+  fi
+}
+c_bloco26(){
+  novo_cenario "S5: .rc da build S5 com a semente no /vendor = servico ja instalado, o /vendor nao abre"; aparelho_ok
+  poe_s5 semente
+  roda nokey
+  afirma '[ "$RC" = 0 ] && ! tem_chamada "^mount -o rw,remount /vendor" && cmp -s "$(S5RC)" "$(VRC)"' "rc=$RC; abriu o /vendor ou trocou o .rc da S5"
+  afirma 'log_tudo | grep -q "suite: servico de boot ja estava instalado (o da build S5"' "log: $(log_tudo | grep "servico de boot" | cut -c1-100 | tr '\n' '|')"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ -f "$T/root/data/vendor/pfl7560-suite/suite-boot.sh" ]' "o .rc da S5 mudou o fluxo do kit: telas '$(telas)'"
+  limpa
+
+  novo_cenario "S5: .rc da S5 sem a semente no /vendor = o kit poe o dele"; aparelho_ok
+  poe_s5
+  roda nokey
+  afirma '[ "$RC" = 0 ] && cmp -s "$KIT/pfl7560-suite.rc" "$(VRC)" && tem_chamada "^mount -o rw,remount /vendor"' "rc=$RC; ficou o .rc da S5 sem a semente"
+  limpa
+
+  novo_cenario "S5: .rc da S5 adulterado (com a semente) = o kit poe o dele"; aparelho_ok
+  poe_s5 semente; echo "# outro" >> "$(VRC)"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && cmp -s "$KIT/pfl7560-suite.rc" "$(VRC)"' "rc=$RC; aceitou o .rc da S5 adulterado"
+  limpa
+
+  novo_cenario "S5: DESINSTALAR-SUITE tira o .rc da S5 (a semente para junto)"; aparelho_ok
+  poe_s5 semente; : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ ! -e "$(VRC)" ] && [ ! -e "$T/root/data/vendor/pfl7560-suite" ]' "o .rc da S5 ou a suite ficaram: $(ls "$T/root/vendor/etc/init" | tr '\n' ' ')"
+  limpa
+}
+
 c_estaticos(){
   CASO="estaticos"; SHELL_NOME="-"
   local f
@@ -1535,8 +1597,17 @@ c_estaticos(){
     afirma '"$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^package: name='"'"'com.pfl7560.verificar'"'"' versionCode='"'"'$APP_VC'"'"'"' "versionCode do apk difere do APP_VERSION_CODE"
     afirma '[ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^launchable-activity")" = 2 ] && [ "$("$aapt2" dump badging "$KIT/pfl7560.apk" | grep -c "^leanback-launchable-activity")" = 2 ]' "o apk nao tem as duas atividades com LAUNCHER e LEANBACK_LAUNCHER"
     afirma '[ -z "$("$aapt2" dump permissions "$KIT/pfl7560.apk" | grep "^uses-permission")" ] && "$aapt2" dump badging "$KIT/pfl7560.apk" | grep -q "^targetSdkVersion:.28."' "o apk pede permissao ou nao tem targetSdk 28"
+    afirma '"$aapt2" dump xmltree --file AndroidManifest.xml "$KIT/pfl7560.apk" | grep -A7 "android:name(0x01010003)=\".Visor\"" | tr -d " " | grep -q "exported(0x01010010)=false" && "$aapt2" dump xmltree --file AndroidManifest.xml "$KIT/pfl7560.apk" | grep -A7 "android:name(0x01010003)=\".Visor\"" | tr -d " " | grep -q "launchMode(0x0101001d)=2"' "o visor nao esta no apk, esta exportado ou nao e singleTask (bloco 29)"
   else
     echo "  (aapt2 ausente: conferencia do versionCode do apk pulada)"
+  fi
+  afirma 'cmp -s "$ROOT/artifacts/app/res/drawable-nodpi/visor_fundo.jpg" "$ROOT/artifacts/tema/marca/logo.jpg"' "o fundo do visor difere do logo MeowCast da abertura (artifacts/tema/marca/logo.jpg)"
+  if command -v javac >/dev/null && command -v java >/dev/null; then
+    local vm; vm="$(mktemp -d)"
+    afirma 'javac --release 8 -Xlint:-options -encoding UTF-8 -d "$vm" "$ROOT/artifacts/app/src/com/pfl7560/verificar/VisorModelo.java" "$ROOT/artifacts/app/teste/TesteVisorModelo.java" && java -Djava.io.tmpdir="$vm" -cp "$vm" com.pfl7560.verificar.TesteVisorModelo > "$vm/saida" 2>&1' "modelo do visor (Voltar grava o pedido; trocar a imagem nao fecha): $(cat "$vm/saida" 2>/dev/null)"
+    rm -rf "$vm"
+  else
+    echo "  (javac/java ausentes: teste do modelo do visor pulado)"
   fi
   afirma '[ "$(sed -n "s/^LVDSCTL_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/lvdsctl")" ]' "LVDSCTL_MD5 do cor.sh difere do md5 do lvdsctl"
   afirma '[ "$(sed -n "s/^NLCAM_MD5=\"\([0-9a-f]*\)\"$/\1/p" "$KIT/cor.sh")" = "$(md5 "$KIT/nl_camcheck")" ]' "NLCAM_MD5 do cor.sh difere do md5 do nl_camcheck do kit"
@@ -1577,10 +1648,10 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   esac
   command -v "$SHELL_BIN" >/dev/null 2>&1 || { echo "(sem $SHELL_BIN: pulado)"; continue; }
   echo "== cenarios sob $SHELL_NOME =="
-  for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
+  for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_tecla_voltar c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
-           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23 c_bloco25}; do
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23 c_bloco25 c_bloco26}; do
     echo "  $c"
     "$c"
   done

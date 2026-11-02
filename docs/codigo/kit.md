@@ -71,6 +71,10 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   root e o rótulo do `init.bigfish.rc` vizinho (ou `vendor_configs_file` se o `ls -Z` não responder; o `ls -Z` é o
   único leitor de rótulo do toybox). Um `.rc` que mesmo assim fique fora do padrão é removido. O brick de julho veio
   de `.rc` 0664 e sem rótulo.
+- **O `.rc` da build S5 (bloco 26)** vale como instalado (`rc_s5`): só em `/vendor/etc/init/pfl7560-suite.rc`, só com
+  o md5 `RC_S5_MD5` (gerado pelo `atualizar-md5-kit.sh`) e só se a semente `/vendor/etc/pfl7560-suite/suite-semente.sh`
+  existir; modo, dono e rótulo são conferidos como os do `.rc` do kit. Sem a semente, o `.rc` da S5 rodaria um
+  script que não existe, e o kit põe o dele ([doc 47 §12](../research/47-build-completa.md)).
 - **Apps e sobreposições em `/vendor/app` e `/vendor/overlay`:** o `pm install` deste firmware recusa qualquer app
   de fora (`INSTALL_FAILED_INVALID_INSTALL_LOCATION`, 2026-10-30). O PackageManager varre `/vendor/app` no boot,
   como faz com o `KeymasterProvisionDemo` de fábrica. Vale no boot seguinte. O APK vem de `$WORK` (conferido),
@@ -182,6 +186,13 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - **Vigia do pedido:** o `inotifyd` do toybox ignora a 1ª letra da máscara (2026-10-30: `:wy` vigiava só `y`, `:n`
   dava Invalid argument, `:nwy` entregava `w`). Por isso `:wwy`. Sem `inotifyd`, laço de `VIGIA_INTERVALO`. Um
   pedido que já estava na pasta antes do vigia não gera evento: é tratado uma vez na largada.
+- **VLC fora do usuário 0 (2026-11-02, pedido do dono):** `tirar_vlc`, em segundo plano junto com os apps
+  desligados e as chaves, roda `pm uninstall --user 0 org.videolan.vlc` **uma vez**: depois de conseguir (ou de ver
+  que o pacote já não está no usuário 0) cria a marca `$SUITE/vlc-tirado` e não tenta mais; se o `pm` não responde
+  ou o uninstall falha, tenta no boot seguinte. O APK continua no `/vendor/app/VLC` e nada da imagem muda.
+  Desfazer: `cmd package install-existing org.videolan.vlc`. O `--desinstalar` apaga a marca com a pasta da suíte,
+  mas não devolve o VLC (o desfazer é à mão). Não é chave nem debloat: o `deb_vlc` e o `debloat-aprovados.txt`
+  seguem sem o VLC (`test-chaves.sh`, `test-suite.sh`).
 - O processo fica vivo enquanto o vigia vive (`wait`): nada depende de como o init trata o fim de um oneshot.
 - Log próprio: a saída de um serviço do init vai para `/dev/null`.
 
@@ -202,7 +213,7 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 ## `suite-curvas.sh` (bloco 23: curvas, standby, debloat)
 
 - Um só despachante: `ini-ok`, `ini-base`, `ini-norm` (variantes do `.ini`), `pedido vent|led`, `laco`, `boot`,
-  `parar`, `standby-inicio|cancelar|vigia`, `debloat-lista|reverter`. O `suite-pedido.sh` chama `pedido` quando
+  `parar`, `standby-inicio|cancelar|vigia|escolha`, `debloat-lista|reverter`. O `suite-pedido.sh` chama `pedido` quando
   encontra `curva-vent`/`curva-led` (até 200 bytes, dono = UID de app, movido para a pasta do root antes de ler).
 - Respostas por prop: `vent`/`led` = `perfil:modo` (`vivo`, `gravada`, `ambos`, `desistiu`); `vent_aviso`/`led_aviso`
   em `firmware`, `temperatura`, `pedido`, `hidebug`, `ini`, `suite`, e `gravar` (só ventiladores: a curva não se
@@ -219,18 +230,26 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   próprio `$$`. Um vigia velho morto pelo `standby-inicio` seguinte só roda o `trap` depois do `sleep 5`, e a essa
   altura o pid já é do vigia novo; apagar sem conferir deixava o novo sem dono, e o `descanso-fim` seguinte não o
   achava para cancelar (o `KEYCODE_POWER` saía fora de hora). O mesmo vale para o laço e o `laco_ligar`.
+- "Desligar no descanso" (tarefa 2026-11-02): a home grava o pedido `standby` (até 32 bytes, lista fechada
+  `v1 ligado|desligado 10|20|30|60` ou `v1 ler`); o `suite-pedido.sh` passa a `standby-escolha`, que grava
+  `standby-escolha` na pasta da suite (umask 077) e publica `standby_conf` = `<1|0>:<min>` (também no `boot`).
+  O vigia lê a escolha ao começar: aviso = min × 60 s, standby 60 s depois; desligado, o `standby-inicio` não liga
+  o vigia e a escolha de desligar cancela o que estiver em curso. Sem escolha, insegura ou fora da lista: ligado,
+  10 min (as constantes 600/660 de antes).
 - Só `sfs`/`gfs` e `sbri`/`gbri` no `hidebug`; nunca `sbl`, `gtt` ou `stp`. A temperatura é a prop `zysys.env_temp`.
 - Entra na `SUITE_LISTA` e no `KIT_LISTA`/`KIT_EXEC`; o md5 vai embutido no `suite-pedido.sh` e no `suite-boot.sh`
   (`bash tests/atualizar-md5-kit.sh`). Ganchos de teste só com `PFL_TESTE=1`: `PFL_CURVAS_VOLTAS`,
-  `PFL_STANDBY_AVISO`, `PFL_STANDBY_TOTAL`.
+  `PFL_STANDBY_AVISO`, `PFL_STANDBY_TOTAL` (fixam os tempos, acima da escolha), `PFL_STANDBY_MINUTO`.
 - `newlink_update.sh`: `term_ok` aceita o `.ini` do kit ou uma variante só nos degraus da `BacklightPolicy`
   (`ini_variante_ok`); `debloat_pendrive` lê `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`.
 - Detalhes, formatos e o PROVISÓRIO: [44 §17](../research/44-suite-de-boot.md).
 
 ## `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24)
 
-- Dez chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone`.
-  "Ligada" = a medida está aplicada (app desligado, porta caída...). Cada chave **lê o estado real** do aparelho e volta
+- Onze chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone
+  pop_disp` (o `pop_disp` entrou no bloco 27, no fim, para não mexer na posição das outras).
+  "Ligada" = a medida está aplicada (app desligado, porta caída...). Desde o bloco 27 a home mostra o contrário, o
+  **serviço** (ligado = funciona), e esconde o `wifi_pwr`; a inversão é só dela, o protocolo e a prop não mudam. Cada chave **lê o estado real** do aparelho e volta
   pela mesma chave; nada se desliga sem o dono ligar a chave (ou sem o padrão da instalação, abaixo).
 - Comandos: `boot` (reaplica o que o dono escolheu), `pedido` (chamado pelo `suite-pedido.sh`), `aplicar <id>
   ligar|desligar`, `resgate` (desliga todas), `pacotes-fora` (lista que o `desligar_apps` do boot respeita).
@@ -239,15 +258,22 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   `$SUITE/chaves.escolhas`; a escolha só é gravada se o estado relido confirmou (ou se a chave não existe aqui). Se a
   coisa existia e **sumiu** com a mudança (o chip Wi-Fi que cai do barramento), o aviso é `sumiu` e a escolha vira 0,
   para o boot não repetir: reiniciar devolve o aparelho.
-- Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat e o log do vplugin ligados; eth0, chip Wi-Fi,
+- Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat, o log do vplugin e o `pop_disp` ligados; eth0, chip Wi-Fi,
   web/cmdsrv e keystone desligados. `debloat-revertido` segura só `deb_vlc`. `deb_lnch` só liga com a home instalada
   e ativa. O protetor de tela não entra no debloat.
 - Grupos: `deb_seg` (autotest, factorymenu, tvtestingtools, hikeymasterprovision, ijkplayerdemo, location.fused),
   `deb_ota` (`com.newlink.service`, `service2`), `deb_hisi` (music, videoplayer, tvui, tv.menu; **nunca** `higallery`:
-  é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (VLC e Office).
-- Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` acha o USB
-  `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
-  e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot).
+  é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (só o Office desde o bloco 27; o
+  id ficou `deb_vlc` para não mudar a prop. As chaves e o debloat não mexem no VLC; quem o tira do usuário 0, uma
+  vez, é o `suite-boot.sh`, acima).
+- Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` **não é
+  mais uma escolha** (bloco 29): o `auto` no `power/control` do chip (USB `a69c:8d80/8d81`) derrubava o kernel
+  (NULL em `aicwf_usb_bus_start`, doc 49 §2.2.1). `aplicar`/`pedido` recusam o id, o boot e o resgate apagam a linha
+  `wifi_pwr=` e escrevem `on`; a posição na prop fica sempre `-`. `web_cmd` = `stop|start boa`
+  e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot); `pop_disp` = `setprop
+  vendor.newlink.hisi.hdmiisdialog 0` (o pop-up "Dispositivo conectado" é do `com.zhiying.settings`, que só abre a
+  janela com a prop != 0; de fábrica 1). Não é persist: o boot reaplica, e desligar devolve o valor do
+  `/vendor/build.prop` (1 se faltar). Firmware sem a prop = `-`, sem `setprop`.
 - **Resgate:** o arquivo `DESLIGAR-CHAVES.txt` no pendrive desliga todas a cada plugada e grava escolha 0 em todas
   (sem marca de "feito"). A escolha 0 é gravada **antes** da trava, e o boot só toma a trava depois de esperar o
   `pm`: o `newlink_update.sh` e o `suite-boot.sh` sobem juntos no `boot_completed`, e o resgate não pode perder a

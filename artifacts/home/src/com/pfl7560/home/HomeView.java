@@ -1,6 +1,7 @@
 package com.pfl7560.home;
 
 import android.content.Context;
+import android.content.res.AssetManager;
 import android.graphics.Canvas;
 import android.view.KeyEvent;
 import android.view.View;
@@ -14,25 +15,40 @@ final class HomeView extends View {
         void aplicarCurva();
 
         void aplicarChave();
+
+        /** Seta na linha "Desligar no descanso": o tempo ja mudou na tela; manda o pedido. */
+        void pedirDescanso();
+
         void alternarLogo();
     }
 
     private final Modelo modelo;
-    private final PintorCanvas pintor;
+    /** null ate as fontes carregarem (fora do thread principal); antes disso so o fundo aparece. */
+    private volatile PintorCanvas pintor;
     private final Ouvinte ouvinte;
 
     HomeView(Context ctx, Modelo modelo, Ouvinte ouvinte) {
         super(ctx);
         this.modelo = modelo;
         this.ouvinte = ouvinte;
-        this.pintor = new PintorCanvas(ctx.getAssets());
         setFocusable(true);
         setFocusableInTouchMode(true);
         setBackgroundColor(Tema.FUNDO);
+        final AssetManager assets = ctx.getAssets();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                pintor = new PintorCanvas(assets);
+                postInvalidate();
+            }
+        }, "home-fontes");
+        t.start();
     }
 
     @Override
     protected void onDraw(Canvas canvas) {
+        PintorCanvas pintor = this.pintor;
+        if (pintor == null) return;
         float s = Math.min(getWidth() / Desenho.LARGURA, getHeight() / Desenho.ALTURA);
         if (s <= 0) return;
         int salvo = canvas.save();
@@ -50,6 +66,12 @@ final class HomeView extends View {
 
     @Override
     public boolean onKeyDown(int codigo, KeyEvent ev) {
+        if (codigo == KeyEvent.KEYCODE_BACK || codigo == KeyEvent.KEYCODE_ESCAPE) {
+            // Voltar age no aperto, uma vez: fecha a tela aberta. Na tela principal segue para o sistema.
+            if (!modelo.luzAberta && !modelo.curvasAberta && !modelo.ajustesAberta) return super.onKeyDown(codigo, ev);
+            if (ev.getRepeatCount() == 0 && modelo.voltar()) invalidate();
+            return true;
+        }
         if (modelo.luzAberta) return teclaLuz(codigo, ev);
         if (modelo.curvasAberta) return teclaCurvas(codigo, ev);
         if (modelo.ajustesAberta) return teclaAjustes(codigo, ev);
@@ -126,9 +148,11 @@ final class HomeView extends View {
         switch (codigo) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 mudou = a.mover(-1, 0);
+                if (mudou && a.naLinhaDescanso()) ouvinte.pedirDescanso();
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 mudou = a.mover(1, 0);
+                if (mudou && a.naLinhaDescanso()) ouvinte.pedirDescanso();
                 break;
             case KeyEvent.KEYCODE_DPAD_UP:
                 mudou = a.mover(0, -1);
@@ -171,7 +195,10 @@ final class HomeView extends View {
                 if (modelo.moverLuz(1)) invalidate();
                 return true;
             case KeyEvent.KEYCODE_DPAD_UP:
+                if (modelo.moverLuz(0, -1)) invalidate();
+                return true;
             case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (modelo.moverLuz(0, 1)) invalidate();
                 return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:

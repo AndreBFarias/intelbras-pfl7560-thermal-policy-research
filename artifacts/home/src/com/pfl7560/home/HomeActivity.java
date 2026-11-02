@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.bluetooth.BluetoothAdapter;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -14,6 +15,8 @@ import android.os.Looper;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static final long AVISO_MS = 5000L;
@@ -24,6 +27,8 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     private static final long CHAVE_LER_MS = 2500L;
 
     private final Handler principal = new Handler(Looper.getMainLooper());
+    /** Os pedidos ao projetor, um de cada vez, fora do thread principal. */
+    private final ExecutorService fila = Executors.newSingleThreadExecutor();
     private Modelo modelo;
     private HomeView vista;
     private boolean ouvindoTempo;
@@ -66,14 +71,8 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     protected void onCreate(Bundle b) {
         super.onCreate(b);
         Guarda.instalar(getApplicationContext());
-        if (Guarda.emLaco(this)) {
-            Guarda.limpar(this);
-            if (Abridor.homeDeFabrica(this)) {
-                finish();
-                return;
-            }
-        }
-        modelo = Modelo.padrao(Leitor.temUsbC());
+        conferirLaco();
+        modelo = Modelo.padrao();
         modelo.relogio(Calendar.getInstance());
         vista = new HomeView(this, modelo, this);
         setContentView(vista);
@@ -94,6 +93,29 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         carregarApps();
     }
 
+    /**
+     * Caiu duas vezes em 2 minutos? Entrega a tela inicial de fabrica. As preferencias ficam em disco: a leitura
+     * corre fora do thread principal, e a troca volta a ele.
+     */
+    private void conferirLaco() {
+        final Context app = getApplicationContext();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (!Guarda.emLaco(app)) return;
+                Guarda.limpar(app);
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        if (Abridor.homeDeFabrica(HomeActivity.this)) finish();
+                    }
+                });
+            }
+        }, "home-guarda");
+        t.start();
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -105,6 +127,8 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
             f.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
             f.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+            f.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+            f.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
             registerReceiver(tempo, f);
             ouvindoTempo = true;
         } catch (RuntimeException e) {
@@ -112,6 +136,8 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         }
         atualizarRelogio();
         lerEstado();
+        // de volta a tela das Ajustes (de outro app, do descanso de tela): le de novo
+        if (modelo.ajustesAberta) lerChavesAssincrono();
         vista.requestFocus();
     }
 
@@ -131,6 +157,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     @Override
     protected void onDestroy() {
         principal.removeCallbacksAndMessages(null);
+        fila.shutdownNow();
         if (ouvindoPacotes) {
             try {
                 unregisterReceiver(pacotes);
@@ -154,25 +181,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     @Override
     public void onBackPressed() {
         if (modelo == null) return;
-        if (modelo.curvasAberta) {
-            if (!modelo.curvas.voltar()) {
-                modelo.fecharCurvas();
-                modelo.aviso = null;
-            }
-            vista.invalidate();
-            return;
-        }
-        if (modelo.ajustesAberta) {
-            modelo.fecharAjustes();
-            modelo.aviso = null;
-            vista.invalidate();
-            return;
-        }
-        if (modelo.luzAberta) {
-            modelo.fecharLuz();
-            modelo.aviso = null;
-            vista.invalidate();
-        }
+        if (modelo.voltar()) vista.invalidate();
     }
 
     @Override
@@ -250,160 +259,221 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         t.start();
     }
 
+    /**
+     * OK numa linha das Ajustes: a tela ja mudou (aplicando) e o pedido entra na fila. A fila manda um pedido de
+     * cada vez ao projetor, para um nao apagar o arquivo do outro; o OK nunca e ignorado por haver outro em curso.
+     */
     public void aplicarChave() {
         final Ajustes aj = modelo.ajustes;
-        if (aj.pedindo != null) return;
-        if (aj.aba == Ajustes.ABA_DIARIO) {
-            aplicarDiario();
+        if (aj.naLinhaDescanso()) {
+            aj.marcarAplicando();
+            pedirDescanso();
             return;
         }
+        final boolean diario = aj.aba == Ajustes.ABA_DIARIO;
         final String id = aj.idEmFoco();
-        final String pedido = aj.pedido();
-        aj.pedindo = id;
+        final String pedido = aj.marcarAplicando();
         modelo.aviso = null;
+        vista.invalidate();
         final Context app = getApplicationContext();
-        Thread t = new Thread(new Runnable() {
+        fila.execute(new Runnable() {
             @Override
             public void run() {
-                final String antes = Leitor.propRoot("chaves_aviso");
-                final boolean ok = Leitor.pedirChave(app, pedido);
-                String aviso = antes;
-                if (ok) {
-                    for (int i = 0; i < CHAVE_TENTATIVAS; i++) {
-                        try {
-                            Thread.sleep(CHAVE_ESPERA_MS);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                        aviso = Leitor.propRoot("chaves_aviso");
-                        if (!aviso.equals(antes) && aviso.startsWith(id + ":")) break;
-                    }
-                }
-                final String lido = Leitor.propRoot("chaves");
-                final String av = aviso;
-                final boolean mudou = ok && !av.equals(antes) && av.startsWith(id + ":");
-                principal.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (isDestroyed()) return;
-                        aj.pedindo = null;
-                        if (!lido.isEmpty()) aj.estado = lido;
-                        if (!ok) {
-                            modelo.aviso = "Não consegui pedir ao projetor";
-                        } else if (!mudou) {
-                            modelo.aviso = "O projetor não respondeu ao pedido";
-                        } else {
-                            modelo.aviso = Ajustes.rotuloAviso(Ajustes.codigoDoAviso(av, id));
-                        }
-                        vista.invalidate();
-                        principal.removeCallbacks(apagarAviso);
-                        principal.postDelayed(apagarAviso, AVISO_MS);
-                    }
-                });
+                if (diario) pedirDiario(app, pedido);
+                else pedirChave(app, id, pedido);
             }
-        }, "home-chave");
-        t.setPriority(Thread.MIN_PRIORITY);
-        t.start();
+        });
     }
 
-    private void aplicarDiario() {
-        final Ajustes aj = modelo.ajustes;
-        final String pedido = aj.pedido();
-        aj.pedindo = "diario";
-        modelo.aviso = null;
-        final Context app = getApplicationContext();
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final String antes = Leitor.propRoot("diario");
-                final boolean ok = Leitor.pedirDiario(app, pedido);
-                String depois = antes;
-                if (ok) {
-                    for (int i = 0; i < CHAVE_TENTATIVAS; i++) {
-                        try {
-                            Thread.sleep(CHAVE_ESPERA_MS);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                        depois = Leitor.propRoot("diario");
-                        if (!depois.equals(antes)) break;
-                    }
-                }
-                final String lido = depois;
-                final String envio = Leitor.propRoot("diario_envio");
-                final boolean mudou = ok && !lido.equals(antes);
-                principal.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (isDestroyed()) return;
-                        aj.pedindo = null;
-                        if (!lido.isEmpty()) aj.diario = lido;
-                        aj.diarioEnvio = envio;
-                        if (!ok) {
-                            modelo.aviso = "Não consegui pedir ao projetor";
-                        } else if (!mudou) {
-                            modelo.aviso = "O projetor não respondeu ao pedido";
-                        } else {
-                            modelo.aviso = "Feito";
-                        }
-                        vista.invalidate();
-                        principal.removeCallbacks(apagarAviso);
-                        principal.postDelayed(apagarAviso, AVISO_MS);
-                    }
-                });
-            }
-        }, "home-diario");
-        t.setPriority(Thread.MIN_PRIORITY);
-        t.start();
-    }
-
-    private void lerChavesAssincrono() {
-        final Context app = getApplicationContext();
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                final String antes = Leitor.propRoot("chaves");
-                final String diarioAntes = Leitor.propRoot("diario");
-                final String envioAntes = Leitor.propRoot("diario_envio");
-                principal.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (isDestroyed()) return;
-                        if (!antes.isEmpty()) modelo.ajustes.estado = antes;
-                        if (!diarioAntes.isEmpty()) modelo.ajustes.diario = diarioAntes;
-                        modelo.ajustes.diarioEnvio = envioAntes;
-                        vista.invalidate();
-                    }
-                });
-                // pede uma leitura nova ao projetor (a propriedade so muda quando ele publica)
-                boolean pediu = Leitor.pedirChave(app, Ajustes.PEDIDO_LER);
-                pediu = Leitor.pedirDiario(app, Ajustes.PEDIDO_DIARIO_LER) || pediu;
-                if (!pediu) return;
+    /** Roda na fila (fora do thread principal). */
+    private void pedirChave(Context app, final String id, String pedido) {
+        final String antes = Leitor.propRoot("chaves_aviso");
+        final boolean ok = Leitor.pedirChave(app, pedido);
+        String aviso = antes;
+        if (ok) {
+            for (int i = 0; i < CHAVE_TENTATIVAS; i++) {
                 try {
-                    Thread.sleep(CHAVE_LER_MS);
+                    Thread.sleep(CHAVE_ESPERA_MS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    return;
+                    break;
                 }
-                final String depois = Leitor.propRoot("chaves");
-                final String diarioDepois = Leitor.propRoot("diario");
-                final String envioDepois = Leitor.propRoot("diario_envio");
+                aviso = Leitor.propRoot("chaves_aviso");
+                if (!aviso.equals(antes) && aviso.startsWith(id + ":")) break;
+            }
+        }
+        final String lido = Leitor.propRoot("chaves");
+        final String av = aviso;
+        final boolean mudou = ok && !av.equals(antes) && av.startsWith(id + ":");
+        principal.post(new Runnable() {
+            @Override
+            public void run() {
+                if (isDestroyed()) return;
+                modelo.ajustes.confirmar(id, lido);
+                if (!ok) {
+                    modelo.aviso = "Não consegui pedir ao projetor";
+                } else if (!mudou) {
+                    modelo.aviso = "O projetor não respondeu ao pedido";
+                } else {
+                    String r = Ajustes.rotuloAviso(Ajustes.codigoDoAviso(av, id));
+                    modelo.aviso = "Feito".equals(r) ? null : r;
+                }
+                vista.invalidate();
+                principal.removeCallbacks(apagarAviso);
+                if (modelo.aviso != null) principal.postDelayed(apagarAviso, AVISO_MS);
+            }
+        });
+    }
+
+    /**
+     * Desligar no descanso: a tela ja mostra o alvo (OK ou seta na linha); o pedido entra na mesma fila dos outros.
+     * Cada pedido leva o seu numero: so a resposta do ultimo tira o "Aplicando…".
+     */
+    @Override
+    public void pedirDescanso() {
+        final Ajustes aj = modelo.ajustes;
+        final String pedido = aj.pedidoDescanso();
+        final String alvo = aj.descansoAplicando;
+        final int n = aj.descansoPedidos;
+        if (pedido == null) return;
+        modelo.aviso = null;
+        vista.invalidate();
+        final Context app = getApplicationContext();
+        fila.execute(new Runnable() {
+            @Override
+            public void run() {
+                final boolean ok = Leitor.pedirDescanso(app, pedido);
+                String lido = Leitor.propRoot("standby_conf");
+                if (ok) {
+                    for (int i = 0; i < CHAVE_TENTATIVAS && !alvo.equals(lido); i++) {
+                        try {
+                            Thread.sleep(CHAVE_ESPERA_MS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        lido = Leitor.propRoot("standby_conf");
+                    }
+                }
+                final String fim = lido;
                 principal.post(new Runnable() {
                     @Override
                     public void run() {
                         if (isDestroyed()) return;
-                        if (!depois.isEmpty()) modelo.ajustes.estado = depois;
-                        if (!diarioDepois.isEmpty()) {
-                            modelo.ajustes.diario = diarioDepois;
-                            modelo.ajustes.diarioEnvio = envioDepois;
+                        modelo.ajustes.confirmarDescanso(n, fim);
+                        if (!ok) {
+                            modelo.aviso = "Não consegui pedir ao projetor";
+                        } else if (!alvo.equals(fim)) {
+                            modelo.aviso = "O projetor não respondeu ao pedido";
+                        } else {
+                            modelo.aviso = null;
                         }
                         vista.invalidate();
+                        principal.removeCallbacks(apagarAviso);
+                        if (modelo.aviso != null) principal.postDelayed(apagarAviso, AVISO_MS);
                     }
                 });
             }
-        }, "home-chaves-estado");
+        });
+    }
+
+    /** Roda na fila (fora do thread principal). */
+    private void pedirDiario(Context app, String pedido) {
+        final String antes = Leitor.propRoot("diario");
+        final boolean ok = Leitor.pedirDiario(app, pedido);
+        String depois = antes;
+        if (ok) {
+            for (int i = 0; i < CHAVE_TENTATIVAS; i++) {
+                try {
+                    Thread.sleep(CHAVE_ESPERA_MS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+                depois = Leitor.propRoot("diario");
+                if (!depois.equals(antes)) break;
+            }
+        }
+        final String lido = depois;
+        final String envio = Leitor.propRoot("diario_envio");
+        final boolean mudou = ok && !lido.equals(antes);
+        principal.post(new Runnable() {
+            @Override
+            public void run() {
+                if (isDestroyed()) return;
+                modelo.ajustes.confirmarDiario(lido, envio);
+                if (!ok) {
+                    modelo.aviso = "Não consegui pedir ao projetor";
+                } else if (!mudou) {
+                    modelo.aviso = "O projetor não respondeu ao pedido";
+                } else {
+                    modelo.aviso = null;
+                }
+                vista.invalidate();
+                principal.removeCallbacks(apagarAviso);
+                if (modelo.aviso != null) principal.postDelayed(apagarAviso, AVISO_MS);
+            }
+        });
+    }
+
+    /**
+     * Le o estado das Ajustes fora do thread principal. Enquanto a tela esta aberta e falta ler algo (o projetor
+     * publica ~60 s depois do boot), tenta de novo a cada 2,5 s; o pedido "v1 ler" ao projetor vai a cada 4 voltas.
+     */
+    private void lerChavesAssincrono() {
+        principal.removeCallbacks(relerAjustes);
+        voltaAjustes = 0;
+        lerAjustesUmaVez(true);
+    }
+
+    private final Runnable relerAjustes = new Runnable() {
+        @Override
+        public void run() {
+            if (modelo == null || !modelo.ajustesAberta || isDestroyed()) return;
+            voltaAjustes++;
+            lerAjustesUmaVez(voltaAjustes % 4 == 0);
+        }
+    };
+    private int voltaAjustes;
+
+    private void lerAjustesUmaVez(boolean pedir) {
+        final Context app = getApplicationContext();
+        // com um pedido na fila, o "v1 ler" poderia apagar o arquivo dele: so le as propriedades
+        final boolean pedirAoProjetor = pedir && !modelo.ajustes.algumEmCurso();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                if (pedirAoProjetor) {
+                    // a propriedade so muda quando o projetor publica: pede uma leitura nova
+                    Leitor.pedirChave(app, Ajustes.PEDIDO_LER);
+                    Leitor.pedirDiario(app, Ajustes.PEDIDO_DIARIO_LER);
+                    Leitor.pedirDescanso(app, Ajustes.PEDIDO_DESCANSO_LER);
+                }
+                final String descanso = Leitor.propRoot("standby_conf");
+                final String chaves = Leitor.propRoot("chaves");
+                final String diario = Leitor.propRoot("diario");
+                final String envio = Leitor.propRoot("diario_envio");
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        Ajustes a = modelo.ajustes;
+                        if (!chaves.isEmpty()) a.estado = chaves;
+                        if (!diario.isEmpty() && a.diarioAplicando == 0) {
+                            a.diario = diario;
+                            a.diarioEnvio = envio;
+                        }
+                        if (!descanso.isEmpty() && a.descansoAplicando == null) a.descanso = descanso;
+                        vista.invalidate();
+                        principal.removeCallbacks(relerAjustes);
+                        // a primeira volta sempre rele (o "v1 ler" acabou de sair); depois, so enquanto faltar ler
+                        if (modelo.ajustesAberta && (voltaAjustes == 0 || a.precisaLer())) {
+                            principal.postDelayed(relerAjustes, CHAVE_LER_MS);
+                        }
+                    }
+                });
+            }
+        }, "home-ajustes-estado");
         t.setPriority(Thread.MIN_PRIORITY);
         t.start();
     }
@@ -563,15 +633,25 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                 } catch (Throwable e) {
                     temp = null;
                 }
+                String placa;
+                try {
+                    placa = Leitor.temperaturaPlaca();
+                } catch (Throwable e) {
+                    placa = null;
+                }
+                final String bt = Leitor.bluetooth(app);
                 final int luz = Leitor.luzAtual(app);
                 final String r = rede;
                 final String tt = temp;
+                final String tp = placa;
                 principal.post(new Runnable() {
                     @Override
                     public void run() {
                         if (isDestroyed()) return;
                         modelo.wifi = r;
                         modelo.temperatura = tt;
+                        modelo.temperaturaPlaca = tp;
+                        modelo.bluetooth = bt;
                         modelo.luz = luz;
                         vista.invalidate();
                     }

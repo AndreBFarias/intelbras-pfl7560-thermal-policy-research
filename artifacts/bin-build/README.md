@@ -76,7 +76,40 @@ basta rodar de novo. O gerador:
 
 O `conteudo.txt` leva o `.rc` da suíte, o app, a home e as 20 sobreposições, nas pastas e com os metadados que o
 kit usa (o `make check-bin` confere contra a `KIT_LISTA` e a `KIT_APPS`/`KIT_OVERLAYS` do `newlink_update.sh`).
-A suíte fica no kit, porque mora no `/data`.
+Nessa build (S4b) a suíte fica no kit, porque mora no `/data`.
+
+### `conteudo-s5.txt` e a diretiva `prop` (bloco 26)
+
+O [`conteudo-s5.txt`](conteudo-s5.txt) é a build S5: tudo do `conteudo.txt` e mais a suíte inteira em
+`/vendor/etc/pfl7560-suite` (só leitura), com o `.rc` e a semente de [`s5/`](s5/). No 1º boot a semente copia a
+suíte para o `/data` vazio e passa a vez ao `suite-boot.sh` de lá (doc 47 §12). O manifesto aceita também
+
+```
+prop chave=valor
+```
+
+que põe a linha no fim do `/vendor/build.prop` como o kit faz (apaga a linha da chave, acrescenta a nova, na ordem
+do manifesto). O gerador recusa prop fora do formato `chave.com.pontos=valor`, chave repetida e a
+`wifi_disconnect_on_boot` (ele mesmo a deriva), e confere no fim e no `--verificar` que cada linha está no
+`build.prop` exatamente uma vez. O `tests/test-semente-s5.sh` confere o manifesto contra o kit (a suíte é a
+`SEMENTE_LISTA`, as props são as `HOME_LINHA`/`FM_LINHA` do `newlink_update.sh`).
+
+### A diretiva `logo` e o record 6 (bloco 28)
+
+```
+logo pendrive-autorun/marca/logo.jpg
+```
+
+põe a arte no **record 6** do container, que o atualizador grava cru no começo da partição `logo` (`flash_begin`
+`0x3e00000`, os 40 MiB da `logo` no `blkdevparts` do próprio stock). O payload novo é o de fábrica (106496 B) com só
+o JPEG no byte 8192 e o `LOGO_KEY_LEN` (u32 LE em `0x78`) trocados, zeros até o fim, no mesmo tamanho: a tabela, o
+`checksum1` e os offsets não mudam, só o CRC do prefixo do record 6. O gerador recusa um stock cujo record 6 não
+tenha a `LOGO_TABLE` conhecida, a cauda de zeros e um JPEG 1920x1080 baseline, e uma arte que não seja JPEG
+1920x1080 baseline (SOF0) ou que não caiba no record. No máximo uma linha `logo`.
+
+O `verificar_bin` aceita diferença do stock **só nos records 6 e 14**: o 6 só com `logo` no manifesto e só se for
+exatamente o payload derivado do stock com aquela arte e o CRC recalculado; sem `logo`, o 6 tem de ser o do stock
+byte a byte, como os outros 17. Só o `conteudo-s5.txt` usa a diretiva.
 
 ## Metadados (obrigatório — causa do brick antigo)
 

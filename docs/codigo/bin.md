@@ -56,3 +56,20 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   exatamente os metadados declarados (troca o conteúdo, nunca o rótulo nem o modo); um destino novo precisa da
   pasta-mãe; e tem de haver blocos e inodes livres (cada arquivo novo leva um bloco de xattr: inode de 128 B).
 - Pastas novas entram primeiro (das mais rasas para as mais fundas), depois os arquivos.
+
+## Diretiva `prop` e a build S5 (bloco 26)
+
+- `prop chave=valor` no manifesto põe a linha no `/vendor/build.prop` **como o kit faz**: apaga toda linha que
+  começa com `chave=`, garante o `\n` final e acrescenta a linha, na ordem do manifesto, depois da troca do Wi-Fi.
+  Assim o kit, depois da gravação, acha a linha com `grep -qx` e não abre o `/vendor`.
+- Recusa: fora de `chave.com.pontos=valor` (sem espaço, sem `$`), chave repetida e qualquer chave com
+  `wifi_disconnect_on_boot` (o gerador a deriva do stock). Confere no fim do `main` e no `verificar_bin` (`props=`) que
+  cada linha está no `build.prop` exatamente uma vez.
+- `conteudo-s5.txt` = `conteudo.txt` com o `.rc` trocado pelo de `s5/`, a suíte em `/vendor/etc/pfl7560-suite` e as 2
+  props. A semente (`s5/suite-semente.sh`) é do kit em espírito (ASCII, `sh` do Android, PATH fixo, pastas só do
+  root, `shellcheck -s sh` limpo) mas mora no builder porque só o `.bin` a grava; a `SEMENTE_LISTA` dela e o
+  `RC_S5_MD5` do kit são gerados pelo `tests/atualizar-md5-kit.sh`. Por que ela existe, a regra de versão e as
+  provas: [doc 47 §12](../research/47-build-completa.md).
+- A semente roda **dentro** do serviço `pfl7560_suite` e só depois dá `exec` no `suite-boot.sh`: um serviço de semente
+  separado (em `post-fs-data`) correria contra o do kit, e um só serviço não tem ordem a acertar. O `suite-boot.sh` é a
+  marca de "cópia completa": sai primeiro e entra por último, e sem ele o próximo boot copia tudo de novo.

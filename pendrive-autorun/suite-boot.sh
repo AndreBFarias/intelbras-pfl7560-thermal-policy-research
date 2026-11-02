@@ -22,12 +22,12 @@ DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="af325be828a13918768db9904c056b48"
-PEDIDO_MD5="7035acd497fc1205a6e09aa8e938185f"
-CURVAS_MD5="bd4da978560a5c41802d400ba186dda3"
-CHAVES_MD5="d1c3f7f398cfe5a481935b2a2ae9de9a"
+SUITE_MD5="e0f46982cf6003bf159446bf0b232985"
+PEDIDO_MD5="be9328964c163e6a521444be60e4f1b7"
+CURVAS_MD5="7dd0b18e1dfb44edd998ee99a7faad24"
+CHAVES_MD5="ed4179886e1c028c3f8a8f423036e5e9"
 DIARIO_MD5="90caa1f05da00c43a29dd364ed3afb69"
-LOGO_MD5="2e9220bb030f2a6ed045eb60e79defad"
+LOGO_MD5="d1b0b118aa713b541c0514687eab1609"
 # SUITE_MD5_FIM
 
 MARCA_LIGADO="pfl7560,ligado"
@@ -148,6 +148,7 @@ descanso_existe(){
   timeout 15 dumpsys package com.pfl7560.verificar 2>/dev/null | grep -q 'com\.pfl7560\.verificar/[.a-z0-9]*Descanso'
 }
 DESCANSO_TENTATIVAS=6
+VLC_TIRADO="$SUITE/vlc-tirado"
 DESCANSO_ESPERA=10
 [ -n "${PFL_RAPIDO:-}" ] && DESCANSO_ESPERA=0
 ligar_descanso(){
@@ -273,6 +274,26 @@ desligar_apps(){
   done
   LOG "[AVISO] apps: o package-restrictions.xml ainda nao mostra enabled=3 para:$_falta (o sistema grava com atraso; nao reinicie ja)."
 }
+tirar_vlc(){
+  [ -e "$VLC_TIRADO" ] && return 0
+  _vt=1
+  until timeout 15 pm list packages 2>/dev/null | grep -qx 'package:android'; do
+    if [ "$_vt" -ge "$DESCANSO_TENTATIVAS" ]; then LOG "[AVISO] vlc: o pm nao respondeu em $_vt consultas - tento no proximo boot."; return 0; fi
+    _vt=$(( _vt + 1 ))
+    sleep "$DESCANSO_ESPERA"
+  done
+  if timeout 15 pm list packages 2>/dev/null | grep -qx 'package:org.videolan.vlc'; then
+    if timeout 15 pm uninstall --user 0 org.videolan.vlc >/dev/null 2>&1; then
+      LOG "vlc: org.videolan.vlc tirado do usuario 0 (pm uninstall --user 0; o apk de fabrica fica em /vendor/app/VLC). Para voltar: cmd package install-existing org.videolan.vlc"
+    else
+      LOG "[AVISO] vlc: nao consegui tirar org.videolan.vlc - tento no proximo boot."
+      return 0
+    fi
+  else
+    LOG "vlc: org.videolan.vlc ja nao esta no usuario 0 - nada a tirar"
+  fi
+  ( umask 077; : > "$VLC_TIRADO" )
+}
 
 vigia_vivo(){
   _p=$(head -n 1 "$VIGIA_PID" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
@@ -287,7 +308,7 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
-    for _cn in curva-vent curva-led chave diario logo-auto; do
+    for _cn in curva-vent curva-led chave diario logo-auto standby; do
       if [ -f "$HOME_DIR/$_cn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
         sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn"
       fi
@@ -326,7 +347,7 @@ ligar_vigia(){
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  for _cn in curva-vent curva-led chave diario logo-auto; do
+  for _cn in curva-vent curva-led chave diario logo-auto standby; do
     if [ -f "$HOME_DIR/$_cn" ]; then
       LOG "pedido de $_cn pendente de antes do vigia: tratando agora"
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn" >>"$SUITE/vigia.log" 2>&1 </dev/null
@@ -369,7 +390,7 @@ ligar_curvas
 ligar_diario
 ligar_descanso &
 ligar_overlays &
-{ desligar_apps; aplicar_chaves; } &
+{ desligar_apps; aplicar_chaves; tirar_vlc; } &
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then

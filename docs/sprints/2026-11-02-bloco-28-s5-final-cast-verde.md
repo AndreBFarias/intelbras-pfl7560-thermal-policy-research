@@ -50,7 +50,7 @@ Começa só depois que os blocos 26 (S2) e 27 forem integrados no `main` (o 28 m
 
 ## Fora
 
-- Corrigir o `.md5` velho da S4b (anotado no ESTADO).
+- Corrigir o `.md5` velho da S4b (anotado no ESTADO). Feito depois, na documentação final (`1716ef6`: `2b1836b8…`).
 - Gravar no aparelho: só o coordenador, com o sim do dono, depois do backup.
 
 ## Como se prova (tudo no PC)
@@ -74,11 +74,14 @@ Começa só depois que os blocos 26 (S2) e 27 forem integrados no `main` (o 28 m
 
 ## Estado
 
-- [ ] blocos 26 e 27 integrados
-- [ ] F1
-- [ ] F2
-- [ ] prévias aprovadas
-- [ ] conferente final
-- [ ] S5 final montada pelo coordenador + pré-voo verde
-- [ ] backup
-- [ ] flash (sim do dono)
+- [x] blocos 26 e 27 integrados (`c8129b9`, `a73229d`)
+- [x] F1 (Cast verde `69d9e4e`, record 6 `15f813d`, S5 `253b01c9` `07b96f6`, pré-voo `ebaa00c`)
+- [x] F2; bloco integrado (`8ad5ce4`)
+- [ ] prévias aprovadas: **a conferir** (não há registro da aprovação)
+- [x] conferente final (`102a717` a `8c5afa5`: Cast verde no descanso, setas da Luz, "Desligar no descanso",
+  `install.sh --com-firmware` com a S5, teste do kit, VLC fora do usuário 0) e documentação final
+- [ ] S5 final montada pelo coordenador (duas gerações, `--verificar`, `test-semente-s5.sh` com `PFL_S5_BIN`, `.md5`)
+  + pendrive pelo `install.sh --com-firmware` + pré-voo verde
+- [ ] backup (o ensaio do pré-voo usou o `antes-s5-20261102-0201`; refazer perto do flash)
+- [ ] flash (sim do dono já dado em 2026-11-02, valendo com o pré-voo verde e o backup feito; S5 direto, sem a
+  S4a e a S4b: decisão e risco no doc 47 §12)

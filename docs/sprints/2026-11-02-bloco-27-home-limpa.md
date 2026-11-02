@@ -97,7 +97,10 @@ tão legal." Decisões pelo AskUserQuestion na mesma hora, transcritas abaixo.
 
 ## Estado
 
-- [ ] H1
-- [ ] H2
-- [ ] prévias aprovadas pelo dono
-- [ ] instalar pelo pendrive (sim do dono)
+- [x] H1
+- [x] H2 (prévias regeneradas e tradução conferida em todos os ids, `71566c7`)
+- [x] integrado na `integracao` (`a73229d`); home versionCode 8, e 9 depois do conferente final ("Desligar no
+  descanso", `6d209c9`)
+- [ ] prévias aprovadas pelo dono: **a conferir** (não há registro da aprovação)
+- [ ] instalar: vai junto na S5 final (bloco 28), não pelo pendrive à parte
+- USB-C (só pesquisar e relatar): **a conferir** se o relato foi feito (nenhum doc nem commit desta árvore o traz)

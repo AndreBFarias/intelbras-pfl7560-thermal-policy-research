@@ -9,7 +9,8 @@ App Android mínimo, sem Gradle, que põe dois ícones na lista de apps do proje
 | `VerificarActivity` ("Verificar projetor") | grava `pedir-verificacao` em `getDataDir()` (`/data/data/com.pfl7560.verificar/`, com `FileOutputStream`: o arquivo nasce com o dono certo), mostra "Verificação pedida" por 3 s e fecha; se não gravar, diz isso e o que fazer |
 | `WifiActivity` ("Wi-Fi") | abre `android.settings.WIFI_SETTINGS`; se não resolver, `com.zhiying.settings/.network.WifiSettingActivity`; se nada abrir, mostra a mensagem e fecha |
 
-| `Descanso` (serviço, sem ícone) | descanso de tela MeowCast (bloco 16B): `DreamService` com `BIND_DREAM_SERVICE`; fundo `#120B1A`, nome "MeowCast" em `#9D7AD0` (Plex Condensed Bold, de `assets/fontes/`) e a hora, mais apagada; o conjunto muda de lugar a cada minuto. Quem aponta o sistema para ele é o `suite-boot.sh` (doc 44 §14) |
+| `Visor` (sem ícone, não exportado) | visor das telas da suíte (bloco 29): o `suite.sh` (root) o abre com `am start -n com.pfl7560.verificar/.Visor --es tela NOME.png` e ele fica aberto a suíte inteira, `singleTask` em tarefa própria; cada tela nova chega por `onNewIntent` e troca dentro dele (some a velha, aparece o fundo, acende a nova), então a home não aparece entre as telas. O fundo da janela é o logo MeowCast da abertura (`res/drawable-nodpi/visor_fundo.jpg` = `artifacts/tema/marca/logo.jpg`). Lê só `getDataDir()/visor/NOME.png` (nome simples, sem barra). **Voltar ou Esc/Sair** grava `cancelar-suite` na mesma pasta (com `fsync`) e fecha: a suíte para sem resumo e sem gravar resultado. `--ez fechar true` fecha no fim. As regras ficam no `VisorModelo` (Java puro) |
+| `Descanso` (serviço, sem ícone) | descanso de tela MeowCast (bloco 16B): `DreamService` com `BIND_DREAM_SERVICE`; fundo `#120B1A`, nome "MeowCast" com "Meow" em `#9D7AD0` e "Cast" no verde Dracula `#50FA7B` (bloco 28) (Plex Condensed Bold, de `assets/fontes/`) e a hora, mais apagada; o conjunto muda de lugar a cada minuto. Quem aponta o sistema para ele é o `suite-boot.sh` (doc 44 §14) |
 
 As duas atividades com `MAIN` + `LAUNCHER` (o launcher do projetor lista só isso: doc 43 seção 6) e também
 `LEANBACK_LAUNCHER` com `banner`, que custaram pouco. Por que a pasta privada: em `/sdcard` qualquer
@@ -55,9 +56,12 @@ e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/ge
 ## Provas
 
 - `build.sh` gera o APK do zero e `apksigner verify` passa.
-- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='7'` (o 7 acompanha a home do bloco 25; o 6, o do standby pelo descanso, bloco 23; o 5, o dos pedidos do descanso em ordem, bloco 21; o 4, o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='9'` (o 9 é o do visor das telas da suíte com Voltar = cancelar, bloco 29; o 8 é o do "Cast" verde no descanso, bloco 28; o 7 acompanha a home do bloco 25; o 6, o do standby pelo descanso, bloco 23; o 5, o dos pedidos do descanso em ordem, bloco 21; o 4, o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
   duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
 - O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
+- Visor (bloco 29): o `tests/test-kit-pendrive.sh` compila `VisorModelo.java` com `teste/TesteVisorModelo.java` (sem o
+  `android.jar`) e roda: trocar a imagem não fecha, Voltar (4) e Esc (111) gravam `cancelar-suite` com `1`, nomes com
+  barra ou `..` são recusados. O `aapt2 dump xmltree` confere o `.Visor` não exportado e `singleTask`.
 
 ## No aparelho
 

@@ -1,81 +1,82 @@
-# Estado do trabalho (atualizado em 2026-11-01)
+# Estado do trabalho (atualizado em 2026-11-02)
 
 Arquivo para abrir sessão nova sem depender da conversa.
 
 ## Em voo (2026-11-02)
 
-**Próximo passo (atualizado 05:20):** conferente final verde (integracao até `8c5afa5`; docs ainda em voo). Bloco 29
-em voo (workflow `wxnye8rv4`, árvore `bloco29`): testes cancelam com Voltar + fundo MeowCast, e `wifi_pwr` sai das
-escolhas (causava kernel panic no driver do Wi-Fi; desligado no aparelho às 05:10). Depois: integrar o 29, montar a
-S5 final, pendrive, pré-voo, flash (sim dado).
+**Agora (2026-11-02 ~10:40):** blocos 26 a 29, conferente final e documentação integrados no `main`. **S5 final
+montada:** `3f3023b06e500e354fa6d4ca4e236f5f` (duas gerações iguais, `--verificar` APROVADO, `test-semente-s5`
+66/0, 1399009468 B, record 14 +5251072 B, CRC do vendor `0x7ccdb8eb`), o `.bin` em `build-s5/` da árvore
+`integracao` (fora do git). Regressão: todos os `tests/test-*.sh` com 0 falha (o `test-preparar-pendrive` falha
+só nas árvores com o zip em ponteiro LFS; rodar no `main`). **Próximo:** pendrive pelo `install.sh --com-firmware`,
+pré-voo, flash com o dono (sim dado).
 
-Blocos 23, 24 e 25 integrados no `main` (`3399c4a`, via branch `integracao`): todos os `tests/test-*.sh` com
-0 falha, `make check` ok, `shellcheck` limpo, versionCode 7 nos dois apps. Timer do diário ligado no PC
-(`~/.config/pfl7560/diario.env` com `PFL_IP=192.168.1.5`).
+**Bloco 29 (2026-11-02):** testes automáticos no visor do app sobre o fundo MeowCast (a home não aparece entre as
+telas), Voltar/Esc cancela sem resultado e volta à home (inclusive na etapa de cor, que reverte o lvds_fmt se já
+trocou); `wifi_pwr` saiu das escolhas: o `auto` no chip Wi-Fi causava kernel panic no `aic8800_fdrv` a cada ~25
+min, e cada boot depois de um panic disparava a suíte ("teste sem parar"). Desligado no aparelho às 05:10.
 
-Decisões da rodada final (2026-11-02): logo automático com a chave **ligada**; `higallery` fica fora do
-`deb_hisi`; curva gravada na `[ThermalPolicy]` vira tarefa do próximo bloco; `DESLIGAR-CHAVES.txt` não desliga o
-diário (ok assim).
+Blocos 26, 27 e 28 integrados na branch `integracao` (`c8129b9`, `a73229d`, `8ad5ce4`), mais o conferente final
+(`102a717` a `8c5afa5`: "Cast" verde no descanso, app versionCode 8, home 9 com "Desligar no descanso", setas da
+Luz, `install.sh --com-firmware` com a S5, VLC fora pelo `suite-boot.sh` com `pm uninstall --user 0`) e a
+documentação final (MAPA, `docs/codigo/`, READMEs, doc 47 §12, LEIA-ME do kit, `.md5` da S4b). Ainda não está no
+`main`. A S5 final **não foi montada**: o `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5` ainda traz a
+`253b01c9` do bloco 28, superada pelo conferente final, e o `check-bin` com o stock real falha nela de propósito
+até a montagem. Uma geração de teste com o kit de hoje deu `98998d92…`, CRC `0x29c2ba04`, record 14 com 85737620 B
+(+5144576 B): só informativo, a conferir com as duas gerações da montagem.
 
-Instalado no aparelho em 2026-11-02 (kit 53 arquivos, home e app versionCode 7, boot ok). Bloco 26 (S5, só PC)
-em voo no workflow `watw88g3r`, branch `bloco-26`.
+**Decisão do dono (2026-11-02, AskUserQuestion):** "S5 com o bloco 27", em vez de "Provar a S4a antes": a S5 final
+é gravada direto, sem a S4a nem a S4b antes. **Risco:** nenhuma build modificada foi gravada no aparelho até hoje;
+se travar na logo, o resgate é o stock pelo POWER (doc 47 §8), com o pendrive de resgate ao lado.
 
-**Bloco 27 (próximo):** home limpa, rápida e com navegação previsível, mais "Lendo…" nas Ajustes e a chave do
-pop-up do `nlprovision`. Tarefa e decisões do dono em `2026-11-02-bloco-27-home-limpa.md`. Ainda sem agente.
-Conflito previsto com o bloco 26 só nas listas md5 do kit (resolver com `tests/atualizar-md5-kit.sh`).
-
-**Bloco 28 (depois do 26 e do 27):** "Cast" verde Dracula no logo, na animação e na home; logo na partição do
-firmware; S5 final com a home nova; backup; flash. Tarefa em `2026-11-02-bloco-28-s5-final-cast-verde.md`.
-Pendente no aparelho quando ele voltar à rede: o dono pediu para desinstalar o VLC (`org.videolan.vlc`) se ainda
-estiver lá; confirmar pelo AskUserQuestion antes.
-
-**Prévias pré-aprovadas pelo dono (2026-11-02): "Nem preciso da prévia já pré aprovo agora".**
-
-**Sim do dono (2026-11-02):** "Já tem o meu sim" — gravar a S5 final depois do conferente final e do pré-voo
-verde, com backup feito; e desinstalar o VLC se ainda estiver no aparelho. Ordem de lançamento: bloco 28 assim que o
-26 for integrado (o F1 precisa do builder do 26); depois de 27 e 28 integrados, um workflow final com 2 agentes
-(conferente final que corrige + documentação atualizada e corrigida, incluindo os pendentes MAPA/pc.md e o `.md5`
-da S4b).
+**Sim do dono (2026-11-02):** "Já tem o meu sim" — gravar a S5 final depois do conferente final e do pré-voo verde,
+com backup feito; e desinstalar o VLC se ainda estiver no aparelho (a S5 faz isso no 1º boot, uma vez).
 
 **Pendrive em modo resgate (2026-11-02, ~02:40):** o projetor travou ("zumbi") depois de o dono desligar segurando
-o POWER, com o pendrive no PC (nada foi gravado). Pendrive agora: `usb_update.bin` = stock (`28a2f280…`); a S4a foi
-para `.fw-guardado/S4a-usb_update.bin` e o `newlink_update.sh` para `.kit-guardado/` (o kit não roda no boot). Para
-voltar ao normal: devolver o `newlink_update.sh` à raiz e tirar o `usb_update.bin` (ou o pendrive da S5 final).
+o POWER, com o pendrive no PC (nada foi gravado). Pendrive naquela hora: `usb_update.bin` = stock (`28a2f280…`); a
+S4a em `.fw-guardado/S4a-usb_update.bin` e o `newlink_update.sh` em `.kit-guardado/`. Estado de agora: a conferir
+antes do passo 2.
 
-**Medido em 2026-11-02 ~03:00:** o VLC é de fábrica (`/vendor/app/VLC`), não do dono. Feito, com o sim dele:
-`pm uninstall --user 0 org.videolan.vlc` (volta com `cmd package install-existing org.videolan.vlc`). O flash da S5
-o traria de volta: o workflow final cuida disso. Prop `chaves` = `1111111111` (o dono ligou todas, inclusive
-`wifi_pwr`, que pode derrubar o Wi-Fi; resgate `DESLIGAR-CHAVES.txt`). Bloco 26 integrado (`c8129b9`, branch
-`integracao`), bloco 28 em voo (`whj87oqgu`).
+**VLC (2026-11-02 ~03:00):** removido do usuário 0 com o sim do dono (`pm uninstall --user 0 org.videolan.vlc`;
+volta com `cmd package install-existing org.videolan.vlc`); a S5 repete isso no 1º boot, uma vez.
 
 **Backup feito (2026-11-02, antes da S5):** `backups-projetor/antes-s5-20261102-0201/` (ignorado pelo git):
 `pfl-backup.tar` (86 MB, 76 entradas, md5 `6a6e6bbf…` igual no aparelho e no PC) com `/data/vendor/pfl7560-logo`,
 `/data/vendor/pfl7560-suite`, prefs da home e dados do app; mais props, settings e lista de pacotes. Refazer só a
 parte pequena (suite) logo antes do flash, se passar muito tempo.
 
-## Próximos passos
+## Próximos passos (roteiro inteiro no doc 47 §12)
 
-1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
-2. Conferir no aparelho (adb, leitura): `/data/vendor/pfl7560-suite/` com os scripts novos, `vendor.pfl7560.chaves`,
-   diário gravando, `/data/vendor/pfl7560-logo/logo.log` (backup, gravação, releitura), keystone reto, `gfs`
-   (velocidade ou duty), `Dreaming` no descanso, chaves de risco (`newlink.service`, launcher).
-3. O dono olha o logo no boot seguinte e testa a home (Curvas, Logo do boot, Ajustes, Diário).
+1. **Montagem final** (coordenador, no PC): gerar a S5 duas vezes em `build-s5/` (ignorada; `TMPDIR` lá dentro,
+   porque o `/tmp` não comporta), mesmo md5; `--verificar` com o `conteudo-s5.txt` APROVADO;
+   `PFL_S5_BIN=<.bin> bash tests/test-semente-s5.sh`; o `.md5` (dois espaços, só o nome), a linha da S5 no
+   `firmware/README.md` e a tabela do doc 47 §12 no mesmo commit; depois
+   `PFL_STOCK_ANTIGO=build-s5/PFL7560.bin python3 tests/test-builder-bin.py` verde.
+2. **Backup** do aparelho no PC, perto do flash (`/data/vendor/pfl7560-*` e o `shared_prefs` da home; o ensaio do
+   pré-voo usou o `antes-s5-20261102-0201`). Pendrive de resgate separado, com o stock (`28a2f280…`).
+3. **Pré-voo:** `./install.sh --pendrive <ponto> --com-firmware` e
+   `sh firmware/preflight-flash.sh <pendrive> --backup <pasta> --resgate <PFL7560.bin>`: só grava com
+   `PRE-VOO APROVADO`.
+4. **Flash** pela "Atualização local do sistema"; no 1º boot, esperar o launcher e reconfigurar o Wi-Fi; conferir
+   por adb (leitura) a cópia da semente, o VLC fora e o logo.
+5. Integrar a `integracao` no `main`.
 
 ## Pendentes antigos
 
-- `firmware/PFL7560-S4b...md5` velho: com os APKs dos blocos 23 a 25 a S4b sai com md5 `b212798f` (+3432448 B), e o
-  `check-bin` com o stock real falha só nesse caso (achado do S1 do bloco 26, 2026-11-02).
-
-- `docs/MAPA.md` (`requirements.txt`) e `docs/codigo/pc.md` (`--dev`, git-lfs).
 - Teams congelando com o projetor como monitor: sem causa.
 - `escada=ausente` no relatório da suíte (`suite.sh:799`), anotado em `2026-11-01-tarefa-curas-do-doc-49.md`.
 - Curva do dono gravada nas duas políticas da `[ThermalPolicy]` (doc 50 §proposta): o kit precisa aceitar a
   variante do `.ini`. Decidido para o próximo bloco.
-- Pedido do dono (2026-11-02): chave na home para desligar o pop-up de "dispositivo conectado" que aparece ao
-  plugar o pendrive. Achar qual app mostra (a suíte de 2026-11-02 viu um alerta de `com.newlink.nlprovision` que não fechou com 4 teclas OK) e fazer uma chave reversível.
 - `le_temp` (`suite-curvas.sh`) não detecta `env_temp` congelado com anéis defasados (doc 37). Achado do R1 no
   bloco 25; vira tarefa do próximo bloco.
+- A conferir: prévias dos blocos 27 e 28 aprovadas pelo dono; relato do USB-C pedido no bloco 27 (nenhum doc nem
+  commit desta árvore o traz); se a imagem stock traz o VLC (o log do `suite-boot.sh` fala em `/vendor/app/VLC`, o
+  doc 44 diz que ele veio do `pfl7560-vlc.sh`); o logo JPEG 4:4:4 no aparelho (doc 47 §12).
 - Roteiro de medida do doc 49 (bloco 22): o dono decidiu pular; o uso do dia a dia confirma.
+
+Resolvidos na documentação final: o `.md5` da S4b (`2b1836b8…`, duas gerações iguais, `1716ef6`); MAPA e
+`docs/codigo/pc.md` (`requirements.txt`, `--dev`, git-lfs); a chave do pop-up de dispositivo conectado (`pop_disp`,
+bloco 27, `cd22852`).
 
 ## Regras que não mudam
 
