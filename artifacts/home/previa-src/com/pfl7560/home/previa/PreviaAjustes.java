@@ -90,6 +90,7 @@ public final class PreviaAjustes {
 
     private static Modelo painel() {
         Modelo m = Modelo.padrao();
+        m.definirEntradas(com.pfl7560.home.Entradas.lista(true, true, false));
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Sao_Paulo"));
         cal.clear();
         cal.set(2026, Calendar.NOVEMBER, 1, 21, 47, 0);

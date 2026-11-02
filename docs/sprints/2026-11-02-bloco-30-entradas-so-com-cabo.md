@@ -4,6 +4,8 @@ Pedido do dono (2026-11-02, depois do flash da S5 dar certo): "se conseguirmos f
 opção pra clicar na tela e o usb c só apareça na tela da home caso tenha de fato um dispositivo conectado na porta
 seria perfeito". Decisão pelo AskUserQuestion: **os dois só com cabo**: os botões HDMI e USB-C só aparecem na home
 quando há um aparelho ligado na porta; sem cabo, nenhum aparece. (Revê o bloco 27, que tirou o USB-C de Entradas.)
+**Revisto no mesmo dia:** o USB-C não tem sinal de cabo e o dono decidiu deixá-lo sempre visível; só os HDMI
+dependem do cabo (ver "Estado" e doc 45 §14.4).
 
 ## O que se mediu (aparelho, só leitura, ~11:30, sem cabo nenhum)
 
@@ -37,3 +39,82 @@ quando há um aparelho ligado na porta; sem cabo, nenhum aparece. (Revê o bloco
 |---|---|---|
 | E1 | Opus, high | acha o sinal e implementa (avulso: pode pedir medição no aparelho ao coordenador) |
 | E2 | Opus, high | confere, corrige, regressão |
+
+## Notas do E1 (2026-11-02)
+
+- **Sinal achado:** o estado das entradas de TV do `TvInputManager`. É API pública, sem permissão e sem root, e
+  avisa sozinha pelo `TvInputCallback.onInputStateChanged`.
+  - O `system_server` (`TvInputHardwareManager`) marca a entrada `.../HiHdmiTvInputService/HDMI0000C<porta>` com
+    0 quando há cabo e 1 quando não há, a partir do hotplug do `HdmiControlService`.
+  - A porta é a fonte − 8: C3 = HDMI 1, C2 = HDMI 2, C1 = USB-C.
+  - O teste de fábrica (`NLAutoTest`) usa exatamente essa conta e `getInputState(id) == 0`.
+  - Prova e descartados (broadcast só para o `com.zhiying.settings`, `HdmiControlManager` com `HDMI_CEC`): doc 45 §14.
+- **Sem prop nova nem vigia:** a suíte não muda.
+- **Decisões:**
+  - Um botão por porta com cabo, na ordem HDMI 1, HDMI 2, USB-C.
+  - Falha aberta: sem leitura, ou com a porta ausente entre as entradas de TV, o botão aparece.
+  - Um cabo novo nunca puxa o foco, salvo na primeira leitura, se o dono ainda não mexeu.
+- **Falta medir no aparelho (doc 45 §14.4):** `dumpsys tv_input | grep -E 'HDMI0000C[0-9]+: '`, sem cabo e com
+  cabo em cada porta.
+  - Esperado: `state: 1` sem cabo e `state: 0` com cabo.
+  - O risco maior é o USB-C (C1).
+
+## Medições no aparelho (2026-11-02, coordenador, só leitura)
+
+`dumpsys tv_input`, entrada `.../HiHdmiTvInputService/HDMI0000C<n>` (0 = conectado, 1 = sem cabo):
+
+| cabos ligados | C1 | C2 | C3 | hdmirx `OffLineDetStatus` | `vendor.nl.setting.hdmi.state` |
+|---|---|---|---|---|---|
+| HDMI 1 e HDMI 2 (USB-C vazio) | 0 | 0 | 0 | port0/1/2 On, port3 Off | 3 |
+| nenhum | 0 | 1 | 1 | port0 On, port1/2/3 Off | 0 |
+| só HDMI 1 | 0 | 1 | 0 | - | - |
+
+- **Mapeamento confirmado:** C3 = HDMI 1, C2 = HDMI 2 (o que o código já faz: fonte − 8). O HDMI pelo
+  `TvInputManager` funciona.
+- **USB-C:** nunca teve nada ligado e o C1 sempre lê 0 ("conectado"); o port0 do hdmirx também fica sempre On.
+  O `TvInputManager` **não** serve para o USB-C, e a falha aberta mostraria o USB-C sempre, o contrário do pedido.
+  Falta achar outro sinal; se não houver um confiável, a decisão (mostrar sempre ou esconder) é do dono, pelo
+  coordenador. O E1 não decide sozinho.
+- `zysys.source.*` não muda com o cabo.
+
+## Pedido novo do dono (2026-11-02)
+
+- Tirar da home o texto do contador de apps ("2 apps").
+- Pôr "MeowCast" no canto inferior direito da home.
+- Atualizar as prévias da home.
+
+## Estado (E1, 2026-11-02, depois do reset)
+
+- Feito e commitado na `bloco-30`: home com HDMI só com cabo (C3 = HDMI 1, C2 = HDMI 2, já era a conta do
+  código); contador de apps fora e "MeowCast" no canto inferior direito; prévias; doc 45 §14.4 e §14.5; APK
+  versionCode 10 no kit (md5 `f25b21910bb164c408af36c7e1258406`, trocado pelo E2: ver abaixo).
+- Provas verdes: `gerar-previas.sh` (navegação, entradas, ajustes), `make check`, `make check-kit` (todos os
+  `tests/test-*.sh` do kit, md5 do kit em dia), `test-fix-modelo.sh`, `test-builder-bin.py`,
+  `shellcheck -S warning` nos `.sh` tocados.
+- **USB-C decidido (dono, 2026-11-02): sempre visível**, HDMI 1/2 só com cabo. Medição com notebook ligado no
+  USB-C, sem trocar de entrada: `tv_input`, `OffLineDetStatus` do hdmirx, `/sys/bus/usb/devices` e `getprop`
+  idênticos ao vazio; só o `dmesg` mudou (reconexão do port2, HDMI 1). Doc 45 §14.4.
+- Feito: `Entradas.comCabo` recebe só "o firmware tem USB-C"; teste de modelo (sem cabo HDMI, só o USB-C; ligar e
+  tirar HDMI com o foco nele cai no USB-C); prévias `home-sem-cabo`/`home-cabo-hdmi2` no estado novo; APK e md5.
+- Provas depois da decisão: `gerar-previas.sh`, `make check`, `make check-kit`, `test-fix-modelo.sh`,
+  `test-builder-bin.py` verdes (16 suítes, 0 falha); o `test-suite.sh` falhou uma vez em "luz: a verificação
+  continua funcionando" e passou nas três rodadas seguintes (intermitente, fora da home).
+- Próximo: E2 confere; o dono confere na mão pelo pendrive do kit.
+
+## Conferência (E2, 2026-11-02)
+
+- **Corrigido:** com rede de nome comprido (~22 caracteres ou mais), Bluetooth conectado, as duas temperaturas e
+  um aviso comprido ("Não abriu: Alto-falante Bluetooth"), o aviso empurrado para a esquerda do "MeowCast"
+  passava por cima da parte da esquerda da linha de estado. Agora a marca sai enquanto o aviso não cabe e ele
+  volta ao canto. Conferência nova "linha de estado" no `gerar-previas.sh` (falha no código antigo); prévias
+  idênticas. APK refeito, reprodutível: **md5 do kit `c0ce997a381628fa20893a3c2cb49e18`**, versionCode 10.
+- **Docs:** README da home (frase da fileira Entradas), doc 45 §14 (abertura e foco inicial com o USB-C sempre,
+  §14.5 com a regra do aviso).
+- **Conferido sem mudança:** callback do `TvInputManager` registrado no `onResume` e desfeito no `onPause`/
+  `onDestroy`, tudo no fio `home-cabos` (`quitSafely` deixa o desregistro rodar); sem serviço ou com erro, falha
+  aberta; o foco nunca fica nulo nem é roubado; nenhuma tecla mudou no `HomeView`.
+- **Flake do `test-suite.sh`** ("luz: a verificação continua"): corrida do teste, não do bloco 30. O
+  `suite-pedido.sh` lança a suíte com `setsid ... &` e sai; o stub do `setsid` grava o `calls.log` em segundo
+  plano, e a afirmação lê o log sem esperar. Nenhum dos dois arquivos mudou no bloco 30.
+- Provas: `gerar-previas.sh`, `make check`, `make check-kit` (todas as suítes, 0 falha), `test-fix-modelo.sh`,
+  `test-builder-bin.py`, `shellcheck -S warning` nos `.sh` tocados.

@@ -1,8 +1,8 @@
 # Home PFL7560 (`com.pfl7560.home`, bloco 10A)
 
 Tela inicial nova para o projetor, na paleta Drácula do bloco 10: relógio e data, **Entradas** (HDMI 1 e
-HDMI 2; o USB-C saiu no bloco 27), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Luz, Curvas, Configurações),
-**Apps** e uma linha de estado (rede, Bluetooth, temperatura do LED e da placa). Só D-pad, com o foco em rosa. Pesquisa, intents,
+HDMI 2 só enquanto há cabo ligado na porta; o USB-C sempre, porque não tem sinal de cabo: bloco 30, doc 45 §14), **Atalhos** (Verificar projetor, Wi-Fi, Bluetooth, Luz, Curvas, Configurações),
+**Apps** e uma linha de estado (rede, Bluetooth, temperatura do LED e da placa; "MeowCast" no canto direito, bloco 30). Só D-pad, com o foco em rosa. Pesquisa, intents,
 riscos e desenho: [doc 45](../../docs/research/45-home-pfl7560.md).
 
 ![prévia](previa/home-foco-entrada.png)
@@ -82,7 +82,7 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 9`. Permissões: `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` e `BLUETOOTH`,
+`minSdk 28`, `targetSdk 28`, `versionCode 10`. Permissões: `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE` e `BLUETOOTH`,
 todas normais.
 
 ## Código
@@ -92,6 +92,7 @@ todas normais.
 | `src/.../Desenho.java`, `Icones.java`, `Modelo.java`, `Tema.java`, `Item.java`, `Acoes.java`, `Pintor.java` | Java puro: layout, ícones, estado e navegação do D-pad. O mesmo código no aparelho e nas prévias |
 | `src/.../PintorCanvas.java`, `HomeView.java`, `HomeActivity.java` | Android: Canvas, foco e teclas, ciclo de vida |
 | `src/.../Abridor.java` | intents de cada cartão (fontes no doc 45 §3) |
+| `src/.../Entradas.java`, `Cabos.java` | quais portas têm cabo: o estado das entradas de TV do `TvInputManager` (Java puro / Android, thread `home-cabos`, só no aviso do sistema; doc 45 §14) |
 | `src/.../Leitor.java` | lista de apps (só rótulo e pacote: o ícone de cada app é desenhado em `Icones.java`, nunca o `loadIcon`), rede e temperatura, fora da thread da interface |
 | `src/.../Guarda.java` | trava anti-laço: duas quedas em 2 min entregam a tela à home de fábrica |
 | `previa-src/.../PintorJ2D.java`, `Previa.java` | pintor Java2D e gerador das prévias, só no PC |

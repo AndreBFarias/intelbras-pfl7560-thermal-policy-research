@@ -205,7 +205,8 @@ outra escolha. Gênero: utilitário e calmo, um painel de instrumento. O D-pad m
 - **Estrutura:** relógio grande (IBM Plex Mono SemiBold 176 px; os dois pontos em `roxo`, o único detalhe
   de marca) e a data por extenso abaixo, à esquerda; **Entradas** no alto à direita, alinhadas pelo topo
   do relógio, porque trocar de entrada é a ação principal de um projetor; **Atalhos** (6) e **Apps** (7
-  visíveis por vez, com contador "1–7 de 12") em fileiras abaixo; linha de estado no rodapé. Quadro
+  visíveis por vez; o contador "1–7 de 12" saiu no bloco 30) em fileiras abaixo; linha de estado no rodapé,
+  com "MeowCast" no canto direito (bloco 30, §14.5). Quadro
   1920x1080, margens de 112 px, vão de 24 px, ritmo vertical de 96 px entre o fim de uma fileira e o título
   da seguinte.
 - **Cores (tokens do contrato):** fundo em gradiente vertical sutil `fundo` → mistura de `linha`; cartão
@@ -340,3 +341,135 @@ remover o office suite (ocultar da home)". Os três já foram desligados à mão
 - **PROVISÓRIO (só o aparelho confirma):** no modelo com USB-C, o cartão continua lá (o `build.prop` do V1.0.0.9 tem
   `zysys.typec_count=1`); no sem USB-C, nenhum aparelho do dono para conferir.
 
+
+## 14. Entradas só com cabo (bloco 30, versionCode 10)
+
+Pedido do dono: os botões HDMI e USB-C só aparecem na home enquanto há um aparelho ligado na porta. O USB-C não
+tem sinal de cabo e, por decisão do dono, fica sempre (§14.4); os HDMI só com cabo. Sem cabo HDMI, a fileira
+mostra só o USB-C; no firmware sem USB-C, ela some (nem o título). O pop-up de fábrica continua desligado
+(`pop_disp`).
+
+### 14.1 O sinal: o estado das entradas de TV (`TvInputManager`), sem root e sem prop nova
+
+Fontes: APKs e serviços do stock V1.0.0.9 decompilados (system e vendor extraídos do `.bin`, `services.jar`
+deodexado). A corrente do cabo até a home:
+
+1. **Hotplug do HDMI RX → `HdmiControlService`.** Ao registrar um ouvinte, o serviço manda um evento por porta com
+   `mCecController.isConnected(porta)`; depois, um a cada ligar/desligar.
+2. **`TvInputHardwareManager.HdmiHotplugEventListener.onReceived`** (no `system_server`) guarda o estado da porta e
+   marca a entrada de TV do hardware daquela porta: `isConnected() ? 0 : 1`, isto é `INPUT_STATE_CONNECTED` (0)
+   com cabo e `INPUT_STATE_CONNECTED_STANDBY` (1) sem. O `addHardwareInput` faz o mesmo quando a entrada nasce
+   depois do evento (o estado da porta fica guardado no `mHdmiStateMap`).
+3. **O id da entrada.** `HiHdmiTvInputService.onHardwareAdded` (`com.hisilicon.tvinput.external`) cria
+   `TvInputInfo.createTvInputInfo(..., new HdmiDeviceInfo(0, porta), null, "HDMI" + porta, ...)`, cujo id é
+   `com.hisilicon.tvinput.external/.HiHdmiTvInputService/HDMI0000C<porta>` (endereço físico 0000, aparelho
+   0xC0 + porta).
+4. **Porta = fonte − 8:** `zysys.source.hdmi1=11` → porta 3 (`C3`), `hdmi2=10` → porta 2 (`C2`),
+   `typec1=9` → porta 1 (`C1`). O USB-C é um HDMI RX como os outros (modo alternativo de vídeo).
+5. **A fábrica usa o mesmo sinal.** O teste de fábrica `NLAutoTest` monta o id assim
+   (`TvTestingUtils`: `".../HiHdmiTvInputService/HDMI0000C" + (fonte - 8)`, para HDMI e TYPEC) e dá a fonte como
+   ligada se, e só se, `tvInputManager.getInputState(id) == 0` (`BaseActivity`). O `TvTestingTools` faz a
+   mesma conta.
+
+**Quem lê.** `getTvInputList()`, `getInputState(id)` e `registerCallback(TvInputCallback, Handler)` são API
+pública do `TvInputManager`. No `TvInputManagerService` deste firmware, `getTvInputState` e `registerCallback`
+não pedem permissão nenhuma, e `tv_input_service` é um serviço de app (`app_api_service`). Um `untrusted_app`
+lê, portanto, sem root: a suíte não precisa publicar prop `vendor.pfl7560.*` e não muda.
+
+**Descartados:**
+- O aviso "Dispositivo conectado" vem do broadcast `android.intent.action.HDMI.DIALOG` (`HiTvService`,
+  `HdmiUtil`, extras `state` e `hdmiSort`). Ele sai com `setPackage("com.zhiying.settings")`, então nenhum outro
+  app o recebe. Além disso, ele pula o USB-C (`isType_c`).
+- O `HdmiControlManager` direto exige a permissão `HDMI_CEC` (`enforceAccessPermission` no
+  `addHotplugEventListener` e no `getPortInfo`).
+- Nenhum nó do kernel serve: não há `/sys/class/typec`, `extcon` nem `switch` (medido no aparelho).
+
+### 14.2 A home
+
+- **`Entradas.java`** (Java puro, testado nas prévias) traduz o sinal em botões:
+  - `porta(fonte)` faz a conta fonte − 8.
+  - `portaDoId(id)` pega `HDMI0000Cn` e devolve n. O id de um aparelho CEC dentro de uma porta, de AV, de VGA ou
+    um id torto devolve −1.
+  - `comCabo(...)` monta a fileira na ordem fixa **HDMI 1, HDMI 2, USB-C**.
+  - **Um botão por porta com cabo**: as portas são fontes diferentes (`SourceName` 11, 10, 9), então dois cabos
+    dão dois botões.
+  - O USB-C só entra no firmware que o tem (`zysys.typec_count` ou `zysys.source.typec1`, como no §13) e, nele,
+    fica sempre: não tem sinal de cabo (§14.4). Sem cabo HDMI, a fileira mostra só o USB-C.
+- **`Cabos.java`** lê numa thread própria (`home-cabos`) e entrega a lista à thread da interface. Ele lê uma vez
+  a cada `onResume` e de novo só quando o `system_server` avisa (`onInputStateChanged`, `onInputAdded`,
+  `onInputRemoved`, `onInputUpdated`). Não varre nada, não usa logcat, não roda `getprop` em laço. O callback é
+  desfeito no `onPause`.
+- **Falha aberta:**
+  - Sem o serviço de TV, com a leitura falhando ou com uma porta que não aparece entre as entradas de TV, o
+    botão fica visível. Esconder tiraria o único caminho até a entrada.
+  - Antes da primeira leitura (os primeiros milissegundos), a fileira está vazia.
+- **Foco (`Modelo.definirEntradas`):**
+  - Na primeira leitura, se o dono ainda não mexeu, o foco vai ao começo: a primeira entrada da fileira (HDMI 1
+    com cabo, senão HDMI 2, senão USB-C); sem entrada nenhuma, Verificar projetor.
+  - Depois disso, um cabo novo nunca puxa o foco.
+  - O botão em foco que continua leva o foco junto, mesmo mudando de lugar.
+  - O botão em foco que some passa o foco ao vizinho que ocupa o lugar. Se não sobra entrada, o foco vai para o
+    atalho logo abaixo, como a seta para baixo.
+  - Foco nos atalhos ou nos apps não se mexe.
+  - HOME (`inicio`) volta ao começo com a fileira atual.
+  - Nenhuma tecla mudou de caminho no `HomeView`.
+- **Abrir:** o USB-C voltou ao `Abridor` (`zysys.source.typec1`, padrão 9), como os HDMI.
+
+### 14.3 Provas no PC
+
+- `gerar-previas.sh` roda as conferências "entradas":
+  - o sinal: ids, fontes e o firmware sem USB-C;
+  - os estados por porta: 0 aparece, 1 some, porta sem entrada de TV aparece;
+  - o foco em cada caso acima, inclusive com o painel de luz aberto e numa sequência de liga/desliga que nunca
+    deixa o foco nulo.
+- Prévias novas:
+  - `home-sem-cabo.png`: sem cabo HDMI, a fileira só com o USB-C (foco nele, o começo da fileira);
+  - `home-cabo-hdmi2.png`: HDMI 2 e USB-C;
+  - `home-cabos-todos.png`: HDMI 1, HDMI 2 e USB-C.
+- As prévias de antes usam cabo no HDMI 1 e no HDMI 2, então a fileira Entradas delas não mudou; mudaram só
+  pelo §14.5 (sem contador, com "MeowCast").
+- `build.sh` gera o APK com versionCode 10.
+
+### 14.4 Medido no aparelho (2026-11-02, só leitura)
+
+`dumpsys tv_input`, entrada `.../HiHdmiTvInputService/HDMI0000C<n>` (0 = conectado, 1 = sem cabo), e o
+`OffLineDetStatus` do `/proc/msp/hdmirx` (o 5 V de cada porta):
+
+| cabos ligados | C1 | C2 | C3 | hdmirx port0 / port1 / port2 / port3 |
+|---|---|---|---|---|
+| HDMI 1 e HDMI 2 (USB-C vazio) | 0 | 0 | 0 | On / On / On / Off |
+| nenhum | 0 | 1 | 1 | On / Off / Off / Off |
+| só HDMI 1 | 0 | 1 | 0 | On / Off / On / Off |
+
+- **HDMI confirmado:** C3 = HDMI 1 (hdmirx port2) e C2 = HDMI 2 (hdmirx port1), a conta fonte − 8 do §14.1. O
+  `vendor.nl.setting.hdmi.state` vai de 3 com cabo a 0 sem; `zysys.source.*` não muda.
+- **USB-C: o `TvInputManager` não serve.** Sem nada ligado no USB-C, o C1 lê sempre 0 ("conectado") e o 5 V do
+  port0 fica sempre On. O USB-C chega ao HDMI RX por uma ponte própria (DP → HDMI) que mantém o 5 V da porta
+  ligado. Com a falha aberta, o botão USB-C apareceria sempre.
+- **Outro sinal para o USB-C, procurado e não achado (só leitura):**
+  - O `HiTvService` da fábrica tira o USB-C do aviso de cabo (`HdmiUtil.isType_c`): a fábrica também não confia
+    nesse hotplug.
+  - O Linux não vê a ponte: sem `/sys/bus/i2c/devices`, `typec`, `extcon`, `power_supply` ou `phy`; o
+    `/proc/msp/gpio` e o `/proc/msp/i2c` não dizem nada por porta; nenhum aparelho USB novo além do hub da
+    câmera e do Wi-Fi.
+  - Nada nas libs do HiSilicon (`libhitvservice`, `libhicust`, `libhi_msp`) nem nos APKs decompilados lê um
+    estado do USB-C. O `zysys.usb_signal_enable` (0) não tem leitor nos binários extraídos.
+  - O relógio TMDS (`CKDT`/`SCDT`) só é lido na porta em uso; ler o port0 exigiria trocar de fonte.
+  - O `hipluginserver` é o servidor do keystone (`vplugin`), sem relação com cabo.
+- **Medido com um notebook ligado no USB-C** (2026-11-02, sem trocar de entrada): `dumpsys tv_input`, o
+  `OffLineDetStatus` do hdmirx, `/sys/bus/usb/devices` e `getprop` ficaram idênticos aos lidos com a porta
+  vazia. Só o `dmesg` mudou, e foi a reconexão do port2 (HDMI 1), não o USB-C. Não há sinal de presença no USB-C
+  sem trocar de entrada.
+- **Decisão do dono (2026-11-02): o USB-C fica sempre visível** na fileira Entradas, no firmware que o tem
+  (`zysys.typec_count`/`zysys.source.typec1`, §13). HDMI 1 e HDMI 2 continuam só com cabo. O estado da porta 1
+  não é lido (`Entradas.comCabo` recebe só "o firmware tem USB-C").
+
+### 14.5 Contador de apps fora, MeowCast no canto (pedido do dono, 2026-11-02)
+
+- O texto do contador ao lado do título Apps ("2 apps", "1–7 de 12") saiu da home.
+- "MeowCast" fica no canto inferior direito, na linha de estado: IBM Plex Sans Condensed Bold, 34 px, cor
+  roxo a 80 % sobre o fundo (`#9F7ED2`, a mistura de tokens mais perto do `#9D7AD0` da marca, sem cor nova;
+  3,8:1 sobre a base do gradiente, texto grande). O aviso amarelo passa a ficar logo à esquerda da marca.
+- Se o aviso não cabe entre a parte da esquerda da linha de estado e a marca (nome de rede comprido, aviso
+  comprido), a marca sai enquanto o aviso está na tela e ele volta ao canto. A conferência "linha de estado" do
+  `gerar-previas.sh` prova que nenhum texto da linha se sobrepõe (E2, 2026-11-02).

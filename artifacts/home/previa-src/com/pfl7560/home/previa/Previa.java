@@ -3,6 +3,7 @@ package com.pfl7560.home.previa;
 import com.pfl7560.home.Acoes;
 import com.pfl7560.home.Curvas;
 import com.pfl7560.home.Desenho;
+import com.pfl7560.home.Entradas;
 import com.pfl7560.home.Icones;
 import com.pfl7560.home.Item;
 import com.pfl7560.home.Modelo;
@@ -107,8 +108,217 @@ public final class Previa {
         salvar(t, fontes, new File(saida, "home-tela-inicial.png"));
 
         previasCurvas(fontes, saida, firmware);
+        previasCabos(fontes, saida, firmware);
 
         checarNavegacao(firmware);
+        checarEntradas();
+        checarLinhaEstado(fontes, firmware);
+    }
+
+    /**
+     * Bloco 30: os HDMI so com cabo, o USB-C sempre (decisao do dono). Sem cabo HDMI, so o USB-C; com cabo no HDMI 2,
+     * HDMI 2 e USB-C; com os dois cabos, HDMI 1, HDMI 2 e USB-C.
+     */
+    private static void previasCabos(File fontes, File saida, List<Item> firmware) throws Exception {
+        Modelo s = semCabo();
+        s.definirApps(firmware);
+        s.wifi = "MinhaRede";
+        s.bluetooth = "Bluetooth ligado";
+        s.temperatura = "59";
+        s.temperaturaPlaca = "47";
+        s.definirEntradas(Entradas.lista(false, false, true));
+        salvar(s, fontes, new File(saida, "home-sem-cabo.png"));
+
+        Modelo u = semCabo();
+        u.definirApps(firmware);
+        u.wifi = "MinhaRede";
+        u.bluetooth = "Bluetooth ligado";
+        u.temperatura = "59";
+        u.temperaturaPlaca = "47";
+        u.definirEntradas(Entradas.lista(false, true, true));
+        salvar(u, fontes, new File(saida, "home-cabo-hdmi2.png"));
+
+        Modelo t = semCabo();
+        t.definirApps(firmware);
+        t.wifi = "MinhaRede";
+        t.bluetooth = "Bluetooth ligado";
+        t.temperatura = "59";
+        t.temperaturaPlaca = "47";
+        t.definirEntradas(Entradas.lista(true, true, true));
+        t.mover(1, 0);
+        t.mover(1, 0);
+        salvar(t, fontes, new File(saida, "home-cabos-todos.png"));
+    }
+
+    private static Modelo semCabo() {
+        Modelo m = Modelo.padrao();
+        Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Sao_Paulo"));
+        cal.clear();
+        cal.set(2026, Calendar.NOVEMBER, 2, 21, 47, 0);
+        m.relogio(cal);
+        return m;
+    }
+
+    private static Item[] ent(boolean h1, boolean h2, boolean uc) {
+        return Entradas.lista(h1, h2, uc);
+    }
+
+    private static void checarEntradas() {
+        // o sinal: id da entrada de TV do hardware -> porta; fonte -> porta
+        verdade(Entradas.portaDoId("com.hisilicon.tvinput.external/.HiHdmiTvInputService/HDMI0000C3") == 3, "id C3 = porta 3");
+        verdade(Entradas.portaDoId("com.hisilicon.tvinput.external/.HiHdmiTvInputService/HDMI0000C1") == 1, "id C1 = porta 1");
+        verdade(Entradas.portaDoId("com.hisilicon.tvinput.external/.HiHdmiTvInputService/HDMI300004") == -1, "aparelho CEC nao e porta");
+        verdade(Entradas.portaDoId("com.hisilicon.tvinput.external/.HiCvbsTvInputService/HW0") == -1, "AV nao e porta");
+        verdade(Entradas.portaDoId("x/HDMI0000C0") == -1 && Entradas.portaDoId("x/HDMI0000ZZ") == -1
+                && Entradas.portaDoId(null) == -1 && Entradas.portaDoId("x/HDMI0000C12") == -1, "ids tortos");
+        verdade(Entradas.porta("11", 11) == 3 && Entradas.porta("10", 10) == 2 && Entradas.porta("9", 9) == 1,
+                "fonte - 8: 11 -> 3, 10 -> 2, 9 -> 1");
+        verdade(Entradas.porta("", 10) == 2 && Entradas.porta("lixo", 11) == 3 && Entradas.porta("5", 11) == -1,
+                "fonte vazia ou lixo usa o padrao; fonte <= 8 nao e porta");
+        verdade(Entradas.temUsbC("1", "9") && Entradas.temUsbC("", "9") && !Entradas.temUsbC("", "")
+                && !Entradas.temUsbC("0", ""), "USB-C so no firmware que tem");
+
+        // estado por porta -> botoes (0 = cabo; 1 = sem cabo; sem entrada de TV = desconhecido, fica visivel).
+        // O USB-C fica sempre (decisao do dono, doc 45 §14.4): o estado da porta 1 nao conta.
+        int[] e = Entradas.estadosVazios();
+        e[1] = 1;
+        e[2] = 1;
+        e[3] = 1;
+        Item[] semHdmi = Entradas.comCabo(3, 2, true, e);
+        verdade(semHdmi.length == 1 && semHdmi[0].acao.equals(Acoes.USBC), "sem cabo HDMI: so o USB-C");
+        verdade(Entradas.comCabo(3, 2, false, e).length == 0, "sem cabo HDMI e firmware sem USB-C: nenhum botao");
+        e[3] = 0;
+        Item[] so1 = Entradas.comCabo(3, 2, true, e);
+        verdade(so1.length == 2 && so1[0].acao.equals(Acoes.HDMI1) && so1[1].acao.equals(Acoes.USBC),
+                "cabo no HDMI 1 (porta 3): HDMI 1 e USB-C");
+        e[3] = 1;
+        e[2] = 0;
+        Item[] so2 = Entradas.comCabo(3, 2, true, e);
+        verdade(so2.length == 2 && so2[0].acao.equals(Acoes.HDMI2) && so2[1].acao.equals(Acoes.USBC),
+                "cabo no HDMI 2 (porta 2): HDMI 2 e USB-C");
+        e[2] = 1;
+        e[1] = 0;
+        Item[] c1 = Entradas.comCabo(3, 2, true, e);
+        verdade(c1.length == 1 && c1[0].acao.equals(Acoes.USBC), "C1 = 0 (como no aparelho, sempre): nada muda");
+        verdade(Entradas.comCabo(3, 2, false, e).length == 0, "firmware sem USB-C: a porta 1 nao vira botao");
+        e[1] = 1;
+        verdade(Entradas.comCabo(3, 2, true, e).length == 1, "C1 = 1: o USB-C continua");
+        e[2] = 0;
+        e[3] = 0;
+        Item[] tres = Entradas.comCabo(3, 2, true, e);
+        verdade(tres.length == 3 && tres[0].acao.equals(Acoes.HDMI1) && tres[1].acao.equals(Acoes.HDMI2)
+                && tres[2].acao.equals(Acoes.USBC), "os tres, na ordem HDMI 1, HDMI 2, USB-C");
+        e[2] = Entradas.DESCONHECIDO;
+        e[3] = 1;
+        Item[] desc = Entradas.comCabo(3, 2, false, e);
+        verdade(desc.length == 1 && desc[0].acao.equals(Acoes.HDMI2), "porta sem entrada de TV fica visivel");
+        verdade(Entradas.semLeitura(false).length == 2 && Entradas.semLeitura(true).length == 3, "sem leitura: todas");
+
+        // o aparelho como ele e: USB-C sempre, HDMI liga e desliga
+        Modelo r = semCabo();
+        verdade(r.definirEntradas(ent(false, false, true)) && r.fileira == Modelo.ENTRADAS
+                && r.focado().acao.equals(Acoes.USBC), "abre sem cabo HDMI: foco no USB-C, o comeco da fileira");
+        verdade(r.definirEntradas(ent(true, false, true)) && r.focado().acao.equals(Acoes.USBC),
+                "HDMI 1 ligado: aparece a esquerda e o foco segue no USB-C");
+        verdade(r.mover(-1, 0) && r.focado().acao.equals(Acoes.HDMI1), "seta para a esquerda: HDMI 1");
+        verdade(r.definirEntradas(ent(false, false, true)) && r.fileira == Modelo.ENTRADAS
+                && r.focado().acao.equals(Acoes.USBC), "HDMI 1 tirado com o foco nele: foco no USB-C, que pega o lugar");
+        verdade(r.definirEntradas(ent(false, true, true)) && r.focado().acao.equals(Acoes.USBC),
+                "HDMI 2 ligado: o foco nao e roubado");
+        verdade(r.mover(-1, 0) && r.focado().acao.equals(Acoes.HDMI2), "seta para a esquerda: HDMI 2");
+        verdade(r.definirEntradas(ent(false, false, true)) && r.focado().acao.equals(Acoes.USBC),
+                "HDMI 2 tirado com o foco nele: foco no USB-C");
+        r.inicio();
+        verdade(r.fileira == Modelo.ENTRADAS && r.focado().acao.equals(Acoes.USBC), "HOME sem cabo HDMI: USB-C");
+
+        // foco: abre sem entradas no primeiro atalho; a primeira leitura leva ao comeco
+        Modelo m = semCabo();
+        verdade(m.entradas.length == 0 && m.fileira == Modelo.ATALHOS && m.coluna == 0
+                && m.focado().acao.equals(Acoes.VERIFICAR), "antes da leitura: foco em Verificar projetor");
+        verdade(!m.mover(0, -1) && m.fileira == Modelo.ATALHOS, "sem entradas, nada acima dos atalhos");
+        m.inicio();
+        verdade(m.definirEntradas(ent(true, false, false)) && m.fileira == Modelo.ENTRADAS && m.coluna == 0,
+                "primeira leitura com cabo, sem mexer: foco em HDMI 1");
+        verdade(!m.definirEntradas(ent(true, false, false)), "mesma lista: nada a redesenhar");
+
+        Modelo n = semCabo();
+        verdade(!n.definirEntradas(ent(false, false, false)) && n.fileira == Modelo.ATALHOS && n.coluna == 0,
+                "primeira leitura sem cabo: segue em Verificar projetor");
+        verdade(n.definirEntradas(ent(true, false, false)) && n.fileira == Modelo.ATALHOS && n.coluna == 0,
+                "cabo ligado depois: o foco nao e roubado");
+        n.inicio();
+        verdade(n.fileira == Modelo.ENTRADAS && n.coluna == 0, "HOME com cabo: HDMI 1");
+
+        // o dono mexeu antes da primeira leitura: o foco fica onde ele pos
+        Modelo t = semCabo();
+        t.mover(1, 0);
+        t.mover(1, 0);
+        verdade(t.definirEntradas(ent(true, true, false)) && t.fileira == Modelo.ATALHOS && t.coluna == 2,
+                "primeira leitura depois de mexer: o foco fica em Bluetooth");
+
+        // o botao em foco continua: o foco vai com ele
+        Modelo a = semCabo();
+        a.definirEntradas(ent(false, true, false));
+        verdade(a.focado().acao.equals(Acoes.HDMI2), "so HDMI 2: foco nele");
+        verdade(a.definirEntradas(ent(true, true, false)) && a.focado().acao.equals(Acoes.HDMI2) && a.coluna == 1,
+                "HDMI 1 aparece a esquerda: o foco segue em HDMI 2");
+        verdade(a.definirEntradas(ent(true, true, true)) && a.focado().acao.equals(Acoes.HDMI2),
+                "USB-C aparece: o foco segue em HDMI 2");
+
+        // o botao em foco some: o vizinho que ocupa o lugar
+        verdade(a.definirEntradas(ent(true, false, true)) && a.fileira == Modelo.ENTRADAS
+                && a.focado().acao.equals(Acoes.USBC), "HDMI 2 some do meio: foco no USB-C, que pega o lugar");
+        verdade(a.definirEntradas(ent(true, false, false)) && a.focado().acao.equals(Acoes.HDMI1),
+                "USB-C some do fim: foco no HDMI 1");
+        // a ultima entrada some: desce para o atalho logo abaixo, como a seta
+        Modelo b = semCabo();
+        b.definirEntradas(ent(true, false, false));
+        float cx = Desenho.centroX(b, Modelo.ENTRADAS, 0);
+        Modelo ref = semCabo();
+        ref.definirEntradas(ent(true, false, false));
+        ref.mover(0, 1);
+        verdade(b.definirEntradas(ent(false, false, false)) && b.fileira == Modelo.ATALHOS && b.focado() != null
+                && b.coluna == ref.coluna, "a unica entrada some: foco no atalho de baixo (" + cx + ")");
+        verdade(b.focado().acao.equals(Acoes.CONFIG), "HDMI 1 sozinho fica sobre Configuracoes");
+        verdade(!b.mover(0, -1) && b.fileira == Modelo.ATALHOS, "sem entradas, cima nao leva a lugar nenhum");
+
+        // foco fora da fileira: cabo nao mexe nele
+        Modelo c = semCabo();
+        c.definirEntradas(ent(true, true, false));
+        c.mover(0, 1);
+        c.mover(-1, 0);
+        int col = c.coluna;
+        c.definirEntradas(ent(false, false, false));
+        verdade(c.fileira == Modelo.ATALHOS && c.coluna == col, "foco nos atalhos: tirar o cabo nao mexe no foco");
+        c.definirEntradas(ent(true, true, true));
+        verdade(c.fileira == Modelo.ATALHOS && c.coluna == col, "foco nos atalhos: ligar o cabo nao mexe no foco");
+        verdade(c.mover(0, -1) && c.fileira == Modelo.ENTRADAS && c.focado() != null, "e a seta para cima chega nelas");
+
+        // painel aberto: a fileira muda por baixo sem perder o foco
+        Modelo d = semCabo();
+        d.definirEntradas(ent(true, false, false));
+        d.abrirLuz();
+        d.definirEntradas(ent(false, false, false));
+        verdade(d.luzAberta && d.fileira == Modelo.ATALHOS && d.focado() != null, "com o painel de luz aberto");
+        d.voltar();
+        verdade(!d.luzAberta && d.focado() != null, "fecha e o foco esta num atalho");
+
+        // HOME sem cabo: primeiro atalho
+        d.inicio();
+        verdade(d.fileira == Modelo.ATALHOS && d.coluna == 0, "HOME sem cabo: Verificar projetor");
+
+        // nunca um foco que aponta para fora da fileira
+        Modelo z = semCabo();
+        boolean[][] seq = {{true, true, true}, {false, false, true}, {true, false, false}, {false, false, false},
+            {false, true, true}, {true, true, false}, {false, false, false}};
+        for (int i = 0; i < 3; i++) z.mover(1, 0);
+        for (boolean[] s : seq) {
+            z.definirEntradas(ent(s[0], s[1], s[2]));
+            verdade(z.focado() != null, "foco valido depois de " + s[0] + s[1] + s[2]);
+            z.mover(0, -1);
+            verdade(z.focado() != null, "foco valido depois de subir");
+        }
+        System.out.println("entradas: conferencias ok");
     }
 
     private static Modelo painelCurvas(List<Item> firmware) {
@@ -235,8 +445,10 @@ public final class Previa {
         System.out.println("previa: " + png);
     }
 
+    /** Com cabo no HDMI 1 e no HDMI 2: a tela das previas de antes do bloco 30. */
     private static Modelo base() {
         Modelo m = Modelo.padrao();
+        m.definirEntradas(Entradas.lista(true, true, false));
         Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("America/Sao_Paulo"));
         cal.clear();
         cal.set(2026, Calendar.OCTOBER, 31, 21, 47, 0);
@@ -398,6 +610,102 @@ public final class Previa {
         verdade(c.mover(0, -1) && c.zona == Curvas.ZONA_ABA && c.mover(-1, 0) && c.aba == Curvas.ABA_LED, "volta para a aba LED");
         m.inicio();
         verdade(!m.curvasAberta, "HOME fecha o painel de curvas");
+    }
+
+    /** Os textos da linha de estado (base 1000, Desenho.ESTADO_BASE) que o Desenho pinta: [x0, x1] e o texto. */
+    private static final class Anotador implements Pintor {
+        final Pintor real;
+        final List<float[]> faixas = new ArrayList<float[]>();
+        final List<String> textos = new ArrayList<String>();
+
+        Anotador(Pintor real) {
+            this.real = real;
+        }
+
+        public void gradiente(float x, float y, float w, float h, int a, int b) {
+        }
+
+        public void retangulo(float x, float y, float w, float h, float r, int c) {
+        }
+
+        public void contorno(float x, float y, float w, float h, float r, float e, int c) {
+        }
+
+        public void linha(float x1, float y1, float x2, float y2, float e, int c) {
+        }
+
+        public void circulo(float cx, float cy, float r, int c) {
+        }
+
+        public void anel(float cx, float cy, float r, float e, int c) {
+        }
+
+        public void arco(float cx, float cy, float r, float i, float v, float e, int c) {
+        }
+
+        public void polilinha(float[] xy, boolean f, float e, int c) {
+        }
+
+        public void texto(String s, float x, float yBase, int fonte, float tam, int cor, int alin) {
+            if (yBase != 1000f) return;
+            float w = real.largura(s, fonte, tam);
+            float x0 = alin == DIR ? x - w : alin == CENTRO ? x - w / 2 : x;
+            faixas.add(new float[] {x0, x0 + w});
+            textos.add(s);
+        }
+
+        public float largura(String s, int fonte, float tam) {
+            return real.largura(s, fonte, tam);
+        }
+
+        boolean semSobrepor() {
+            for (int i = 0; i < faixas.size(); i++) {
+                for (int j = i + 1; j < faixas.size(); j++) {
+                    float[] a = faixas.get(i);
+                    float[] b = faixas.get(j);
+                    if (a[0] < b[1] && b[0] < a[1]) return false;
+                }
+                if (faixas.get(i)[0] < 112f || faixas.get(i)[1] > 1920f - 112f + 0.5f) return false;
+            }
+            return true;
+        }
+    }
+
+    private static Anotador estadoDe(File fontes, Modelo m) throws Exception {
+        BufferedImage img = new BufferedImage(8, 8, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = img.createGraphics();
+        Anotador a = new Anotador(new PintorJ2D(g, fontes));
+        Desenho.desenhar(a, m);
+        g.dispose();
+        return a;
+    }
+
+    /**
+     * Bloco 30: "MeowCast" no canto e o aviso amarelo a esquerda dela nunca sobrepoem a parte da esquerda da linha
+     * de estado. Com rede de nome comprido e aviso comprido, a marca sai enquanto o aviso esta na tela.
+     */
+    private static void checarLinhaEstado(File fontes, List<Item> firmware) throws Exception {
+        Modelo m = base();
+        m.definirApps(firmware);
+        m.wifi = "MinhaRede";
+        m.bluetooth = "Bluetooth conectado";
+        m.temperatura = "59";
+        m.temperaturaPlaca = "47";
+        Anotador a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains("MeowCast"), "estado: sem aviso, a marca no canto");
+        m.aviso = "Não abriu: Alto-falante Bluetooth";
+        a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains("MeowCast") && a.textos.contains(m.aviso),
+                "estado: rede curta, o aviso cabe ao lado da marca");
+        m.wifi = "NET_2G_APARTAMENTO_1203";
+        a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains(m.aviso), "estado: rede comprida e aviso comprido nao se sobrepoem");
+        verdade(!a.textos.contains("MeowCast"), "estado: sem lugar, a marca sai enquanto o aviso esta na tela");
+        m.aviso = null;
+        m.wifi = "Rede_de_32_caracteres_aaaaaaaaaa";
+        a = estadoDe(fontes, m);
+        verdade(a.semSobrepor() && a.textos.contains("MeowCast"), "estado: rede de 32 caracteres e a marca");
+        System.out.println("linha de estado: conferencias ok");
     }
 
     private static void verdade(boolean b, String o) {

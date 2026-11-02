@@ -18,6 +18,8 @@ final class Abridor {
                 return entrada(a, "zysys.source.hdmi1", 11);
             case Acoes.HDMI2:
                 return entrada(a, "zysys.source.hdmi2", 10);
+            case Acoes.USBC:
+                return entrada(a, "zysys.source.typec1", 9);
             case Acoes.VERIFICAR:
                 return iniciar(a, componente("com.pfl7560.verificar", "com.pfl7560.verificar.VerificarActivity"));
             case Acoes.WIFI:
