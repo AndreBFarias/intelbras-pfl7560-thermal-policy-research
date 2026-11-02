@@ -4,6 +4,9 @@ import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.service.dreams.DreamService;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.ForegroundColorSpan;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -99,7 +102,7 @@ public class Descanso extends DreamService {
         conjunto.setGravity(Gravity.CENTER_HORIZONTAL);
 
         TextView nome = new TextView(this);
-        nome.setText(R.string.descanso_nome);
+        nome.setText(nomeColorido());
         nome.setTextColor(getColor(R.color.marca_nome));
         nome.setTypeface(negrito);
         nome.setTextSize(TypedValue.COMPLEX_UNIT_PX, dm.widthPixels * 160f / 1920f);
@@ -153,6 +156,16 @@ public class Descanso extends DreamService {
         maos.removeCallbacks(contagem);
         pedir("descanso-fim");
         super.onDreamingStopped();
+    }
+
+    // "Meow" no roxo da marca (a cor do TextView) e "Cast" no verde Dracula, como no logo (bloco 28).
+    private CharSequence nomeColorido() {
+        String texto = getString(R.string.descanso_nome);
+        int i = texto.indexOf("Cast");
+        if (i < 0) return texto;
+        SpannableString s = new SpannableString(texto);
+        s.setSpan(new ForegroundColorSpan(getColor(R.color.marca_cast)), i, i + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return s;
     }
 
     private void pedir(final String nome) {

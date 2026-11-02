@@ -1294,7 +1294,7 @@ exec "$T/bin/pm.orig" "$@"'
 c_bloco25(){
   local L aapt2
   novo_cenario "bloco 25: o kit instala nl_logo, suite-logo.sh e a arte reta na suite (executaveis 755, md5 do kit)"; aparelho_ok
-  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 8 ]' "versionCode do app nao e 7 ou o da home nao e 8 (bloco 27)"
+  afirma '[ "$APP_VC" = 8 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 8 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 8 ]' "versionCode do app nao e 8 ou o da home nao e 8 (blocos 27 e 28)"
   # shellcheck disable=SC2012
   aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
   if [ -n "$aapt2" ]; then
