@@ -8,7 +8,8 @@ sem USB-C com esta base. Spec: [bloco 12](../sprints/2026-10-31-bloco-12-build-c
 > FILL que o re-pack criava, forma que o loader nunca gravou; as builds `eae3a83d` e `397698b9` saíram de uso. O
 > gate BIN-S4a passa a gravar `PFL7560-S4a-NAO-GRADUADO.bin` (os 3 fixes nos mesmos blocos do stock, md5
 > `a6e5da14…`), e a build completa vira o BIN-S4b, realocada, com o `.rc`, o app, a home e as 20 sobreposições
-> (`PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin`, md5 `31702b64…` desde os APKs refeitos no fim do bloco 21).
+> (`PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin`, md5 `2b1836b8…` com o app versionCode 8 e a home 9, refeita em
+> 2026-11-02; no fim do bloco 21 era `31702b64…`).
 
 > **Bloco 26 (2026-11-02): a §12 é a build S5**, com a suíte inteira no `/vendor` e uma semente que a copia para o
 > `/data` vazio no 1º boot (`PFL7560-S5-COMPLETO-NAO-GRADUADO.bin`, md5 `81bb9885…`). Não muda a ordem da §11:
@@ -219,8 +220,8 @@ fixes; só se ela subir limpa vem a 2ª, com o `.rc`.
 1. Gere a build: `unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d <pasta>` e
    `python3 artifacts/bin-build/build_fix_bin.py <pasta>/PFL7560.bin artifacts/ZYCustom_390.ini <saída.bin>`
    (1ª gravação: md5 `a6e5da14cb3f53b42a457eb92bd91814`), ou o mesmo comando com
-   `--realocar --conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `31702b647ba9b2bca98e6da625231e69`
-   com o kit de hoje; se um APK ou o `.rc` mudar, o md5 muda também). As duas terminam em `VALIDO`, depois do
+   `--realocar --conteudo artifacts/bin-build/conteudo.txt` (2ª gravação: md5 `2b1836b8a86ac1d998e0a06a3000478f`
+   com o kit de 2026-11-02; se um APK ou o `.rc` mudar, o md5 muda também). As duas terminam em `VALIDO`, depois do
    `verificar_bin`; `build_fix_bin.py --verificar <saída.bin> <stock.bin>` repete a conferência.
 2. **Pendrive de resgate pronto e separado:** um pendrive só com o firmware de **fábrica do modelo com USB-C**
    (md5 `28a2f280eee313a4b115567926b2ba4f`) **na raiz**, como `usb_update.bin`: o loader só procura esse nome na
@@ -308,7 +309,7 @@ estragaria essas libs sem aviso, e zeros lidos como cabeçalho de chunk parariam
 | Build | md5 | CRC do vendor | O que leva |
 |---|---|---|---|
 | `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | `0x883b40d6` | escada, Wi-Fi e xiri, nos mesmos blocos; 1393758396 B, como o stock |
-| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `31702b647ba9b2bca98e6da625231e69` | `0xd8e4e78b` | o mesmo, mais o `.rc` da suíte, app, home e as 20 sobreposições (`conteudo.txt`); record 14 com +3407872 B |
+| `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `2b1836b8a86ac1d998e0a06a3000478f` | `0x251ba2e0` | o mesmo, mais o `.rc` da suíte, app, home e as 20 sobreposições (`conteudo.txt`); record 14 com +3432448 B. Refeita em 2026-11-02 (app 8, home 9); a de 2026-10-31 era `31702b64…`, `0xd8e4e78b`, +3407872 B |
 | V1.0.0.1 (sem USB-C), nos mesmos blocos, só em software | `e3e3e87ce08a625c83c3824eafd26d9b` | `0xe5b1294a` | a mesma conta com o `ZYCustom_390.NOTYPEC.ini` |
 
 **O que o `.bin` não leva de jeito nenhum:** o JEIDA (cada painel), a partição `logo` (cada keystone) e o estado
@@ -344,7 +345,7 @@ na gravação (doc 41 §3, inferido): quem tem painel JEIDA refaz a cor pelo kit
 | # | Gate | Build | Por quê |
 |---|---|---|---|
 | 1 | BIN-S4a | `PFL7560-S4a-NAO-GRADUADO.bin` (`a6e5da14…`) | **delta mínimo** (só os 3 fixes, nos mesmos blocos do stock): se travar, não há variável confusa |
-| 2 | BIN-S4b | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`31702b64…`) | só depois de a 1ª subir limpa: acrescenta arquivo novo em `/vendor` e o container realocado |
+| 2 | BIN-S4b | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`2b1836b8…`) | só depois de a 1ª subir limpa: acrescenta arquivo novo em `/vendor` e o container realocado |
 
 Se a 1ª travar, o resgate é o da §8 e a causa entra neste doc antes de outra tentativa (o antigo BIN-S5).
 

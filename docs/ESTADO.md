@@ -90,8 +90,8 @@ raiz, **ligar segurando o POWER com este pendrive plugado grava a S4a**; ligar n
 `0x883b40d6`): só os 3 fixes (escada de brilho no `ZYCustom.ini`, Wi-Fi no `build.prop`, `xiriservice` desligado no
 `init.bigfish.rc`), nos mesmos blocos do stock, com o layout de chunks, o slot e o `checksum1` do stock. Regerada
 no fim do bloco 21 a partir do stock V1.0.0.9 com o gerador sem comentário: o mesmo md5. É a que vai para o
-pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`31702b647ba9b2bca98e6da625231e69`,
-CRC `0xd8e4e78b`, refeita com os APKs novos), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
+pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`2b1836b8a86ac1d998e0a06a3000478f`,
+CRC `0x251ba2e0`, refeita em 2026-11-02 com o app 8 e a home 9), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
 saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram gravadas**. Detalhes, ordem e roteiro:
 [doc 47](research/47-build-completa.md) §8, §10 e §11; tabela das builds: [`firmware/README.md`](../firmware/README.md).
 
