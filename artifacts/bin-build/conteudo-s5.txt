@@ -6,6 +6,10 @@
 # Formato: o do conteudo.txt (origem destino modo uid gid rotulo), e mais a diretiva
 #   prop chave=valor
 # que poe a linha no fim do /vendor/build.prop como o kit faz (apaga a chave, acrescenta a linha).
+# e a diretiva (bloco 28)
+#   logo <arte.jpg>
+# que poe a arte no record 6 do container (particao logo): o payload de fabrica com so o JPEG (no
+# byte 8192) e o LOGO_KEY_LEN trocados, no mesmo tamanho, com o CRC recalculado (doc 47 s12).
 #
 # Diferencas para o conteudo.txt (o teste tests/test-semente-s5.sh confere as tres):
 #  1. o servico de boot e o pfl7560-suite.rc da S5 (artifacts/bin-build/s5/): roda a semente,
@@ -17,8 +21,12 @@
 #     a semente acerta os modos ao copiar;
 #  3. as 2 linhas do build.prop que o kit grava (home e gerenciador de arquivos), para o kit nao
 #     abrir o /vendor depois da gravacao por causa delas.
-# Ficam de fora (vivem fora do /vendor ou no /data): a marca (bootanimation em /atv), o painel
+# Ficam de fora (vivem fora do /vendor ou no /data): a marca do /atv (bootanimation), o painel
 # JEIDA, as escolhas e o estado da suite, o debloat. A suite faz isso no 1o boot, como no kit.
+
+# Logo de abertura (record 6): a arte reta do kit, a mesma do ARTE_MD5 do suite-logo.sh. No 1o boot o
+# logo automatico a reconhece como "cantos retos" e so regrava se o keystone do aparelho for outro.
+logo pendrive-autorun/marca/logo.jpg
 
 artifacts/bin-build/s5/pfl7560-suite.rc  /vendor/etc/init/pfl7560-suite.rc  0644  0  0  u:object_r:vendor_configs_file:s0
 # Apps e tema: as mesmas linhas do conteudo.txt.
