@@ -4,6 +4,16 @@ Arquivo para abrir sessão nova sem depender da conversa.
 
 ## Em voo (2026-11-02)
 
+**S6 MONTADA, ainda NÃO gravada (2026-11-02 ~14:30):** `a1edaca90e40cf4efdb7f9aaf4f984a1`, 1399013564 B, o `.bin`
+em `build-s6/PFL7560-S6-COMPLETO-NAO-GRADUADO.bin` da árvore `integracao` (fora do git). É a S5 com a home
+versionCode 10 do bloco 30: no `/vendor`, só o `PFL7560Home.apk` (`c0ce997a…`) difere da S5; records 0 a 13 iguais
+aos da S5. Provas: duas gerações iguais, `--verificar` APROVADO, `test-semente-s5` com o vendor real 66/0,
+`check-bin` com o stock real 818/0, `e2fsck` limpo, CRC do vendor `0x3d19ae9e`, record 14 +5255168 B (doc 47 §14).
+O `install.sh --com-firmware`, o `.ps1` e o pré-voo agora leem o `firmware/PFL7560-S6-…bin.md5` (recusam a S5); o
+`.md5` da S4b virou `73773135…`. **Próximo:** levar a `integracao` ao `main`; copiar a S6 para `firmware/` do
+repositório do pendrive; `./install.sh --pendrive <ponto> --com-firmware`; backup com `id -u` = 0; pré-voo
+APROVADO; decidir se o pendrive fica plugado no 1º boot (doc 47 §13.5); flash com o dono.
+
 **Bloco 30 FECHADO E INTEGRADO (2026-11-02 tarde):** branch `integracao` em `e76a93e` (fast-forward do `main` +
 merge do `bloco-30`), `make check-kit` 135/0. Entrega: HDMI 1/2 na home só com cabo (`TvInputManager`, C3 = HDMI 1,
 C2 = HDMI 2, medido no aparelho); **USB-C sempre visível** (decisão do dono: não há sinal de presença, nem com
