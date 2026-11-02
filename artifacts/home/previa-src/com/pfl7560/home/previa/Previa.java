@@ -283,6 +283,15 @@ public final class Previa {
         z.luz = 70;
         z.abrirLuz();
         verdade(z.nivelLuz() == 60 || z.nivelLuz() == 80, "abre no nivel mais perto do atual");
+        // cima e baixo nao sao engolidas no painel Luz (bloco 28): cima = mais luz, baixo = menos, sem fechar
+        z.luz = 60;
+        z.abrirLuz();
+        verdade(z.moverLuz(0, -1) && z.nivelLuz() == 80 && z.luzAberta, "cima: 60 -> 80 (mais luz)");
+        verdade(z.moverLuz(0, 1) && z.moverLuz(0, 1) && z.nivelLuz() == 40 && z.luzAberta, "baixo: 80 -> 40 (menos luz)");
+        verdade(z.moverLuz(0, 1) && !z.moverLuz(0, 1) && z.nivelLuz() == Modelo.LUZ_ECONOMICO, "baixo para em 25");
+        for (int i = 0; i < 4; i++) z.moverLuz(0, -1);
+        verdade(z.nivelLuz() == 100 && !z.moverLuz(0, -1) && z.luzAberta, "cima para em 100, o painel segue aberto");
+        verdade(z.moverLuz(1, 0) && z.nivelLuz() == 80 && !z.moverLuz(0, 0), "direita igual a moverLuz(1); sem seta, nada");
         z.inicio();
         verdade(!z.luzAberta, "HOME fecha o painel de luz");
         Modelo o = base();

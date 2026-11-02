@@ -107,6 +107,17 @@ public final class Modelo {
         return true;
     }
 
+    /**
+     * Setas no painel Luz (bloco 28): nenhuma e engolida. Esquerda/direita andam nos niveis; cima vai para mais luz
+     * (o nivel a esquerda) e baixo para menos luz (a direita), como promete o rodape "Setas: escolher". Na ponta,
+     * nada muda, igual as setas do lado.
+     */
+    public boolean moverLuz(int dx, int dy) {
+        if (dx != 0) return moverLuz(dx);
+        if (dy != 0) return moverLuz(dy);
+        return false;
+    }
+
     public int nivelLuz() {
         return LUZ_NIVEIS[luzSel];
     }

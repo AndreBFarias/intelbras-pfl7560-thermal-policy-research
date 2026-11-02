@@ -189,7 +189,10 @@ final class HomeView extends View {
                 if (modelo.moverLuz(1)) invalidate();
                 return true;
             case KeyEvent.KEYCODE_DPAD_UP:
+                if (modelo.moverLuz(0, -1)) invalidate();
+                return true;
             case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (modelo.moverLuz(0, 1)) invalidate();
                 return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
             case KeyEvent.KEYCODE_ENTER:
