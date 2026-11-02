@@ -36,6 +36,19 @@ tão legal." Decisões pelo AskUserQuestion na mesma hora, transcritas abaixo.
    - `deb_vlc` ("VLC e Office embutidos"): o dono pediu "Remove vlc e office". Some da tela; o estado atual
      (ligada = os dois desligados) fica como está.
 6. **Configurações** fica na tela inicial (decidido).
+6b. **A chave vira o serviço** (o dono: "até o termo chaves é zuado. Eu não quero nada ali ativado"; "Sério"):
+   - o switch mostra **o serviço**, como no Android: **ligado = o serviço funciona**; desligado = desativado. Hoje é o
+     contrário ("Ligada" = a medida aplicada = serviço desligado) e confundiu o dono;
+   - a aba "Chaves" vira **"Serviços"**; o termo "chave" some de toda a interface (textos, avisos, rodapé);
+   - nomes curtos, do serviço, sem verbo: "Apps de teste e de fábrica", "Telemetria do fabricante", "Players da
+     HiSilicon", "Tela inicial de fábrica", "Log do vplugin", "Servidor web e cmdsrv", "Keystone automático";
+   - **"Chip Wi-Fi dorme" sai da tela** (não é um serviço e o risco é derrubar a rede); o kit não muda;
+   - a inversão é **só na home** (visual e pedido): o protocolo `v1 <id> ligar|desligar` e a prop `chaves` do kit
+     continuam iguais (ligar = aplicar a medida = desativar o serviço). Testar a tradução nos dois sentidos;
+   - o padrão do dono: tudo desativado (o que o kit já instala nas 6 primeiras).
+   - o texto de baixo do item em foco fala do serviço ("Telemetria e atualização pela internet do fabricante.").
+   - a chave nova do pop-up do `nlprovision` entra no mesmo modelo: "Aviso de dispositivo conectado", ligado =
+     aparece.
 7. **Junto no bloco:** (a) Ajustes tenta ler de novo a cada 2,5 s até conseguir, mostrando "Lendo…" em vez de
    "Não consegui ler", e lê de novo ao voltar para a tela; (b) chave para desligar o pop-up de "dispositivo
    conectado" (`com.newlink.nlprovision`, visto pela suíte), reversível, no mesmo formato das chaves do bloco 24.
