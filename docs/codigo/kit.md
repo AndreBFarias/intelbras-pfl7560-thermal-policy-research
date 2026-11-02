@@ -227,6 +227,59 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   (`ini_variante_ok`); `debloat_pendrive` lê `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`.
 - Detalhes, formatos e o PROVISÓRIO: [44 §17](../research/44-suite-de-boot.md).
 
+## `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24)
+
+- Dez chaves, ids na ordem fixa `deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone`.
+  "Ligada" = a medida está aplicada (app desligado, porta caída...). Cada chave **lê o estado real** do aparelho e volta
+  pela mesma chave; nada se desliga sem o dono ligar a chave (ou sem o padrão da instalação, abaixo).
+- Comandos: `boot` (reaplica o que o dono escolheu), `pedido` (chamado pelo `suite-pedido.sh`), `aplicar <id>
+  ligar|desligar`, `resgate` (desliga todas), `pacotes-fora` (lista que o `desligar_apps` do boot respeita).
+- Estado posicional em `vendor.pfl7560.chaves` (um caractere por chave: `1` ligada, `0` desligada, `p` parcial, `-` não
+  existe, `?` não li). O aviso da última ação em `vendor.pfl7560.chaves_aviso` = `id:codigo:epoch`. Escolhas do dono em
+  `$SUITE/chaves.escolhas`; a escolha só é gravada se o estado relido confirmou (ou se a chave não existe aqui). Se a
+  coisa existia e **sumiu** com a mudança (o chip Wi-Fi que cai do barramento), o aviso é `sumiu` e a escolha vira 0,
+  para o boot não repetir: reiniciar devolve o aparelho.
+- Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat e o log do vplugin ligados; eth0, chip Wi-Fi,
+  web/cmdsrv e keystone desligados. `debloat-revertido` segura só `deb_vlc`. `deb_lnch` só liga com a home instalada
+  e ativa. O protetor de tela não entra no debloat.
+- Grupos: `deb_seg` (autotest, factorymenu, tvtestingtools, hikeymasterprovision, ijkplayerdemo, location.fused),
+  `deb_ota` (`com.newlink.service`, `service2`), `deb_hisi` (music, videoplayer, tvui, tv.menu; **nunca** `higallery`:
+  é o visor de fotos, lista de negação com teste de lista contaminada), `deb_lnch`, `deb_vlc` (VLC e Office).
+- Outras: `log_vplug` = `setprop log.tag.HI_VPLUGIN S`; `eth0` = `ip link set eth0 down|up`; `wifi_pwr` acha o USB
+  `a69c:8d80/8d81` e escreve `auto`/`on` em `power/control` (pode derrubar Wi-Fi e adb); `web_cmd` = `stop|start boa`
+  e `cmdsrv`; `keystone` = `persist.hisi.keystone.enable` (vale no próximo boot).
+- **Resgate:** o arquivo `DESLIGAR-CHAVES.txt` no pendrive desliga todas a cada plugada e grava escolha 0 em todas
+  (sem marca de "feito"). A escolha 0 é gravada **antes** da trava, e o boot só toma a trava depois de esperar o
+  `pm`: o `newlink_update.sh` e o `suite-boot.sh` sobem juntos no `boot_completed`, e o resgate não pode perder a
+  vez (espera a trava até 180 s; sem ela, as escolhas já ficaram 0 e o boot seguinte desliga). Pedido da home: `v1 ler` ou `v1 <id> ligar|desligar`; id e ação fora da lista são recusados.
+- As ações de cada chave vão para `$SUITE/diario.fila` (`<uptime> <id> <acao> <resultado>`, máx. 60), de onde o diário
+  as lê quando existir.
+
+## `suite-diario.sh` (diário do projetor, bloco 24)
+
+- Um laço (processo `sh suite-diario.sh laco`, pid em `/dev/pfl7560-diario.pid`, conferido pelo `/proc/<pid>/cmdline`)
+  grava **1 linha por minuto** em `$SUITE/diario/diario-0.txt` e `diario-1.txt` (pasta 700, arquivos 600). Cada arquivo
+  tem no máximo 256 KB; ao encher, passa para o outro e **apaga** o que lá havia (ponteiro em `$SUITE/diario.atual`).
+- A linha é ASCII, `chave=valor` sem espaço dentro do valor, `-` para o que faltou:
+  `up dt boot env placa luz load vent led wifi eth mem ch ev` (uptime, data do aparelho, id do boot, temperaturas,
+  luz, carga, ventilador, LED, Wi-Fi, eth0, memória, chaves, eventos). Só lê `getprop` (`zysys.env_temp`,
+  `zysys.light_temp`, `vendor.pfl7560.luz|vent|led|chaves`), `/proc` e `/sys`. Nunca `hidebug`, `gtt` nem `logcat`.
+- `ev` traz as linhas novas de `$SUITE/diario.fila` (as chaves da `suite-chaves.sh`): até 5 (`id:acao:resultado`),
+  depois `,+N`. Ao ligar, a fila é marcada como vista (o passado não é despejado).
+- Comandos: `iniciar` (boot: sobe o laço se não está desligado), `laco`, `uma-linha`, `ligar`, `desligar`, `enviar`,
+  `enviado <AAAA-MM-DDTHH:MM:SS>`, `ler`, `parar`, `pedido "v1 ligar|desligar|enviar|ler"`.
+- **Chave do dono:** `desligar` cria a marca `$SUITE/diario.desligado` e para o laço; o boot não sobe o laço com a
+  marca. `ligar` apaga a marca e sobe o laço. O resgate `DESLIGAR-CHAVES.txt` não mexe no diário (não é medida
+  de sistema) e a desinstalação da suíte para o laço.
+- **Enviar agora** só cria `$SUITE/diario.envio`; quem busca é o PC (`pfl7560-diario.sh`), que ao terminar chama
+  `enviado <data>`: isso apaga o pedido e grava a data em `$SUITE/diario.ultimo-envio`.
+- Props: `vendor.pfl7560.diario` = `<1|0>:<bytes>:<pedido 0|1>`; `vendor.pfl7560.diario_envio` = data do último envio.
+- Pedido da home: arquivo `diario` (`v1 ligar|desligar|enviar|ler`, até 32 bytes), tratado pelo `suite-pedido.sh`
+  como os outros (dono da pasta da home, `mv` para a pasta do root). O `suite-pedido.sh` e o `suite-boot.sh`
+  guardam o md5 do `suite-diario.sh`; ele próprio não guarda md5 de ninguém.
+- Ganchos de teste (só com `PFL_TESTE=1`): `PFL_DIARIO_MAX`, `PFL_DIARIO_INTERVALO`, `PFL_DIARIO_VOLTAS`.
+
+
 ## Provisório (o aparelho confirma)
 
 | Arquivo | Constante ou função | O que falta | Doc |

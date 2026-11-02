@@ -8,9 +8,11 @@ SUITE_SH="$KIT/suite.sh"
 BOOT_SH="$KIT/suite-boot.sh"
 PEDIDO_SH="$KIT/suite-pedido.sh"
 CURVAS_SH="$KIT/suite-curvas.sh"
+CHAVES_SH="$KIT/suite-chaves.sh"
+DIARIO_SH="$KIT/suite-diario.sh"
 LVDS_MD5="178d812872cb9306c0ae6faeed07184a"
 
-for f in "$SH" "$SUITE_SH" "$BOOT_SH" "$PEDIDO_SH" "$CURVAS_SH" "$KIT/debloat-aprovados.txt"; do
+for f in "$SH" "$SUITE_SH" "$BOOT_SH" "$PEDIDO_SH" "$CURVAS_SH" "$CHAVES_SH" "$DIARIO_SH" "$KIT/debloat-aprovados.txt"; do
   [ -f "$f" ] || { echo "FALHA: sem $f"; exit 1; }
 done
 if [ "$(md5sum "$ROOT/artifacts/lcd-color-fix/lvdsctl" | cut -d' ' -f1)" != "$LVDS_MD5" ] \
@@ -81,16 +83,18 @@ troca_bloco(){
 md5(){ md5sum "$1" | cut -d' ' -f1; }
 
 # shellcheck disable=SC2086
-suite_lista="$(cd "$KIT" && for f in cor.sh lvdsctl nl_camcheck $NLTELA suite-curvas.sh kit/*.png $FONTES; do md5sum "$f"; done)"
+suite_lista="$(cd "$KIT" && for f in cor.sh lvdsctl nl_camcheck $NLTELA suite-curvas.sh suite-chaves.sh suite-diario.sh kit/*.png $FONTES; do md5sum "$f"; done)"
 { printf 'SUITE_LISTA="%s\n' "$suite_lista"; echo '"'; } > "$TMP/b1"
 troca_bloco "$SUITE_SH" SUITE_LISTA_INICIO SUITE_LISTA_FIM "$TMP/b1" "$TMP/suite.sh"
 
 m_suite="$(md5 "$TMP/suite.sh")"
 m_curvas="$(md5 "$CURVAS_SH")"
-{ echo "SUITE_MD5=\"$m_suite\""; echo "CURVAS_MD5=\"$m_curvas\""; } > "$TMP/b2p"
+m_chaves="$(md5 "$CHAVES_SH")"
+m_diario="$(md5 "$DIARIO_SH")"
+{ echo "SUITE_MD5=\"$m_suite\""; echo "CURVAS_MD5=\"$m_curvas\""; echo "CHAVES_MD5=\"$m_chaves\""; echo "DIARIO_MD5=\"$m_diario\""; } > "$TMP/b2p"
 troca_bloco "$PEDIDO_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2p" "$TMP/suite-pedido.sh"
 m_pedido="$(md5 "$TMP/suite-pedido.sh")"
-{ echo "SUITE_MD5=\"$m_suite\""; echo "PEDIDO_MD5=\"$m_pedido\""; echo "CURVAS_MD5=\"$m_curvas\""; } > "$TMP/b2b"
+{ echo "SUITE_MD5=\"$m_suite\""; echo "PEDIDO_MD5=\"$m_pedido\""; echo "CURVAS_MD5=\"$m_curvas\""; echo "CHAVES_MD5=\"$m_chaves\""; echo "DIARIO_MD5=\"$m_diario\""; } > "$TMP/b2b"
 troca_bloco "$BOOT_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2b" "$TMP/suite-boot.sh"
 
 { printf 'KIT_OVERLAYS="'
@@ -103,7 +107,7 @@ rm -rf "$TMP/kit/overlay" "$TMP/kit/marca"
 cp -r "$TMP/novo/overlay" "$TMP/novo/marca" "$TMP/kit/"
 cp "$TMP/suite.sh" "$TMP/suite-boot.sh" "$TMP/suite-pedido.sh" "$TMP/kit/"
 # shellcheck disable=SC2086
-lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh debloat-aprovados.txt pfl7560-suite.rc $APK kit/*.png $FONTES $OVL_LISTA $MARCA_LISTA; do md5sum "$f"; done)"
+lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh debloat-aprovados.txt pfl7560-suite.rc $APK kit/*.png $FONTES $OVL_LISTA $MARCA_LISTA; do md5sum "$f"; done)"
 { printf 'KIT_LISTA="%s\n' "$lista"; echo '"'; } > "$TMP/b3"
 troca_bloco "$TMP/newlink_update.ovl.sh" KIT_LISTA_INICIO KIT_LISTA_FIM "$TMP/b3" "$TMP/newlink_update.sh"
 

@@ -19,7 +19,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="6"
+APP_VERSION_CODE="7"
 ESPERA_REBOOT=8
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
@@ -38,14 +38,16 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-042b2747298bde0be715825eb11bb852  suite.sh
-ad04a5e697e57ba87cc491899972f046  suite-boot.sh
-120cf2495a111f38b96a30d2f6f61418  suite-pedido.sh
+a742d1b64ac538698a8efdab420045aa  suite.sh
+922e442cb247faf8cbda79ff3db2e66a  suite-boot.sh
+42f0009d55f576b6d1d860e629c2999d  suite-pedido.sh
 b665fae4369ecaf95a126023c4ea22df  suite-curvas.sh
+d1c3f7f398cfe5a481935b2a2ae9de9a  suite-chaves.sh
+90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-26e2f517f862d19ecf452cdf3d56ae74  pfl7560.apk
-da134d1933800105cc414f0d91f8362c  pfl7560-home.apk
+6c43460eb4d234436541ffded0113c69  pfl7560.apk
+a187c32851436b493019f6b473b1292e  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -198,7 +200,7 @@ if ! preparar_trabalho; then
 fi
 KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
-KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh"
+KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh"
 kit_subpastas(){ echo "$1" | sed -n 's|/.*||p' | sort -u; }
 copiar_preparo(){
   rm -rf "$PREP"
@@ -476,7 +478,18 @@ debloat_pendrive(){
     LOG "REAPLICAR-DEBLOAT.txt no pendrive: marca de reversao tirada, a lista volta a valer no proximo boot"
   fi
 }
+chaves_pendrive(){
+  dir_seguro "$SUITE" || return 0
+  [ -e "$MP/DESLIGAR-CHAVES.txt" ] || return 0
+  LOG "DESLIGAR-CHAVES.txt no pendrive: desligando todas as chaves de ajuste (resgate)"
+  if trabalho_ok && trabalho_conferir suite-chaves.sh >/dev/null 2>&1; then
+    sh "$WORK/suite-chaves.sh" resgate
+  else
+    LOG "[ERRO] suite-chaves.sh nao conferiu - chaves NAO desligadas agora."
+  fi
+}
 [ "$SUITE_OK" = "1" ] && debloat_pendrive
+[ "$SUITE_OK" = "1" ] && chaves_pendrive
 APP_PEND=0
 if [ "$SUITE_OK" = "1" ]; then
   for _ka in $KIT_APPS; do app_conforme "${_ka%%:*}" "${_ka#*:}" || APP_PEND=1; done

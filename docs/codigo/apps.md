@@ -16,6 +16,8 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   instale por cima do anterior. Não serve para loja.
 - `VERSAO_CODIGO` sobe a cada APK novo (o kit instala por cima quando muda). No app, o `APP_VERSION_CODE` do
   `newlink_update.sh` tem de ser o mesmo (o harness confere). Depois de um APK novo, `bash tests/atualizar-md5-kit.sh`.
+- `VERSAO_CODIGO` está em 7 nos dois apps (bloco 24: a home ganhou as abas Chaves e Diário; o app subiu junto para o kit
+  instalar os dois por cima). O `APP_VERSION_CODE="7"` do `newlink_update.sh` acompanha.
 - Só o `build.sh` do app copia para o kit; o da home e o das sobreposições não (a integração é do coordenador).
 - O app leva só a fonte Bold (o nome do descanso de tela), com a licença; a home leva as cinco do kit em `assets/`.
 - A home confere a paleta (`artifacts/tema/dracula.txt`, `res/values/colors.xml` e `Tema.java`) antes de compilar.
@@ -157,3 +159,21 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   3,0:1 no fundo, este dá 7,7:1).
 - `Previa` (PC): hora e data fixas; apps do firmware V1.0.0.9 com MAIN+LAUNCHER, menos a lista de exclusão; "MinhaRede" e os apps "(exemplo)" são de exemplo; 59 °C é a média do sensor do LED em regime (doc 40). Também confere
   a navegação do D-pad.
+
+## Home: tela "Ajustes do sistema" (bloco 24)
+
+- `Ajustes` é modelo puro (sem Android): `IDS`, rótulos, o que a chave faz, o risco (baixo, médio, alto), quem pede OK
+  duas vezes para **ligar** (eth0 e chip Wi-Fi), `ok()`, `pedido()` e `pedidoValido()`. O estado vem da prop
+  `vendor.pfl7560.chaves` (um caractere por chave); o aviso, de `chaves_aviso`.
+- A entrada é o cartão "Ajustes do sistema" na fileira Apps (a fileira de atalhos já tem 7 cartões; um oitavo
+  quebraria a grade). D-pad: cima/baixo escolhe, OK liga ou desliga, Voltar fecha. A mensagem de risco aparece embaixo
+  da linha em foco, em vermelho no risco alto.
+- O pedido é escrito na pasta da home (arquivo `chave`); o root é quem aplica. A home só relê a prop depois de um tempo.
+- Prévias novas em `artifacts/home/previa-ajustes/` (6 PNG); as prévias de `previa/` não mudam (byte-exact). Com a
+  segunda aba, as 4 prévias das chaves ganharam a fileira de abas.
+- **Aba "Diário"** (esquerda/direita na fileira de abas, que se alcança subindo da primeira linha): "Gravar o diário"
+  (chave liga/desliga, estado `Gravando`/`Parado`/`Não consegui ler`) e "Enviar agora ao PC" (só marca o pedido). Mostra
+  o tamanho (`X KB de 512 KB`) e o último envio (`DD/MM/AAAA HH:MM`, ou `nunca`). O estado vem de
+  `vendor.pfl7560.diario` (`<1|0>:<bytes>:<pedido>`) e `diario_envio`; o pedido (`v1 ligar|desligar|enviar|ler`) vai
+  para o arquivo `diario` da pasta da home. Com o estado ilegível, OK não pede nada; com o pedido de envio já marcado,
+  "Enviar agora" espera. A tela sempre abre na aba Chaves.

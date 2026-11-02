@@ -1276,12 +1276,12 @@ exec "$T/bin/pm.orig" "$@"'
   afirma '[ ! -e "$(S14)/debloat-revertido" ] && log_tudo | grep -q "REAPLICAR-DEBLOAT.txt no pendrive"' "REAPLICAR nao tirou a marca"
   limpa
 
-  novo_cenario "bloco 23: o kit leva a suite de curvas e a lista do debloat, com md5 na lista e no versionCode 6"; aparelho_ok
-  afirma '[ "$APP_VC" = 6 ] && [ "$(sed -n "s/^APP_VERSION_CODE=\"\([0-9]*\)\"$/\1/p" "$KIT/newlink_update.sh")" = 6 ]' "versionCode do app nao e 6"
+  novo_cenario "bloco 23: o kit leva a suite de curvas e a lista do debloat, com md5 na lista e no versionCode 7 (bloco 24)"; aparelho_ok
+  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^APP_VERSION_CODE=\"\([0-9]*\)\"$/\1/p" "$KIT/newlink_update.sh")" = 7 ]' "versionCode do app nao e 7"
   afirma 'grep -q "  suite-curvas.sh\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh") && grep -q "  debloat-aprovados.txt\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh")' "suite-curvas.sh ou debloat-aprovados.txt fora da KIT_LISTA"
   afirma 'grep -q "^KIT_EXEC=.*suite-curvas.sh" "$KIT/newlink_update.sh" || grep -q "suite-curvas.sh" <(sed -n "/KIT_EXEC/,/^\$/p" "$KIT/newlink_update.sh")' "suite-curvas.sh fora do KIT_EXEC"
   afirma 'cmp -s "$KIT/pfl7560-home.apk" "$ROOT/artifacts/home/pfl7560-home.apk"' "pfl7560-home.apk do kit difere do de artifacts/home"
-  afirma '[ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 6 ]' "versionCode da home nao e 6"
+  afirma '[ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 7 ]' "versionCode da home nao e 7"
   afirma '! LC_ALL=C grep -q "[^[:print:][:space:]]" "$KIT/suite-curvas.sh"' "suite-curvas.sh nao e ASCII puro"
   afirma '! tail -n +2 "$KIT/suite-curvas.sh" | grep -E "^[[:space:]]*#" | grep -qv "^[[:space:]]*# shellcheck"' "suite-curvas.sh tem comentario"
   afirma '! grep -qE "\b(gtt|stp)\b" "$KIT/suite-curvas.sh" || ! grep -E "\b(gtt|stp)\b" "$KIT/suite-curvas.sh" | grep -vqE "^[[:space:]]*(#|LOG)"' "suite-curvas.sh chama gtt ou stp"

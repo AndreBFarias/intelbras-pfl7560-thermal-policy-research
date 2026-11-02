@@ -16,6 +16,7 @@
 # ===== Dados pessoais / logs do aparelho =====
 artifacts/diagnostico/
 backups-projetor/
+logs-projetor/
 evidencias/
 private/
 VALIDATOR_BRIEF.md

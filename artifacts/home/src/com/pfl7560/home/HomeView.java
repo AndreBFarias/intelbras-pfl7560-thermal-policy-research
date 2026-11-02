@@ -12,6 +12,8 @@ final class HomeView extends View {
         void aplicarLuz(int nivel);
 
         void aplicarCurva();
+
+        void aplicarChave();
     }
 
     private final Modelo modelo;
@@ -49,6 +51,7 @@ final class HomeView extends View {
     public boolean onKeyDown(int codigo, KeyEvent ev) {
         if (modelo.luzAberta) return teclaLuz(codigo, ev);
         if (modelo.curvasAberta) return teclaCurvas(codigo, ev);
+        if (modelo.ajustesAberta) return teclaAjustes(codigo, ev);
         boolean mudou;
         switch (codigo) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
@@ -109,6 +112,48 @@ final class HomeView extends View {
         }
         if (mudou) {
             modelo.aviso = null;
+            invalidate();
+        }
+        return true;
+    }
+
+    private boolean teclaAjustes(int codigo, KeyEvent ev) {
+        boolean mudou;
+        Ajustes a = modelo.ajustes;
+        switch (codigo) {
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                mudou = a.mover(-1, 0);
+                break;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                mudou = a.mover(1, 0);
+                break;
+            case KeyEvent.KEYCODE_DPAD_UP:
+                mudou = a.mover(0, -1);
+                break;
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                mudou = a.mover(0, 1);
+                break;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+                if (ev.getRepeatCount() == 0) {
+                    int r = a.ok();
+                    if (r == Ajustes.PEDIR) {
+                        ouvinte.aplicarChave();
+                    } else if (r == Ajustes.CONFIRMAR) {
+                        modelo.aviso = null;
+                    }
+                    invalidate();
+                }
+                return true;
+            default:
+                return super.onKeyDown(codigo, ev);
+        }
+        if (mudou) {
+            modelo.aviso = null;
+            invalidate();
+        } else if (a.confirmando >= 0) {
+            a.confirmando = -1;
             invalidate();
         }
         return true;

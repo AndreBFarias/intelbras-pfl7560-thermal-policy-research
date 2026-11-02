@@ -1,0 +1,11 @@
+# Chama pfl7560-diario.service a cada 2 minutos. Nada disto liga sozinho: veja o ./install.sh --diario.
+[Unit]
+Description=Busca o diario do projetor PFL7560 a cada 2 minutos
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=2min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

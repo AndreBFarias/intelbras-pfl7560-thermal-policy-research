@@ -57,6 +57,7 @@ public final class Desenho {
         estado(p, m);
         if (m.luzAberta) painelLuz(p, m);
         if (m.curvasAberta) painelCurvas(p, m);
+        if (m.ajustesAberta) painelAjustes(p, m);
     }
 
     private static void relogio(Pintor p, Modelo m) {
@@ -368,6 +369,117 @@ public final class Desenho {
             }
             p.texto(String.valueOf(i + 1), x, y - 36, Pintor.MONO_SEMI, 22, Tema.TEXTO_2, Pintor.CENTRO);
         }
+    }
+
+    static final float AJ_ABA_Y = 140f;
+    static final float AJ_LINHA_Y = 228f;
+    static final float AJ_LINHA_H = 58f;
+    static final float AJ_CHAVE_X = MX + 1060f;
+    static final float AJ_ESTADO_X = MX + 1190f;
+
+    private static void chave(Pintor p, float x, float y, char c, boolean foco) {
+        float w = 84f;
+        float h = 40f;
+        int fundo = c == '1' ? Tema.VERDE : c == 'p' ? Tema.LARANJA : Tema.LINHA;
+        p.retangulo(x, y, w, h, h / 2, foco && c != '1' && c != 'p' ? Tema.COMENTARIO : fundo);
+        float cx = c == '1' ? x + w - h / 2 : c == 'p' ? x + w / 2 : x + h / 2;
+        p.circulo(cx, y + h / 2, h / 2 - 5, Tema.TEXTO);
+    }
+
+    private static void fundoLinha(Pintor p, float y, boolean f) {
+        if (f) {
+            p.retangulo(MX, y, CONTEUDO, AJ_LINHA_H - 6, 12, Tema.LINHA);
+            p.contorno(MX - 4, y - 4, CONTEUDO + 8, AJ_LINHA_H + 2, 16, 4, Tema.ROSA);
+        } else {
+            p.retangulo(MX, y, CONTEUDO, AJ_LINHA_H - 6, 12, Tema.CARTAO);
+        }
+    }
+
+    private static void listaChaves(Pintor p, Modelo m) {
+        Ajustes a = m.ajustes;
+        for (int i = 0; i < Ajustes.IDS.length; i++) {
+            float y = AJ_LINHA_Y + i * AJ_LINHA_H;
+            boolean f = a.zona == Ajustes.ZONA_LINHAS && a.linha == i;
+            char c = a.estadoDe(i);
+            fundoLinha(p, y, f);
+            int cor = c == '-' ? Tema.TEXTO_2 : Tema.TEXTO;
+            p.texto(Ajustes.ROTULOS[i], MX + 24, y + 38, Pintor.SANS_SEMI, 30, cor, Pintor.ESQ);
+            if (c == '1' || c == '0' || c == 'p') chave(p, AJ_CHAVE_X, y + 7, c, f);
+            int ce = c == '1' ? Tema.VERDE : c == 'p' ? Tema.LARANJA : c == '0' ? Tema.TEXTO_2 : Tema.COMENTARIO;
+            float ex = (c == '1' || c == '0' || c == 'p') ? AJ_ESTADO_X : AJ_CHAVE_X;
+            p.texto(Ajustes.rotuloEstado(c), ex, y + 37, Pintor.SANS, 28, ce, Pintor.ESQ);
+        }
+        float ty = AJ_LINHA_Y + Ajustes.IDS.length * AJ_LINHA_H + 40;
+        int sel = a.linha;
+        for (String l : quebrar(p, Ajustes.FAZ[sel], Pintor.SANS, 27, CONTEUDO, 2)) {
+            p.texto(l, MX, ty, Pintor.SANS, 27, Tema.TEXTO, Pintor.ESQ);
+            ty += 34;
+        }
+        int nr = Ajustes.NIVEL_RISCO[sel];
+        int cr = nr == 2 ? Tema.VERMELHO : nr == 1 ? Tema.AMARELO : Tema.VERDE;
+        String corpo = Ajustes.NIVEIS[nr] + Ajustes.RISCO[sel];
+        for (String l : quebrar(p, corpo, Pintor.SANS_SEMI, 27, CONTEUDO, 2)) {
+            p.texto(l, MX, ty, Pintor.SANS_SEMI, 27, cr, Pintor.ESQ);
+            ty += 34;
+        }
+    }
+
+    private static void listaDiario(Pintor p, Modelo m) {
+        Ajustes a = m.ajustes;
+        for (int i = 0; i < Ajustes.DIARIO_ROTULOS.length; i++) {
+            float y = AJ_LINHA_Y + i * AJ_LINHA_H;
+            boolean f = a.zona == Ajustes.ZONA_LINHAS && a.linha == i;
+            fundoLinha(p, y, f);
+            p.texto(Ajustes.DIARIO_ROTULOS[i], MX + 24, y + 38, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+            if (i == 0) {
+                char c = a.estadoDiario();
+                if (c == '1' || c == '0') chave(p, AJ_CHAVE_X, y + 7, c, f);
+                int ce = c == '1' ? Tema.VERDE : c == '0' ? Tema.TEXTO_2 : Tema.COMENTARIO;
+                float ex = (c == '1' || c == '0') ? AJ_ESTADO_X : AJ_CHAVE_X;
+                p.texto(a.rotuloEstadoDiario(), ex, y + 37, Pintor.SANS, 28, ce, Pintor.ESQ);
+            } else if (!a.diarioLido()) {
+                p.texto("Não consegui ler", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.COMENTARIO, Pintor.ESQ);
+            } else if (a.diarioPedido()) {
+                p.texto("Pedido feito, esperando o PC", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.AMARELO, Pintor.ESQ);
+            } else {
+                p.texto("OK para pedir", AJ_CHAVE_X, y + 37, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+            }
+        }
+        float ty = AJ_LINHA_Y + Ajustes.DIARIO_ROTULOS.length * AJ_LINHA_H + 40;
+        String tam = a.diarioLido() ? Ajustes.rotuloTamanho(a.diarioBytes()) + " de 512 KB" : "não consegui ler";
+        p.texto("Tamanho do diário: " + tam, MX, ty, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+        ty += 42;
+        p.texto("Último envio ao PC: " + Ajustes.rotuloEnvio(a.diarioEnvio), MX, ty, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+        ty += 64;
+        int sel = a.linha;
+        for (String l : quebrar(p, Ajustes.DIARIO_FAZ[sel], Pintor.SANS, 27, CONTEUDO, 2)) {
+            p.texto(l, MX, ty, Pintor.SANS, 27, Tema.TEXTO, Pintor.ESQ);
+            ty += 34;
+        }
+        for (String l : quebrar(p, Ajustes.DIARIO_RISCO[sel], Pintor.SANS_SEMI, 27, CONTEUDO, 2)) {
+            p.texto(l, MX, ty, Pintor.SANS_SEMI, 27, Tema.VERDE, Pintor.ESQ);
+            ty += 34;
+        }
+    }
+
+    private static void painelAjustes(Pintor p, Modelo m) {
+        Ajustes a = m.ajustes;
+        p.gradiente(0, 0, LARGURA, ALTURA, Tema.FUNDO, Tema.FUNDO_BASE);
+        titulo(p, "Ajustes do sistema", MX, ENT_TITULO);
+        if (a.abas() > 1) {
+            for (int i = 0; i < a.abas(); i++) {
+                chip(p, MX + i * (300 + VAO), AJ_ABA_Y, 300, Ajustes.ABAS[i], a.aba == i, a.zona == Ajustes.ZONA_ABA && a.aba == i);
+            }
+        }
+        if (a.aba == Ajustes.ABA_DIARIO) listaDiario(p, m);
+        else listaChaves(p, m);
+        String dica;
+        if (a.confirmando == a.linha) dica = "Aperte OK de novo para confirmar    Outra seta: desistir";
+        else if (a.pedindo != null) dica = "Enviando o pedido ao projetor...";
+        else if (a.aba == Ajustes.ABA_DIARIO) dica = "Cima e baixo: escolher    OK: aplicar    Voltar: fechar";
+        else dica = "Cima e baixo: escolher    OK: ligar ou desligar    Voltar: fechar";
+        p.texto(dica, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        if (m.aviso != null) p.texto(m.aviso, DIREITA, 1030, Pintor.SANS_SEMI, 28, Tema.AMARELO, Pintor.DIR);
     }
 
     private static void painelDireito(Pintor p, Modelo m, boolean vent) {

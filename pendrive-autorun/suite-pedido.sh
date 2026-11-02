@@ -13,6 +13,8 @@ HOME_DIR="$R/data/data/com.pfl7560.home"
 PEDIDO_DIR="$VERIF_DIR"
 LUZ_ARQ="$SUITE/luz"
 CURVAS="$SUITE/suite-curvas.sh"
+CHAVES="$SUITE/suite-chaves.sh"
+DIARIO="$SUITE/suite-diario.sh"
 HIDEBUG="$R/vendor/bin/hidebug"
 INTERVALO_MIN=600
 DONO_UID=0
@@ -21,8 +23,10 @@ APP_UID_MIN=10000
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="042b2747298bde0be715825eb11bb852"
+SUITE_MD5="a742d1b64ac538698a8efdab420045aa"
 CURVAS_MD5="b665fae4369ecaf95a126023c4ea22df"
+CHAVES_MD5="d1c3f7f398cfe5a481935b2a2ae9de9a"
+DIARIO_MD5="90caa1f05da00c43a29dd364ed3afb69"
 # SUITE_MD5_FIM
 
 LOG(){ echo "[PFL7560-suite-pedido] $*"; }
@@ -140,6 +144,24 @@ tratar_curva(){
   curvas_chamar pedido "${1#curva-}" "$2"
 }
 
+chaves_chamar(){
+  if ! { arq_seguro "$CHAVES" && [ "$(md5_de "$CHAVES")" = "$CHAVES_MD5" ]; }; then
+    LOG "[ERRO] suite-chaves.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."
+    return 1
+  fi
+  timeout 120 sh "$CHAVES" "$@"
+}
+tratar_chave(){
+  chaves_chamar pedido "$1"
+}
+tratar_diario(){
+  if ! { arq_seguro "$DIARIO" && [ "$(md5_de "$DIARIO")" = "$DIARIO_MD5" ]; }; then
+    LOG "[ERRO] suite-diario.sh ausente, link, de outro dono ou com md5 diferente do embutido - NAO executado."
+    return 1
+  fi
+  timeout 60 sh "$DIARIO" pedido "$1"
+}
+
 if [ "${1:-}" = "aplicar-luz" ]; then
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - luz nao reaplicada."; exit 1; }
   [ -e "$LUZ_ARQ" ] || exit 0
@@ -182,7 +204,7 @@ tratar_descanso(){
 NOME="${3:-}"
 case "$NOME" in
   pedir-verificacao|descanso-inicio|descanso-fim) PEDIDO_DIR="$VERIF_DIR" ;;
-  luz|curva-vent|curva-led) PEDIDO_DIR="$HOME_DIR" ;;
+  luz|curva-vent|curva-led|chave|diario) PEDIDO_DIR="$HOME_DIR" ;;
   *) exit 0 ;;
 esac
 [ "${2%/}" = "$PEDIDO_DIR" ] || exit 0
@@ -194,6 +216,8 @@ if [ "$DO_APP" = "1" ]; then
   case "$NOME" in
     luz) ler_pedido_app luz 16 || DO_APP=0 ;;
     curva-vent|curva-led) ler_pedido_app "$NOME" 200 || DO_APP=0 ;;
+    chave) ler_pedido_app chave 64 || DO_APP=0 ;;
+    diario) ler_pedido_app diario 32 || DO_APP=0 ;;
   esac
 fi
 rm -f "$PEDIDO_DIR/$NOME"
@@ -209,6 +233,8 @@ if [ -e "$PEDIDO_DIR/$NOME" ] || [ -L "$PEDIDO_DIR/$NOME" ]; then
 fi
 if [ "$DO_APP" != "1" ]; then LOG "[AVISO] o pedido nao veio do app (dono do arquivo nao e o da pasta do app) - ignorado."; exit 0; fi
 if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
+if [ "$NOME" = "chave" ]; then tratar_chave "$LUZ_BRUTO"; exit 0; fi
+if [ "$NOME" = "diario" ]; then tratar_diario "$LUZ_BRUTO"; exit 0; fi
 case "$NOME" in curva-*) tratar_curva "$NOME" "$LUZ_BRUTO"; exit 0 ;; esac
 case "$NOME" in descanso-*) tratar_descanso "${NOME#descanso-}"; exit 0 ;; esac
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi

@@ -48,6 +48,29 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
   Android 9 recusa).
 - O `install.bat` só é testado como texto (não há Windows aqui).
 
+## `test-chaves.sh` (bloco 24)
+
+- 228 verificações sobre `suite-chaves.sh` com `getprop`/`setprop`/`pm`/`ip`/`stop`/`start` de mentira e uma árvore
+  `$R` de mentira para `/sys`. Cobre: estado real de cada chave, escolha só gravada se confirmou, padrões do boot,
+  `debloat-revertido`, `deb_lnch` sem home, resgate por arquivo, `higallery` nunca tocado (inclusive com lista
+  contaminada) e segurança do pedido (id inválido, ação inválida, injeção com `;`, pedido enorme, link no lugar do
+  arquivo, UID que não é de app, script adulterado pelo md5).
+- Entra no `make check-kit`.
+
+## `test-diario.sh` e `test-pc-diario.sh` (bloco 24)
+
+- `test-diario.sh` (109 verificações): `suite-diario.sh` com `getprop`/`setprop` de mentira e `$R` de mentira. Linha
+  no formato (ASCII, sem espaço no valor, `-` nos ausentes), revezamento dos 2 arquivos em `PFL_DIARIO_MAX`, eventos
+  da fila (até 5 e `,+N`), `ligar`/`desligar` e a marca do dono, `enviar`/`enviado`, o laço (pid conferido pelo
+  `cmdline`; `parar` não mata pid alheio), pedido da home (`v1 ...`, injeção, pedido enorme, link no lugar do
+  arquivo/pasta/fila, pasta pai aberta, script adulterado pelo md5). `CASOS=c_x` roda só os casos escolhidos.
+- `test-pc-diario.sh` (53 verificações): `pfl7560-diario.sh` com `adb` de mentira. Aparelho errado ou sem `PFL_IP`
+  (2), fora do ar (0), hora corrigida pelo uptime (origem `pc`), boot nunca visto com relógio plausível (`ap`) e sem
+  hora (`sem`, arquivo `diario-0000-00.txt`), nada repetido em duas buscas, linha pela metade ignorada, e o aviso
+  `enviado`. Também confere as unidades `systemd/` e `install.sh --diario` (copia, não habilita nada, recusa
+  caminho com espaço). Os dois entram no `make check-kit`.
+
+
 ## `test-camcheck.sh` e `test-tela.sh`
 
 - Rodam o `nl_camcheck` e o `nl_tela` do host (o mesmo `.c` do binário ARM) sobre os quadros reais de

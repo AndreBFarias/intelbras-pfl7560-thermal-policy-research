@@ -23,10 +23,13 @@ Nada aqui fala com o projetor nem com a câmera: os scripts do kit e do PC rodam
 | `atualizar-md5-kit.sh --check` | as listas de md5 embutidas no kit estão em dia |
 | `test-kit-pendrive.sh` | `newlink_update.sh` e `cor.sh` reais: térmica, cor, app, home, sobreposições, marca, desinstalar, instaladores |
 | `test-suite.sh` | `suite.sh`, `suite-boot.sh` e `suite-pedido.sh` reais: gatilhos, etapas, vigia, descanso, luz, resumo |
+| `test-chaves.sh` | `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24): estado lido, aplicar/voltar, padroes do boot, resgate, pedido da home, pacotes intocaveis |
+| `test-diario.sh` | `suite-diario.sh` (diario do projetor, bloco 24): linha por minuto, 2 arquivos que se revezam, eventos das chaves, ligar/desligar, enviar, pedido da home, seguranca |
 | `test-preparar-pendrive.sh` | `install.sh --pendrive [--com-firmware]` e `preparar-pendrive.sh` com discos de mentira e `.bin` falsos pequenos |
 | `test-processos.sh` | `pfl7560-processos.sh` com uma saída de `top` gravada (`fixtures/processos/`) |
 | `test-pc-marca-vlc.sh` | `pfl7560-marca.sh` e `pfl7560-vlc.sh` (a partição `logo` vira um arquivo) |
 | `test-qualidade.sh` | `pfl7560-qualidade.sh` (os ajustes de imagem num arquivo) |
+| `test-pc-diario.sh` | `pfl7560-diario.sh` (busca o diario no PC, corrige a hora pelo uptime, sem repetir linha), unidades systemd e `install.sh --diario` |
 
 Os testes imprimem `N verificacoes, 0 falha(s)` (o `make check` imprime `integridade OK`) e saem diferente de 0
 se algo falhar. As contagens atuais estão em
