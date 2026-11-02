@@ -31,6 +31,8 @@ listas md5. Resolver refazendo os APKs e rodando `bash tests/atualizar-md5-kit.s
 - `docs/MAPA.md` (`requirements.txt`) e `docs/codigo/pc.md` (`--dev`, git-lfs).
 - Teams congelando com o projetor como monitor: sem causa.
 - `escada=ausente` no relatório da suíte (`suite.sh:799`), anotado em `2026-11-01-tarefa-curas-do-doc-49.md`.
+- `le_temp` (`suite-curvas.sh`) não detecta `env_temp` congelado com anéis defasados (doc 37). Achado do R1 no
+  bloco 25; vira tarefa do próximo bloco.
 - Roteiro de medida do doc 49 (bloco 22): o dono decidiu pular; o uso do dia a dia confirma.
 
 ## Regras que não mudam
