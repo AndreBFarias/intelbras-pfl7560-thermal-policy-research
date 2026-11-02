@@ -676,6 +676,15 @@ pendrive for montado.
   linhas do `build.prop` estão no fim;
 - **records da S5 contra os da S6:** 0 a 13 iguais (entrada da tabela e payload), inclusive o record 6 (a arte);
   o 14 difere (o vendor); 15 a 18 com o payload igual e o offset 4096 B adiante (o record 14 cresceu um bloco).
+- **conferência independente (C1, 2026-11-02):** uma 3ª geração, de um stock extraído de novo do zip (sha256
+  `08d37bbb…`), na árvore `integracao` depois dos commits da S6, deu o mesmo `a1edaca9…`; cabeçalho S5 x S6 só
+  difere no `checksum1` e no tamanho total; o CRC do prefixo do record 14 confere com o payload (`0x3d19ae9e`);
+  dos 790 caminhos do vendor, só o `PFL7560Home.apk` difere da S5 (conteúdo; modo, dono e rótulo iguais), os 52
+  arquivos do manifesto têm o md5, o modo, o dono e o rótulo da linha deles, e contra o stock nenhum dos 712
+  caminhos sumiu e só os 3 fixes mudaram. De ponta a ponta numa pasta do PC (não no pendrive): `./install.sh
+  --pendrive <pasta> --com-firmware` pôs a S6 (`a1edaca9…`) e o pré-voo real a APROVOU; com a S5 gravada
+  (`3f3023b0…`) no lugar do `usb_update.bin`, o mesmo pré-voo a RECUSOU (item 1). `test-preflight-flash.sh` ganhou
+  esse caso e a conferência de que o pré-voo lê o `.md5` da S6 e de que ele difere do da S5 (140 verificações).
 
 **O que mudou no repositório com a S6** (o mínimo para o pendrive e o pré-voo usarem a S6):
 
