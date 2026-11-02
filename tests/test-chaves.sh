@@ -405,6 +405,19 @@ c_resgate(){
   afirma '[ "$(escolha eth0)" = 0 ]' "eth0 nao confirmou e a escolha ficou '$(escolha eth0)' (o boot religaria)"
   limpa
 
+  novo_cenario "wifi: o chip que some ao dormir nao fica escolhido (o boot nao repete)"
+  instala
+  ch aplicar wifi_pwr ligar
+  afirma '[ "$(escolha wifi_pwr)" = 1 ]' "preparo: escolha '$(escolha wifi_pwr)'"
+  ch aplicar wifi_pwr desligar
+  # o power/control aponta para o idVendor: gravar "auto" faz o chip sumir da lista do USB
+  rm -f "$R/sys/bus/usb/devices/1-3/power/control"; ln -s ../idVendor "$R/sys/bus/usb/devices/1-3/power/control"
+  ch aplicar wifi_pwr ligar
+  afirma '[ "$RC" != 0 ] && [ "$(escolha wifi_pwr)" = 0 ]' "o chip sumiu e a escolha ficou '$(escolha wifi_pwr)' (rc=$RC)"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1-2)" = "wifi_pwr:sumiu" ]' "aviso: '$(prop_ vendor.pfl7560.chaves_aviso)'"
+  afirma 'grep -q " wifi_pwr ligar sumiu$" "$S/diario.fila"' "a fila do diario nao registrou o sumico"
+  limpa
+
   novo_cenario "resgate: aparelho sem eth0 e sem chip nao quebra"
   instala
   rm -rf "$R/sys/class/net/eth0" "$R/sys/bus/usb/devices/1-3"

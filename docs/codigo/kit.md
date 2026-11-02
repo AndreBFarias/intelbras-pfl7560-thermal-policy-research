@@ -208,7 +208,9 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   ligar|desligar`, `resgate` (desliga todas), `pacotes-fora` (lista que o `desligar_apps` do boot respeita).
 - Estado posicional em `vendor.pfl7560.chaves` (um caractere por chave: `1` ligada, `0` desligada, `p` parcial, `-` não
   existe, `?` não li). O aviso da última ação em `vendor.pfl7560.chaves_aviso` = `id:codigo:epoch`. Escolhas do dono em
-  `$SUITE/chaves.escolhas`; a escolha só é gravada se o estado relido confirmou (ou se a chave não existe aqui).
+  `$SUITE/chaves.escolhas`; a escolha só é gravada se o estado relido confirmou (ou se a chave não existe aqui). Se a
+  coisa existia e **sumiu** com a mudança (o chip Wi-Fi que cai do barramento), o aviso é `sumiu` e a escolha vira 0,
+  para o boot não repetir: reiniciar devolve o aparelho.
 - Padrões ao instalar (sem escolha explícita): os cinco grupos de debloat e o log do vplugin ligados; eth0, chip Wi-Fi,
   web/cmdsrv e keystone desligados. `debloat-revertido` segura só `deb_vlc`. `deb_lnch` só liga com a home instalada
   e ativa. O protetor de tela não entra no debloat.

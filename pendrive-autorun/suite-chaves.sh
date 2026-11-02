@@ -313,12 +313,21 @@ aplicar_chave(){
 # aplica, confere pela leitura e diz o resultado; $3 = guardar | nao
 fazer(){
   _alvo=1; [ "$2" = "desligar" ] && _alvo=0
+  _antes=$(estado_de "$1")
   aplicar_chave "$1" "$2"; _rc=$?
   _lido=$(estado_de "$1")
   if [ "$_rc" = 2 ]; then
     avisar "$1" "${AVISO_COD:-recusado}"
     fila_anotar "$1" "$2" recusado
     return 2
+  fi
+  # existia e sumiu com a mudanca (o chip Wi-Fi que cai do barramento ao dormir):
+  # escolha 0, para o boot nao repetir; reiniciar devolve o aparelho
+  if [ "$_lido" = "-" ] && [ "$_antes" != "-" ]; then
+    gravar_escolha "$1" 0
+    avisar "$1" sumiu
+    fila_anotar "$1" "$2" sumiu
+    return 1
   fi
   if [ "$_lido" = "-" ]; then
     [ "$3" = "guardar" ] && gravar_escolha "$1" "$_alvo"

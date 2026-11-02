@@ -38,11 +38,11 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-83c53f66caeb9b225e411ae428097474  suite.sh
-9018d446eac04b51d188cc9c1c5209d5  suite-boot.sh
-712efb1a0af6a7994943b1a798ff25b3  suite-pedido.sh
+9a7a0f44f953e0b7490316db909a438d  suite.sh
+3aed4d754a2a8e90af3ec5f4dc7f7cce  suite-boot.sh
+12428936dd93864590f0b73aa36918a3  suite-pedido.sh
 60aa994d0f34b6dd002a1a4a5ba7668b  suite-curvas.sh
-15805312fd436822b17271d391ae3d01  suite-chaves.sh
+d1c3f7f398cfe5a481935b2a2ae9de9a  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
