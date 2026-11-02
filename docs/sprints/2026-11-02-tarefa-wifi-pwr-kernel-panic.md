@@ -17,13 +17,18 @@
 - `echo on > /sys/bus/usb/devices/1-3/power/control` e `suite-chaves.sh aplicar wifi_pwr desligar`
   (escolha gravada 0, prop `1111111010`, rede ok).
 
+## Decisão do dono (AskUserQuestion, 2026-11-02)
+
+"Só remove o gatilho das escolhas então já que causa isso": `wifi_pwr` deixa de ser uma escolha.
+
 ## Cura na origem
 
-- O kit recusa `wifi_pwr ligar` (aplicar e boot): registra no log que a medida derruba o kernel e grava 0. A
-  escolha 1 que estiver no `chaves.escolhas` vira 0 no boot. Posição na prop fica (`-`/0).
-- Doc 49 (hardware): o autosuspend do AIC8800 é inseguro neste driver; prova = o trecho do ramoops.
+- `wifi_pwr` sai das escolhas: `aplicar`/`pedido` recusam o id, o `boot` não reaplica e apaga a linha
+  `wifi_pwr=` que estiver no `chaves.escolhas`, e escreve `on` no `power/control` do chip (desfaz um `auto` velho).
+- A posição na prop `chaves` fica reservada (sempre `-`) para não deslocar os outros ids; a home já não mostra a
+  linha. Docs (49, MAPA) dizem por quê, com o trecho do ramoops.
 
 ## Como se prova (no PC)
 
-- `tests/test-chaves.sh`: `aplicar wifi_pwr ligar` recusa e não escreve `auto`; boot com `wifi_pwr=1` grava 0 e
-  escreve `on`.
+- `tests/test-chaves.sh`: `aplicar wifi_pwr ligar` recusa e não escreve `auto`; boot com `wifi_pwr=1` no arquivo
+  apaga a linha e escreve `on`; a prop mostra `-` na posição 8. Vai no bloco 29, junto com a tarefa dos testes.
