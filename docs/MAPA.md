@@ -84,6 +84,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `camcheck/nl_camcheck.c` | câmera: faixas, níveis, geometria, nitidez | `cor.sh`, `suite.sh` | `test-camcheck.sh` | 41, 44 |
 | `lcd-color-fix/lvdsctl.c` | troca o formato LVDS ao vivo | `cor.sh`, `pfl7560-lcd-color.sh` | `atualizar-md5-kit.sh` (md5 fixo) | 28, 40 |
 | `bin-build/build_fix_bin.py`, `sparse.py` | gera e confere o `.bin` | à mão | `test-builder-bin.py` | 47, 15 |
+| `bin-build/conteudo-s5.txt`, `s5/pfl7560-suite.rc`, `s5/suite-semente.sh` | build S5: a suíte no `/vendor` e a semente que a copia para o `/data` vazio no 1º boot | `.bin` S5 (init, no `boot_completed`) | `test-semente-s5.sh`, `test-builder-bin.py` | 47 §12 |
 
 ### `tests/`
 
@@ -95,6 +96,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `test-preparar-pendrive.sh`, `test-processos.sh`, `test-pc-marca-vlc.sh`, `test-qualidade.sh`, `test-fix-modelo.sh` | scripts do PC com `adb` e discos de mentira |
 | `test-logo.sh` | `nl_logo` contra o `gerar-marca.py` e o `suite-logo.sh` numa partição de mentira |
 | `test-builder-bin.py` | gerador do `.bin` (`make check-bin`) |
+| `test-semente-s5.sh` | manifesto da S5 contra o kit e a semente sob `dash` (com `PFL_S5_BIN`, o vendor do `.bin` real) |
 | `simula-padroes-kit.py`, `gerar-padroes-kit.py` | telas de cor do kit |
 | `atualizar-md5-kit.sh` | regrava (ou `--check`) as listas de md5 embutidas no kit |
 | `preparar-pendrive.sh` | **formata** um pendrive e copia o kit (não é teste) |
@@ -106,7 +108,9 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `/vendor/etc/ZYCustom.ini`, `/vendor/build.prop`, `/vendor/etc/init/hw/init.bigfish.rc` | autorun, `pfl7560-fix.sh` | firmware | os 3 fixes (o `/atv/ini/ZYCustom*.ini`, se existir, vence) |
 | `/data/vendor/pfl7560-kit/` | autorun | `cor.sh`, gancho | cópia conferida do kit, `journal`, `panelparam-original.img`, `cor.log` |
 | `/data/vendor/pfl7560-suite/` | autorun, scripts da suíte | suíte | scripts e binários conferidos; `gatilho`, `luz`, `luz-antes-descanso` (nível do `gbl` guardado no início do descanso), `historico-boot.txt`, `resultados.txt`, `ultimo.log`, `incompletas`, `marca-original/` |
-| `/vendor/etc/init/pfl7560-suite.rc` | autorun | init | serviço de boot |
+| `/vendor/etc/init/pfl7560-suite.rc` | autorun (ou o `.bin` S5, o da semente) | init | serviço de boot |
+| `/vendor/etc/pfl7560-suite/` | `.bin` S5 | `suite-semente.sh` | a suíte só leitura que a semente copia para o `/data` |
+| `/data/vendor/pfl7560-suite/semente.lista`, `semente.log`; prop `vendor.pfl7560.semente` | `suite-semente.sh` | `suite-semente.sh`, pessoa | lista da última cópia (a suíte veio inteira da semente?), registro e estado (`copiada`, `em_dia`, `data_vence`, `erro_*`) |
 | `/vendor/app/PFL7560`, `/vendor/app/PFL7560Home`, `/vendor/overlay/<Nome>/` | autorun | PackageManager (no boot) | apps e sobreposições do sistema |
 | `/atv/bootvideo/logo.jpg`, `bootanimation.zip` | autorun | boot | marca MeowCast |
 | `/data/data/com.pfl7560.verificar/pedir-verificacao`, `descanso-inicio`, `descanso-fim` | app | `suite-pedido.sh` | pedidos do app |
