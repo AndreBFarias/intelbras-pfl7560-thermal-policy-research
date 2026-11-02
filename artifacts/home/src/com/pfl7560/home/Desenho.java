@@ -22,12 +22,10 @@ public final class Desenho {
     static final float ENT_Y = 136f;
     static final float ENT_W = 296f;
     static final float ENT_H = 200f;
-    static final float ENT_X0 = DIREITA - (3 * ENT_W + 2 * VAO);
 
     static final float ATA_TITULO = 432f;
     static final float ATA_Y = 456f;
     static final float ATA_H = 172f;
-    static final float ATA_W = (CONTEUDO - 6 * VAO) / 7f;
 
     public static final int APPS_VISIVEIS = 7;
     static final float APP_TITULO = 724f;
@@ -42,9 +40,21 @@ public final class Desenho {
     private Desenho() {
     }
 
+    /** As entradas encostam na direita, quantas forem. */
+    static float entX0(Modelo m) {
+        int n = Math.max(1, m.entradas.length);
+        return DIREITA - (n * ENT_W + (n - 1) * VAO);
+    }
+
+    /** Os atalhos dividem a largura toda entre si. */
+    static float ataW(Modelo m) {
+        int n = Math.max(1, m.atalhos.length);
+        return (CONTEUDO - (n - 1) * VAO) / n;
+    }
+
     public static float centroX(Modelo m, int fileira, int i) {
-        if (fileira == Modelo.ENTRADAS) return ENT_X0 + i * (ENT_W + VAO) + ENT_W / 2;
-        if (fileira == Modelo.ATALHOS) return MX + i * (ATA_W + VAO) + ATA_W / 2;
+        if (fileira == Modelo.ENTRADAS) return entX0(m) + i * (ENT_W + VAO) + ENT_W / 2;
+        if (fileira == Modelo.ATALHOS) return MX + i * (ataW(m) + VAO) + ataW(m) / 2;
         return MX + (i - m.primeiroApp) * (APP_W + VAO) + APP_W / 2;
     }
 
@@ -83,9 +93,10 @@ public final class Desenho {
     }
 
     private static void entradas(Pintor p, Modelo m) {
-        titulo(p, "Entradas", ENT_X0, ENT_TITULO);
+        float x0 = entX0(m);
+        titulo(p, "Entradas", x0, ENT_TITULO);
         for (int i = 0; i < m.entradas.length; i++) {
-            float x = ENT_X0 + i * (ENT_W + VAO);
+            float x = x0 + i * (ENT_W + VAO);
             boolean f = m.fileira == Modelo.ENTRADAS && m.coluna == i;
             cartao(p, x, ENT_Y, ENT_W, ENT_H, f);
             int cf = f ? Tema.LINHA : Tema.CARTAO;
@@ -96,6 +107,7 @@ public final class Desenho {
 
     private static void atalhos(Pintor p, Modelo m) {
         titulo(p, "Atalhos", MX, ATA_TITULO);
+        final float ATA_W = ataW(m);
         for (int i = 0; i < m.atalhos.length; i++) {
             float x = MX + i * (ATA_W + VAO);
             boolean f = m.fileira == Modelo.ATALHOS && m.coluna == i;
@@ -155,18 +167,31 @@ public final class Desenho {
             p.texto(m.wifi, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
             x += p.largura(m.wifi, Pintor.SANS, t) + 48;
         }
-        if (m.temperatura != null) {
+        if (m.bluetooth != null) {
+            Icones.desenhar(p, Icones.BLUETOOTH, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
+            x += 46;
+            p.texto(m.bluetooth, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+            x += p.largura(m.bluetooth, Pintor.SANS, t) + 48;
+        }
+        if (m.temperatura != null || m.temperaturaPlaca != null) {
             Icones.desenhar(p, Icones.TERMOMETRO, x, ESTADO_BASE - 28, 34, Tema.TEXTO_2, Tema.FUNDO_BASE);
             x += 42;
-            p.texto("LED", x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
-            x += p.largura("LED ", Pintor.SANS, t);
-            p.texto(m.temperatura, x, ESTADO_BASE, Pintor.MONO, 27, Tema.TEXTO_2, Pintor.ESQ);
-            x += p.largura(m.temperatura, Pintor.MONO, 27) + 5;
-            p.texto("°C", x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+            if (m.temperatura != null) x = graus(p, "LED", m.temperatura, x, t) + 32;
+            if (m.temperaturaPlaca != null) graus(p, "Placa", m.temperaturaPlaca, x, t);
         }
         if (m.aviso != null) {
             p.texto(m.aviso, DIREITA, ESTADO_BASE, Pintor.SANS_SEMI, t, Tema.AMARELO, Pintor.DIR);
         }
+    }
+
+    /** "Nome nn °C" no rodape; devolve onde termina. */
+    private static float graus(Pintor p, String nome, String valor, float x, float t) {
+        p.texto(nome, x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+        x += p.largura(nome + " ", Pintor.SANS, t);
+        p.texto(valor, x, ESTADO_BASE, Pintor.MONO, 27, Tema.TEXTO_2, Pintor.ESQ);
+        x += p.largura(valor, Pintor.MONO, 27) + 5;
+        p.texto("°C", x, ESTADO_BASE, Pintor.SANS, t, Tema.TEXTO_2, Pintor.ESQ);
+        return x + p.largura("°C", Pintor.SANS, t);
     }
 
     private static void painelLuz(Pintor p, Modelo m) {

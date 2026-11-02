@@ -15,7 +15,8 @@ public final class Modelo {
     public static final int APPS_PRONTOS = 1;
 
     public static final List<String> OCULTOS = Collections.unmodifiableList(Arrays.asList(
-            "com.mobisystems.editor.office_registered", "com.newlink.cast", "com.hisilicon.miracast"));
+            "com.mobisystems.editor.office_registered", "com.newlink.cast", "com.hisilicon.miracast",
+            "com.newlink.filemanager"));
 
     public final Item[] entradas;
     public final Item[] atalhos;
@@ -25,7 +26,12 @@ public final class Modelo {
     public String hora = "";
     public String data = "";
     public String wifi;
+    /** "Bluetooth ligado/desligado/conectado"; null se nao li. */
+    public String bluetooth;
+    /** Temperatura do LED (zysys.env_temp), em graus inteiros; null se nao li. */
     public String temperatura;
+    /** Temperatura da placa (zysys.light_temp, termistor 0 do POLICY_0); null se nao li. */
+    public String temperaturaPlaca;
     public String aviso;
 
     public static final int[] LUZ_NIVEIS = {100, 80, 60, 40, 25};
@@ -50,21 +56,15 @@ public final class Modelo {
         this.atalhos = atalhos;
     }
 
+    /** A tela de sempre: duas entradas HDMI (o USB-C nao e usado) e seis atalhos. */
     public static Modelo padrao() {
-        return padrao(true);
-    }
-
-    public static Modelo padrao(boolean comUsbC) {
-        Item hdmi1 = new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1);
-        Item hdmi2 = new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2);
-        Item[] entradas = comUsbC
-                ? new Item[] {hdmi1, hdmi2, new Item("USB-C", Icones.USB_C, Acoes.USB_C)}
-                : new Item[] {hdmi1, hdmi2};
-        return new Modelo(entradas, new Item[] {
+        return new Modelo(new Item[] {
+            new Item("HDMI 1", Icones.HDMI, Acoes.HDMI1),
+            new Item("HDMI 2", Icones.HDMI, Acoes.HDMI2),
+        }, new Item[] {
             new Item("Verificar projetor", Icones.VERIFICAR, Acoes.VERIFICAR),
             new Item("Wi-Fi", Icones.WIFI, Acoes.WIFI),
             new Item("Bluetooth", Icones.BLUETOOTH, Acoes.BLUETOOTH),
-            new Item("Imagem", Icones.IMAGEM, Acoes.IMAGEM),
             new Item("Luz", Icones.LUZ, Acoes.LUZ),
             new Item("Curvas", Icones.CURVAS, Acoes.CURVAS),
             new Item("Configurações", Icones.CONFIG, Acoes.CONFIG),

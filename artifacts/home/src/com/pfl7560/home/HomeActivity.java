@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.bluetooth.BluetoothAdapter;
 import android.net.ConnectivityManager;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -71,7 +72,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         super.onCreate(b);
         Guarda.instalar(getApplicationContext());
         conferirLaco();
-        modelo = Modelo.padrao(Leitor.temUsbC());
+        modelo = Modelo.padrao();
         modelo.relogio(Calendar.getInstance());
         vista = new HomeView(this, modelo, this);
         setContentView(vista);
@@ -126,6 +127,8 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
             f.addAction(Intent.ACTION_TIMEZONE_CHANGED);
             f.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
             f.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION);
+            f.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);
+            f.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
             registerReceiver(tempo, f);
             ouvindoTempo = true;
         } catch (RuntimeException e) {
@@ -570,15 +573,25 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                 } catch (Throwable e) {
                     temp = null;
                 }
+                String placa;
+                try {
+                    placa = Leitor.temperaturaPlaca();
+                } catch (Throwable e) {
+                    placa = null;
+                }
+                final String bt = Leitor.bluetooth(app);
                 final int luz = Leitor.luzAtual(app);
                 final String r = rede;
                 final String tt = temp;
+                final String tp = placa;
                 principal.post(new Runnable() {
                     @Override
                     public void run() {
                         if (isDestroyed()) return;
                         modelo.wifi = r;
                         modelo.temperatura = tt;
+                        modelo.temperaturaPlaca = tp;
+                        modelo.bluetooth = bt;
                         modelo.luz = luz;
                         vista.invalidate();
                     }
