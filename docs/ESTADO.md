@@ -94,8 +94,8 @@ o bloco 21; desde 2026-11-02 o `--com-firmware` pôs a S5 e, desde a montagem da
 `0x883b40d6`): só os 3 fixes (escada de brilho no `ZYCustom.ini`, Wi-Fi no `build.prop`, `xiriservice` desligado no
 `init.bigfish.rc`), nos mesmos blocos do stock, com o layout de chunks, o slot e o `checksum1` do stock. Regerada
 no fim do bloco 21 a partir do stock V1.0.0.9 com o gerador sem comentário: o mesmo md5. É a que vai para o
-pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`2b1836b8a86ac1d998e0a06a3000478f`,
-CRC `0x251ba2e0`, refeita em 2026-11-02 com o app 8 e a home 9), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
+pendrive. Depois dela, só se subir limpa, a `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` (`73773135c369db5d973a724732607adb`,
+CRC `0x90d718d1`, refeita na montagem da S6 com o app 9 e a home 10), com o `.rc` da suíte, o app, a home e as 20 sobreposições. As duas
 saem iguais em duas rodadas, passam no `verificar_bin` no PC e **não foram gravadas**. **2026-11-02:** o dono decidiu
 gravar a **S5** direto (a suíte, a home, o app e o logo na imagem), sem a S4a e a S4b antes; o md5 da S5 final sai
 na montagem final, depois do conferente final (doc 47 §12, com o risco). Detalhes, ordem e roteiro:
@@ -117,9 +117,9 @@ na montagem final, depois do conferente final (doc 47 §12, com o risco). Detalh
    cima (mesmo `versionCode` 5, md5 novo) e a home ainda como tela inicial; um descanso de tela **sem** nível
    escolhido no botão Luz (a luz tem de voltar ao nível de antes); `mount | grep vendor` para saber se o `/vendor`
    tem `auto_da_alloc` ou `nodelalloc` (o `sync` antes do `mv` está no doc 44 §11).
-7. Gravar a S5 (decisão do dono de 2026-11-02, no lugar da S4a e da S4b), com backup, pré-voo aprovado e o
-   resgate oficial pronto num **outro** pendrive, pelo roteiro do doc 47 §12. Só o aparelho prova que o loader grava
-   uma build nossa e que o Android sobe com ela.
+7. Gravar a S6 (a S5 com a home do bloco 30; a S5 foi gravada e funciona desde 2026-11-02, doc 47 §13), com
+   backup, pré-voo aprovado e o resgate oficial pronto num **outro** pendrive, pelo roteiro do doc 47 §12 com a
+   §13.5 e a §14. Sem o pendrive no 1º boot, ela prova a semente do `/vendor`, que a S5 não provou.
 
 Fica de fora do tema, por decisão: o branco global do Android (`@android:color/white`), porque trocá-lo muda
 todo branco do sistema. Doc 48 §13.4.
@@ -128,7 +128,7 @@ todo branco do sistema. Doc 48 §13.4.
 
 | ID | O que falta | Doc |
 |---|---|---|
-| BIN-S5 (no lugar de BIN-S4a / BIN-S4b) | montar a S5 final, pré-voo, backup e gravar a S5 direto (decisão de 2026-11-02) | [47](research/47-build-completa.md) §12 |
+| BIN-S6 (a S5 foi gravada em 2026-11-02) | S6 montada (`a1edaca9…`): pendrive, backup, pré-voo e gravar | [47](research/47-build-completa.md) §13 e §14 |
 | LSADC-S2 | o experimento de 2 min com `gtt 0` em número ímpar (braços P0 a P3); prioridade máxima da pesquisa LSADC | [37](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) §8 e §11 |
 | LSADC-S1 | campanha passiva de ~30 h sob uso real (aberto, despriorizado) | [37](research/37-mecanismo-lsadc-defasagem-dos-aneis.md) §11, [35](research/35-sessao-2026-08-17-lsadc-espontaneo-e-pecas.md) |
 | LCD-S1 (c) | o fluxo completo do `pfl7560-lcd-color.sh` rodado no aparelho | [guia 32](guide/32-guia-troca-painel-lcd.md), [29](archive/29-roadmap-troca-lcd.md) (arquivado) |

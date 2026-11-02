@@ -32,7 +32,7 @@ Nada aqui fala com o projetor nem com a câmera: os scripts do kit e do PC rodam
 | `test-logo.sh` | `nl_logo` contra o `gerar-marca.py` (pixel a pixel e JPEG), recusas e partição; `suite-logo.sh` sob `dash` (grava, recusa, devolve, chave, resgate) |
 | `test-qualidade.sh` | `pfl7560-qualidade.sh` (os ajustes de imagem num arquivo) |
 | `test-pc-diario.sh` | `pfl7560-diario.sh` (busca o diario no PC, corrige a hora pelo uptime, sem repetir linha), unidades systemd e `install.sh --diario` |
-| `test-preflight-flash.sh` | `firmware/preflight-flash.sh` (pré-voo do flash da S5, bloco 28) sob `dash`, num pendrive de mentira com o kit real: aprova só com os 5 itens certos e recusa cada um (`usb_update.bin`, `verificar_bin`, kit e `.rc` da S5, backup no PC, stock de resgate fora do pendrive); não grava nada |
+| `test-preflight-flash.sh` | `firmware/preflight-flash.sh` (pré-voo do flash da S6; bloco 28, doc 47 §14) sob `dash`, num pendrive de mentira com o kit real: aprova só com os 5 itens certos e recusa cada um (`usb_update.bin`, `verificar_bin`, kit e `.rc` da S5, backup no PC, stock de resgate fora do pendrive); não grava nada |
 
 Os testes imprimem `N verificacoes, 0 falha(s)` (o `make check` imprime `integridade OK`) e saem diferente de 0
 se algo falhar. As contagens atuais estão em

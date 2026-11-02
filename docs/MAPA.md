@@ -58,7 +58,7 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 |---|---|---|---|
 | `install.sh`, `install.bat`, `install-firmware-pendrive.ps1` | preparam o PC (`--dev`: o que o desenvolvimento usa) e copiam o kit (e a S6, com `--com-firmware`) para o pendrive | `test-preparar-pendrive.sh`, `test-kit-pendrive.sh` (texto do `.bat`), `test-preflight-flash.sh` | INSTALL |
 | `requirements.txt` | Pillow e numpy dos geradores e testes em Python; no Debian/Ubuntu/Pop vêm do apt pelo `./install.sh --dev` (os testes rodam com `python3 -I`, que não enxerga `pip --user`) | `./install.sh --check --dev` | INSTALL |
-| `firmware/preflight-flash.sh` | pré-voo do flash da S5: só lê e recusa se algum dos 5 itens falhar | `test-preflight-flash.sh` | 47 §12 |
+| `firmware/preflight-flash.sh` | pré-voo do flash da S6: só lê e recusa se algum dos 5 itens falhar | `test-preflight-flash.sh` | 47 §12 e §14 |
 | `pfl7560-fix.sh` | térmica por adb: `apply`, `status`, `revert`, nos dois modelos | `test-fix-modelo.sh`, `make check` | 09, 42 |
 | `pfl7560-menu.sh`, `PFL7560-Corrigir.desktop` | menu sobre o `pfl7560-fix.sh` | — | INSTALL |
 | `pfl7560-saude.sh` | 12 checagens só de leitura; `--vivacidade` | — | 35, 37 |

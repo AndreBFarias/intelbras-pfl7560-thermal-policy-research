@@ -50,8 +50,8 @@ Os `.md5` da S4a e da S4b trazem o caminho `firmware/...` (conferir da raiz do r
 só o nome (conferir de dentro de `firmware/`), o formato que o `install.sh` e o `preflight-flash.sh` leem. O da S5
 fica como registro da build gravada; o `install.sh`, o `.ps1` e o pré-voo leem o da S6.
 
-As três saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5; a S4b foi refeita duas vezes em
-2026-11-02 com o mesmo `2b1836b8…`) e só ganham o nome final depois do
+As três saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5; a S4b de hoje, `73773135…`, saiu igual
+nas duas gerações do `check-bin` com o stock real) e só ganham o nome final depois do
 `verificar_bin` (doc 47 §10). `build_fix_bin.py --verificar <bin> <stock>` repete a conferência. Ele aceita só os
 records 6 (com a diretiva `logo` do manifesto) e 14 diferentes do stock.
 
