@@ -81,7 +81,15 @@ quando há um aparelho ligado na porta; sem cabo, nenhum aparece. (Revê o bloco
 - Pôr "MeowCast" no canto inferior direito da home.
 - Atualizar as prévias da home.
 
-## Estado (E1, retomado depois do reset)
+## Estado (E1, 2026-11-02, depois do reset)
 
-- O E1 anterior deixou 16 arquivos sem commit (home com `Entradas`/`Cabos`, doc 45 §14, prévias, kit, teste).
-- Próximo: achar o sinal do USB-C; commitar a home por assunto; fazer o pedido do "2 apps"/MeowCast.
+- Feito e commitado na `bloco-30`: home com HDMI só com cabo (C3 = HDMI 1, C2 = HDMI 2, já era a conta do
+  código); contador de apps fora e "MeowCast" no canto inferior direito; prévias; doc 45 §14.4 e §14.5; APK
+  versionCode 10 no kit (md5 `c47111dbad9ce3903cfedd9ba3d348b8`).
+- Provas verdes: `gerar-previas.sh` (navegação, entradas, ajustes), `make check`, `make check-kit` (todos os
+  `tests/test-*.sh` do kit, md5 do kit em dia), `test-fix-modelo.sh`, `test-builder-bin.py`,
+  `shellcheck -S warning` nos `.sh` tocados.
+- **Em aberto: o USB-C.** Nenhum sinal achado (doc 45 §14.4). Hoje o código mostra o USB-C sempre que o C1 lê 0,
+  isto é, sempre. Pedido ao coordenador: medição com uma fonte de vídeo no USB-C; se nada mudar, decisão do
+  dono entre "USB-C sempre visível" e "USB-C fora da home". As duas são uma linha em `Cabos.lerAgora` (`uc`).
+- Depois da decisão: ajustar `Cabos`/`Entradas` e o teste de modelo, refazer prévias, APK e md5 do kit; E2 confere.
