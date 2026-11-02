@@ -29,6 +29,9 @@ Conflito previsto com o bloco 26 só nas listas md5 do kit (resolver com `tests/
 
 ## Pendentes antigos
 
+- `firmware/PFL7560-S4b...md5` velho: com os APKs dos blocos 23 a 25 a S4b sai com md5 `b212798f` (+3432448 B), e o
+  `check-bin` com o stock real falha só nesse caso (achado do S1 do bloco 26, 2026-11-02).
+
 - `docs/MAPA.md` (`requirements.txt`) e `docs/codigo/pc.md` (`--dev`, git-lfs).
 - Teams congelando com o projetor como monitor: sem causa.
 - `escada=ausente` no relatório da suíte (`suite.sh:799`), anotado em `2026-11-01-tarefa-curas-do-doc-49.md`.
