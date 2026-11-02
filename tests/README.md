@@ -22,6 +22,7 @@ Nada aqui fala com o projetor nem com a câmera: os scripts do kit e do PC rodam
 | `test-tela.sh` | o `nl_tela` gera os exemplos de `fixtures/tela/` (1920x1080, nada fora das margens), entradas inválidas, fontes de reserva; saída para olhar em `tests/saida/telas/` (fora do git) |
 | `atualizar-md5-kit.sh --check` | as listas de md5 embutidas no kit estão em dia |
 | `test-kit-pendrive.sh` | `newlink_update.sh` e `cor.sh` reais: térmica, cor, app, home, sobreposições, marca, desinstalar, instaladores |
+| `test-semente-s5.sh` | a suite nativa da build S5 (bloco 26): manifesto `conteudo-s5.txt` contra o kit, e a semente do `/vendor` sob `dash` (1o boot com o `/data` vazio, kit mais novo no `/data`, `/vendor` mais novo, cópia interrompida, adulterado, pastas inseguras); com `PFL_S5_BIN=<.bin>` usa o vendor do `.bin` de verdade |
 | `test-suite.sh` | `suite.sh`, `suite-boot.sh` e `suite-pedido.sh` reais: gatilhos, etapas, vigia, descanso, luz, resumo |
 | `test-chaves.sh` | `suite-chaves.sh` (chaves de ajuste do sistema, bloco 24): estado lido, aplicar/voltar, padroes do boot, resgate, pedido da home, pacotes intocaveis |
 | `test-diario.sh` | `suite-diario.sh` (diario do projetor, bloco 24): linha por minuto, 2 arquivos que se revezam, eventos das chaves, ligar/desligar, enviar, pedido da home, seguranca |

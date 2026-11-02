@@ -76,7 +76,23 @@ basta rodar de novo. O gerador:
 
 O `conteudo.txt` leva o `.rc` da suíte, o app, a home e as 20 sobreposições, nas pastas e com os metadados que o
 kit usa (o `make check-bin` confere contra a `KIT_LISTA` e a `KIT_APPS`/`KIT_OVERLAYS` do `newlink_update.sh`).
-A suíte fica no kit, porque mora no `/data`.
+Nessa build (S4b) a suíte fica no kit, porque mora no `/data`.
+
+### `conteudo-s5.txt` e a diretiva `prop` (bloco 26)
+
+O [`conteudo-s5.txt`](conteudo-s5.txt) é a build S5: tudo do `conteudo.txt` e mais a suíte inteira em
+`/vendor/etc/pfl7560-suite` (só leitura), com o `.rc` e a semente de [`s5/`](s5/). No 1º boot a semente copia a
+suíte para o `/data` vazio e passa a vez ao `suite-boot.sh` de lá (doc 47 §12). O manifesto aceita também
+
+```
+prop chave=valor
+```
+
+que põe a linha no fim do `/vendor/build.prop` como o kit faz (apaga a linha da chave, acrescenta a nova, na ordem
+do manifesto). O gerador recusa prop fora do formato `chave.com.pontos=valor`, chave repetida e a
+`wifi_disconnect_on_boot` (ele mesmo a deriva), e confere no fim e no `--verificar` que cada linha está no
+`build.prop` exatamente uma vez. O `tests/test-semente-s5.sh` confere o manifesto contra o kit (a suíte é a
+`SEMENTE_LISTA`, as props são as `HOME_LINHA`/`FM_LINHA` do `newlink_update.sh`).
 
 ## Metadados (obrigatório — causa do brick antigo)
 

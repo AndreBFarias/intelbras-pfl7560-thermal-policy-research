@@ -71,6 +71,10 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   root e o rótulo do `init.bigfish.rc` vizinho (ou `vendor_configs_file` se o `ls -Z` não responder; o `ls -Z` é o
   único leitor de rótulo do toybox). Um `.rc` que mesmo assim fique fora do padrão é removido. O brick de julho veio
   de `.rc` 0664 e sem rótulo.
+- **O `.rc` da build S5 (bloco 26)** vale como instalado (`rc_s5`): só em `/vendor/etc/init/pfl7560-suite.rc`, só com
+  o md5 `RC_S5_MD5` (gerado pelo `atualizar-md5-kit.sh`) e só se a semente `/vendor/etc/pfl7560-suite/suite-semente.sh`
+  existir; modo, dono e rótulo são conferidos como os do `.rc` do kit. Sem a semente, o `.rc` da S5 rodaria um
+  script que não existe, e o kit põe o dele ([doc 47 §12](../research/47-build-completa.md)).
 - **Apps e sobreposições em `/vendor/app` e `/vendor/overlay`:** o `pm install` deste firmware recusa qualquer app
   de fora (`INSTALL_FAILED_INVALID_INSTALL_LOCATION`, 2026-10-30). O PackageManager varre `/vendor/app` no boot,
   como faz com o `KeymasterProvisionDemo` de fábrica. Vale no boot seguinte. O APK vem de `$WORK` (conferido),

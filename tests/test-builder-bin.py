@@ -477,7 +477,9 @@ def caso_conteudo(rotulo):
             f'- /vendor/app/PFL7560 0755 0 0 {ROTULO_APP}   # a pasta pode vir depois do arquivo\n'
             f'{novo} /vendor/etc/existente.txt 0644 0 0 {ROTULO_CFG}\n'
             f'- /vendor/etc/pfl7560 0755 0 2000 {ROTULO_CFG}\n'
-            f'- /vendor/etc/pfl7560/sub 0700 0 0 {ROTULO_CFG}\n')
+            f'- /vendor/etc/pfl7560/sub 0700 0 0 {ROTULO_CFG}\n'
+            'prop vendor.pfl7560.teste=um,dois   # chave nova: vai para o fim\n'
+            'prop vendor.newlink.filemanager.pic.player=0\n')
         out = os.path.join(d, 'saida.bin')
         rc, log = roda_builder(stock, FIX_ANTIGO, out, '--realocar', '--conteudo', man)
         afirma(rc != 0 and 'nao e um arquivo' in log, "origem com '?' devia ser recusada (nome literal)")
@@ -489,7 +491,7 @@ def caso_conteudo(rotulo):
         afirma(rc != 0 and '--realocar' in log and not os.path.exists(out),
                f"manifesto sem --realocar devia ser recusado (rc={rc}): {log.strip().splitlines()[-1:]}")
         rc, log = roda_builder(stock, FIX_ANTIGO, out, '--realocar', '--conteudo', man)
-        afirma(rc == 0 and 'VALIDO' in log and '6 entradas do manifesto' in log,
+        afirma(rc == 0 and 'VALIDO' in log and '6 entradas do manifesto + 2 linhas no build.prop' in log,
                f"builder com manifesto falhou (rc={rc}): {log.strip().splitlines()[-2:]}")
         if rc != 0:
             return
@@ -504,12 +506,22 @@ def caso_conteudo(rotulo):
             afirma(meta_de(raw, p) == ('regular', m['mode'], m['uid'], m['gid'], m['selinux'] + '\\000'),
                    f"{p}: metadados do stock mudaram")
         afirma(cat(raw, '/etc/ZYCustom.ini') == ler(FIX_ANTIGO), "ZYCustom.ini da saida difere do ini dado")
+        bp_stock = ler(os.path.join(ART, 'build.prop.STOCK')).decode()
+        esperado = ''.join(x for x in bp_stock.replace('wifi_disconnect_on_boot=1', 'wifi_disconnect_on_boot=0')
+                           .splitlines(keepends=True) if not x.startswith('vendor.newlink.filemanager.pic.player='))
+        esperado += 'vendor.pfl7560.teste=um,dois\nvendor.newlink.filemanager.pic.player=0\n'
+        afirma(cat(raw, '/build.prop').decode() == esperado,
+               "build.prop com as props do manifesto difere do derivado como o kit (sed apaga, echo acrescenta)")
         afirma(subprocess.run(['e2fsck', '-fn', raw], capture_output=True).returncode == 0,
                "e2fsck -fn da imagem de saida nao esta limpo")
         rc, vlog = verificar(out, stock, '--conteudo', man)
         afirma(rc == 0 and 'APROVADO' in vlog, f"--verificar com o manifesto reprovou: {vlog.strip().splitlines()[-3:]}")
         rc, vlog = verificar(out, stock)
         afirma(rc != 0 and 'novo e fora do manifesto' in vlog, "--verificar sem o manifesto devia acusar os arquivos novos")
+        outra = os.path.join(d, 'outra-prop.txt')
+        open(outra, 'w').write(open(man).read().replace('pic.player=0', 'pic.player=2'))
+        rc, vlog = verificar(out, stock, '--conteudo', outra)
+        afirma(rc != 0 and 'pic.player=2' in vlog, "--verificar devia acusar a prop do manifesto que o build.prop nao tem")
         rc2, _ = roda_builder(stock, FIX_ANTIGO, out + '.2', '--realocar', '--conteudo', man)
         afirma(rc2 == 0 and md5(out) == md5(out + '.2'), "saida com manifesto nao e deterministica")
         rc3, log3 = roda_builder(stock, FIX_ANTIGO, out + '.3', '--realocar')
@@ -547,14 +559,14 @@ def kit_lista():
             pastas[n] = f'{base}/{pasta}/{pasta}.apk'
     return lista, pastas
 
-def caso_manifesto_e_kit(rotulo):
+def caso_manifesto_e_kit(rotulo, manifesto=CONTEUDO):
     global CASO
     CASO = rotulo
     lista, pastas = kit_lista()
     vistos = set()
-    for origem, img, esperado in ler_manifesto(CONTEUDO):
-        if not origem:
-            continue
+    for origem, img, esperado in ler_manifesto(manifesto):
+        if not origem or os.path.relpath(origem, BB).startswith('s5' + os.sep):
+            continue   # o .rc e a semente da S5 sao do builder, nao do kit (tests/test-semente-s5.sh)
         rel = os.path.relpath(origem, os.path.join(ROOT, 'pendrive-autorun'))
         afirma(not rel.startswith('..'), f"{origem}: origem fora do pendrive-autorun")
         afirma(lista.get(rel) == md5(origem), f"{rel}: md5 {md5(origem)} != KIT_LISTA {lista.get(rel)}")
@@ -564,7 +576,7 @@ def caso_manifesto_e_kit(rotulo):
             rotulo_kit = 'vendor_overlay_file' if '/overlay/' in pastas[rel] else 'vendor_app_file'
             afirma(esperado == ('regular', '0644', '0', '0', f'u:object_r:{rotulo_kit}:s0\\000'),
                    f"{rel}: metadados {esperado} diferentes dos do kit")
-    afirma(vistos == set(pastas), f"conteudo.txt sem {sorted(set(pastas) - vistos)}")
+    afirma(vistos == set(pastas), f"{os.path.basename(manifesto)} sem {sorted(set(pastas) - vistos)}")
 
 print("== builder: manifesto --conteudo com --realocar (containers sinteticos) ==")
 caso_conteudo("manifesto com .rc, pasta e app novos, troca de conteudo e pastas aninhadas")
@@ -591,10 +603,18 @@ caso_recusa_conteudo("rotulo fora do formato", '{apk} /vendor/app/x.apk 0644 0 0
 caso_recusa_conteudo("destino repetido", '{apk} /vendor/app/x.apk 0644 0 0 {app}\n{apk} /vendor/app/x.apk 0644 0 0 {app}\n',
                      "repetido")
 caso_recusa_conteudo("linha sem 6 campos", '{apk} /vendor/app/x.apk 0644 0 0\n', "origem destino modo uid gid rotulo")
+caso_recusa_conteudo("prop do wi-fi (derivada pelo gerador)", 'prop vendor.newlink.wifi_disconnect_on_boot=1\n',
+                     "derivada do stock pelo proprio gerador")
+caso_recusa_conteudo("prop repetida", 'prop vendor.a.b=1\nprop vendor.a.b=2\n', "repetida")
+caso_recusa_conteudo("prop com espaco ou sem chave", 'prop vendor.a.b=1 2\n', "'prop chave=valor'")
+caso_recusa_conteudo("prop fora do formato", 'prop Vendor.a=$(x)\n', "fora do formato")
 print("== conteudo.txt contra o kit (sem stock) ==")
 caso_manifesto_e_kit("conteudo.txt: md5 da KIT_LISTA e pastas do kit")
+CONTEUDO_S5 = os.path.join(BB, 'conteudo-s5.txt')
+caso_manifesto_e_kit("conteudo-s5.txt: md5 da KIT_LISTA e pastas do kit", CONTEUDO_S5)
 
-def caso_real_conteudo(rotulo, stock, ini, manifesto):
+def caso_real_conteudo(rotulo, stock, ini, manifesto, md5_arq=None):
+    md5_arq = md5_arq or MD5_S4B_ARQ
     global CASO
     CASO = rotulo
     d = tempfile.mkdtemp(prefix='testbin_')
@@ -625,8 +645,8 @@ def caso_real_conteudo(rotulo, stock, ini, manifesto):
         afirma(rc == 0 and 'APROVADO' in vlog, f"--verificar reprovou: {vlog.strip().splitlines()[-3:]}")
         m1 = md5(out)
         print(f"    md5 do .bin de teste: {m1}  ({os.path.getsize(out) - os.path.getsize(stock):+d} B contra o stock)")
-        md5_s4b = open(MD5_S4B_ARQ).read().split()[0]
-        afirma(m1 == md5_s4b, f"md5 da S4b {m1} != {md5_s4b} de firmware/{os.path.basename(MD5_S4B_ARQ)} (APK ou .rc mudou: gere de novo e atualize o .md5 e o doc 47)")
+        md5_s4b = open(md5_arq).read().split()[0]
+        afirma(m1 == md5_s4b, f"md5 {m1} != {md5_s4b} de firmware/{os.path.basename(md5_arq)} (um arquivo do manifesto mudou: gere de novo e atualize o .md5 e o doc 47)")
         os.remove(out)
         rc2, _ = roda_builder(stock, ini, out, '--realocar', '--conteudo', manifesto)
         afirma(rc2 == 0 and md5(out) == m1, "saida com manifesto nao e deterministica")
@@ -640,6 +660,9 @@ if ANT and os.path.isfile(ANT):
     caso_real("stock antigo + ini antigo", ANT, FIX_ANTIGO, os.environ.get('PFL_MD5_SAIDA_ANTIGO', MD5_S4A_ANTIGO))
     print("== builder: stock V1.0.0.9 + conteudo.txt, realocado (BIN-S4b) ==")
     caso_real_conteudo("stock antigo + conteudo.txt --realocar", ANT, FIX_ANTIGO, CONTEUDO)
+    print("== builder: stock V1.0.0.9 + conteudo-s5.txt, realocado (S5, suite nativa) ==")
+    caso_real_conteudo("stock antigo + conteudo-s5.txt --realocar", ANT, FIX_ANTIGO, CONTEUDO_S5,
+                       os.path.join(ROOT, 'firmware', 'PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5'))
 else:
     print("  (PFL_STOCK_ANTIGO nao definido: stock real V1.0.0.9 pulado)")
 if NOV and os.path.isfile(NOV):

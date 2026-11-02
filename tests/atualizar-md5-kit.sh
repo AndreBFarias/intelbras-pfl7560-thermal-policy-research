@@ -11,9 +11,12 @@ CURVAS_SH="$KIT/suite-curvas.sh"
 CHAVES_SH="$KIT/suite-chaves.sh"
 DIARIO_SH="$KIT/suite-diario.sh"
 LOGO_SH="$KIT/suite-logo.sh"
+S5="$ROOT/artifacts/bin-build/s5"
+SEMENTE_SH="$S5/suite-semente.sh"
+RC_S5="$S5/pfl7560-suite.rc"
 LVDS_MD5="178d812872cb9306c0ae6faeed07184a"
 
-for f in "$SH" "$SUITE_SH" "$BOOT_SH" "$PEDIDO_SH" "$CURVAS_SH" "$CHAVES_SH" "$DIARIO_SH" "$LOGO_SH" "$KIT/nl_logo" "$KIT/debloat-aprovados.txt"; do
+for f in "$SH" "$SUITE_SH" "$BOOT_SH" "$PEDIDO_SH" "$CURVAS_SH" "$CHAVES_SH" "$DIARIO_SH" "$LOGO_SH" "$KIT/nl_logo" "$KIT/debloat-aprovados.txt" "$SEMENTE_SH" "$RC_S5"; do
   [ -f "$f" ] || { echo "FALHA: sem $f"; exit 1; }
 done
 if [ "$(md5sum "$ROOT/artifacts/lcd-color-fix/lvdsctl" | cut -d' ' -f1)" != "$LVDS_MD5" ] \
@@ -108,7 +111,10 @@ troca_bloco "$BOOT_SH" SUITE_MD5_INICIO SUITE_MD5_FIM "$TMP/b2b" "$TMP/suite-boo
 { printf 'KIT_OVERLAYS="'
   for n in $OVL_NOMES; do printf 'overlay/%s:%s\n' "$n" "${n%.apk}"; done
   echo '"'; } > "$TMP/b4"
-troca_bloco "$SH" KIT_OVERLAYS_INICIO KIT_OVERLAYS_FIM "$TMP/b4" "$TMP/newlink_update.ovl.sh"
+troca_bloco "$SH" KIT_OVERLAYS_INICIO KIT_OVERLAYS_FIM "$TMP/b4" "$TMP/newlink_update.ovl0.sh"
+# bloco 26: o .rc da build S5 (artifacts/bin-build/s5), que o rc_conforme do kit aceita no lugar do dele
+echo "RC_S5_MD5=\"$(md5 "$RC_S5")\"" > "$TMP/b6"
+troca_bloco "$TMP/newlink_update.ovl0.sh" RC_S5_INICIO RC_S5_FIM "$TMP/b6" "$TMP/newlink_update.ovl.sh"
 mkdir -p "$TMP/kit"
 cp -r "$KIT"/. "$TMP/kit/"
 rm -rf "$TMP/kit/overlay" "$TMP/kit/marca"
@@ -118,12 +124,19 @@ cp "$TMP/suite.sh" "$TMP/suite-boot.sh" "$TMP/suite-pedido.sh" "$TMP/suite-logo.
 lista="$(cd "$TMP/kit" && for f in ZYCustom.ini cor.sh lvdsctl nl_camcheck $NLTELA suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh nl_logo suite-logo.sh debloat-aprovados.txt pfl7560-suite.rc $APK kit/*.png $FONTES $OVL_LISTA $MARCA_LISTA; do md5sum "$f"; done)"
 { printf 'KIT_LISTA="%s\n' "$lista"; echo '"'; } > "$TMP/b3"
 troca_bloco "$TMP/newlink_update.ovl.sh" KIT_LISTA_INICIO KIT_LISTA_FIM "$TMP/b3" "$TMP/newlink_update.sh"
+# bloco 26: a lista que a semente da S5 copia do /vendor para o /data = os arquivos da suite que o kit
+# poe em /data/vendor/pfl7560-suite (suite_nomes do newlink_update.sh), com o mesmo md5 da KIT_LISTA
+semente_lista="$(printf '%s\n' "$lista" | grep -v -e '  ZYCustom\.ini$' -e '  pfl7560-suite\.rc$' -e '  pfl7560\.apk$' \
+  -e '  pfl7560-home\.apk$' -e '  overlay/' -e '  marca/bootanimation\.zip$')"
+{ printf 'SEMENTE_LISTA="%s\n' "$semente_lista"; echo '"'; } > "$TMP/b7"
+troca_bloco "$SEMENTE_SH" SEMENTE_LISTA_INICIO SEMENTE_LISTA_FIM "$TMP/b7" "$TMP/suite-semente.sh"
 
 if [ "${1:-}" = "--check" ]; then
   rc=0
   for f in suite.sh suite-boot.sh suite-pedido.sh suite-logo.sh newlink_update.sh; do
     cmp -s "$TMP/$f" "$KIT/$f" || { echo "FALHA: a lista md5 embutida no $f esta desatualizada (rode tests/atualizar-md5-kit.sh)"; rc=1; }
   done
+  cmp -s "$TMP/suite-semente.sh" "$SEMENTE_SH" || { echo "FALHA: a lista embutida em artifacts/bin-build/s5/suite-semente.sh esta desatualizada (rode tests/atualizar-md5-kit.sh)"; rc=1; }
   for d in overlay marca; do
     if ! diff -r "$TMP/novo/$d" "$KIT/$d" >/dev/null 2>&1; then
       echo "FALHA: pendrive-autorun/$d difere de artifacts/ (rode tests/atualizar-md5-kit.sh)"; rc=1
@@ -135,9 +148,10 @@ fi
 for f in suite.sh suite-boot.sh suite-pedido.sh suite-logo.sh newlink_update.sh; do
   cmp -s "$TMP/$f" "$KIT/$f" || cat "$TMP/$f" > "$KIT/$f"
 done
+cmp -s "$TMP/suite-semente.sh" "$SEMENTE_SH" || cat "$TMP/suite-semente.sh" > "$SEMENTE_SH"
 for d in overlay marca; do
   mkdir -p "$KIT/$d"
   for f in "$KIT/$d"/*; do [ -f "$f" ] && [ ! -e "$TMP/novo/$d/${f##*/}" ] && rm -f "$f"; done
   for f in "$TMP/novo/$d"/*; do cmp -s "$f" "$KIT/$d/${f##*/}" || cp "$f" "$KIT/$d/${f##*/}"; done
 done
-echo "listas md5 gravadas em suite.sh, suite-boot.sh, suite-pedido.sh, suite-logo.sh e newlink_update.sh; overlay/ e marca/ do kit em dia"
+echo "listas md5 gravadas em suite.sh, suite-boot.sh, suite-pedido.sh, suite-logo.sh, newlink_update.sh e s5/suite-semente.sh; overlay/ e marca/ do kit em dia"

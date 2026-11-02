@@ -17,6 +17,7 @@ deles é versionado (`*.bin.md5`). O estado da build, o que ela leva e o roteiro
 |---|---|---|
 | `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | **atual, gate BIN-S4a.** Escada, Wi-Fi e xiri **nos mesmos blocos do stock** (só o `i_size` dos 3 inodes muda; chunks, slot, cabeçalho e `checksum1` do stock). CRC do vendor `0x883b40d6`. É a que o `install.sh --com-firmware` põe na raiz do pendrive como `usb_update.bin` |
 | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `31702b647ba9b2bca98e6da625231e69` | **atual, BIN-S4b, só depois de a S4a subir.** O mesmo, mais o `.rc` da suíte, o app, a home e as 20 sobreposições (`artifacts/bin-build/conteudo.txt`), com o record 14 realocado (+3407872 B). CRC do vendor `0xd8e4e78b`. Muda de md5 sempre que um APK do kit ou o `.rc` mudar |
+| `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` | `81bb9885581356d5e46a5f612a29ae8a` | **bloco 26, só depois de a S4a e a S4b subirem.** A S4b mais a suíte inteira em `/vendor/etc/pfl7560-suite`, com uma semente que a copia para o `/data` vazio no 1º boot, e as 2 linhas do `build.prop` da home e do gerenciador (`artifacts/bin-build/conteudo-s5.txt`). Record 14 com +5132288 B, CRC do vendor `0xa9f3457a`, 1398890684 B. Não traz a marca do `/atv` nem o JEIDA ([doc 47 §12](../docs/research/47-build-completa.md)) |
 | `PFL7560-COMPLETO-NAO-GRADUADO.bin` | `397698b9…` | aposentada (bloco 21): chunks FILL e 44832 B de zeros soltos no slot, forma que o loader nunca gravou; `build_fix_bin.py --verificar` a reprova |
 | `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | aposentada (bloco 21): só a escada, com 8 chunks FILL e 53024 B de zeros soltos; `--verificar` a reprova |
 | `PFL7560-FIX-com-metadados.bin` | `16a4b42a…` | superada em 2026-07-29 (limiares de brilho de antes da escada); removida do disco |
@@ -28,10 +29,11 @@ Gerar e conferir (o stock é o `PFL7560.bin` de dentro do `Software PFL7560.zip`
 unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d /tmp/
 python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S4a-NAO-GRADUADO.bin
 python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo.txt
-md5sum -c firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5 firmware/PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin.md5
+python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt
+(cd firmware && md5sum -c PFL7560-S4a-NAO-GRADUADO.bin.md5 PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin.md5 PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5)
 ```
 
-As duas saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5) e só ganham o nome final depois do
+As três saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5) e só ganham o nome final depois do
 `verificar_bin` (doc 47 §10). `build_fix_bin.py --verificar <bin> <stock>` repete a conferência.
 
 ## Avisos
