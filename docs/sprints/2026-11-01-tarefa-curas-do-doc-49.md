@@ -24,3 +24,7 @@ e acrescentar o silêncio do log no boot, com a volta pelo mesmo arquivo do pend
 
 **Como provar.** Testes do kit verdes; no aparelho, `pm list packages -d` mostra a lista, a home, os atalhos e o tema
 funcionam, e `logcat -d | grep -c HI_VPLUGIN` cai para zero.
+
+**Anotado em 2026-11-01 (achado do F3, fora do escopo do 23):** depois de gravar a curva do LED, o
+`resultados.txt` da suíte diz `escada=ausente` (`suite.sh:799` procura os limiares de fábrica). Só o relatório
+erra; a correção térmica não muda. Entra no próximo bloco que tocar a suíte.
