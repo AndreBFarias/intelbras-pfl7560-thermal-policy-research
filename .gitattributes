@@ -72,3 +72,5 @@ artifacts/tema/marca/*             -text byte-exact
 # Bloco 14: copias de artifacts/overlay/apk/ e artifacts/tema/marca/ no kit (geradas por tests/atualizar-md5-kit.sh; md5 na KIT_LISTA)
 pendrive-autorun/overlay/*.apk      -text byte-exact
 pendrive-autorun/marca/*            -text byte-exact
+# Saidas cruas do aparelho (ps, top, dumpsys) coletadas pelos blocos de pesquisa: evidencia, byte a byte
+artifacts/re-termico/coleta-*/*     -text byte-exact

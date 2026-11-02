@@ -59,7 +59,7 @@ vendor.nl.disneyplus.DpiAdjust=true
 zysys.arc.vis=1
 nl.setting.cec.vis=true
 vendor.newlink.hisi.hdmiisdialog=1
-
+ 
 zysys.locale_selector.enable=true
 vendor.newlink.bluetooth_name=PFL7560
 zysys.sys.miracast_name=PFL7560

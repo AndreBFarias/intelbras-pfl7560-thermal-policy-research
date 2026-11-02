@@ -4,7 +4,7 @@ uid=0(root) gid=0(root) groups=0(root),1004(input),1007(log),1011(adb),1015(sdca
 Permissive
 service.adb.root=1 ro.adb.secure=[]
 ### ss -tlnp
-State       Recv-Q Send-Q Local Address:Port               Peer Address:Port
+State       Recv-Q Send-Q Local Address:Port               Peer Address:Port              
 LISTEN      0      20     0.0.0.0:4321               0.0.0.0:*                   users:(("hwtvmw@1.0-serv",pid=1603,fd=40))
 LISTEN      0      128    127.0.0.1:5037               0.0.0.0:*                   users:(("adbd",pid=3667,fd=5))
 LISTEN      0      128    0.0.0.0:80                 0.0.0.0:*                   users:(("boa",pid=1862,fd=4))
@@ -19,7 +19,7 @@ cmdsrv pid=1818 cmd=/vendor/bin/cmdsrv 15 /data/local/cmdsrv  ctx=u:r:cmdsrv:s0
 Uid:	0	0	0	0
 ### libhi_msp.so porta 4321
 open_uart_dev or mdebug thread create error
-android user version, close port 4321
+android user version, close port 4321 
 Server thread create error
 ### dumpsys cpuinfo (topo)
 Load: 8.63 / 8.62 / 7.09

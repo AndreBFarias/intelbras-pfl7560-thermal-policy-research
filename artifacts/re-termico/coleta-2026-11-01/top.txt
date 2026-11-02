@@ -2,7 +2,7 @@ Tasks: 208 total,   1 running, 199 sleeping,   0 stopped,   0 zombie
 Mem:   1004756k total,   836360k used,   168396k free,     9884k buffers
 Swap:   318924k total,    61960k used,   256964k free,   331784k cached
 400%cpu  33%user   3%nice 108%sys 250%idle   0%iow   0%irq   6%sirq   0%host
-  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS                       
  1871 shell        20   0  18M 492K 492K S 41.6   0.0  14:59.01 adbd --root_seclabel=u:r:su:s0
  1841 root         RT   0  20M 3.5M 2.4M S 36.1   0.3  18:07.51 hipluginserver
  3599 shell        20   0 5.7M 1.8M 1.3M R 22.2   0.1   0:00.15 top -n 1 -b -m 40
