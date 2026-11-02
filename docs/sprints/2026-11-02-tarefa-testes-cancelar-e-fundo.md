@@ -98,3 +98,27 @@ tela velha. Uma tecla que cair na virada da janela de 5 s da câmera pode se per
    `resultados.txt` com o `inicio=` da suíte anterior, e o `override` limpo (`getprop vendor.zy.power.tm.temp` vazio).
 4. Voltar na tela "A câmera não conseguiu ler a tela" (tampar a lente): cancela.
 5. `ls -lZ /data/data/com.pfl7560.verificar/visor` durante a suíte: `root root`, `app_data_file`.
+6. Voltar na tela de calibração da etapa 1 (lente livre, a leitura da câmera passa): a suíte para antes do `cor.sh`,
+   sem nenhuma escada pela galeria por cima da home.
+
+## Conferido (T2, bloco 29)
+
+- **Corrigido (`745e62f`):** o Voltar que chegava durante a leitura da câmera (`nl_camcheck faixas`, até 30 s sem
+  conferir) só era visto depois do `cor.sh`, que abria as telas dele pela galeria por cima da home já revelada. A
+  suíte agora confere o cancelar logo antes do `cor.sh`; caso novo no `c_visor_cancelar` (falhava sem a correção).
+- **SELinux, o que a conta prova e o que não prova.** A *leitura* pelo app vale com `Enforcing`: a tela nasce
+  `app_data_file` (tipo da pasta pai, sem `type_transition` do `vendor_shell` para lá) no nível baixo do processo
+  que cria (`s0`; para arquivo, sem `range_transition`, o kernel copia o nível baixo de quem cria), o
+  `untrusted_app` (targetSdk 28, `levelFrom=all`) tem leitura de `app_data_file` e o nível dele
+  (`s0:c512,c768`) domina `s0`; DAC `0755`/`0644`. A *escrita* do root na pasta do app (criar a `visor/`, copiar a
+  tela) depende do mesmo acesso do `vendor_shell` a `app_data_file` que o canal antigo já usa (o
+  `suite-pedido.sh` faz `mv` do `pedir-verificacao` e dos `descanso-*` dessa pasta): hoje passa porque o aparelho
+  está `Permissive`. Se um dia ficar `Enforcing` e a escrita for negada, a suíte não quebra: `visor_dir_ok` ou o
+  `cp` falham e as telas voltam pela galeria com `[AVISO] visor: ...` no log (o canal do "Verificar" pararia
+  junto, então isso não é regressão deste bloco).
+- **Sem defeito achado:** home entre as telas (só o `cor.sh` usa a galeria, por cima do visor); cancelar em toda
+  espera da suíte (`dormir`, autofoco, câmera sem prazo, rampa com o override limpo, tela final do pendrive); sem
+  resumo e sem `resultados.txt` novo; fallback (app v8, `am start` com erro, pasta link ou de UID baixo); `am start
+  -n` de activity não exportada vale porque a suíte roda como root (UID 0 passa no `checkComponentPermission`);
+  `wifi_pwr` sem caminho que escreva `auto` (aplicar, pedido, boot, resgate; a semente da S5 só copia o
+  `suite-chaves.sh` novo); md5 do kit, `SEMENTE_LISTA` e `RC_S5_MD5` em dia; APK v9 refeito com o mesmo md5.
