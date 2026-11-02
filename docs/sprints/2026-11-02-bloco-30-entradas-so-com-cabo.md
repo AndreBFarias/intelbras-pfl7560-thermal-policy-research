@@ -37,3 +37,51 @@ quando há um aparelho ligado na porta; sem cabo, nenhum aparece. (Revê o bloco
 |---|---|---|
 | E1 | Opus, high | acha o sinal e implementa (avulso: pode pedir medição no aparelho ao coordenador) |
 | E2 | Opus, high | confere, corrige, regressão |
+
+## Notas do E1 (2026-11-02)
+
+- **Sinal achado:** o estado das entradas de TV do `TvInputManager`. É API pública, sem permissão e sem root, e
+  avisa sozinha pelo `TvInputCallback.onInputStateChanged`.
+  - O `system_server` (`TvInputHardwareManager`) marca a entrada `.../HiHdmiTvInputService/HDMI0000C<porta>` com
+    0 quando há cabo e 1 quando não há, a partir do hotplug do `HdmiControlService`.
+  - A porta é a fonte − 8: C3 = HDMI 1, C2 = HDMI 2, C1 = USB-C.
+  - O teste de fábrica (`NLAutoTest`) usa exatamente essa conta e `getInputState(id) == 0`.
+  - Prova e descartados (broadcast só para o `com.zhiying.settings`, `HdmiControlManager` com `HDMI_CEC`): doc 45 §14.
+- **Sem prop nova nem vigia:** a suíte não muda.
+- **Decisões:**
+  - Um botão por porta com cabo, na ordem HDMI 1, HDMI 2, USB-C.
+  - Falha aberta: sem leitura, ou com a porta ausente entre as entradas de TV, o botão aparece.
+  - Um cabo novo nunca puxa o foco, salvo na primeira leitura, se o dono ainda não mexeu.
+- **Falta medir no aparelho (doc 45 §14.4):** `dumpsys tv_input | grep -E 'HDMI0000C[0-9]+: '`, sem cabo e com
+  cabo em cada porta.
+  - Esperado: `state: 1` sem cabo e `state: 0` com cabo.
+  - O risco maior é o USB-C (C1).
+
+## Medições no aparelho (2026-11-02, coordenador, só leitura)
+
+`dumpsys tv_input`, entrada `.../HiHdmiTvInputService/HDMI0000C<n>` (0 = conectado, 1 = sem cabo):
+
+| cabos ligados | C1 | C2 | C3 | hdmirx `OffLineDetStatus` | `vendor.nl.setting.hdmi.state` |
+|---|---|---|---|---|---|
+| HDMI 1 e HDMI 2 (USB-C vazio) | 0 | 0 | 0 | port0/1/2 On, port3 Off | 3 |
+| nenhum | 0 | 1 | 1 | port0 On, port1/2/3 Off | 0 |
+| só HDMI 1 | 0 | 1 | 0 | - | - |
+
+- **Mapeamento confirmado:** C3 = HDMI 1, C2 = HDMI 2 (o que o código já faz: fonte − 8). O HDMI pelo
+  `TvInputManager` funciona.
+- **USB-C:** nunca teve nada ligado e o C1 sempre lê 0 ("conectado"); o port0 do hdmirx também fica sempre On.
+  O `TvInputManager` **não** serve para o USB-C, e a falha aberta mostraria o USB-C sempre, o contrário do pedido.
+  Falta achar outro sinal; se não houver um confiável, a decisão (mostrar sempre ou esconder) é do dono, pelo
+  coordenador. O E1 não decide sozinho.
+- `zysys.source.*` não muda com o cabo.
+
+## Pedido novo do dono (2026-11-02)
+
+- Tirar da home o texto do contador de apps ("2 apps").
+- Pôr "MeowCast" no canto inferior direito da home.
+- Atualizar as prévias da home.
+
+## Estado (E1, retomado depois do reset)
+
+- O E1 anterior deixou 16 arquivos sem commit (home com `Entradas`/`Cabos`, doc 45 §14, prévias, kit, teste).
+- Próximo: achar o sinal do USB-C; commitar a home por assunto; fazer o pedido do "2 apps"/MeowCast.
