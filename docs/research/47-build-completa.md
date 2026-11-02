@@ -11,9 +11,10 @@ sem USB-C com esta base. Spec: [bloco 12](../sprints/2026-10-31-bloco-12-build-c
 > (`PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin`, md5 `2b1836b8…` com o app versionCode 8 e a home 9, refeita em
 > 2026-11-02; no fim do bloco 21 era `31702b64…`).
 
-> **Bloco 26 (2026-11-02): a §12 é a build S5**, com a suíte inteira no `/vendor` e uma semente que a copia para o
-> `/data` vazio no 1º boot (`PFL7560-S5-COMPLETO-NAO-GRADUADO.bin`, md5 `81bb9885…`). Não muda a ordem da §11:
-> ela é a 3ª gravação, só depois de a S4a e a S4b subirem.
+> **Blocos 26 a 28 (2026-11-02): a §12 é a build S5**, com a suíte inteira no `/vendor`, uma semente que a copia
+> para o `/data` vazio no 1º boot e o logo na partição `logo` (`PFL7560-S5-COMPLETO-NAO-GRADUADO.bin`). **Muda a
+> ordem da §11 por decisão do dono:** a S5 é gravada direto, sem gravar antes a S4a e a S4b (§12, "Decisão de
+> 2026-11-02").
 
 Pedido do dono: "nossa nova build vai conferir isso tudo né? por default? [...] ter essas correções e o sistema
 operacional todo prontinho."
@@ -349,6 +350,9 @@ na gravação (doc 41 §3, inferido): quem tem painel JEIDA refaz a cor pelo kit
 
 Se a 1ª travar, o resgate é o da §8 e a causa entra neste doc antes de outra tentativa (o antigo BIN-S5).
 
+**2026-11-02: o dono trocou esta ordem.** A próxima gravação é a S5 da §12, direto, sem a S4a e a S4b antes
+(decisão e risco na §12).
+
 ## 12. Build S5: a suíte nativa no `/vendor` (bloco 26)
 
 Pedido do dono: "então vamos criar o novo firmware, certo? o que vai conter tudo de forma nativa?"
@@ -397,17 +401,23 @@ semente. O `DESINSTALAR-SUITE.txt` tira o `.rc` da S5 também, e com ele a semen
   verificação sozinho, só o aparelho mostra. Pela home ("verificar"), a cor volta sem pendrive.
 
 O resto, que antes vinha do kit no 1º boot, agora sai do `suite-boot.sh` copiado pela semente: sobreposições
-ligadas, debloat, descanso de tela, curvas, chaves, diário e o logo automático do carregador (a partição `logo`, abaixo).
+ligadas, debloat, descanso de tela, curvas, chaves, diário, "Desligar no descanso" (padrão ligado, 10 min), o VLC
+fora do usuário 0 (uma vez, se o pacote existir na imagem) e o logo automático do carregador (a partição `logo`,
+abaixo).
 
 **Build e provas (no PC, 2026-11-02):**
 
 | Build | md5 | Tamanho | CRC do vendor | Record 14 | Record 6 |
 |---|---|---|---|---|---|
-| `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` (bloco 28, a atual) | `253b01c95b2dd121408fc3c0817bf219` | 1398894780 B | `0xe0263cf7` | 85729428 B (+5136384 B contra o stock) | 106496 B (= stock), CRC `0x9c066411` |
+| **S5 final** (o kit depois do conferente final: app 8, home 9, "Desligar no descanso", VLC no boot) | **a conferir**: sai na montagem final (roteiro abaixo, passo 2) e entra aqui, no `firmware/README.md` e no `.md5` no mesmo commit | a conferir | a conferir | a conferir | 106496 B (= stock), arte `78b23ece…` (o `ARTE_MD5` não mudou) |
+| a do bloco 28 (superada pelo conferente final; o `.md5` ainda a traz até a montagem final) | `253b01c95b2dd121408fc3c0817bf219` | 1398894780 B | `0xe0263cf7` | 85729428 B (+5136384 B contra o stock) | 106496 B (= stock), CRC `0x9c066411` |
 | a do bloco 26 (superada) | `81bb9885581356d5e46a5f612a29ae8a` | 1398890684 B | `0xa9f3457a` | 85725332 B (+5132288 B) | = stock |
 
-A S5 do bloco 28 sai com o kit do Cast verde (o vendor cresce 4096 B com a arte nova) e com o record 6. As provas
-abaixo são do bloco 26 e foram repetidas no bloco 28, com os números da linha de cima: duas gerações com o mesmo
+A S5 do bloco 28 sai com o kit do Cast verde (o vendor cresce 4096 B com a arte nova) e com o record 6. Depois
+dela, o conferente final mudou APKs e scripts da suíte (app versionCode 8, home 9, `suite-boot.sh`,
+`suite-curvas.sh`, `suite-pedido.sh`), então o vendor da S5 muda e o md5 de `253b01c9` não vale mais para o kit de
+hoje. As provas abaixo são do bloco 26 e foram repetidas no bloco 28, com os números da linha do bloco 28; na S5
+final elas se repetem na montagem (roteiro, passo 2): duas gerações com o mesmo
 md5, `--verificar` com o `conteudo-s5.txt` APROVADO (e REPROVADO com o `conteudo.txt`: "record 6: difere do
 stock"), `e2fsck -fn` limpo (53477 blocos livres de 76800), `test-semente-s5.sh` com o vendor real 66/0.
 
@@ -470,21 +480,38 @@ não sai APROVADO; o kit do pendrive não está inteiro (a `KIT_LISTA` do `newli
 `RC_S5_MD5` do `.rc` desta S5 ou há um `DESINSTALAR-SUITE.txt`; o backup do aparelho (arquivos de
 `/data/vendor/pfl7560-*` e a pasta `/data/data/com.pfl7560.home/shared_prefs`, soltos ou no `pfl-backup.tar`) não
 está no PC; ou o stock de resgate não tem o md5 `28a2f280…` ou está no pendrive do flash. Teste:
-`tests/test-preflight-flash.sh` (133 verificações sob `dash`). Ensaio: uma cópia do pendrive com o kit do
+`tests/test-preflight-flash.sh` (135 verificações sob `dash`, com o cenário inteiro "`install.sh
+--com-firmware`, depois o pré-voo"). Ensaio do bloco 28: uma cópia do pendrive com o kit do
 `install.sh --pendrive`, a S5 real como `usb_update.bin`, o backup `antes-s5-20261102-0201` e o stock: APROVADO
-em 8 s. Atenção: o `install.sh --pendrive --com-firmware` ainda põe a **S4a** no pendrive, e o pré-voo recusa esse
-pendrive para a S5.
+em 8 s. Desde o conferente final, o `install.sh --pendrive <ponto> --com-firmware` (e o `.ps1` do Windows) põe a
+**S5** no pendrive, conferida pelo md5 do `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5`, com a mesma regra
+do pré-voo: o pendrive que ele monta passa no pré-voo.
 
-**Roteiro de gravação da S5 (quando o dono decidir):**
+**Decisão de 2026-11-02: a S5 direto.** O §11 e a versão anterior deste roteiro mandavam gravar a S5 só depois de
+a S4a e a S4b subirem limpas. Em 2026-11-02 o dono escolheu, pelo AskUserQuestion, a opção "S5 com o bloco 27"
+(remontar a S5 com a home nova e o logo verde e gravar num flash só) em vez de "Provar a S4a antes", e deu o sim
+para gravar depois do conferente final, do pré-voo verde e do backup. **O risco que fica:** nenhuma build
+modificada nossa foi gravada no aparelho até hoje (a de julho, sem metadados, travou na logo); a S5 junta de uma vez
+tudo o que a S4a, a S4b e a S5 provariam em separado (os 3 fixes, o container realocado, o record 6, o `.rc` e a
+semente), então um travamento não aponta a causa. O resgate é o stock V1.0.0.9 (`28a2f280…`) como `usb_update.bin`
+na raiz de **outro** pendrive, ligando segurando o POWER (§8, [guia 16](../guide/16-recuperacao-brick.md)).
 
-1. **Só depois** de a S4a e a S4b terem subido limpas (§11). Antes disso, nada de S5.
-2. No PC: gere a S5 (`unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d <pasta>`, depois
-   `python3 artifacts/bin-build/build_fix_bin.py <pasta>/PFL7560.bin artifacts/ZYCustom_390.ini
-   firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt`),
-   confira com `md5sum -c` dentro de `firmware/` e repita o `--verificar … --conteudo …conteudo-s5.txt`.
-3. Pendrive de resgate pronto e separado (oficial V1.0.0.9, `28a2f280…`, na raiz como `usb_update.bin`), e
-   confirme que o aparelho é o **modelo com USB-C**. Backup do aparelho no PC (`/data/vendor/pfl7560-*` e o
-   `shared_prefs` da home). Com a S5 como `usb_update.bin` e o kit no pendrive do flash, rode o pré-voo
+**Roteiro de gravação da S5 (com o sim do dono):**
+
+1. Confirme que o aparelho é o **modelo com USB-C** (V1.0.0.9). Nada de S4a nem S4b antes (decisão acima).
+2. No PC, monte a S5 final. Builds grandes vão numa pasta ignorada da árvore (`build-s5/`), não no `/tmp` (tmpfs
+   pequeno; o stock aberto tem 1,3 GB e cada build 1,4 GB). Confira o sha256 do zip (`08d37bbb…`), extraia o stock
+   (`unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d build-s5/`, md5 `28a2f280…`) e gere
+   (`python3 artifacts/bin-build/build_fix_bin.py build-s5/PFL7560.bin artifacts/ZYCustom_390.ini
+   firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt`).
+   Gere uma 2ª vez em outro caminho: o md5 tem de ser o mesmo. Depois `build_fix_bin.py --verificar <S5> <stock>
+   --conteudo artifacts/bin-build/conteudo-s5.txt` (APROVADO) e `PFL_S5_BIN=<S5> bash tests/test-semente-s5.sh`
+   (0 falhas). Grave o md5 novo em `firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5`, no formato
+   `<md5>  PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` (dois espaços), e no mesmo commit os números da tabela acima e da
+   linha da S5 no `firmware/README.md`. O `.bin` não entra no git.
+3. Backup do aparelho no PC (`/data/vendor/pfl7560-*` e o `shared_prefs` da home). Pendrive de resgate pronto e
+   separado (oficial V1.0.0.9, `28a2f280…`, na raiz como `usb_update.bin`). Monte o pendrive do flash com
+   `./install.sh --pendrive <ponto> --com-firmware` (a S5 como `usb_update.bin` e o kit) e rode o pré-voo
    (`sh firmware/preflight-flash.sh <pendrive> --backup <pasta> --resgate <PFL7560.bin>`): só grave com
    `PRE-VOO APROVADO`.
 4. Grave pela "Atualização local do sistema" (§8). Não desligue durante a gravação.

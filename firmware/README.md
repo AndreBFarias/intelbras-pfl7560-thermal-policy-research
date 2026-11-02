@@ -13,27 +13,38 @@ deles é versionado (`*.bin.md5`). O estado da build, o que ela leva e o roteiro
 
 ## As nossas builds (locais; nenhuma gravada no aparelho)
 
+A próxima gravação é a **S5**, direto: em 2026-11-02 o dono decidiu (AskUserQuestion, "S5 com o bloco 27" em vez de
+"Provar a S4a antes") não gravar a S4a e a S4b antes. Risco: nenhuma build modificada foi gravada até hoje, e a S5
+junta tudo num flash só; o resgate é o stock pelo POWER (aviso 3 abaixo, [doc 47 §12](../docs/research/47-build-completa.md)).
+
 | Build | md5 | Estado |
 |---|---|---|
-| `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | **atual, gate BIN-S4a.** Escada, Wi-Fi e xiri **nos mesmos blocos do stock** (só o `i_size` dos 3 inodes muda; chunks, slot, cabeçalho e `checksum1` do stock). CRC do vendor `0x883b40d6`. É a que o `install.sh --com-firmware` põe na raiz do pendrive como `usb_update.bin` |
+| `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | **gate BIN-S4a (pulado na decisão de 2026-11-02).** Escada, Wi-Fi e xiri **nos mesmos blocos do stock** (só o `i_size` dos 3 inodes muda; chunks, slot, cabeçalho e `checksum1` do stock). CRC do vendor `0x883b40d6`. Fica para diagnóstico: se a S5 travar, é a build de delta mínimo |
 | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `2b1836b8a86ac1d998e0a06a3000478f` | **BIN-S4b.** O mesmo, mais o `.rc` da suíte, o app, a home e as 20 sobreposições (`artifacts/bin-build/conteudo.txt`), com o record 14 realocado (+3432448 B), 1397190844 B. CRC do vendor `0x251ba2e0`. Refeita em 2026-11-02 com o app versionCode 8 e a home 9 (duas gerações, o mesmo md5, `--verificar` APROVADO); a do bloco 21 era `31702b64…`. Muda de md5 sempre que um APK do kit ou o `.rc` mudar |
-| `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` | `253b01c95b2dd121408fc3c0817bf219` | **blocos 26 e 28, só depois de a S4a e a S4b subirem.** A S4b mais a suíte inteira em `/vendor/etc/pfl7560-suite`, com uma semente que a copia para o `/data` vazio no 1º boot, as 2 linhas do `build.prop` da home e do gerenciador e a arte reta com o "Cast" verde na partição `logo` (record 6, mesmo tamanho, CRC `0x9c066411`), tudo em `artifacts/bin-build/conteudo-s5.txt`. Record 14 com +5136384 B, CRC do vendor `0xe0263cf7`, 1398894780 B. Não traz a marca do `/atv` nem o JEIDA ([doc 47 §12](../docs/research/47-build-completa.md)). A do bloco 26 (`81bb9885…`, sem o record 6) foi superada |
+| `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` | **a conferir** (o `.md5` ainda traz `253b01c95b2dd121408fc3c0817bf219`, a do bloco 28) | **a próxima gravação, direto (decisão de 2026-11-02).** A S4b mais a suíte inteira em `/vendor/etc/pfl7560-suite`, com uma semente que a copia para o `/data` vazio no 1º boot, as 2 linhas do `build.prop` da home e do gerenciador e a arte reta com o "Cast" verde na partição `logo` (record 6, mesmo tamanho, CRC `0x9c066411`), tudo em `artifacts/bin-build/conteudo-s5.txt`. Não traz a marca do `/atv` nem o JEIDA ([doc 47 §12](../docs/research/47-build-completa.md)). A `253b01c9` (bloco 28: record 14 com +5136384 B, CRC do vendor `0xe0263cf7`, 1398894780 B) foi superada pelo kit do conferente final (app 8, home 9, "Desligar no descanso", VLC no boot): o md5, o record 14 e o CRC da S5 final entram aqui e no `.md5` no mesmo commit, na montagem final. A do bloco 26 (`81bb9885…`, sem o record 6) também foi superada |
 | `PFL7560-COMPLETO-NAO-GRADUADO.bin` | `397698b9…` | aposentada (bloco 21): chunks FILL e 44832 B de zeros soltos no slot, forma que o loader nunca gravou; `build_fix_bin.py --verificar` a reprova |
 | `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | aposentada (bloco 21): só a escada, com 8 chunks FILL e 53024 B de zeros soltos; `--verificar` a reprova |
 | `PFL7560-FIX-com-metadados.bin` | `16a4b42a…` | superada em 2026-07-29 (limiares de brilho de antes da escada); removida do disco |
 | protótipo sem metadados | `f5ff89c9…` | **travou o boot** (modo `0664` e sem rótulo SELinux, [guia 16](../docs/guide/16-recuperacao-brick.md)); apagado, não recriar |
 
-Gerar e conferir (o stock é o `PFL7560.bin` de dentro do `Software PFL7560.zip`):
+Gerar e conferir (o stock é o `PFL7560.bin` de dentro do `Software PFL7560.zip`). Na pasta ignorada `build-s5/`, não
+no `/tmp`: o stock e cada build têm ~1,4 GB e o `/tmp` é tmpfs pequeno (o gerador usa o `TMPDIR`):
 
 ```bash
-unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d /tmp/
-python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S4a-NAO-GRADUADO.bin
-python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo.txt
-python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt
-(cd firmware && md5sum -c PFL7560-S4a-NAO-GRADUADO.bin.md5 PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin.md5 PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5)
+mkdir -p build-s5/tmp && export TMPDIR="$PWD/build-s5/tmp"
+unzip -j "firmware/Software PFL7560.zip" "*/PFL7560.bin" -d build-s5/
+python3 artifacts/bin-build/build_fix_bin.py build-s5/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S4a-NAO-GRADUADO.bin
+python3 artifacts/bin-build/build_fix_bin.py build-s5/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo.txt
+python3 artifacts/bin-build/build_fix_bin.py build-s5/PFL7560.bin artifacts/ZYCustom_390.ini firmware/PFL7560-S5-COMPLETO-NAO-GRADUADO.bin --realocar --conteudo artifacts/bin-build/conteudo-s5.txt
+md5sum -c firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5 firmware/PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin.md5
+(cd firmware && md5sum -c PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5)
 ```
 
-As três saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5) e só ganham o nome final depois do
+Os `.md5` da S4a e da S4b trazem o caminho `firmware/...` (conferir da raiz do repositório); o da S5 traz só o nome
+(conferir de dentro de `firmware/`), o formato que o `install.sh` e o `preflight-flash.sh` leem.
+
+As três saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5; a S4b foi refeita duas vezes em
+2026-11-02 com o mesmo `2b1836b8…`) e só ganham o nome final depois do
 `verificar_bin` (doc 47 §10). `build_fix_bin.py --verificar <bin> <stock>` repete a conferência. Ele aceita só os
 records 6 (com a diretiva `logo` do manifesto) e 14 diferentes do stock.
 
