@@ -49,7 +49,7 @@ bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
 127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 6c43460eb4d234436541ffded0113c69  pfl7560.apk
-ab54f172bbba1e25e306fe5f7d3e0a96  pfl7560-home.apk
+10b1f4e59751f9905a905976757d649d  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
