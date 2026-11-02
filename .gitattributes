@@ -48,6 +48,7 @@ pendrive-autorun/suite-boot.sh      -text byte-exact
 pendrive-autorun/suite-pedido.sh    -text byte-exact
 pendrive-autorun/suite-curvas.sh    -text byte-exact
 pendrive-autorun/suite-chaves.sh    -text byte-exact
+pendrive-autorun/suite-diario.sh    -text byte-exact
 pendrive-autorun/debloat-aprovados.txt -text byte-exact
 pendrive-autorun/pfl7560-suite.rc   -text byte-exact
 # Quadros crus da camera interna (bloco 7, YUYV 640x480): sem byte 0 nem fim de linha,

@@ -15,7 +15,8 @@ public final class Ajustes {
     public static final int CONFIRMAR = 2;
 
     public static final int ABA_CHAVES = 0;
-    public static final String[] ABAS = {"Chaves"};
+    public static final int ABA_DIARIO = 1;
+    public static final String[] ABAS = {"Chaves", "Diário"};
 
     public static final String[] IDS = {
         "deb_seg", "deb_ota", "deb_hisi", "deb_lnch", "deb_vlc", "log_vplug", "eth0", "wifi_pwr", "web_cmd", "keystone",
@@ -62,15 +63,34 @@ public final class Ajustes {
     // quem derruba rede pede OK duas vezes para LIGAR
     public static final boolean[] CONFIRMA = {false, false, false, false, false, false, true, true, false, false};
 
+    // aba Diario: duas linhas
+    public static final String[] DIARIO_ROTULOS = {"Gravar o diário", "Enviar agora ao PC"};
+    public static final String[] DIARIO_FAZ = {
+        "Grava uma linha por minuto no projetor: temperaturas, ventilador, luz, rede e memória. Guarda no máximo 512 KB.",
+        "Só marca o pedido de envio. Quem busca o diário é o PC, a cada 2 minutos, quando o projetor está na rede.",
+    };
+    public static final String[] DIARIO_RISCO = {
+        "Desligado, o diário para de gravar e o que já foi gravado fica.",
+        "Se o PC não estiver ligado e na rede, o pedido espera.",
+    };
+    public static final long DIARIO_MAX_BYTES = 512L * 1024L;
+    public static final String PEDIDO_DIARIO_LER = "v1 ler";
+    public static final String PEDIDO_DIARIO_ENVIAR = "v1 enviar";
+
     public int aba = ABA_CHAVES;
     public int zona = ZONA_LINHAS;
     public int linha = 0;
     public String estado = "";
+    /** vendor.pfl7560.diario: "<1|0>:<bytes>:<pedido 0|1>"; "" se nao li. */
+    public String diario = "";
+    /** vendor.pfl7560.diario_envio: "AAAA-MM-DDTHH:MM:SS" do ultimo envio, "" se nunca. */
+    public String diarioEnvio = "";
     public String aviso = "";
     public String pedindo;
     public int confirmando = -1;
 
     public void abrir() {
+        aba = ABA_CHAVES;
         zona = ZONA_LINHAS;
         linha = 0;
         pedindo = null;
@@ -79,6 +99,10 @@ public final class Ajustes {
 
     public int abas() {
         return ABAS.length;
+    }
+
+    public int linhas() {
+        return aba == ABA_DIARIO ? DIARIO_ROTULOS.length : IDS.length;
     }
 
     public boolean mover(int dx, int dy) {
@@ -91,6 +115,7 @@ public final class Ajustes {
             int n = aba + dx;
             if (dx == 0 || n < 0 || n >= abas()) return false;
             aba = n;
+            linha = 0;
             return true;
         }
         if (dx != 0) return false;
@@ -105,7 +130,7 @@ public final class Ajustes {
             }
             return false;
         }
-        if (dy > 0 && linha < IDS.length - 1) {
+        if (dy > 0 && linha < linhas() - 1) {
             linha++;
             return true;
         }
@@ -140,6 +165,11 @@ public final class Ajustes {
     /** OK na linha em foco: o que a tela deve fazer. */
     public int ok() {
         if (zona != ZONA_LINHAS || pedindo != null) return NADA;
+        if (aba == ABA_DIARIO) {
+            if (!diarioLido()) return NADA;
+            if (linha == 1 && diarioPedido()) return NADA;
+            return PEDIR;
+        }
         char c = estadoDe(linha);
         if (c == '-' || c == '?') return NADA;
         if (c != '1' && CONFIRMA[linha] && confirmando != linha) {
@@ -151,11 +181,15 @@ public final class Ajustes {
     }
 
     public String idEmFoco() {
-        return IDS[linha];
+        return aba == ABA_DIARIO ? "diario" : IDS[linha];
     }
 
     /** O pedido que a linha em foco manda: liga se nao esta ligada, desliga se esta. */
     public String pedido() {
+        if (aba == ABA_DIARIO) {
+            if (linha == 1) return PEDIDO_DIARIO_ENVIAR;
+            return diarioLigado() ? "v1 desligar" : "v1 ligar";
+        }
         return "v1 " + IDS[linha] + (ligada(linha) ? " desligar" : " ligar");
     }
 
@@ -168,6 +202,52 @@ public final class Ajustes {
             if (s.equals("v1 " + id + " ligar") || s.equals("v1 " + id + " desligar")) return true;
         }
         return false;
+    }
+
+    public static boolean pedidoDiarioValido(String s) {
+        return "v1 ligar".equals(s) || "v1 desligar".equals(s) || "v1 enviar".equals(s) || PEDIDO_DIARIO_LER.equals(s);
+    }
+
+    /** O projetor publicou o estado do diario no formato esperado? */
+    public boolean diarioLido() {
+        return diario != null && diario.matches("[01]:[0-9]{1,9}:[01]");
+    }
+
+    public boolean diarioLigado() {
+        return diarioLido() && diario.charAt(0) == '1';
+    }
+
+    public boolean diarioPedido() {
+        return diarioLido() && diario.endsWith(":1");
+    }
+
+    public long diarioBytes() {
+        if (!diarioLido()) return 0L;
+        return Long.parseLong(diario.substring(2, diario.lastIndexOf(':')));
+    }
+
+    /** Estado da chave Gravar o diario no mesmo alfabeto das chaves: 1, 0 ou ? (nao li). */
+    public char estadoDiario() {
+        return !diarioLido() ? '?' : diarioLigado() ? '1' : '0';
+    }
+
+    public static String rotuloTamanho(long b) {
+        if (b <= 0) return "vazio";
+        if (b < 1024) return b + " bytes";
+        long dec = (b * 10L / 1024L) % 10L;
+        if (b < 1024L * 1024L) return (b / 1024L) + (b < 10L * 1024L ? "," + dec : "") + " KB";
+        return (b / (1024L * 1024L)) + "," + ((b * 10L / (1024L * 1024L)) % 10L) + " MB";
+    }
+
+    /** "AAAA-MM-DDTHH:MM:SS" vira "DD/MM/AAAA HH:MM"; vazio ou fora do formato vira "nunca". */
+    public static String rotuloEnvio(String iso) {
+        if (iso == null || !iso.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}")) return "nunca";
+        return iso.substring(8, 10) + "/" + iso.substring(5, 7) + "/" + iso.substring(0, 4) + " " + iso.substring(11, 16);
+    }
+
+    public String rotuloEstadoDiario() {
+        char c = estadoDiario();
+        return c == '1' ? "Gravando" : c == '0' ? "Parado" : "Não consegui ler";
     }
 
     /** Texto do que o projetor respondeu em chaves_aviso ("id:codigo:hora"); "" se nao e dessa chave. */

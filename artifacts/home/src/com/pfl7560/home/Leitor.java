@@ -150,6 +150,17 @@ final class Leitor {
         }
     }
 
+    static boolean pedirDiario(Context c, String pedido) {
+        if (!Ajustes.pedidoDiarioValido(pedido)) return false;
+        try (FileOutputStream out = new FileOutputStream(new File(c.getDataDir(), "diario"))) {
+            out.write(pedido.getBytes("US-ASCII"));
+            return true;
+        } catch (IOException | RuntimeException e) {
+            Guarda.anotar(c, "pedir diario", e);
+            return false;
+        }
+    }
+
     static String propRoot(String nome) {
         Process p = null;
         try {

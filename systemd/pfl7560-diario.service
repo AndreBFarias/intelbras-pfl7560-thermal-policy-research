@@ -1,0 +1,13 @@
+# Busca o diario do projetor PFL7560 (pfl7560-diario.sh). Gerado para o systemd --user pelo
+# ./install.sh --diario: o @AQUI@ vira a pasta deste repositorio. O IP vem do arquivo
+# ~/.config/pfl7560/diario.env, uma linha: PFL_IP=192.168.x.y
+[Unit]
+Description=Busca o diario do projetor PFL7560 (adb pull)
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.config/pfl7560/diario.env
+WorkingDirectory=@AQUI@
+ExecStart=@AQUI@/pfl7560-diario.sh
+TimeoutStartSec=150
+Nice=10

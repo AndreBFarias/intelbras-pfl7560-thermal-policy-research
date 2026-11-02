@@ -51,6 +51,20 @@ public final class PreviaAjustes {
         p.aviso = "Pedi, mas o projetor não confirmou a mudança";
         salvar(p, fontes, new File(saida, "home-ajustes-aviso.png"));
 
+        Modelo d = painel();
+        irParaDiario(d.ajustes);
+        d.ajustes.diario = "1:131072:0";
+        d.ajustes.diarioEnvio = "2026-11-01T21:44:09";
+        salvar(d, fontes, new File(saida, "home-ajustes-diario.png"));
+
+        Modelo e = painel();
+        irParaDiario(e.ajustes);
+        e.ajustes.diario = "1:262144:1";
+        e.ajustes.diarioEnvio = "";
+        e.ajustes.mover(0, 1);
+        e.aviso = "Feito";
+        salvar(e, fontes, new File(saida, "home-ajustes-diario-pedido.png"));
+
         checar();
         System.out.println("ajustes: conferencias ok");
     }
@@ -63,6 +77,12 @@ public final class PreviaAjustes {
         m.relogio(cal);
         m.abrirAjustes();
         return m;
+    }
+
+    private static void irParaDiario(Ajustes a) {
+        a.mover(0, -1);
+        a.mover(1, 0);
+        a.mover(0, 1);
     }
 
     private static void salvar(Modelo m, File fontes, File png) throws Exception {
@@ -88,7 +108,10 @@ public final class PreviaAjustes {
         for (int i = 0; i < 10; i++) {
             verdade(!Ajustes.RISCO[i].isEmpty() && !Ajustes.FAZ[i].isEmpty(), "chave " + i + " sem mensagem de risco");
         }
-        verdade(!a.mover(0, -1) && !a.mover(1, 0) && !a.mover(-1, 0), "no topo nada sobe; esquerda e direita nao fazem nada");
+        verdade(!a.mover(1, 0) && !a.mover(-1, 0), "nas linhas esquerda e direita nao fazem nada");
+        verdade(a.mover(0, -1) && a.zona == Ajustes.ZONA_ABA && a.aba == Ajustes.ABA_CHAVES, "de cima da primeira chave sobe para as abas");
+        verdade(!a.mover(0, -1) && !a.mover(-1, 0), "nas abas nada sobe e nao ha aba a esquerda");
+        verdade(a.mover(0, 1) && a.zona == Ajustes.ZONA_LINHAS && a.linha == 0, "baixo volta para as chaves");
         for (int i = 0; i < 9; i++) verdade(a.mover(0, 1), "desce " + i);
         verdade(a.linha == 9 && !a.mover(0, 1), "termina na decima");
         // pedidos
@@ -141,6 +164,7 @@ public final class PreviaAjustes {
                 verdade(Ajustes.pedidoValido(a.pedido()) && a.pedido().length() <= 40, "pedido da chave " + i);
             }
         }
+        checarDiario();
         // o acesso e um item da fileira Apps, nao um oitavo atalho
         verdade(m.atalhos.length == 7, "os sete atalhos seguem sete");
         verdade(Acoes.AJUSTES.equals("ajustes"), "acao ajustes");
@@ -150,5 +174,52 @@ public final class PreviaAjustes {
         verdade(m.apps.size() == 1 && Acoes.AJUSTES.equals(m.apps.get(0).acao), "o item Ajustes aparece nos Apps");
         m.inicio();
         verdade(!m.ajustesAberta, "HOME fecha a tela de ajustes");
+    }
+
+    private static void checarDiario() {
+        Modelo m = painel();
+        Ajustes a = m.ajustes;
+        verdade(Ajustes.ABAS.length == 2 && a.abas() == 2 && a.aba == Ajustes.ABA_CHAVES, "duas abas, abre em Chaves");
+        irParaDiario(a);
+        verdade(a.aba == Ajustes.ABA_DIARIO && a.zona == Ajustes.ZONA_LINHAS && a.linha == 0 && a.linhas() == 2, "aba Diario: duas linhas");
+        verdade(!a.mover(0, -1) == false && a.zona == Ajustes.ZONA_ABA, "da primeira linha sobe para as abas");
+        a.mover(0, 1);
+        verdade(a.mover(0, 1) && a.linha == 1 && !a.mover(0, 1), "so duas linhas");
+        a.linha = 0;
+        // sem leitura nada pede
+        verdade(a.ok() == Ajustes.NADA && a.estadoDiario() == '?' && a.diarioBytes() == 0, "sem leitura nada pede");
+        a.diario = "lixo";
+        verdade(!a.diarioLido() && a.ok() == Ajustes.NADA, "leitura fora do formato nao vale");
+        a.diario = "1:4096:0";
+        verdade(a.diarioLido() && a.diarioLigado() && !a.diarioPedido() && a.diarioBytes() == 4096, "leitura ligada");
+        verdade(a.ok() == Ajustes.PEDIR && a.pedido().equals("v1 desligar") && a.idEmFoco().equals("diario"), "ligado, OK desliga");
+        a.diario = "0:0:0";
+        verdade(a.ok() == Ajustes.PEDIR && a.pedido().equals("v1 ligar") && a.estadoDiario() == '0', "desligado, OK liga");
+        a.linha = 1;
+        verdade(a.ok() == Ajustes.PEDIR && a.pedido().equals("v1 enviar"), "Enviar agora pede enviar");
+        a.diario = "1:4096:1";
+        verdade(a.diarioPedido() && a.ok() == Ajustes.NADA, "com pedido marcado, Enviar agora espera");
+        a.diario = "1:4096:0";
+        a.pedindo = "diario";
+        verdade(a.ok() == Ajustes.NADA, "com pedido em curso, OK nao faz nada");
+        a.pedindo = null;
+        for (String v : new String[] {"v1 ligar", "v1 desligar", "v1 enviar", "v1 ler"}) {
+            verdade(Ajustes.pedidoDiarioValido(v) && v.length() <= 16, "pedido valido " + v);
+        }
+        verdade(!Ajustes.pedidoDiarioValido("v1 ligar; reboot") && !Ajustes.pedidoDiarioValido("ligar")
+                && !Ajustes.pedidoDiarioValido("v1 eth0 ligar") && !Ajustes.pedidoDiarioValido(null) && !Ajustes.pedidoDiarioValido(""),
+                "pedidos do diario invalidos");
+        verdade(!Ajustes.pedidoValido("v1 enviar") && !Ajustes.pedidoValido("v1 ligar"), "o pedido do diario nao passa pelas chaves");
+        // tamanho e data
+        verdade(Ajustes.rotuloTamanho(0).equals("vazio") && Ajustes.rotuloTamanho(900).equals("900 bytes"), "tamanho pequeno");
+        verdade(Ajustes.rotuloTamanho(4096).equals("4,0 KB") && Ajustes.rotuloTamanho(131072).equals("128 KB"), "tamanho em KB: " + Ajustes.rotuloTamanho(4096));
+        verdade(Ajustes.rotuloTamanho(524288).equals("512 KB") && Ajustes.rotuloTamanho(2097152).equals("2,0 MB"), "tamanho grande");
+        verdade(Ajustes.rotuloEnvio("2026-11-01T21:44:09").equals("01/11/2026 21:44"), "data do envio");
+        verdade(Ajustes.rotuloEnvio("").equals("nunca") && Ajustes.rotuloEnvio("ontem").equals("nunca") && Ajustes.rotuloEnvio(null).equals("nunca"),
+                "sem envio: nunca");
+        // voltar para Chaves e abrir de novo sempre cai em Chaves, na primeira linha
+        m.fecharAjustes();
+        m.abrirAjustes();
+        verdade(a.aba == Ajustes.ABA_CHAVES && a.linha == 0 && a.zona == Ajustes.ZONA_LINHAS, "abre sempre em Chaves");
     }
 }

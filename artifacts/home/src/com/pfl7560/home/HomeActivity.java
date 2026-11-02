@@ -217,6 +217,10 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
     public void aplicarChave() {
         final Ajustes aj = modelo.ajustes;
         if (aj.pedindo != null) return;
+        if (aj.aba == Ajustes.ABA_DIARIO) {
+            aplicarDiario();
+            return;
+        }
         final String id = aj.idEmFoco();
         final String pedido = aj.pedido();
         aj.pedindo = id;
@@ -267,22 +271,80 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
         t.start();
     }
 
+    private void aplicarDiario() {
+        final Ajustes aj = modelo.ajustes;
+        final String pedido = aj.pedido();
+        aj.pedindo = "diario";
+        modelo.aviso = null;
+        final Context app = getApplicationContext();
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                final String antes = Leitor.propRoot("diario");
+                final boolean ok = Leitor.pedirDiario(app, pedido);
+                String depois = antes;
+                if (ok) {
+                    for (int i = 0; i < CHAVE_TENTATIVAS; i++) {
+                        try {
+                            Thread.sleep(CHAVE_ESPERA_MS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        depois = Leitor.propRoot("diario");
+                        if (!depois.equals(antes)) break;
+                    }
+                }
+                final String lido = depois;
+                final String envio = Leitor.propRoot("diario_envio");
+                final boolean mudou = ok && !lido.equals(antes);
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        aj.pedindo = null;
+                        if (!lido.isEmpty()) aj.diario = lido;
+                        aj.diarioEnvio = envio;
+                        if (!ok) {
+                            modelo.aviso = "Não consegui pedir ao projetor";
+                        } else if (!mudou) {
+                            modelo.aviso = "O projetor não respondeu ao pedido";
+                        } else {
+                            modelo.aviso = "Feito";
+                        }
+                        vista.invalidate();
+                        principal.removeCallbacks(apagarAviso);
+                        principal.postDelayed(apagarAviso, AVISO_MS);
+                    }
+                });
+            }
+        }, "home-diario");
+        t.setPriority(Thread.MIN_PRIORITY);
+        t.start();
+    }
+
     private void lerChavesAssincrono() {
         final Context app = getApplicationContext();
         Thread t = new Thread(new Runnable() {
             @Override
             public void run() {
                 final String antes = Leitor.propRoot("chaves");
+                final String diarioAntes = Leitor.propRoot("diario");
+                final String envioAntes = Leitor.propRoot("diario_envio");
                 principal.post(new Runnable() {
                     @Override
                     public void run() {
                         if (isDestroyed()) return;
                         if (!antes.isEmpty()) modelo.ajustes.estado = antes;
+                        if (!diarioAntes.isEmpty()) modelo.ajustes.diario = diarioAntes;
+                        modelo.ajustes.diarioEnvio = envioAntes;
                         vista.invalidate();
                     }
                 });
                 // pede uma leitura nova ao projetor (a propriedade so muda quando ele publica)
-                if (!Leitor.pedirChave(app, Ajustes.PEDIDO_LER)) return;
+                boolean pediu = Leitor.pedirChave(app, Ajustes.PEDIDO_LER);
+                pediu = Leitor.pedirDiario(app, Ajustes.PEDIDO_DIARIO_LER) || pediu;
+                if (!pediu) return;
                 try {
                     Thread.sleep(CHAVE_LER_MS);
                 } catch (InterruptedException e) {
@@ -290,11 +352,17 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                     return;
                 }
                 final String depois = Leitor.propRoot("chaves");
+                final String diarioDepois = Leitor.propRoot("diario");
+                final String envioDepois = Leitor.propRoot("diario_envio");
                 principal.post(new Runnable() {
                     @Override
                     public void run() {
-                        if (isDestroyed() || depois.isEmpty()) return;
-                        modelo.ajustes.estado = depois;
+                        if (isDestroyed()) return;
+                        if (!depois.isEmpty()) modelo.ajustes.estado = depois;
+                        if (!diarioDepois.isEmpty()) {
+                            modelo.ajustes.diario = diarioDepois;
+                            modelo.ajustes.diarioEnvio = envioDepois;
+                        }
                         vista.invalidate();
                     }
                 });

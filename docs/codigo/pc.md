@@ -139,6 +139,24 @@ Os scripts com ajuda (`install.sh`, `pfl7560-lcd-color.sh`, `pfl7560-marca.sh`, 
   do `df` ("Available").
 - `processos`: `PFL_INTERVALO` só o harness muda.
 
+## `pfl7560-diario.sh` e as unidades `systemd/` (bloco 24)
+
+- Busca o diário do projetor (`suite-diario.sh`) e guarda em `logs-projetor/diario-AAAA-MM.txt` (a pasta está no
+  `.gitignore`). `PFL_IP` obrigatório (`adb connect IP:5555`, modelo `PFL7560`, root; tenta `adb root` se não é uid 0).
+  Saídas: 0 buscou (ou aparelho fora do ar: tenta no próximo ciclo), 1 falha, 2 aparelho errado ou sem `PFL_IP`.
+- **Relógio:** a hora do projetor não é confiável. O PC guarda em `logs-projetor/.boots` o início de cada boot visto
+  ao vivo (o menor `agora - uptime`) e a hora da linha é início do boot + `up` (origem `pc`). Boot nunca visto ao
+  vivo com `dt` depois de 2020 usa o relógio do aparelho (`ap`); senão a linha vai para `diario-0000-00.txt` (`sem`).
+  Linha guardada: `<AAAA-MM-DDTHH:MM:SS> <origem> <linha do aparelho>`.
+- Não repete linha (chave `boot`+`up`, conferida no arquivo sem hora e nos 2 meses mais novos). Só entram linhas
+  completas no formato. Depois avisa `suite-diario.sh enviado <data do PC>`.
+- Usa `date -f` (GNU date, Linux).
+- `systemd/pfl7560-diario.service` (oneshot, `EnvironmentFile=-%h/.config/pfl7560/diario.env`) e
+  `systemd/pfl7560-diario.timer` (a cada 2 min). `./install.sh --diario` só **gera** as unidades em
+  `~/.config/systemd/user/` (trocando `@AQUI@` pelo caminho do repositório) e imprime os 3 passos; **não** habilita
+  nada: o dono cria `~/.config/pfl7560/diario.env` com `PFL_IP=...` e roda `systemctl --user daemon-reload` e
+  `systemctl --user enable --now pfl7560-diario.timer`.
+
 ## Instaladores
 
 - `install.sh --pendrive`: copia o kit e confere cada arquivo contra a `KIT_LISTA` embutida no `newlink_update.sh`

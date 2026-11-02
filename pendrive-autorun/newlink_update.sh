@@ -38,15 +38,16 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-322ab8b0cab3f28f5a87a792e50533e2  suite.sh
-c341d80daf43d439afbd1ab715ef89aa  suite-boot.sh
-1b6260d6cca19c8572a62f97bd525cc1  suite-pedido.sh
+7a89e24259981491c2fd662b4d21898a  suite.sh
+b6cceabafd68640974e215cb3ff9c592  suite-boot.sh
+6bd212ef67ab123a9c74d19dc509cea3  suite-pedido.sh
 60aa994d0f34b6dd002a1a4a5ba7668b  suite-curvas.sh
 bdf8936e37eb56dc7f3989b486175879  suite-chaves.sh
+90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 26e2f517f862d19ecf452cdf3d56ae74  pfl7560.apk
-c3ee9e5fba67f03d7cd5216466d32a9d  pfl7560-home.apk
+c743059f7c02384ae560e21f13ebc9c6  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -199,7 +200,7 @@ if ! preparar_trabalho; then
 fi
 KIT_COPIA=$(kit_nomes | grep -v '^ZYCustom.ini$')
 PREP="$WORK/preparo.$$"
-KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh"
+KIT_EXEC="cor.sh lvdsctl nl_camcheck nl_tela suite.sh suite-boot.sh suite-pedido.sh suite-curvas.sh suite-chaves.sh suite-diario.sh"
 kit_subpastas(){ echo "$1" | sed -n 's|/.*||p' | sort -u; }
 copiar_preparo(){
   rm -rf "$PREP"

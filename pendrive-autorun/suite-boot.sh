@@ -22,10 +22,11 @@ DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="322ab8b0cab3f28f5a87a792e50533e2"
-PEDIDO_MD5="1b6260d6cca19c8572a62f97bd525cc1"
+SUITE_MD5="7a89e24259981491c2fd662b4d21898a"
+PEDIDO_MD5="6bd212ef67ab123a9c74d19dc509cea3"
 CURVAS_MD5="60aa994d0f34b6dd002a1a4a5ba7668b"
 CHAVES_MD5="bdf8936e37eb56dc7f3989b486175879"
+DIARIO_MD5="90caa1f05da00c43a29dd364ed3afb69"
 # SUITE_MD5_FIM
 
 MARCA_LIGADO="pfl7560,ligado"
@@ -202,6 +203,13 @@ RESTR_ESPERA=2
 [ -n "${PFL_RAPIDO:-}" ] && RESTR_ESPERA=0
 restr_gravado(){ grep -a "name=\"$1\"" "$PKG_RESTR" 2>/dev/null | grep -aq 'enabled="3"'; }
 DEBLOAT_REVERTIDO="$SUITE/debloat-revertido"
+ligar_diario(){
+  if ! confere "$SUITE/suite-diario.sh" "$DIARIO_MD5"; then
+    LOG "[ERRO] suite-diario.sh ausente, link, de outro dono ou com md5 diferente - diario NAO ligado."
+    return 0
+  fi
+  sh "$SUITE/suite-diario.sh" iniciar
+}
 aplicar_chaves(){
   if ! confere "$SUITE/suite-chaves.sh" "$CHAVES_MD5"; then
     LOG "[ERRO] suite-chaves.sh ausente, link, de outro dono ou com md5 diferente - chaves NAO reaplicadas."
@@ -270,7 +278,7 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
-    for _cn in curva-vent curva-led chave; do
+    for _cn in curva-vent curva-led chave diario; do
       if [ -f "$HOME_DIR/$_cn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
         sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn"
       fi
@@ -309,7 +317,7 @@ ligar_vigia(){
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  for _cn in curva-vent curva-led chave; do
+  for _cn in curva-vent curva-led chave diario; do
     if [ -f "$HOME_DIR/$_cn" ]; then
       LOG "pedido de $_cn pendente de antes do vigia: tratando agora"
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn" >>"$SUITE/vigia.log" 2>&1 </dev/null
@@ -332,7 +340,7 @@ if ! dir_seguro "$SUITE"; then
   exit 1
 fi
 if [ -f "$BOOT_LOG" ]; then tail -n "$LOG_MAX" "$BOOT_LOG" > "$BOOT_LOG.new" 2>/dev/null && mv -f "$BOOT_LOG.new" "$BOOT_LOG"; fi
-for _f in lancador.log vigia.log chaves.log; do
+for _f in lancador.log vigia.log chaves.log diario.log; do
   [ -f "$SUITE/$_f" ] && tail -n "$LOG_MAX" "$SUITE/$_f" > "$SUITE/$_f.new" 2>/dev/null && mv -f "$SUITE/$_f.new" "$SUITE/$_f"
 done
 exec >>"$BOOT_LOG" 2>&1 </dev/null
@@ -349,6 +357,7 @@ LOG "sys.boot.reason='$S_BR' ano_boot='$S_ANO' gatilho=$GATILHO decisao=$DECISAO
 
 reaplicar_luz
 ligar_curvas
+ligar_diario
 ligar_descanso &
 ligar_overlays &
 { desligar_apps; aplicar_chaves; } &

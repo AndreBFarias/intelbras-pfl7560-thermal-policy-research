@@ -157,4 +157,11 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
   quebraria a grade). D-pad: cima/baixo escolhe, OK liga ou desliga, Voltar fecha. A mensagem de risco aparece embaixo
   da linha em foco, em vermelho no risco alto.
 - O pedido é escrito na pasta da home (arquivo `chave`); o root é quem aplica. A home só relê a prop depois de um tempo.
-- Prévias novas em `artifacts/home/previa-ajustes/` (4 PNG); as prévias existentes não mudam (byte-exact).
+- Prévias novas em `artifacts/home/previa-ajustes/` (6 PNG); as prévias de `previa/` não mudam (byte-exact). Com a
+  segunda aba, as 4 prévias das chaves ganharam a fileira de abas.
+- **Aba "Diário"** (esquerda/direita na fileira de abas, que se alcança subindo da primeira linha): "Gravar o diário"
+  (chave liga/desliga, estado `Gravando`/`Parado`/`Não consegui ler`) e "Enviar agora ao PC" (só marca o pedido). Mostra
+  o tamanho (`X KB de 512 KB`) e o último envio (`DD/MM/AAAA HH:MM`, ou `nunca`). O estado vem de
+  `vendor.pfl7560.diario` (`<1|0>:<bytes>:<pedido>`) e `diario_envio`; o pedido (`v1 ligar|desligar|enviar|ler`) vai
+  para o arquivo `diario` da pasta da home. Com o estado ilegível, OK não pede nada; com o pedido de envio já marcado,
+  "Enviar agora" espera. A tela sempre abre na aba Chaves.

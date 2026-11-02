@@ -11,10 +11,12 @@ check-kit:
 	bash tests/test-kit-pendrive.sh
 	bash tests/test-suite.sh
 	bash tests/test-chaves.sh
+	bash tests/test-diario.sh
 	bash tests/test-preparar-pendrive.sh
 	bash tests/test-processos.sh
 	bash tests/test-pc-marca-vlc.sh
 	bash tests/test-qualidade.sh
+	bash tests/test-pc-diario.sh
 
 check-bin:
 	python3 tests/test-builder-bin.py

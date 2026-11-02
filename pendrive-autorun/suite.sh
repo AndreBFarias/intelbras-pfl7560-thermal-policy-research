@@ -36,6 +36,7 @@ SUITE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 662acb7ac307699a389e892047f0d883  nl_tela
 60aa994d0f34b6dd002a1a4a5ba7668b  suite-curvas.sh
 bdf8936e37eb56dc7f3989b486175879  suite-chaves.sh
+90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
 b9b36dfd2df8eb824ee2d480d70c45a9  kit/corrigida.png
@@ -1072,6 +1073,9 @@ modo_desinstalar(){
       for _od in $_ov; do if [ -e "$_od" ] || [ -L "$_od" ]; then _ovsobra="$_ovsobra $_od"; fi; done
       if [ -n "$_ovsobra" ]; then LOG "[ERRO] nao consegui remover as sobreposicoes:$_ovsobra"; _drc=1; else LOG "[OK] sobreposicoes de tema removidas de /vendor/overlay"; fi
     fi
+  fi
+  if confere "$SUITE/suite-diario.sh" suite-diario.sh; then
+    sh "$SUITE/suite-diario.sh" parar && LOG "[OK] diario: laco parado"
   fi
   if confere "$SUITE/suite-chaves.sh" suite-chaves.sh; then
     sh "$SUITE/suite-chaves.sh" resgate && LOG "[OK] chaves: todas desligadas (apps religados, porta, chip Wi-Fi, servicos e props de volta)"

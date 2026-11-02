@@ -223,6 +223,30 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - As ações de cada chave vão para `$SUITE/diario.fila` (`<uptime> <id> <acao> <resultado>`, máx. 60), de onde o diário
   as lê quando existir.
 
+## `suite-diario.sh` (diário do projetor, bloco 24)
+
+- Um laço (processo `sh suite-diario.sh laco`, pid em `/dev/pfl7560-diario.pid`, conferido pelo `/proc/<pid>/cmdline`)
+  grava **1 linha por minuto** em `$SUITE/diario/diario-0.txt` e `diario-1.txt` (pasta 700, arquivos 600). Cada arquivo
+  tem no máximo 256 KB; ao encher, passa para o outro e **apaga** o que lá havia (ponteiro em `$SUITE/diario.atual`).
+- A linha é ASCII, `chave=valor` sem espaço dentro do valor, `-` para o que faltou:
+  `up dt boot env placa luz load vent led wifi eth mem ch ev` (uptime, data do aparelho, id do boot, temperaturas,
+  luz, carga, ventilador, LED, Wi-Fi, eth0, memória, chaves, eventos). Só lê `getprop` (`zysys.env_temp`,
+  `zysys.light_temp`, `vendor.pfl7560.luz|vent|led|chaves`), `/proc` e `/sys`. Nunca `hidebug`, `gtt` nem `logcat`.
+- `ev` traz as linhas novas de `$SUITE/diario.fila` (as chaves da `suite-chaves.sh`): até 5 (`id:acao:resultado`),
+  depois `,+N`. Ao ligar, a fila é marcada como vista (o passado não é despejado).
+- Comandos: `iniciar` (boot: sobe o laço se não está desligado), `laco`, `uma-linha`, `ligar`, `desligar`, `enviar`,
+  `enviado <AAAA-MM-DDTHH:MM:SS>`, `ler`, `parar`, `pedido "v1 ligar|desligar|enviar|ler"`.
+- **Chave do dono:** `desligar` cria a marca `$SUITE/diario.desligado` e para o laço; o boot não sobe o laço com a
+  marca. `ligar` apaga a marca e sobe o laço. O resgate `DESLIGAR-CHAVES.txt` não mexe no diário (não é medida
+  de sistema) e a desinstalação da suíte para o laço.
+- **Enviar agora** só cria `$SUITE/diario.envio`; quem busca é o PC (`pfl7560-diario.sh`), que ao terminar chama
+  `enviado <data>`: isso apaga o pedido e grava a data em `$SUITE/diario.ultimo-envio`.
+- Props: `vendor.pfl7560.diario` = `<1|0>:<bytes>:<pedido 0|1>`; `vendor.pfl7560.diario_envio` = data do último envio.
+- Pedido da home: arquivo `diario` (`v1 ligar|desligar|enviar|ler`, até 32 bytes), tratado pelo `suite-pedido.sh`
+  como os outros (dono da pasta da home, `mv` para a pasta do root). O `suite-pedido.sh` e o `suite-boot.sh`
+  guardam o md5 do `suite-diario.sh`; ele próprio não guarda md5 de ninguém.
+- Ganchos de teste (só com `PFL_TESTE=1`): `PFL_DIARIO_MAX`, `PFL_DIARIO_INTERVALO`, `PFL_DIARIO_VOLTAS`.
+
 
 ## Provisório (o aparelho confirma)
 

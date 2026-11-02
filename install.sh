@@ -17,6 +17,8 @@
 #                                      # sem copiar nada (o tests/preparar-pendrive.sh usa)
 #    ./install.sh --dev        # idem + o que o desenvolvimento usa (requirements.txt)
 #    ./install.sh --check --dev    # so verifica, inclusive o de desenvolvimento
+#    ./install.sh --diario     # so COPIA as unidades systemd --user do diario do projetor para
+#                              # ~/.config/systemd/user/ e mostra os comandos para ligar. Nao liga nada.
 #    ./install.sh --help
 #  PFL_FIRMWARE_DIR=<pasta> aponta outra pasta de firmware (padrao: firmware/ deste repo).
 #
@@ -33,6 +35,7 @@ CHECK_ONLY=0
 PENDRIVE_DIR=""
 COM_FIRMWARE=0
 CONFERIR_FW=0
+DIARIO=0
 DEV=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -51,10 +54,14 @@ while [ $# -gt 0 ]; do
     --com-firmware) COM_FIRMWARE=1 ;;
     --conferir-firmware) CONFERIR_FW=1 ;;
     --dev) DEV=1 ;;
-    *) echo "uso: $0 [--check] [--dev] | --pendrive DIR [--com-firmware] | --help"; exit 1 ;;
+    --diario) DIARIO=1 ;;
+    *) echo "uso: $0 [--check] [--dev] | --pendrive DIR [--com-firmware] | --diario | --help"; exit 1 ;;
   esac
   shift
 done
+if [ "$DIARIO" = "1" ] && { [ -n "$PENDRIVE_DIR" ] || [ "$COM_FIRMWARE" = "1" ] || [ "$CONFERIR_FW" = "1" ] || [ "$CHECK_ONLY" = "1" ] || [ "$DEV" = "1" ]; }; then
+  echo "uso: --diario vale sozinho (so copia as unidades do diario)"; exit 1
+fi
 if [ "$COM_FIRMWARE" = "1" ] && [ -z "$PENDRIVE_DIR" ]; then
   echo "uso: --com-firmware so vale junto com --pendrive <pasta-raiz-do-pendrive>"; exit 1
 fi
@@ -443,6 +450,39 @@ print_next(){
 EOF
 }
 
+# Unidades do diario (bloco 24): so COPIA os dois arquivos para o systemd --user do dono, trocando o
+# @AQUI@ pela pasta deste repositorio. Nao roda systemctl, nao liga timer, nao grava no projetor.
+# HOME e XDG_CONFIG_HOME podem apontar para uma pasta de teste.
+instalar_diario(){
+  local origem="$HERE/systemd" dest="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user" u
+  case "$HERE" in
+    *[[:space:]%\\]*) err "o caminho '$HERE' tem espaco, % ou barra invertida: o systemd nao le assim. Mova o repositorio."; return 1 ;;
+  esac
+  for u in pfl7560-diario.service pfl7560-diario.timer; do
+    [ -f "$origem/$u" ] || { err "falta $origem/$u"; return 1; }
+  done
+  [ -x "$HERE/pfl7560-diario.sh" ] || chmod +x "$HERE/pfl7560-diario.sh" 2>/dev/null
+  mkdir -p "$dest" || { err "nao consegui criar $dest"; return 1; }
+  for u in pfl7560-diario.service pfl7560-diario.timer; do
+    sed "s|@AQUI@|$HERE|g" "$origem/$u" > "$dest/$u.novo" && mv -f "$dest/$u.novo" "$dest/$u" \
+      || { err "nao consegui gravar $dest/$u"; return 1; }
+    chmod 644 "$dest/$u"
+    ok "unidade copiada: $dest/$u"
+  done
+  cat <<DIARIOFIM
+
+Nada foi ligado. Para ligar (uma vez, na sua conta):
+  1. mkdir -p ~/.config/pfl7560 && echo 'PFL_IP=<ip do projetor>' > ~/.config/pfl7560/diario.env
+  2. systemctl --user daemon-reload
+  3. systemctl --user enable --now pfl7560-diario.timer
+Para desligar:  systemctl --user disable --now pfl7560-diario.timer
+Os arquivos ficam em $HERE/logs-projetor/ (um por mes).
+DIARIOFIM
+}
+if [ "$DIARIO" = "1" ]; then
+  instalar_diario
+  exit $?
+fi
 if [ "$CONFERIR_FW" = "1" ]; then
   fw_conferir ""
   exit $?
