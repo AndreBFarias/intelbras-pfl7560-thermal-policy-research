@@ -112,9 +112,11 @@ make check-bin   # gerador do .bin em containers sintéticos
 
 Em uso no projetor do dono desde 2026-10-31. **Provisório:** tirar da tomada com o projetor ligado, a varredura
 fina de foco (desligada até ganhar passo relativo, doc 46 §11), algumas telas que ainda faltam olhar com o controle e o modelo sem
-USB-C (só testado em simulação). A build `.bin` (`PFL7560-S4a`, os 3 fixes nos mesmos blocos do stock) passa nas
-provas do PC e **nunca foi gravada**; o `install.sh --com-firmware` a põe na raiz do pendrive, e gravá-la é o gate
-BIN-S4a ([doc 47](docs/research/47-build-completa.md)). Lista completa e atualizada: [`docs/ESTADO.md`](docs/ESTADO.md).
+USB-C (só testado em simulação). Nenhuma build `.bin` nossa foi gravada até hoje. A próxima é a **S5** (os 3
+fixes, a suíte, a home e o app já na imagem, e o logo na partição `logo`): em 2026-11-02 o dono decidiu gravá-la
+direto, sem gravar antes a S4a e a S4b; o `install.sh --com-firmware` a põe na raiz do pendrive e o
+`firmware/preflight-flash.sh` confere tudo antes ([doc 47 §12](docs/research/47-build-completa.md)). Lista completa e
+atualizada: [`docs/ESTADO.md`](docs/ESTADO.md).
 
 O relatório para o CSIRT da Intelbras está pronto e ainda não foi enviado
 ([`docs/disclosure/STATUS.md`](docs/disclosure/STATUS.md)). Este repositório é privado até a divulgação.
