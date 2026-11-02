@@ -1276,12 +1276,12 @@ exec "$T/bin/pm.orig" "$@"'
   afirma '[ ! -e "$(S14)/debloat-revertido" ] && log_tudo | grep -q "REAPLICAR-DEBLOAT.txt no pendrive"' "REAPLICAR nao tirou a marca"
   limpa
 
-  novo_cenario "bloco 23: o kit leva a suite de curvas e a lista do debloat, com md5 na lista e no versionCode 6"; aparelho_ok
-  afirma '[ "$APP_VC" = 6 ] && [ "$(sed -n "s/^APP_VERSION_CODE=\"\([0-9]*\)\"$/\1/p" "$KIT/newlink_update.sh")" = 6 ]' "versionCode do app nao e 6"
+  novo_cenario "bloco 23: o kit leva a suite de curvas e a lista do debloat, com md5 na lista e no versionCode 6 ou mais"; aparelho_ok
+  afirma '[ "$APP_VC" -ge 6 ] && [ "$(sed -n "s/^APP_VERSION_CODE=\"\([0-9]*\)\"$/\1/p" "$KIT/newlink_update.sh")" -ge 6 ]' "versionCode do app menor que 6"
   afirma 'grep -q "  suite-curvas.sh\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh") && grep -q "  debloat-aprovados.txt\$" <(sed -n "/^# KIT_LISTA_INICIO/,/^# KIT_LISTA_FIM/p" "$KIT/newlink_update.sh")' "suite-curvas.sh ou debloat-aprovados.txt fora da KIT_LISTA"
   afirma 'grep -q "^KIT_EXEC=.*suite-curvas.sh" "$KIT/newlink_update.sh" || grep -q "suite-curvas.sh" <(sed -n "/KIT_EXEC/,/^\$/p" "$KIT/newlink_update.sh")' "suite-curvas.sh fora do KIT_EXEC"
   afirma 'cmp -s "$KIT/pfl7560-home.apk" "$ROOT/artifacts/home/pfl7560-home.apk"' "pfl7560-home.apk do kit difere do de artifacts/home"
-  afirma '[ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 6 ]' "versionCode da home nao e 6"
+  afirma '[ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" -ge 6 ]' "versionCode da home menor que 6"
   afirma '! LC_ALL=C grep -q "[^[:print:][:space:]]" "$KIT/suite-curvas.sh"' "suite-curvas.sh nao e ASCII puro"
   afirma '! tail -n +2 "$KIT/suite-curvas.sh" | grep -E "^[[:space:]]*#" | grep -qv "^[[:space:]]*# shellcheck"' "suite-curvas.sh tem comentario"
   afirma '! grep -qE "\b(gtt|stp)\b" "$KIT/suite-curvas.sh" || ! grep -E "\b(gtt|stp)\b" "$KIT/suite-curvas.sh" | grep -vqE "^[[:space:]]*(#|LOG)"' "suite-curvas.sh chama gtt ou stp"
@@ -1292,8 +1292,14 @@ exec "$T/bin/pm.orig" "$@"'
 }
 
 c_bloco25(){
-  local L
+  local L aapt2
   novo_cenario "bloco 25: o kit instala nl_logo, suite-logo.sh e a arte reta na suite (executaveis 755, md5 do kit)"; aparelho_ok
+  afirma '[ "$APP_VC" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/app/build.sh")" = 7 ] && [ "$(sed -n "s/^VERSAO_CODIGO=\([0-9]*\).*/\1/p" "$ROOT/artifacts/home/build.sh")" = 7 ]' "versionCode do app ou da home nao e 7"
+  # shellcheck disable=SC2012
+  aapt2="$(command -v aapt2 || ls "${ANDROID_SDK:-$HOME/Android/sdk}"/build-tools/*/aapt2 2>/dev/null | tail -1)"
+  if [ -n "$aapt2" ]; then
+    afirma '"$aapt2" dump badging "$KIT/pfl7560-home.apk" | grep -q "^package: name='"'"'com.pfl7560.home'"'"' versionCode='"'"'7'"'"'"' "versionCode do apk da home nao e 7"
+  fi
   roda nokey
   afirma '[ "$(stat -c %a "$(S14)/nl_logo")" = 755 ] && [ "$(stat -c %a "$(S14)/suite-logo.sh")" = 755 ] && cmp -s "$(S14)/nl_logo" "$KIT/nl_logo" && cmp -s "$(S14)/suite-logo.sh" "$KIT/suite-logo.sh"' "nl_logo/suite-logo.sh nao instalados como executaveis iguais aos do kit"
   afirma 'cmp -s "$(S14)/marca/logo.jpg" "$KIT/marca/logo.jpg" && [ "$(stat -c %a "$(S14)/marca")" = 700 ] && [ ! -e "$(S14)/marca/bootanimation.zip" ]' "a arte reta nao foi para a suite (ou a animacao foi junto)"

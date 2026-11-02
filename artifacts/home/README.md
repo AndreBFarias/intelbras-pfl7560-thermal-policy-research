@@ -68,7 +68,7 @@ O molde é o do `artifacts/app/`: sem Gradle, com o SDK local (`ANDROID_SDK`, pa
 não é segredo: só garante que um APK novo instale por cima. O resultado é determinístico. O script **não**
 copia nada para o kit (`pendrive-autorun/`); a integração é do coordenador.
 
-`minSdk 28`, `targetSdk 28`, `versionCode 6`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
+`minSdk 28`, `targetSdk 28`, `versionCode 7`. Permissões: `ACCESS_NETWORK_STATE` e `ACCESS_WIFI_STATE`,
 ambas normais.
 
 ## Código

@@ -55,7 +55,7 @@ e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/ge
 ## Provas
 
 - `build.sh` gera o APK do zero e `apksigner verify` passa.
-- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='5'` (o 5 é o dos pedidos do descanso em ordem, bloco 21; o 4, o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='7'` (o 7 acompanha a home do bloco 25; o 6, o do standby pelo descanso, bloco 23; o 5, o dos pedidos do descanso em ordem, bloco 21; o 4, o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
   duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
 - O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
 

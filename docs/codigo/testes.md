@@ -105,7 +105,7 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
 - Conferente F3: um vigia ou laço velho que sai não apaga o pid de um novo (o `sleep` de mentira troca o pid no meio
   e o arquivo tem de continuar com o do novo).
 - `test-kit-pendrive.sh`: `c_bloco23` (variante do LED no `.ini` aceita sem regravar nem reiniciar; `FW_SPEED_CURVE` mexido
-  recusado; `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`; versionCode 6; `suite-curvas.sh` e a lista do debloat no
+  recusado; `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`; versionCode 6 ou mais (o 7 exato fica no `c_bloco25`); `suite-curvas.sh` e a lista do debloat no
   `KIT_LISTA`/`KIT_EXEC`).
 - Home: `Previa.java` confere o modelo das curvas e a navegação (`gerar-previas.sh`).
 
