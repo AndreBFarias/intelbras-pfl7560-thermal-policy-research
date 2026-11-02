@@ -36,9 +36,9 @@ O protetor de tela **não** entra em chave de debloat (a feature 3 do bloco 23 d
 - Kit em ASCII puro, `sh` do Android, PATH fixo; md5 só por `bash tests/atualizar-md5-kit.sh`; `versionCode` 7.
 - Nenhum agente fala com o projetor; o coordenador instala com o dono.
 - Arquivos: os mesmos do bloco 23. Ordem do dono: rodar **em paralelo** com o 23. Por isso o bloco 24 trabalha
-  numa cópia (`~/Apate/Desenvolvimento/.arvores/bloco24/`), e o coordenador junta depois com `git merge-file`
-  (3 vias) contra a base copiada em `~/Apate/Desenvolvimento/.arvores/base-bloco24/`. O `versionCode` e as listas
-  de md5 serão refeitos na integração.
+  no branch `bloco-24`, na árvore `~/Apate/Desenvolvimento/.arvores/bloco24/` (git worktree), com um commit por
+  tarefa. O coordenador junta no `main` depois que o 23 for commitado; o `versionCode` e as listas de md5 são
+  refeitos na integração.
 
 ## Agentes (2)
 
