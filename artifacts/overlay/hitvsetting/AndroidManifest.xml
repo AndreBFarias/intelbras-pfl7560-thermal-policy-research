@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do menu de imagem e som das entradas (HiTvSetting, bloco 18):
+     painel, linha em foco e barras de ajuste. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.hitvsetting (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.hitvsetting">
+    <overlay android:targetPackage="com.hisilicon.tvsetting" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

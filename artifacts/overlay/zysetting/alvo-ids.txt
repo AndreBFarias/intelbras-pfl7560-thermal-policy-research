@@ -1,0 +1,50 @@
+# gerado por molde-alvo.py de ZYSetting.apk (md5 8a9d0d57); nao editar a mao
+0x7f0401c2 attr/tv_isInterceptKeyEvent boolean
+0x7f0401c3 attr/tv_isMenu boolean
+0x7f0401c5 attr/tv_layoutManager string
+0x7f06002a color/button_text
+0x7f060031 color/color_FB884C
+0x7f060083 color/pt_green
+0x7f060084 color/pt_green_black
+0x7f07005f dimen/item_big_height
+0x7f070159 dimen/recyclerview_height
+0x7f07015a dimen/recyclerview_margin_top
+0x7f07015b dimen/recyclerview_textsize
+0x7f07015d dimen/recyclerview_width
+0x7f08005b drawable/bg_itemcolor
+0x7f08005c drawable/bg_itemcolor_miroir
+0x7f080061 drawable/button_bg_itemcolor
+0x7f080062 drawable/button_bg_normal
+0x7f080063 drawable/button_bg_press
+0x7f080066 drawable/cancel
+0x7f08006b drawable/close_check_en
+0x7f08006c drawable/close_check_es
+0x7f08006d drawable/close_check_pt
+0x7f08006f drawable/confirm_dialog_bg
+0x7f080071 drawable/cursor
+0x7f080072 drawable/custom_checkbox
+0x7f08007d drawable/edit_large_focus
+0x7f08007e drawable/edit_large_normal
+0x7f0800a2 drawable/item_focus
+0x7f0800a4 drawable/item_focus_white
+0x7f080108 drawable/open_check_en
+0x7f080109 drawable/open_check_es
+0x7f08010a drawable/open_check_pt
+0x7f08010f drawable/pt_bt
+0x7f080110 drawable/pt_dlp
+0x7f080111 drawable/pt_other
+0x7f080112 drawable/pt_update
+0x7f080116 drawable/selected_image
+0x7f080138 drawable/update
+0x7f0a0058 id/checkbox_wifi_on_off
+0x7f0a00ff id/layout_wifi_on_off
+0x7f0a012e id/mainUpView1
+0x7f0a0171 id/recyclerview
+0x7f0a017a id/scaning_text
+0x7f0a01c8 id/tip_layout
+0x7f0c004c layout/layout_title
+0x7f0c004d layout/layout_wifi
+0x7f10013a string/scaning
+0x7f10015b string/tip_wifi
+0x7f10017b string/wifi_on_off
+0x7f110143 style/TwoWayView

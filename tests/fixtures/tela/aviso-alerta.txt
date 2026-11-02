@@ -1,0 +1,12 @@
+# C-tela, aviso com tom=alerta: etapa que falhou
+etapa=Etapa 1 de 5
+canto=cor do painel
+titulo=N\u00e3o consegui conferir a cor.
+texto=A c\u00e2mera n\u00e3o abriu (o autofoco pode estar usando). A cor do painel ficou como estava. Se as cores parecerem trocadas, rode de novo pelo \u00edcone Verificar projetor.
+passo=Cor do painel|feito|atencao
+passo=\u00c2ngulo e foco|agora
+passo=Nitidez|fila
+passo=Temperatura|fila
+passo=Teste da rampa|fila
+rodape=n\u00e3o precisa apertar nada
+tom=alerta

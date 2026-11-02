@@ -1,0 +1,11 @@
+# pfl7560-suite: servico de boot da suite de verificacao (bloco 9B). Instalado pelo
+# kit de pendrive em /vendor/etc/init (0644 root:root, u:object_r:vendor_configs_file:s0).
+service pfl7560_suite /vendor/bin/sh /data/vendor/pfl7560-suite/suite-boot.sh
+    user root
+    group root
+    seclabel u:r:vendor_shell:s0
+    oneshot
+    disabled
+
+on property:sys.boot_completed=1
+    start pfl7560_suite

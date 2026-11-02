@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Fundo do aviso do foco/trapezio automatico (layout toast, AutoFocusService$14 e
+     OneACKSService$3 sem vendor.newlink.toastbg.black). O texto e #FF666666 fixo no layout, entao o
+     fundo continua claro: branco -> texto (Dracula) com fio comentario de 2 dp, como o Toast do
+     sistema (sobreposicao do android). Mesmo raio. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#FFF8F8F2" />
+    <stroke android:width="2dp" android:color="#FF6272A4" />
+    <corners android:radius="5dp" />
+</shape>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula dos avisos proprios do nlprovision (bloco 13A). So recursos, sem codigo.
+     O aviso "Temperatura anormal" e um AlertDialog com o tema do framework: quem o pinta e a
+     sobreposicao do android (doc 48). Nao estatica: cmd overlay enable com.pfl7560.tema.nlprovision -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.nlprovision">
+    <overlay android:targetPackage="com.newlink.nlprovision" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

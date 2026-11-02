@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Botao parado do my_dialog (atualizacao do MCU, atualizacao concluida; MyDialog$1/$2 e
+     UpdateSuccessDialog$1 poem texto branco). De fabrica lilas #FFA6A6E5 -> comentario (branco 4,7:1)
+     sobre o painel linha. Mesmo raio. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="40dp" />
+    <solid android:color="#FF6272A4" />
+</shape>

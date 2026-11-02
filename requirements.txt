@@ -1,0 +1,5 @@
+# Python do PC (geradores e testes). Os testes rodam com python3 -I, que nao enxerga pip --user:
+# no Debian/Ubuntu/Pop use ./install.sh --dev (instala python3-pil e python3-numpy pelo apt).
+# O resto do que o projeto usa (adb, Android SDK/NDK, JDK, shellcheck, vlc...) tambem vem do ./install.sh --dev.
+Pillow>=10.2
+numpy>=1.26

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Texto dos botoes da janela de senha do Wi-Fi. De fabrica: preto em foco, branco parado.
+     Dracula: fundo sobre o botao rosa em foco (8,9:1), texto sobre o botao parado. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:color="#FF282A36" />
+    <item android:state_focused="false" android:color="#FFF8F8F2" />
+</selector>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do player IjkPlayer (bloco 17A): o gerenciador de arquivos o abre para video com audio AC3/EAC3 (FileListFragment$9). Barra de controle e botoes em foco. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.ijkplayer (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.ijkplayer">
+    <overlay android:targetPackage="com.newlink.isuperred.ijkplayerdemo" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

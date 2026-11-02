@@ -1,0 +1,45 @@
+Tasks: 208 total,   1 running, 199 sleeping,   0 stopped,   0 zombie
+Mem:   1004756k total,   836360k used,   168396k free,     9884k buffers
+Swap:   318924k total,    61960k used,   256964k free,   331784k cached
+400%cpu  33%user   3%nice 108%sys 250%idle   0%iow   0%irq   6%sirq   0%host
+  PID USER         PR  NI VIRT  RES  SHR S[%CPU] %MEM     TIME+ ARGS
+ 1871 shell        20   0  18M 492K 492K S 41.6   0.0  14:59.01 adbd --root_seclabel=u:r:su:s0
+ 1841 root         RT   0  20M 3.5M 2.4M S 36.1   0.3  18:07.51 hipluginserver
+ 3599 shell        20   0 5.7M 1.8M 1.3M R 22.2   0.1   0:00.15 top -n 1 -b -m 40
+ 1602 root         20   0  56M 3.2M 2.9M S 11.1   0.3   4:34.24 vendor.hisilicon.hardware.hwtvmw@1.0-service
+ 1831 root         20   0 7.9M    0    0 S  5.5   0.0   1:53.24 pqserver
+ 1594 logd         30  10  13M 2.8M 2.0M S  5.5   0.2   2:39.42 logd
+ 1099 root         RT   0    0    0    0 D  5.5   0.0   2:57.56 [hi_vpss_process]
+ 3557 shell        20   0 4.8M 1.5M 1.1M S  2.7   0.1   1:14.18 logcat -v time
+ 3199 root         -2   0    0    0    0 S  2.7   0.0   0:15.81 [aicwf_bustx_thr]
+ 3198 root         -2   0    0    0    0 S  2.7   0.0   1:00.97 [aicwf_busrx_thr]
+ 3114 system       -2   0 865M  52M  37M S  2.7   5.2   0:08.06 com.newlink.nlsource
+ 2159 system       20   0 826M  18M  14M S  2.7   1.7   0:09.30 com.hisilicon.rmservice
+ 1816 root         20   0  12M 1.6M 1.6M S  2.7   0.1   0:11.27 hipluginserver
+ 1028 root         20   0    0    0    0 S  2.7   0.0   0:06.72 [CEC main task]
+ 3588 root          0 -20    0    0    0 S  0.0   0.0   0:01.83 [kworker/u9:0]
+ 3587 root          0 -20    0    0    0 S  0.0   0.0   0:03.34 [kworker/u9:2]
+ 3570 root          0 -20    0    0    0 S  0.0   0.0   0:08.71 [kworker/u9:1]
+ 3519 root         20   0    0    0    0 D  0.0   0.0   0:00.06 [vi_alloc]
+ 3467 wifi         20   0  11M 4.3M 3.6M S  0.0   0.4   0:00.19 aic_supplicant -O/data/vendor/wifi/wpa/sockets -iwlan0 -Dnl80211 -c/data/vendor/wifi/wpa/wpa_supplicant.conf -m/data/vendor/wifi/wpa/p2p_supplicant_aic.conf -e/data/misc/wifi/entropy.bin -puse_p2p_group_interface=1p2p_device=1 -g@android:wpa_wlan0
+ 3326 root         20   0    0    0    0 S  0.0   0.0   0:00.55 [kworker/u8:3]
+ 3202 root          0 -20    0    0    0 S  0.0   0.0   0:00.00 [apmStaloss_wq]
+ 3201 root          0 -20    0    0    0 S  0.0   0.0   0:00.00 [cmd_wq]
+ 3200 root         -2   0    0    0    0 S  0.0   0.0   0:00.03 [aicwf_msg_busrx]
+ 3174 u0_a12       20   0 814M  32M  28M S  0.0   3.2   0:00.17 com.android.providers.tv
+ 3131 system       20   0 827M  36M  28M S  0.0   3.6   0:00.38 com.newlink.screensaver
+ 3000 system       20   0 851M  58M  49M S  0.0   5.8   0:04.31 com.zhiying.settings
+ 2928 system       20   0 824M  30M  27M S  0.0   3.0   0:00.12 com.android.tv.settings
+ 2741 root         20   0 5.7M 1.6M 1.2M S  0.0   0.1   0:00.02 inotifyd /data/vendor/pfl7560-suite/suite-pedido.sh /data/data/com.pfl7560.verificar  wy /data/data/com.pfl7560.home  wy
+ 2626 system       20   0 850M  59M  33M S  0.0   5.9   0:00.94 com.newlink.service
+ 2624 root         20   0    0    0    0 S  0.0   0.0   0:00.00 [kworker/2:2]
+ 2525 system       20   0 819M  32M  28M S  0.0   3.2   0:00.17 com.newlink.filemanager
+ 2416 u0_a29       20   0 828M  44M  37M S  0.0   4.5   0:01.66 com.pfl7560.home
+ 2381 system       20   0 818M  26M  22M S  0.0   2.6   0:00.12 com.newlink.hisilauncher
+ 2348 u0_a20       20   0 821M  46M  36M S  0.0   4.6   0:07.78 com.hisilicon.tvinput.external
+ 2332 root         20   0 4.4M 1.3M 1.1M S  0.0   0.1   0:00.11 sh /data/vendor/pfl7560-suite/suite-boot.sh
+ 2222 system       20   0 832M  58M  47M S  0.0   5.8   0:08.83 com.newlink.nlprovision
+ 2197 system       20   0 824M 6.2M 4.8M S  0.0   0.6   0:00.16 com.newlink.wtprovision
+ 2190 system       20   0 821M  17M  14M S  0.0   1.7   0:12.77 com.hisilicon.tv.service
+ 2066 u0_a7        20   0 816M  10M 7.9M S  0.0   0.9   0:00.25 com.hisilicon.android.inputmethod.remote
+ 2006 root          0 -20    0    0    0 S  0.0   0.0   0:00.00 [dmx_wq]

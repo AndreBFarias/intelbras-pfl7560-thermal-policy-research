@@ -1,0 +1,87 @@
+# 12 - Segurança e recuperação (à prova de pânico)
+
+Feito para você não ter medo de perder o progresso. Regra de ouro do projeto: **nunca tocamos no bootloader
+nem no recovery** — a correção são **três arquivos de texto** na partição **`/vendor`**
+(`ZYCustom.ini`, `build.prop`, `init.bigfish.rc`). Então nenhuma mudança nossa pode impedir o aparelho de
+ligar, e tudo é reversível.
+
+> **A exceção é a cor, e só para quem trocou o painel LCD:** ela grava **1 byte** (`0x5c`, o formato LVDS)
+> na partição `panelparam`, que é lida no início do boot. Toda ferramenta do repositório faz **backup da
+> partição antes** e se recusa a gravar sem ele; o kit de pendrive ainda guarda um journal e desfaz a
+> troca no boot seguinte se a energia cair no meio. Detalhes no [guia 32](32-guia-troca-painel-lcd.md).
+
+> **Atenção — o `.bin` NÃO entra aqui.** O `PFL7560-FIX.bin` (Método 4) está **em quarentena** por travar o
+> boot (rótulo SELinux ausente, ver [doc 16](16-recuperacao-brick.md)). Esta página cobre **só o método
+> `/vendor`** (autorun por pendrive + `pfl7560-fix.sh`), que é o seguro.
+
+## Onde está o seu "cofre" (no PC, longe do projetor)
+
+| Arquivo | O que é | Para quê |
+|---|---|---|
+| `pfl7560-fix.sh` (raiz do projeto) | **script mestre auto-suficiente** (config embutida em base64) | reaplica/reverte TUDO com 1 comando |
+| `backups-projetor/*.STOCK` (gerado no 1º `apply`; no modelo sem USB-C, em `backups-projetor/notypec/`) | os 3 arquivos de fábrica que o `apply` puxou do aparelho | fonte do `revert` (só restaura backup do mesmo modelo) |
+| `artifacts/ZYCustom.ini.ORIGINAL` / `artifacts/ZYCustom.ini.NOTYPEC.STOCK` | `.ini` de fábrica versionado do modelo com USB-C (md5 `29d8ba36…`) e do sem USB-C (`ed3f314c…`) | stock de referência p/ backup/revert |
+| `backups-projetor/panelparam.backup-<serial>-<data>.img` (só se você gravou cor) | backup da partição de cor feito antes de cada gravação | `./pfl7560-lcd-color.sh restore <arquivo>` |
+| `pendrive-autorun/` (kit v2 completo: `newlink_update.sh`, `cor.sh`, `lvdsctl`, `nl_camcheck`, `ZYCustom.ini`, `LEIA-ME.txt`, `kit/*.png`, a suíte `suite.sh`, `suite-boot.sh`, `suite-pedido.sh`, `pfl7560-suite.rc`, `nl_tela`, `fontes/*` e o app `pfl7560.apk`; lista completa em [`INSTALL.md`](../../INSTALL.md)) | autorun por pendrive | aplicar sem PC |
+| `Software PFL7560.zip` | **firmware de fábrica completo** | recuperação máxima (reflash oficial) |
+| `docs/*.md` (01–20) | toda a pesquisa | conhecimento |
+
+> **Faça HOJE:** copie a pasta inteira `Desktop/pfl7560/` para um **pen drive e/ou nuvem**. Esse é o seu seguro.
+> O `pfl7560-fix.sh` sozinho já reaplica a correção mesmo se você perder todo o resto.
+
+## Cenários que te dão medo — e a resposta
+
+### 1. Restauração de fábrica (você ou alguém reseta o projetor)
+- O que acontece: o reset de fábrica **limpa `/data`**, mas **NÃO** reescreve a partição `/vendor`. Como a
+  correção mora em `/vendor` (que não tem dm-verity nesta build), ela **SOBREVIVE ao reset** — o aparelho
+  continua corrigido. **Não perde a correção, não brica.**
+- Se algum dia você quiser mesmo voltar ao stock, é **de propósito**: `./pfl7560-fix.sh revert` (ver abaixo).
+
+### 2. Queda de energia com o projetor ligado
+- Os 3 arquivos já estão gravados e sincronizados no eMMC (`sync` antes do reboot). Queda de luz **não
+  corrompe** um arquivo já salvo. Ao religar, a correção continua lá. **Nada a fazer.**
+
+### 3. Queda de energia / Wi-Fi bem no meio do `apply`
+- O script grava cada arquivo de forma **atômica** (push para `*.new`, confere o md5 e só então `mv` por cima)
+  e **confere tudo ANTES de reiniciar**. Se a gravação foi interrompida, o md5 não bate, o original fica
+  intacto e ele **aborta sem reiniciar**. Você só roda `./pfl7560-fix.sh apply` de novo. **Sem risco.**
+
+### 4. Perdi o PC / a pasta do projeto
+- O `pfl7560-fix.sh` é **auto-contido** para o modelo com USB-C (V1.0.0.9): a config está embutida em base64
+  dentro dele. No modelo sem USB-C ele precisa também dos artefatos `artifacts/*NOTYPEC*` do repositório.
+  Ou use o **pendrive autorun** (o kit v2 completo, copiado com `./install.sh --pendrive`), que aplica sem PC
+  nos dois modelos.
+- Se perder até isso: o firmware de fábrica está no `Software PFL7560.zip`, e a correção inteira está
+  documentada em `09` e `10` (dá pra refazer o `.ini` do zero).
+
+### 5. "E se o projetor não ligar / travar?" (não deve acontecer pelo método `/vendor`)
+- O método `/vendor` **não toca no bootloader/recovery** — nossas mudanças não podem causar isso.
+- Se um dia acontecer (motivo alheio, ou por ter flashado o `.bin` em quarentena): a recuperação por
+  **power-hold + `usb_update.bin`** (firmware de fábrica) está detalhada na [doc 16](16-recuperacao-brick.md).
+  Último caso: UART/console U-Boot.
+
+## Três camadas de recuperação (redundância)
+
+1. **Re-aplicar:** `./pfl7560-fix.sh apply` (reinstala a correção) — ou plugar o pendrive autorun e ligar.
+2. **Reverter ao stock:** `./pfl7560-fix.sh revert` — restaura os 3 arquivos de `backups-projetor/*.STOCK`
+   (só funciona se o backup existir e for válido; o `apply` o cria na 1ª vez). Alternativa manual: com adb
+   root e `/vendor` remontado rw, empurrar de volta os 3 `.STOCK` (`ZYCustom.ini`, `build.prop`,
+   `init.bigfish.rc`) para `/vendor/…` e reiniciar.
+3. **Reflash total:** gravar o firmware de fábrica **do seu modelo** (`Software PFL7560.zip` é o V1.0.0.9, com
+   USB-C; não grave o de um modelo no outro, [doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)) por
+   pen drive FAT32 pela "Atualização local do sistema" (menu do projetor). Volta 100% ao original — **inclusive o formato de cor do painel**: a
+   `panelparam` provavelmente está dentro do `.bin` ([doc 42](../research/42-firmware-2026-10-modelo-sem-usbc.md)
+   §5). Quem trocou o painel LCD refaz o teste de cor depois ([guia 32](32-guia-troca-painel-lcd.md) §3).
+
+## Comandos do dia a dia
+
+```
+./pfl7560-fix.sh status    # ver como está (não muda nada)
+./pfl7560-fix.sh apply     # aplicar/reaplicar a correção (backup + 3 fixes + reboot)
+./pfl7560-fix.sh revert    # voltar ao stock (restaura backups-projetor/*.STOCK)
+PFL_IP=<ip> ./pfl7560-fix.sh status   # se a busca automática falhar, informe o IP
+```
+
+Enquanto o `.ini` de fábrica não mudar (há dois conhecidos: o do V1.0.0.9 e o do V1.0.0.1 sem USB-C, que
+difere só no `CONFIG_MODEL`), essa correção é estável e re-aplicável quantas vezes precisar. Num `.ini`
+desconhecido, o kit e o script recusam em vez de sobrescrever. **Pode dormir tranquilo.**

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Botao parado da tela do modo caixa de som. De fabrica branco -> linha (texto do
+     text_color_selector parado: texto sobre linha 8,6:1). Mesmo raio. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FF44475A" />
+    <corners android:radius="8dp" />
+</shape>

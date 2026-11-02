@@ -1,0 +1,53 @@
+Avoidance]
+    command = goa
+    belong module = custom
+    instruction = 0xF122
+    print format = dddd
+    print tags = top, bottom, left, right
+    description = get data from obstacle avoidance. eg: goa.
+[cus_SetFanSpeed]
+    command = sfs
+    belong module = custom
+    instruction = 0xF123
+    para format = dd
+    description = set fan speed. eg: sfs 0 500[fan:0-1, speed:0-1000].
+[cus_GetFanSpeed]
+    command = gfs
+    belong module = custom
+    instruction = 0xF124
+    para format = d
+    print format = d
+    print tags = fan speed
+    description = get fan speed. eg: gfs 0[fan:0-1].
+[cus_GetFanCount]
+    command = gfc
+    belong module = custom
+    instruction = 0xF125
+    print format = d
+    print tags = fan count
+    description = get fan count. eg: gfc.
+[cus_SetFocusMotor]
+    command = sfm
+    belong module = custom
+    instruction = 0xF126
+    para format = d
+    description = set focus motor. eg: sfm 0[0:FORWARD 1:BACKWARD 2:BRAKE].
+[cus_GetFocusMotor]
+    command = gfm
+    belong module = custom
+    instruction = 0xF127
+    para format = d
+    print format = d
+    print tags = focus motor
+    description = get focus motor. eg: gfm 0[0:KIND 1:LENS 2:STAGE].
+[cus_GetFocusMotorLimit]
+    command = gfml
+    belong module = custom
+    instruction = 0xF128
+    print format = d
+    print tags = focus motor limit status
+    description = get focus motor limit. eg: gfml.
+[cus_SetAutoFrame]
+    command = safr
+    belong module = custom
+    instruction = 0xF129

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do foco e trapezio automaticos (com.zhiying.autofocus, bloco 17A):
+     so o aviso (toast) que aparece durante o ajuste. A imagem de teste projetada para a camera
+     (autofocus_bg*) NAO e tocada: o algoritmo de foco le essa imagem. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.autofocus (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.autofocus">
+    <overlay android:targetPackage="com.zhiying.autofocus" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

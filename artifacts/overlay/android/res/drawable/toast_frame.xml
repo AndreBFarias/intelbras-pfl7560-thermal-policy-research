@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 16A. Fundo do Toast do framework (toastFrameBackground de todos os temas ->
+     @drawable/toast_frame; so o estilo dos temas o cita no framework-res.apk). De fabrica uma forma
+     cinza-clara #E6EEEEEE de raio 22 dp. O texto do Toast e
+     @color/primary_text_default_material_light (#DE000000), cor GLOBAL de todo texto Material claro:
+     nao se troca. Por isso o fundo continua claro: texto (Dracula) com o mesmo alfa e um fio
+     comentario de 2 dp. Preto 87% sobre ele: 13:1 (sobre o fundo Dracula). Mesmo raio. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
+    <solid android:color="#E6F8F8F2" />
+    <stroke android:width="2dp" android:color="#FF6272A4" />
+    <corners android:radius="22dp" />
+</shape>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula, contrato do bloco 10 (docs/sprints/2026-10-31-bloco-10-home-e-tema-dracula.md).
+     Os mesmos valores de src/com/pfl7560/home/Tema.java; o build.sh confere os dois contra o spec. -->
+<resources>
+    <color name="fundo">#FF282A36</color>
+    <color name="linha">#FF44475A</color>
+    <color name="texto">#FFF8F8F2</color>
+    <color name="comentario">#FF6272A4</color>
+    <color name="ciano">#FF8BE9FD</color>
+    <color name="verde">#FF50FA7B</color>
+    <color name="laranja">#FFFFB86C</color>
+    <color name="rosa">#FFFF79C6</color>
+    <color name="roxo">#FFBD93F9</color>
+    <color name="vermelho">#FFFF5555</color>
+    <color name="amarelo">#FFF1FA8C</color>
+</resources>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Itens dos menus do player (VideoActivity e os estilos do app). De fabrica: parado
+     cinza #AAA9A9A9; em foco cinza-azulado #AA778899 com fio verde #8890EE90 de 4 px; pressionado
+     tomate #AAFF6347. Agora: parado linha, em foco comentario com fio rosa, pressionado rosa, os
+     mesmos alfas, raios e espessuras. Texto branco por cima. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="false">
+        <shape>
+            <corners android:radius="5.0px" />
+            <gradient android:startColor="#AA44475A" android:endColor="#AA44475A" android:angle="270.0" android:centerY="0.45" android:centerColor="#AA44475A" />
+        </shape>
+    </item>
+    <item android:state_focused="true" android:state_pressed="false">
+        <shape>
+            <corners android:radius="5.0px" />
+            <stroke android:width="4.0px" android:color="#FFFF79C6" />
+            <gradient android:startColor="#AA6272A4" android:endColor="#AA6272A4" android:angle="270.0" android:centerY="0.45" android:centerColor="#AA6272A4" />
+        </shape>
+    </item>
+    <item android:state_pressed="true">
+        <shape>
+            <corners android:radius="5.0px" />
+            <stroke android:width="4.0px" android:color="#FFFF79C6" />
+            <gradient android:startColor="#AAFF79C6" android:endColor="#AAFF79C6" android:angle="270.0" android:centerY="0.45" android:centerColor="#AAFF79C6" />
+        </shape>
+    </item>
+</selector>

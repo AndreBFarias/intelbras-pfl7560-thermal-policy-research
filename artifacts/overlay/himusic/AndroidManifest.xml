@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do player de musica HiSilicon (bloco 17A): fundo, moldura de foco dos botoes, ponto da barra de progresso e foco da lista. Gerada com minSdk 1: o alvo tem drawable-hdpi-v4 (doc 48). So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.himusic (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.himusic">
+    <overlay android:targetPackage="com.hisilicon.android.music" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

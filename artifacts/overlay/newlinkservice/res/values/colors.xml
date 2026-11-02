@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48). -->
+<resources>
+    <!-- De fabrica #FF000000. Painel da contagem de desligar (activity_shut_down) e do BlackDialog,
+         botao parado da contagem, e texto escuro dos avisos claros (titulos, botao parado).
+         -> fundo: escuro nos dois papeis (fundo sobre texto 13,4:1; branco sobre fundo 14,2:1) -->
+    <color name="black">#FF282A36</color>
+    <!-- botao em foco da contagem de desligar (ShutDownDialog$1/$2). De fabrica #FFFF2121 ->
+         vermelho (texto branco fixo 3,1:1, como o Desligar do menu de energia) -->
+    <color name="red">#FFFF5555</color>
+    <!-- painel do my_dialog (atualizacao do MCU, atualizacao concluida). De fabrica roxo #FF574FB0
+         -> linha (texto branco fixo 9,2:1) -->
+    <color name="dialog_bg">#FF44475A</color>
+</resources>

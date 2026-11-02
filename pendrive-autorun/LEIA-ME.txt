@@ -1,0 +1,242 @@
+[NOTA DE CHARSET] Este arquivo e mantido em ASCII PURO de proposito: vive num
+pendrive FAT32 e pode ser aberto no proprio projetor ou em editores de locale
+incerto, onde acento pt-BR viraria mojibake. NAO acentuar este arquivo.
+Convencao fixada na sprint 25 (auditoria de acentuacao).
+
+========================================================================
+ PFL7560 - KIT DE PENDRIVE (instala a correcao sozinho, sem PC)
+========================================================================
+
+PARA QUE SERVE
+  Aplica a correcao (termica + wi-fi + xiri) e confere a COR da imagem, sozinho
+  (pela camera do proprio projetor) ou pelo controle remoto, SEM PC e SEM adb.
+  Vale para qualquer PFL7560 com o
+  firmware de fabrica V1.0.0.9 (com entrada USB-C) ou V1.0.0.1 (modelo NOTYPEC,
+  sem USB-C, de fabricacao a partir de 25/08/2026). Serve para:
+    - recuperar SEU projetor se um dia regravarem o firmware de fabrica;
+    - instalar a correcao em OUTROS PFL7560;
+    - acertar a cor depois de trocar o micro-painel (VESA ou JEIDA).
+  O MESMO pendrive serve para qualquer aparelho. Nao tem serial, nao tem
+  arquivo para editar.
+  Alem disso o kit instala a SUITE DE VERIFICACAO (secao propria mais abaixo): uma
+  conferencia completa da imagem (cor, angulo, foco, nitidez, temperatura) que
+  termina numa tela de resumo, e que depois roda sozinha quando o projetor volta
+  da tomada ou quando voce toca no icone "Verificar projetor".
+
+COMO USAR (5 passos)
+  1. Formate um pendrive em FAT32 (MBR). Copie TUDO o que esta nesta pasta para
+     a RAIZ do pendrive (nao deixe dentro de outra pasta):
+        newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   nl_tela   ZYCustom.ini
+        suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc   pfl7560.apk
+        pfl7560-home.apk   pasta kit   pasta fontes   pasta overlay   pasta marca
+     (a pasta "kit" tem as telas .png e a pasta "fontes" as letras das telas geradas;
+     "overlay" tem o tema do sistema e "marca" o logo e a animacao de boot;
+     pfl7560.apk e o app dos icones e pfl7560-home.apk a tela inicial MeowCast;
+     este LEIA-ME e opcional). Pelo PC, o jeito mais
+     seguro e ./install.sh --pendrive <pasta do pendrive> (copia e confere tudo).
+  2. Com o projetor DESLIGADO, plugue o pendrive numa porta USB e ligue.
+     Se aparecer "AJUSTANDO", espere: ele reinicia sozinho uma vez (~1 min).
+     Se NENHUMA tela do kit aparecer em 2 minutos, desligue e ligue de novo
+     (o pendrive montou tarde).
+  3. O projetor testa a cor SOZINHO, pela camera dele: mostra uma tela de faixas
+     brancas e depois uma ESCADA de cinzas (do escuro ao claro) e confere a ordem.
+     NAO coloque nada na frente da lente e nao mexa no projetor por ~1 minuto.
+     - Escada em ordem: a cor esta certa. Nao e mexida e nao precisa apertar nada.
+     - Escada fora de ordem: ele troca o formato da cor sozinho e confere de novo.
+       Se melhorou, aparece "COR CORRIGIDA AUTOMATICAMENTE". Se a imagem piorou,
+       aperte qualquer tecla do controle em 30 segundos para DESFAZER.
+  4. Se a camera nao conseguir ajudar, ele faz a pergunta na tela ("TESTE DE COR 1
+     de 2"): a escada vai do escuro ao claro em ordem, sem faixa fora do lugar?
+     - SIM: nao faca nada. Em 30 segundos o teste segue sozinho e a cor NAO e mexida.
+     - NAO: aperte qualquer tecla do controle. A tela volta no outro formato
+       ("TESTE DE COR 2 de 2"); se agora esta em ordem, aperte qualquer tecla de
+       novo para MANTER. Sem tecla em 30 segundos o kit volta ao formato de antes.
+  5. Depois da cor vem o resto da suite (secao abaixo), um RESUMO em tela cheia por
+     20 segundos e, por fim, "Pode tirar o pendrive" (ou "PRONTO - pode retirar o
+     pendrive", se a tela gerada nao estiver disponivel): tire o pendrive.
+     Rodar de novo e inofensivo: com a cor certa, nada e mexido nem reiniciado.
+     Se aparecer "ALGO NAO DEU CERTO", tire o pendrive, ligue de novo e, se
+     repetir, veja o arquivo newlink_update.log que ficou no pendrive.
+
+  Resultado da parte termica: fans no maximo SEMPRE, tela 100% no uso normal,
+  wi-fi reconecta sozinho, sem spam. Sobre o brilho: fica 100% na faixa normal
+  de temperatura. Se a optica passar de 66 C ele cai em degraus (950 / 900 /
+  850) e chega a 850 nos 70 C, onde o aparelho tambem mostra o aviso de
+  superaquecimento; ao esfriar volta a 100% sozinho, em rampa suave. Isso e
+  proposital: corta o calor na fonte antes do desligamento de protecao em 75 C.
+  Perda maxima de brilho: 15%.
+
+  ATENCAO: no aparelho de FABRICA a escada sai em ordem. Quem nao aperta nada
+  nao altera nada. No modo manual, errar a cor exige DUAS teclas seguidas, a
+  segunda diante de uma imagem visivelmente pior; no automatico, uma tecla em 30
+  segundos desfaz.
+
+A SUITE DE VERIFICACAO (o que ela faz, quando roda, como desligar)
+  O QUE FAZ, em ordem: (1) cor, como acima; (2) angulo, foco e nitidez da imagem,
+  olhando a tela de faixas pela camera (foco ruim: o projetor refaz o autofoco ate
+  2 vezes; imagem torta ou borrada: a tela de resumo diz o que ajustar); (3)
+  temperatura, so leitura; (4) um teste da protecao de temperatura, em que a imagem
+  ESCURECE por cerca de 1 minuto e depois volta sozinha - e proposital; (5) o
+  RESUMO em tela cheia, com 19 itens (cor, imagem, temperatura e sistema), que
+  fecha sozinho em 20 segundos ou com qualquer tecla do controle.
+  QUANDO RODA:
+    - com o pendrive plugado ao ligar (o fluxo dos 5 passos acima);
+    - sozinha, SEM pendrive, quando o projetor liga depois de ficar sem energia
+      (queda ou tomada tirada). Nesse caso nenhuma tela fala de pendrive;
+    - quando voce abre o icone "Verificar projetor" na lista de apps: a tela diz
+      "Verificacao pedida" por 3 segundos e o projetor comeca em instantes. O app
+      tambem traz o icone "Wi-Fi", que abre a tela de Wi-Fi.
+  ATENCAO: o icone SO PASSA A VALER NO BOOT SEGUINTE a instalacao do app (quem
+  escuta o pedido liga no boot): depois de rodar este pendrive pela primeira vez,
+  desligue e ligue o projetor uma vez. O icone SEMPRE roda a verificacao, mesmo
+  logo depois de outra; so nao roda se uma verificacao ainda estiver na tela:
+  espere ela terminar e toque de novo.
+  Se o projetor for desligado NO MEIO da verificacao 2 vezes seguidas, ela deixa
+  de rodar sozinha ao voltar da tomada, ate que uma termine (pelo pendrive ou pelo
+  icone). Tecnicamente: o contador e o arquivo "incompletas" na pasta da suite, e o
+  historico-boot.txt registra o motivo "interrompida_2x_seguidas".
+  ONDE FICA O RESULTADO: no pendrive, "newlink_suite.log" (e "newlink_cor.log");
+  no projetor, em /data/vendor/pfl7560-suite/ (ultimo.log, resultados.txt e
+  historico-boot.txt, com os sinais de cada boot).
+  COMO DESLIGAR A SUITE: crie um arquivo VAZIO chamado DESINSTALAR-SUITE.txt na
+  raiz do pendrive e ligue o projetor com ele plugado. O kit remove o servico de
+  boot, a pasta da suite e o pedido, tira a tela inicial MeowCast (a de fabrica
+  volta no boot seguinte) e roda so a fase de cor, como antes. Se a suite
+  tinha um backup da cor guardado no projetor (quando rodou sem pendrive), ele vem
+  para o pendrive como suite-panelparam-backup-<serial>.img (com .md5). Os apps
+  (icones e tela inicial) continuam instalados, sem efeito: sao apps do sistema e
+  o "adb uninstall" nao os tira (docs/research/44-suite-de-boot.md, secao 8).
+  PROVADO no projetor do dono (2026-10-31): a suite pelo boot, pelo icone e pelo
+  pendrive, a luz da tela inicial e o descanso de tela. FALTA: tirar da tomada com
+  o projetor LIGADO com o cabo de verdade (o mecanismo foi provado com um reset
+  sem desligamento) e a varredura fina de foco com o foco ruim de proposito.
+
+TEMA E MARCA (bloco 14; pastas "overlay" e "marca" do pendrive)
+  Na mesma passada, com a suite instalada, o kit tambem:
+  - grava as SOBREPOSICOES do tema Dracula em /vendor/overlay (uma por tela do
+    fabricante: configuracoes, Bluetooth, gerenciador de arquivos, galeria, menu de
+    energia...). A do "android", que mexe no sistema inteiro, vai por ULTIMO. Vale no
+    boot SEGUINTE: no boot o servico da suite liga cada uma. Tenha o pendrive de
+    resgate (firmware) a mao na primeira vez: se o sistema nao subir, ele regrava tudo.
+  - faz o gerenciador de arquivos abrir direto na lista (uma linha no build.prop);
+  - grava a marca MeowCast no logo e na animacao de boot (/atv/bootvideo), depois de
+    guardar uma vez os de fabrica;
+  - desliga o Office, o iOSCast e o Espelhamento do fabricante (no boot; espere uns
+    20 segundos antes de desligar o projetor, o sistema grava esse estado com atraso).
+  Com DESINSTALAR-SUITE.txt tudo isso volta ao de fabrica. A imagem do carregador
+  (particao "logo") e o VLC NAO vem no pendrive: no PC, PFL_IP=<ip> ./pfl7560-marca.sh
+  e PFL_IP=<ip> ./pfl7560-vlc.sh (docs/research/44-suite-de-boot.md, secao 15).
+
+COMO SABER QUE FUNCIONOU (3 sinais)
+  - VISUAL/SOM: a tela fica bem mais clara e os ventiladores ficam barulhentos;
+    no fim aparece o resumo e "Pode tirar o pendrive" (ou a tela PRONTO).
+  - LOG: ficam na raiz do pendrive "newlink_update.log" (parte termica; procure
+    "CORRECAO APLICADA COM SUCESSO"), "newlink_cor.log" (parte da cor) e
+    "newlink_suite.log" (a suite).
+  - adb (se tiver PC): ./pfl7560-saude.sh -> 12 checagens de uma vez, e diz
+    tambem se a protecao esta ENXERGANDO neste boot, que e coisa diferente de
+    "o arquivo esta certo". Prova ativa: ./pfl7560-saude.sh --vivacidade
+    (injeta 71 C por 40 s; o aviso aparece na tela e o brilho cai ate 850 e
+    volta sozinho - e proposital, nao e defeito).
+
+O QUE O KIT FAZ POR DENTRO (resumo)
+  - ANTES de escrever qualquer coisa, confere o md5 de CADA arquivo do kit contra
+    uma lista embutida no newlink_update.sh. Arquivo faltando, corrompido ou
+    adulterado = aborta e nao altera nada (copie de novo a pasta inteira).
+  - TERMICO: o alvo e o md5 do ZYCustom.ini que o firmware le. So troca se o atual
+    for o de fabrica (dos DOIS modelos) ou o de uma versao anterior nossa; md5
+    desconhecido (firmware diferente?) = RECUSA e avisa, em vez de sobrescrever.
+    O .ini novo e montado a partir do DO APARELHO, trocando so as secoes termicas
+    ([Thermal], [BacklightPolicy], [ThermalPolicy], [Thermistor_0/1],
+    [CoolingFan_0/1]); o resto, CONFIG_MODEL inclusive, fica como esta. Se existir
+    /atv/ini/ZYCustom*.ini, ele tem precedencia sobre o do /vendor: o kit avisa
+    e mostra ERRO em vez de dizer que deu certo.
+  - COR: so mexe no byte lvds_fmt do perfil ativo da particao panelparam: no modo
+    automatico, so se a camera ve a escada fora de ordem e depois da troca ve
+    em ordem (a camera so le a imagem, nao muda nenhum ajuste dela); no manual,
+    so com as DUAS teclas. Antes de trocar, faz backup (conferido byte a byte com
+    cmp) em /data e uma copia no pendrive (panelparam-backup-<serial>.img, com
+    .md5) e grava um journal. Qualquer coisa fora do esperado reverte e confere.
+  - QUEDA DE ENERGIA NO MEIO DO TESTE: no boot seguinte o formato original e
+    restaurado antes de qualquer outra coisa (pelo proprio kit, se o pendrive
+    estiver plugado, ou por um gancho de boot que o kit cria so durante o teste).
+  - Reinicia UMA vez, e so quando a parte termica mudou algo.
+  - NUNCA chama hidebug nem gtt (ver o proximo bloco).
+
+CUIDADO COM AS FERRAMENTAS QUE "CUTUCAM" O SENSOR
+  ./pfl7560-fix.sh status, pfl7560-evidencias.sh, pfl7560-monitor-termico.sh e
+  pfl7560-autocaptura.sh leem a temperatura pelo /vendor/bin/hidebug. Nao e a
+  leitura em si que faz mal: o comando "gtt N" avanca o anel de amostras do
+  termistor N e SO DELE, entao "gtt 0" e "gtt 1" EM PAR avancam um anel cada e
+  PRESERVAM A FASE - foi o que os 1060 comandos gtt do historico fizeram, com
+  ZERO episodios. O que arrisca cegar a protecao e a sondagem IMPAR: um gtt
+  sozinho, os canais crus do LSADC, ou um par INTERROMPIDO NO MEIO - que e
+  exatamente o que um timeout de adb produz.
+  Regra pratica que permanece: use essas ferramentas de forma pontual e
+  supervisionada, e NUNCA as deixe rodando como servico. Nao porque cada par
+  seja perigoso, mas porque quanto mais pares emitidos, maior a chance de um
+  deles ser cortado no meio.
+  Para acompanhar sem risco: pfl7560-saude.sh, pfl7560-vigia-lsadc.sh e
+  pfl7560-monitor-props.sh.
+
+LIMITES (o que o kit NAO faz)
+  - Nao ha ID de formato no painel: ele deduz olhando a escada (a camera, ou
+    voce, nos passos 3 e 4). Camera tampada, escura ou ocupada = ele pergunta.
+  - Nao garante rodar no 1o boot: o firmware so olha o pendrive depois de ligar;
+    se a montagem atrasar, ele perde a vez (por isso "ligue de novo").
+  - Nao corrige painel que precise de swap, bit ou map: isso fica no wizard do
+    PC (./pfl7560-lcd-color.sh wizard).
+  - Termico so vale nos firmwares V1.0.0.9 e V1.0.0.1 de fabrica (em outro, o kit recusa).
+  - A cor automatica foi provada no projetor do dono com o kit rodado pelo PC e
+    reboot; a bancada completa do pendrive (etapa E4) ainda nao foi feita: se
+    algo se comportar diferente, guarde os .log do pendrive.
+
+OBSERVACOES
+  - Testado no firmware V1.0.0.9; o V1.0.0.1 (sem USB-C) so em simulacao, ainda nao no
+    aparelho. Em outra versao, confira antes.
+  - A particao panelparam (onde mora a cor) PARECE estar dentro do container do
+    firmware (doc 41, ainda a confirmar no aparelho). Se for, REGRAVAR o firmware
+    de fabrica pode devolver a cor ao formato de fabrica (VESA): depois de um
+    reflash, rode este pendrive de novo e refaca a pergunta da cor.
+  - Reverter a parte termica: use ./pfl7560-fix.sh revert (pelo PC) ou regrave o
+    firmware de fabrica (Software PFL7560.zip) pela "Atualizacao local do
+    sistema".
+  - Se a cor sair errada e nao voltar, restaure o backup do pendrive com
+    ./pfl7560-lcd-color.sh restore panelparam-backup-<serial>.img
+
+  DOIS ARRANJOS POSSIVEIS - escolha com consciencia:
+
+  (A) DISTRIBUICAO / pendrive de autorun "limpo" - RECOMENDADO para dar a
+      outra pessoa ou para o dia a dia: SO os arquivos do kit (lista do passo 1),
+      sem nenhum .bin junto. Nao ha como um power-hold acidental reflashear.
+
+  (B) KIT DE EMERGENCIA pessoal - um pendrive so, com o kit E o firmware (pelo
+      PC: ./install.sh --pendrive <pasta> --com-firmware, ou
+      tests/preparar-pendrive.sh <dispositivo> para formatar e preparar do zero).
+      Desde 2026-10-31 (decisao do dono) o usb_update.bin da raiz e o NOSSO
+      firmware (PFL7560-S4a-NAO-GRADUADO.bin: escada, wi-fi e xiri gravados
+      nos mesmos blocos do stock; nunca provado no aparelho, gate BIN-S4a) e o
+      de FABRICA V1.0.0.9 fica em
+      resgate-oficial/PFL7560.bin, com um LEIA-ME que ensina a troca.
+      SO para o aparelho COM entrada USB-C (V1.0.0.9): no modelo sem USB-C
+      (V1.0.0.1) estes .bin NAO servem. Cobre "liguei e a correcao sumiu"
+      (plugar, ligar, deixar aplicar, tirar), a gravacao do nosso firmware
+      (power-hold) e, trocando pelo oficial da pasta, o resgate. O preco e
+      conhecer o risco abaixo.
+
+  ATENCAO - o risco do arranjo (B), e como conviver com ele:
+  - Com o pendrive plugado, LIGAR SEGURANDO O BOTAO DE POWER dispara o modo de
+    upgrade do loader, que REFLASHA o firmware -> APAGA os 3 fixes de /vendor e
+    FORMATA o /data (perde Wi-Fi, contas, apps). Nao e defeito: e o modo de
+    resgate funcionando. So nao pode ser acidental.
+  - Regra pratica do arranjo (B): mantenha o pendrive DESCONECTADO no uso
+    normal. Plugue so quando for usar um dos dois papeis, e tire depois.
+  - usb_update.bin so pode ser um dos dois .bin que o install.sh confere: o nosso
+    (md5 em firmware/PFL7560-S4a-NAO-GRADUADO.bin.md5) ou o DE FABRICA
+    (Software PFL7560.zip), md5 28a2f280eee313a4b115567926b2ba4f. NUNCA outro
+    .bin de correcao: o prototipo sem rotulo SELinux brica o boot, e ai o
+    power-hold nao resgata - piora.
+  - Gravar o nosso pelo power-hold so com o oficial a mao (resgate-oficial/
+    deste pendrive ou a copia no PC).
+  - Detalhes do resgate: docs/guide/16-recuperacao-brick.md
+========================================================================

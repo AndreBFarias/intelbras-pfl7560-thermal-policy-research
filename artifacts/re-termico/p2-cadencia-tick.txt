@@ -1,0 +1,180 @@
+# P2 bloco 22: cadência do tick térmico. libhitvservice.so md5 4ce869799a82493799be61ff5d922be3, capstone Thumb
+# Run(): roda 1 módulo por chamada (índice [this+0x2c] 0..5) e dorme [this+0x30] ms (nanosleep)
+=== 0x1eb8d0 ZYPowerManager::Run(void const*)
+0x1eb8d0 push {r4, r5, r7, lr}
+0x1eb8d2 sub sp, #0x10
+0x1eb8d4 mov r4, r0
+0x1eb8d6 ldr r0, [pc, #0xb0] lit=0x182a40
+0x1eb8d8 add r0, pc =0x36e31c
+0x1eb8da ldr r0, [r0]
+0x1eb8dc ldr r0, [r0]
+0x1eb8de str r0, [sp, #0xc]
+0x1eb8e0 ldr r1, [r4, #0x2c]
+0x1eb8e2 cbz r1, #0x1eb8f2
+0x1eb8e4 cmp r1, #6
+0x1eb8e6 bhs #0x1eb94c
+0x1eb8e8 ldr r0, [r4, #0x24]
+0x1eb8ea movs r2, #1
+0x1eb8ec lsls r2, r1
+0x1eb8ee tst r0, r2
+0x1eb8f0 beq #0x1eb8fa
+0x1eb8f2 mov r0, r4
+0x1eb8f4 blx #0x97a28 PLT->ZYPowerManager::RunInternalModuleMain(ZY_POWER_MODULE_E)
+0x1eb8f8 ldr r1, [r4, #0x2c]
+0x1eb8fa adds r0, r1, #1
+0x1eb8fc cmp r1, #4
+0x1eb8fe it gt
+0x1eb900 movgt r0, #0
+0x1eb902 movw r1, #0x4dd3
+0x1eb906 str r0, [r4, #0x2c]
+0x1eb908 movt r1, #0x1062
+0x1eb90c ldr r0, [r4, #0x30]
+0x1eb90e smmul r1, r0, r1
+0x1eb912 asrs r2, r1, #6
+0x1eb914 add.w r1, r2, r1, lsr #31
+0x1eb918 mov.w r2, #0x3e8
+0x1eb91c mls r0, r1, r2, r0
+0x1eb920 movw r2, #0x4240
+0x1eb924 movt r2, #0xf
+0x1eb928 muls r0, r2, r0
+0x1eb92a strd r1, r0, [sp, #4]
+0x1eb92e add r0, sp, #4
+0x1eb930 movs r1, #0
+0x1eb932 blx #0x8cba4 PLT->nanosleep@LIBC
+0x1eb936 ldr r0, [pc, #0x64] lit=0x1829de
+# tabela tbb de RunInternalModuleMain (0x1eb9aa): bytes 03 1c 24 2c 33 3b -> 0:Common(+RunThermalMngrCommon) 1:ZYThermalManager::RunThermalMngrMain 2:BTSink 3:LedLight 4:ProjFocus 5:ProjAttitude
+=== 0x1eb9a0 ZYPowerManager::RunInternalModuleMain(ZY_POWER_MODULE_E)
+0x1eb9a0 push {r4, lr}
+0x1eb9a2 sub sp, #8
+0x1eb9a4 mov r4, r0
+0x1eb9a6 cmp r1, #5
+0x1eb9a8 bhi #0x1eb9c6
+0x1eb9aa tbb [pc, r1]
+0x1eb9ae adds r3, r0, #0
+0x1eb9b0 cmp r4, #0x24
+0x1eb9b2 subs r3, #0x33
+0x1eb9b4 mov r0, r4
+0x1eb9b6 blx #0x97a34 PLT->ZYPowerManager::RunInternalModuleCommon()
+0x1eb9ba mov r0, r4
+0x1eb9bc add sp, #8
+0x1eb9be pop.w {r4, lr}
+0x1eb9c2 b.w #0x22eb30
+0x1eb9c6 ldr r3, [pc, #0x6c] lit=0xac727
+0x1eb9c8 ldr r2, [pc, #0x6c] lit=0xac9ad
+0x1eb9ca ldr r0, [pc, #0x70] lit=0xac9c1
+0x1eb9cc add r3, pc =0x2980f7 'ZYPowerManager'
+0x1eb9ce add r2, pc =0x29837f 'RunInternalModuleMain'
+0x1eb9d0 add r0, pc =0x298395
+0x1eb9d2 strd r0, r1, [sp]
+0x1eb9d6 mov r1, r3
+0x1eb9d8 movs r0, #6
+0x1eb9da mov.w r3, #0x190
+0x1eb9de blx #0x8b8f0 PLT->HiLog::PrintLog(ATV_LOG_PRIO_E, char const*, char const*, unsigned int, char const*, ...)
+0x1eb9e2 add sp, #8
+0x1eb9e4 pop {r4, pc}
+0x1eb9e6 bl #0x1de81c ZYThermalManager::instance()
+0x1eb9ea mov r1, r4
+0x1eb9ec add sp, #8
+0x1eb9ee pop.w {r4, lr}
+# RunInternalModuleCommon chama RunThermalMngrCommon (aplica pendentes do hidebug)
+=== 0x1ebc54 ZYPowerManager::RunInternalModuleCommon()
+0x1ebc54 push {r4, r5, r7, lr}
+0x1ebc56 sub sp, #0x10
+0x1ebc58 mov r4, r0
+0x1ebc5a blx #0x97aac PLT->ZYPowerManager::RunCommonModuleCommon()
+0x1ebc5e bl #0x1de81c ZYThermalManager::instance()
+0x1ebc62 mov r1, r4
+0x1ebc64 blx #0x97ab8 PLT->ZYThermalManager::RunThermalMngrCommon(void const*)
+# ptms: property_get_int32(vendor.zy.power.ptms, 0x21=33); x10 se o bit0 (vendor.zy.power.enable, default 1) estiver desligado
+=== 0x1eaf22
+0x1eaf22 ldr r0, [pc, #0xfc] lit=0xad232
+0x1eaf24 add r0, pc =0x29815a 'vendor.zy.power.ptms'
+0x1eaf26 movs r1, #0x21
+0x1eaf28 blx #0x8caa8 PLT->property_get_int32
+0x1eaf2c mov r5, r0
+0x1eaf2e ldrb.w r0, [r4, #0x24]
+0x1eaf32 add.w r2, r5, r5, lsl #2
+0x1eaf36 ldr r1, [r4, #0x30]
+0x1eaf38 lsls r0, r0, #0x1f
+0x1eaf3a it eq
+0x1eaf3c lsleq r5, r2, #1
+# RunDaulRigalMode: só avalia com o anel cheio (SW_N=10, doc 37)
+=== 0x1fd170
+0x1fd170 ldr.w r4, [r8, #0x13c]
+0x1fd174 ldr r0, [r4, #4]
+0x1fd176 bl #0x200d10 Thermistor::instance(unsigned long)
+0x1fd17a mov r5, r0
+0x1fd17c blx #0x98484 PLT->Thermistor::getTemperature()
+0x1fd180 ldr r0, [r5, #4]
+0x1fd182 ldr r1, [r5, #0xc]
+0x1fd184 ldr r0, [r0, #4]
+0x1fd186 cmp r1, r0
+0x1fd188 bne #0x1fd196
+0x1fd18a mov r0, r5
+0x1fd18c blx #0x98640 PLT->Thermistor::getAverageTemperature()
+0x1fd190 mov r5, r0
+0x1fd192 movs r7, #1
+0x1fd194 b #0x1fd198
+0x1fd196 movs r7, #0
+0x1fd198 ldr r0, [r4, #0x20]
+0x1fd19a bl #0x200d10 Thermistor::instance(unsigned long)
+0x1fd19e mov r6, r0
+0x1fd1a0 blx #0x98484 PLT->Thermistor::getTemperature()
+0x1fd1a4 ldr r0, [r6, #4]
+0x1fd1a6 ldr r1, [r6, #0xc]
+0x1fd1a8 ldr r0, [r0, #4]
+0x1fd1aa cmp r1, r0
+0x1fd1ac bne #0x1fd1b8
+0x1fd1ae mov r0, r6
+0x1fd1b0 blx #0x98640 PLT->Thermistor::getAverageTemperature()
+0x1fd1b4 mov r6, r0
+0x1fd1b6 b #0x1fd1be
+0x1fd1b8 cmp r7, #0
+# RunThermalDualProcess(int,int): ventilador 0 = max(alvo0, alvo1); ventilador 1 = só alvo1 (sb)
+=== 0x2030d2
+0x2030d2 cmp r6, sb
+0x2030d4 it lo
+0x2030d6 movlo r6, sb
+0x2030d8 mov r1, r6
+0x2030da blx #0x986f4 PLT->CoolingFan::calcSpeedCurve(unsigned int)
+0x2030de mov r1, r0
+0x2030e0 cmp r1, #0x64
+=== 0x203128
+0x203128 mov r1, sb
+0x20312a blx #0x986f4 PLT->CoolingFan::calcSpeedCurve(unsigned int)
+# Thermistor::getTemperature: contador [+0xc] volta a 0 quando >= SW_N e depois incrementa -> fica == SW_N só 1 vez a cada SW_N chamadas
+# logo RunDaulRigalMode avalia 1 vez a cada 10 passadas Main = 10 x 6 x 33 ms = ~1,98 s
+=== 0x21d970 Thermistor::getTemperature()
+0x21d970 push {r4, lr}
+0x21d972 mov r4, r0
+0x21d974 ldr r0, [pc, #0x3c] lit=0x151078
+0x21d976 ldr r1, [r4, #0x1c]
+0x21d978 add r0, pc =0x36e9f4
+0x21d97a ldr r0, [r0]
+0x21d97c ldr r2, [r0]
+0x21d97e cmp r1, r2
+0x21d980 bge #0x21d992
+0x21d982 ldr r0, [r4, #0x20]
+0x21d984 cbz r0, #0x21d990
+0x21d986 ldr r1, [r0]
+0x21d988 ldr r1, [r1, #4]
+0x21d98a blx r1
+0x21d98c mov r1, r0
+0x21d98e b #0x21d992
+0x21d990 subs r1, r2, #1
+0x21d992 ldr r0, [pc, #0x24] lit=0x80c8d
+0x21d994 add r0, pc =0x29e625 'vendor.zy.power.tm.temp'
+0x21d996 blx #0x8caa8 PLT->property_get_int32
+0x21d99a ldr r2, [r4, #4]
+0x21d99c ldr r1, [r4, #0xc]
+0x21d99e ldr r2, [r2, #4]
+0x21d9a0 cmp r1, r2
+0x21d9a2 itt ge
+0x21d9a4 movge r1, #0
+0x21d9a6 strge r1, [r4, #0xc]
+0x21d9a8 ldr r2, [r4, #0x10]
+0x21d9aa adds r3, r1, #1
+0x21d9ac str r3, [r4, #0xc]
+0x21d9ae str.w r0, [r2, r1, lsl #2]
+0x21d9b2 pop {r4, pc}
+# simulação RunPwmChange 600->1000: avaliação 58 x=999 PWM=999 (27 escritas); avaliação 59 x=1000, |1000-999|<10, PWM fica 999; 59 x 1,98 s = 117 s

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula das Configuracoes do fabricante (bloco 13A). So recursos, sem codigo.
+     Nao estatica: liga com  cmd overlay enable com.pfl7560.tema.zysetting  (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.zysetting">
+    <overlay android:targetPackage="com.zhiying.settings" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

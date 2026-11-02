@@ -1,0 +1,60 @@
+Load: 10.34 / 9.87 / 9.35
+CPU usage from 409194ms to 109159ms ago (2026-11-01 22:31:16.923 to 2026-11-01 22:36:16.958):
+  46% 1871/adbd: 6.9% user + 39% kernel / faults: 8149722 minor
+  37% 1841/hipluginserver: 13% user + 24% kernel / faults: 47992 minor
+  9.7% 1602/vendor.hisilicon.hardware.hwtvmw@1.0-service: 3.5% user + 6.1% kernel / faults: 1 minor
+  6.5% 1594/logd: 2.7% user + 3.8% kernel
+  6.3% 1099/hi_vpss_process: 0% user + 6.3% kernel
+  4.2% 1831/pqserver: 1.7% user + 2.5% kernel
+  3.8% 3557/logcat: 1.9% user + 1.8% kernel / faults: 29247 minor
+  3.1% 3198/aicwf_busrx_thr: 0% user + 3.1% kernel
+  1% 1027/HDMIRX main tas: 0% user + 1% kernel
+  1% 3570/kworker/u9:1: 0% user + 1% kernel
+  0.8% 7/rcu_preempt: 0% user + 0.8% kernel
+  0.8% 3199/aicwf_bustx_thr: 0% user + 0.8% kernel
+  0.8% 3587/kworker/u9:2: 0% user + 0.8% kernel
+  0.7% 1909/system_server: 0.3% user + 0.3% kernel / faults: 869 minor
+  0.6% 1701/android.hardware.audio@2.0-service: 0.2% user + 0.4% kernel / faults: 11890 minor
+  0.5% 1084/VMM_PROCESS: 0% user + 0.5% kernel
+  0.4% 975/thread_frc_mana: 0% user + 0.4% kernel
+  0.4% 1599/vendor.hisilicon.hardware.hwsysmanager@1.0-service: 0.1% user + 0.3% kernel
+  0.4% 1716/surfaceflinger: 0.1% user + 0.2% kernel
+  0.4% 1813/virtualkeypad: 0.1% user + 0.2% kernel
+  0.4% 1600/hiavplayer: 0.1% user + 0.2% kernel
+  0.4% 2190/com.hisilicon.tv.service: 0.2% user + 0.1% kernel / faults: 843 minor
+  0.4% 1816/hipluginserver: 0.1% user + 0.2% kernel
+  0.3% 1085/HI_VFMW_VIR_PP: 0% user + 0.3% kernel
+  0.2% 2159/com.hisilicon.rmservice: 0.1% user + 0.1% kernel / faults: 379 minor
+  0.2% 2222/com.newlink.nlprovision: 0.1% user + 0.1% kernel / faults: 145 minor
+  0.2% 2348/com.hisilicon.tvinput.external: 0.1% user + 0.1% kernel / faults: 173 minor
+  0.2% 3114/com.newlink.nlsource: 0.1% user + 0.1% kernel / faults: 168 minor
+  0.2% 1708/android.hardware.tv.input@1.0-service: 0% user + 0.1% kernel
+  0.2% 1707/android.hardware.tv.cec@1.0-service: 0% user + 0.1% kernel
+  0.2% 1714/audioserver: 0% user + 0.1% kernel
+  0.2% 3/ksoftirqd/0: 0% user + 0.2% kernel
+  0.2% 971/disp_mix_panel: 0% user + 0.2% kernel
+  0.2% 1028/CEC main task: 0% user + 0.2% kernel
+  0% 3000/com.zhiying.settings: 0% user + 0% kernel / faults: 143 minor
+  0% 775/migration/1: 0% user + 0% kernel
+  0% 880/kworker/3:2: 0% user + 0% kernel
+  0% 1723/ao_monitor_task: 0% user + 0% kernel
+  0% 1812/android_ir_user: 0% user + 0% kernel
+  0% 28/kworker/u8:1: 0% user + 0% kernel
+  0% 776/ksoftirqd/1: 0% user + 0% kernel
+  0% 800/cfinteractive: 0% user + 0% kernel
+  0% 1858/wificond: 0% user + 0% kernel / faults: 100 minor
+  0% 1709/android.hardware.wifi@1.0-service: 0% user + 0% kernel / faults: 205 minor
+  0% 1//init: 0% user + 0% kernel / faults: 4 minor
+  0% 18/ksoftirqd/2: 0% user + 0% kernel
+  0% 1697/netd: 0% user + 0% kernel
+  0% 24/ksoftirqd/3: 0% user + 0% kernel
+  0% 36/hilog_thread: 0% user + 0% kernel
+  0% 1817/cmdsrv: 0% user + 0% kernel
+  0% 1032/kworker/0:1: 0% user + 0% kernel
+  0% 1132/kworker/2:1: 0% user + 0% kernel
+  0% 1133/kworker/1:1: 0% user + 0% kernel
+  0% 1596/hwservicemanager: 0% user + 0% kernel / faults: 155 minor
+  0% 1883/mdnsd: 0% user + 0% kernel
+  0% 2005/dmx_monitor: 0% user + 0% kernel
+ +0% 3588/kworker/u9:0: 0% user + 0% kernel
+33% TOTAL: 8.5% user + 23% kernel + 0% iowait + 0.8% softirq

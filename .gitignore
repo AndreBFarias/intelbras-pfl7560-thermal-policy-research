@@ -1,0 +1,64 @@
+# ===== Firmware e material proprietario da Intelbras =====
+# NAO redistribuir publicamente. Backup local/privado do stock oficial via Git LFS.
+*.bin
+*.zip
+*.pdf
+# libs do firmware extraidas do aparelho para disassembly (doc 37):
+# proprietarias, mesma regra dos .bin e .zip - ficam so na maquina
+*.so
+# Excecao: zip oficial de fabrica (resgate / rebuild) — tracked com Git LFS
+!firmware/Software PFL7560.zip
+!firmware/Firmware PFL7560.zip
+# animacao de boot do kit (bloco 14), copia de artifacts/tema/marca/bootanimation.zip
+!pendrive-autorun/marca/bootanimation.zip
+
+
+# ===== Dados pessoais / logs do aparelho =====
+artifacts/diagnostico/
+backups-projetor/
+evidencias/
+private/
+VALIDATOR_BRIEF.md
+# manuais/PDFs proprietarios (alem da regra *.pdf: pega qualquer nao-PDF solto aqui)
+referencia/
+
+# ===== Gerados em runtime =====
+newlink_update.log
+*.log
+# telas de exemplo do tests/test-tela.sh (bloco 9A), para olhar
+tests/saida/
+
+# ===== Platform-tools baixadas pelo install.bat (Windows) =====
+tools/
+
+# ===== Cache Python =====
+__pycache__/
+*.pyc
+
+# ===== Lixo de SO / editores =====
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.SIc*
+LOST.DIR/
+.playwright-mcp/
+
+# Symlink local para diretrizes (não vai pro repo)
+CLAUDE.md
+
+# --- anti-IA (anonimato local) ---
+AGENTS.md
+GEMINI.md
+COPILOT.md
+HANDOFF-PROMPT.md
+HANDOFF.md
+HOW_TO_RESUME.md
+STATE.md
+.cursorrules
+.windsurfrules
+.claude/
+.cursor/
+.aider*
+.continue/
+.github/copilot-instructions.md

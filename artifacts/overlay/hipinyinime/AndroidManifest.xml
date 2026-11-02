@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do teclado na tela (HiPinyinIME, bloco 18): fundo, teclas,
+     tecla em foco com moldura rosa, barra de candidatos e texto sendo composto. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.hipinyinime (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.hipinyinime">
+    <overlay android:targetPackage="com.hisilicon.android.inputmethod.remote" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

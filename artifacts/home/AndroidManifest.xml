@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home do PFL7560 (bloco 10A). Duas permissoes, ambas normais (nenhuma perigosa): ler o estado
+     da rede e do Wi-Fi para a linha de estado. versionCode/versionName e minSdk/targetSdk entram
+     pelo aapt2 link (ver build.sh). A home de fabrica continua instalada; esta so vira a padrao com
+     cmd package set-home-activity com.pfl7560.home/.HomeActivity (README). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.home">
+
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+
+    <application
+        android:label="@string/app_nome"
+        android:icon="@drawable/ic_home"
+        android:allowBackup="false"
+        android:theme="@style/Tema">
+
+        <activity
+            android:name=".HomeActivity"
+            android:label="@string/app_nome"
+            android:launchMode="singleTask"
+            android:stateNotNeeded="true"
+            android:clearTaskOnLaunch="true"
+            android:excludeFromRecents="true"
+            android:resumeWhilePausing="true"
+            android:screenOrientation="landscape"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout|smallestScreenSize|density|locale|layoutDirection|uiMode"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>

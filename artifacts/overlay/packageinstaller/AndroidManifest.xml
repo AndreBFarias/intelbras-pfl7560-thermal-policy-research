@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do instalador de pacotes (PackageInstaller, bloco 18): pedido
+     de permissao do modo TV, painel de opcoes da desinstalacao e o icone das telas de instalar. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.packageinstaller (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.packageinstaller">
+    <overlay android:targetPackage="com.android.packageinstaller" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. O mesmo botao em foco. De fabrica vermelho #FFFC1944 com fio branco de 3 dp ->
+     vermelho com fio texto de 3 dp (rosa sobre vermelho quase nao se distingue: 1,3:1). Mesmo raio
+     e mesma espessura. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <corners android:radius="40dp" />
+    <stroke android:width="3dp" android:color="#FFF8F8F2" />
+    <solid android:color="#FFFF5555" />
+</shape>

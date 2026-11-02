@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.newlink.filemanager.view.MyConstraintLayout android:background="@color/color7" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <FrameLayout android:id="@id/frameLayout9" android:focusable="true" android:visibility="gone" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline7" app:layout_constraintEnd_toStartOf="@id/guideline5" app:layout_constraintStart_toStartOf="@id/guideline4" app:layout_constraintTop_toTopOf="@id/guideline9">
+        <androidx.cardview.widget.CardView android:id="@id/cardView9" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:id="@id/usbImg2" android:background="@drawable/icon_u" android:layout_width="60.0dip" android:layout_height="60.0dip" />
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <TextView android:textSize="16.0sp" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_externaldevice" />
+                    <TextView android:textSize="12.0sp" android:textColor="#ffb4bccf" android:id="@id/avaibleSize3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
+                    <TextView android:textSize="12.0sp" android:textColor="#ffb4bccf" android:id="@id/totalSize3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout8" android:focusable="true" android:visibility="gone" android:nextFocusLeft="@id/frameLayout4" android:nextFocusUp="@id/frameLayout1" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline7" app:layout_constraintEnd_toStartOf="@id/guideline4" app:layout_constraintStart_toStartOf="@id/guideline2" app:layout_constraintTop_toTopOf="@id/guideline9">
+        <androidx.cardview.widget.CardView android:id="@id/cardView8" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:id="@id/usbImg1" android:background="@drawable/icon_u" android:layout_width="60.0dip" android:layout_height="60.0dip" />
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <TextView android:textSize="16.0sp" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_externaldevice" />
+                    <TextView android:textSize="12.0sp" android:textColor="#ffb4bccf" android:id="@id/avaibleSize2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
+                    <TextView android:textSize="12.0sp" android:textColor="#ffb4bccf" android:id="@id/totalSize2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <androidx.constraintlayout.widget.Guideline android:orientation="vertical" android:id="@id/guideline2" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.1" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="vertical" android:id="@id/guideline3" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.9" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="vertical" android:id="@id/guideline4" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.3" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="vertical" android:id="@id/guideline5" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.5" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="vertical" android:id="@id/guideline6" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.7" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="horizontal" android:id="@id/guideline7" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.85" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="horizontal" android:id="@id/guideline8" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.25" />
+    <androidx.constraintlayout.widget.Guideline android:orientation="horizontal" android:id="@id/guideline9" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.6" />
+    <FrameLayout android:id="@id/frameLayout2" android:focusable="true" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline9" app:layout_constraintEnd_toStartOf="@id/guideline5" app:layout_constraintStart_toStartOf="@id/guideline4" app:layout_constraintTop_toTopOf="@id/guideline8">
+        <androidx.cardview.widget.CardView android:id="@id/cardView2" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:layout_width="@dimen/main_image" android:layout_height="@dimen/main_image" app:srcCompat="@drawable/icon_photo" />
+                <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_image" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout3" android:focusable="true" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline9" app:layout_constraintEnd_toStartOf="@id/guideline6" app:layout_constraintStart_toStartOf="@id/guideline5" app:layout_constraintTop_toTopOf="@id/guideline8" app:srcCompat="@drawable/ic_launcher_background">
+        <androidx.cardview.widget.CardView android:id="@id/cardView3" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:layout_width="@dimen/main_image" android:layout_height="@dimen/main_image" app:srcCompat="@drawable/icon_music" />
+                <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_audio" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout4" android:focusable="true" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline9" app:layout_constraintEnd_toStartOf="@id/guideline3" app:layout_constraintStart_toStartOf="@id/guideline6" app:layout_constraintTop_toTopOf="@id/guideline8" app:srcCompat="@drawable/ic_launcher_background">
+        <androidx.cardview.widget.CardView android:id="@id/cardView4" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:background="@drawable/ic_word" android:layout_width="@dimen/main_image" android:layout_height="@dimen/main_image" />
+                <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_word" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout5" android:focusable="true" android:nextFocusLeft="@id/frameLayout4" android:nextFocusUp="@id/frameLayout1" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline7" app:layout_constraintEnd_toStartOf="@id/guideline5" app:layout_constraintHorizontal_bias="0.5" app:layout_constraintStart_toStartOf="@id/guideline2" app:layout_constraintTop_toTopOf="@id/guideline9" app:layout_constraintVertical_bias="1.0">
+        <androidx.cardview.widget.CardView android:id="@id/cardView5" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:id="@id/usbImg" android:background="@drawable/icon_nou" android:layout_width="@dimen/main_image_file" android:layout_height="@dimen/main_image_file" />
+                <LinearLayout android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_externaldevice" />
+                    <TextView android:textSize="@dimen/mani_text_file" android:textColor="#ffb4bccf" android:id="@id/avaibleSize1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_no_devices" />
+                    <TextView android:textSize="@dimen/mani_text_file" android:textColor="#ffb4bccf" android:id="@id/totalSize1" android:visibility="gone" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="暂无设备" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout6" android:focusable="true" android:nextFocusRight="@id/frameLayout1" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline7" app:layout_constraintEnd_toStartOf="@id/guideline3" app:layout_constraintStart_toStartOf="@id/guideline5" app:layout_constraintTop_toTopOf="@id/guideline9" app:srcCompat="@drawable/ic_launcher_background">
+        <androidx.cardview.widget.CardView android:id="@id/cardView6" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:layout_width="@dimen/main_image" android:layout_height="@dimen/main_image" app:srcCompat="@drawable/icon_tv" />
+                <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_local_store" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout7" android:focusable="true" android:visibility="gone" android:nextFocusRight="@id/frameLayout1" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline7" app:layout_constraintEnd_toStartOf="@id/guideline3" app:layout_constraintStart_toStartOf="@id/guideline6" app:layout_constraintTop_toTopOf="@id/guideline9" app:srcCompat="@drawable/ic_launcher_background">
+        <androidx.cardview.widget.CardView android:id="@id/cardView7" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:layout_width="@dimen/main_image" android:layout_height="@dimen/main_image" app:srcCompat="@drawable/icon_share" />
+                <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_file_share" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <FrameLayout android:id="@id/frameLayout1" android:focusable="true" android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_margin="@dimen/main_margin" app:layout_constraintBottom_toTopOf="@id/guideline9" app:layout_constraintEnd_toStartOf="@id/guideline4" app:layout_constraintHorizontal_bias="0.0" app:layout_constraintStart_toStartOf="@id/guideline2" app:layout_constraintTop_toTopOf="@id/guideline8" app:layout_constraintVertical_bias="0.0">
+        <androidx.cardview.widget.CardView android:id="@id/cardView1" android:layout_width="fill_parent" android:layout_height="fill_parent" app:cardBackgroundColor="#ff44475a" app:cardCornerRadius="10.0dip" app:cardElevation="0.0dip">
+            <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
+                <ImageView android:layout_gravity="center" android:layout_width="68.0dip" android:layout_height="@dimen/main_image" app:srcCompat="@drawable/icon_movie" />
+                <TextView android:textSize="@dimen/main_text" android:textColor="#ffffffff" android:layout_gravity="center" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_video" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </FrameLayout>
+    <androidx.constraintlayout.widget.Guideline android:orientation="horizontal" android:id="@id/guideline" android:layout_width="wrap_content" android:layout_height="wrap_content" app:layout_constraintGuide_percent="0.15" />
+    <TextView android:textSize="@dimen/main_filetext" android:textColor="#ffffffff" android:id="@id/textView" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/main_file_manager" app:layout_constraintBottom_toTopOf="@id/guideline" app:layout_constraintEnd_toStartOf="@id/guideline4" app:layout_constraintHorizontal_bias="0.0" app:layout_constraintStart_toStartOf="@id/guideline2" app:layout_constraintTop_toTopOf="@id/guideline" app:layout_constraintVertical_bias="0.487" />
+</com.newlink.filemanager.view.MyConstraintLayout>

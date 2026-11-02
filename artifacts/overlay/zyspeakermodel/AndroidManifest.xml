@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula do modo caixa de som Bluetooth (com.zhiying.bluetoothmodelservice,
+     bloco 17A): aberto pelo menu de energia e pela tela de Bluetooth. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.zyspeakermodel (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.zyspeakermodel">
+    <overlay android:targetPackage="com.zhiying.bluetoothmodelservice" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

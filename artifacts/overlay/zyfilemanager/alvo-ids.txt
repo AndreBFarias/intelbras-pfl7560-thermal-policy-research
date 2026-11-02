@@ -1,0 +1,86 @@
+# gerado por molde-alvo.py de ZYFileManager.apk (md5 c99de765); nao editar a mao
+0x7f030046 attr/cardBackgroundColor color
+0x7f030047 attr/cardCornerRadius dimension
+0x7f030048 attr/cardElevation dimension
+0x7f0300b3 attr/layout_constraintBottom_toTopOf reference|enum parent=0x7f0800c4:0x00000000
+0x7f0300b9 attr/layout_constraintEnd_toStartOf reference|enum parent=0x7f0800c4:0x00000000
+0x7f0300bc attr/layout_constraintGuide_percent float
+0x7f0300c1 attr/layout_constraintHorizontal_bias float
+0x7f0300cb attr/layout_constraintStart_toStartOf reference|enum parent=0x7f0800c4:0x00000000
+0x7f0300ce attr/layout_constraintTop_toTopOf reference|enum parent=0x7f0800c4:0x00000000
+0x7f0300cf attr/layout_constraintVertical_bias float
+0x7f03011d attr/srcCompat reference
+0x7f050030 color/color10
+0x7f050031 color/color11
+0x7f050037 color/color7
+0x7f05005d color/pt_green
+0x7f060068 dimen/main_filetext
+0x7f060069 dimen/main_image
+0x7f06006a dimen/main_image_file
+0x7f06006b dimen/main_margin
+0x7f06006c dimen/main_text
+0x7f06006d dimen/mani_text_file
+0x7f070057 drawable/background_white
+0x7f07005c drawable/bt_selected_bg
+0x7f070065 drawable/ic_launcher_background
+0x7f070072 drawable/ic_word
+0x7f07007a drawable/icon_movie
+0x7f07007b drawable/icon_music
+0x7f07007c drawable/icon_nou
+0x7f07007d drawable/icon_photo
+0x7f07007e drawable/icon_share
+0x7f070080 drawable/icon_tv
+0x7f070081 drawable/icon_u
+0x7f070094 drawable/usb_risk_shape_bg
+0x7f08003f id/avaibleSize1
+0x7f080040 id/avaibleSize2
+0x7f080041 id/avaibleSize3
+0x7f08004c id/cardView1
+0x7f08004d id/cardView2
+0x7f08004e id/cardView3
+0x7f08004f id/cardView4
+0x7f080050 id/cardView5
+0x7f080051 id/cardView6
+0x7f080052 id/cardView7
+0x7f080053 id/cardView8
+0x7f080054 id/cardView9
+0x7f08007c id/frameLayout1
+0x7f08007d id/frameLayout2
+0x7f08007e id/frameLayout3
+0x7f08007f id/frameLayout4
+0x7f080080 id/frameLayout5
+0x7f080081 id/frameLayout6
+0x7f080082 id/frameLayout7
+0x7f080083 id/frameLayout8
+0x7f080084 id/frameLayout9
+0x7f08008e id/guideline
+0x7f080099 id/guideline2
+0x7f08009c id/guideline3
+0x7f08009d id/guideline4
+0x7f08009e id/guideline5
+0x7f08009f id/guideline6
+0x7f0800a0 id/guideline7
+0x7f0800a1 id/guideline8
+0x7f0800a2 id/guideline9
+0x7f080106 id/textView
+0x7f080112 id/totalSize1
+0x7f080113 id/totalSize2
+0x7f080114 id/totalSize3
+0x7f080119 id/usbImg
+0x7f08011a id/usbImg1
+0x7f08011b id/usbImg2
+0x7f0a001e layout/activity_main_other
+0x7f0b0043 mipmap/loading_pt
+0x7f0b0044 mipmap/pt_list_audio_icon
+0x7f0b0045 mipmap/pt_list_folder_icon
+0x7f0b0046 mipmap/pt_list_music_icon
+0x7f0b0047 mipmap/pt_list_video_icon
+0x7f0c0044 string/main_audio
+0x7f0c0045 string/main_externaldevice
+0x7f0c0046 string/main_file_manager
+0x7f0c0047 string/main_file_share
+0x7f0c0048 string/main_image
+0x7f0c004a string/main_local_store
+0x7f0c004b string/main_no_devices
+0x7f0c004c string/main_video
+0x7f0c004d string/main_word

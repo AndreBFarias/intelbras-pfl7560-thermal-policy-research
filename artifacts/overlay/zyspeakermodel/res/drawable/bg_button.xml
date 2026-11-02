@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bloco 17A. Etiqueta main_tv_screen da tela do modo caixa de som. De fabrica azul #FF3875EF ->
+     comentario (texto branco fixo 4,7:1). Mesmo raio (dp_15 = 15 dp). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <solid android:color="#FF6272A4" />
+    <corners android:radius="15dp" />
+</shape>

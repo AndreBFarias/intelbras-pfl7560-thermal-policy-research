@@ -1,0 +1,66 @@
+# app PFL7560 - ícones "Verificar projetor" e "Wi-Fi" (bloco 9C) e descanso de tela MeowCast (bloco 16B)
+
+App Android mínimo, sem Gradle, que põe dois ícones na lista de apps do projetor. Pacote
+`com.pfl7560.verificar`, `minSdk 28`, `targetSdk 28`, **nenhuma permissão pedida** (o `BIND_DREAM_SERVICE` é do atributo `permission` do serviço: só o sistema liga o `Descanso`). Documento do conjunto
+(suíte de boot): `docs/research/44-suite-de-boot.md`.
+
+| Atividade | O que faz |
+| --- | --- |
+| `VerificarActivity` ("Verificar projetor") | grava `pedir-verificacao` em `getDataDir()` (`/data/data/com.pfl7560.verificar/`, com `FileOutputStream`: o arquivo nasce com o dono certo), mostra "Verificação pedida" por 3 s e fecha; se não gravar, diz isso e o que fazer |
+| `WifiActivity` ("Wi-Fi") | abre `android.settings.WIFI_SETTINGS`; se não resolver, `com.zhiying.settings/.network.WifiSettingActivity`; se nada abrir, mostra a mensagem e fecha |
+
+| `Descanso` (serviço, sem ícone) | descanso de tela MeowCast (bloco 16B): `DreamService` com `BIND_DREAM_SERVICE`; fundo `#120B1A`, nome "MeowCast" em `#9D7AD0` (Plex Condensed Bold, de `assets/fontes/`) e a hora, mais apagada; o conjunto muda de lugar a cada minuto. Quem aponta o sistema para ele é o `suite-boot.sh` (doc 44 §14) |
+
+As duas atividades com `MAIN` + `LAUNCHER` (o launcher do projetor lista só isso: doc 43 seção 6) e também
+`LEANBACK_LAUNCHER` com `banner`, que custaram pouco. Por que a pasta privada: em `/sdcard` qualquer
+app gravaria o pedido e dispararia a suíte como root; na pasta privada só o UID do app grava, e o vigia
+root (`pendrive-autorun/suite-boot.sh`, `suite-pedido.sh`) confere que o dono do arquivo é o dono da
+pasta, com UID de app (>= 10000). O app não sabe se o pedido foi atendido (a suíte ignora o pedido se outra
+já estiver rodando; fora isso o ícone sempre roda), e o vigia só liga no boot: o ícone vale a partir do boot
+**seguinte** à instalação. O `Descanso` grava `descanso-inicio` e `descanso-fim` na mesma pasta, e o vigia
+baixa a luz a 10% enquanto ele está na tela (doc 44 §14.1). Desde o versionCode 5 (bloco 21) os dois pedidos
+saem de uma única thread, na ordem: o `fim` nunca chega antes do `inicio` e a luz não fica presa em 10%.
+
+## Compilar
+
+    bash artifacts/app/build.sh
+    bash tests/atualizar-md5-kit.sh      # o md5 do APK entra na lista do kit
+
+SDK local, sem rede: `ANDROID_SDK` (padrão `~/Android/sdk`), `BUILD_TOOLS` (35.0.0), `PLATAFORMA`
+(android-34); precisa de Java 17 (`javac --release 8`), `zip` e `apksigner`. Passos: `aapt2 compile` e
+`link` (recursos, manifest, `R.java`), `javac`, `d8`, dex no zip, `zipalign`, `apksigner sign` e
+`verify`. Desde o bloco 16B o `aapt2 link` leva `-A` com a `IBMPlexSansCondensed-Bold.ttf` e a `OFL.txt` do kit (`pendrive-autorun/fontes/`). Saída: `artifacts/app/pfl7560.apk` e a cópia `pendrive-autorun/pfl7560.apk`. O resultado é
+determinístico (o mesmo md5 a cada execução).
+
+## Versão e assinatura
+
+- `VERSAO_CODIGO` no `build.sh` e `APP_VERSION_CODE` no `pendrive-autorun/newlink_update.sh` têm de ser
+  iguais (o `tests/test-kit-pendrive.sh` confere os dois e o `aapt2 dump badging` do APK). O kit põe o APK em
+  `/vendor/app/PFL7560/` como app do sistema quando ele falta ou difere: o `pm install` deste firmware recusa
+  apps de fora (`INSTALL_FAILED_INVALID_INSTALL_LOCATION`, visto no aparelho em 2026-10-30).
+- `assinatura.keystore` (PKCS12, alias `pfl7560`, senha no `build.sh`): chave própria e estável. Não é
+  segredo: só garante que um APK novo instale POR CIMA do anterior. Não serve para loja.
+- O APK leva os esquemas de assinatura v1, v2 e v3. O `apksigner verify` sem opções lista só o v3 (com
+  `minSdk 28` ele só confere o que o Android 9 exige); `apksigner verify -v --min-sdk-version 23` mostra os três.
+
+## Ícones
+
+`gerar-icones.py` (Pillow) desenha os PNG de `res/mipmap-*` e os banners de `res/drawable-xhdpi` na
+paleta Drácula das telas da suíte (bloco 10B, `artifacts/tema/`): fundo `#282A36`, cartão `#44475A` com
+contorno `#6272A4`, traço `#F8F8F2`, o visto do Verificar em verde `#50FA7B` e o ponto do Wi-Fi em roxo
+`#BD93F9`, sem emoji, e usa a fonte IBM Plex do kit. As cores das mensagens de 3 s (`res/values/styles.xml`)
+são as mesmas: fundo, texto, secundário `#B4BCCF` (o comentário clareado, ver `artifacts/tema/README.md`)
+e atenção `#FF5555`. A saída é determinística. `python3 -I artifacts/app/gerar-icones.py`.
+
+## Provas
+
+- `build.sh` gera o APK do zero e `apksigner verify` passa.
+- `aapt2 dump badging`: `package: name='com.pfl7560.verificar' versionCode='5'` (o 5 é o dos pedidos do descanso em ordem, bloco 21; o 4, o da luz no descanso; o 3 foi o do descanso, bloco 16B; o 2, o do tema Drácula, bloco 10B), `targetSdkVersion:'28'`,
+  duas `launchable-activity` e duas `leanback-launchable-activity`; `aapt2 dump permissions`: nenhuma.
+- O kit instala o APK (stub de `pm` no `tests/test-kit-pendrive.sh`, caso `c_app`).
+
+## No aparelho
+
+- Provado por rede em 2026-10-30: o app em `/vendor/app` (`flags=[ SYSTEM ]`) e o pedido do "Verificar
+  projetor" chegando ao vigia. Em 2026-10-31 o ícone disparou a suíte pelo vigia do boot, e o descanso
+  MeowCast com a luz a 10% foi provado (doc 44 §14.1).

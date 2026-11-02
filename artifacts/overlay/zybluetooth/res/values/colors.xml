@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48). -->
+<resources>
+    <!-- fundo da tela com vendor.newlink.rgtp_ui.style=1 (MyFrameLayout.init, setBackgroundResource);
+         de fabrica #FF00B26B, o verde antigo -> fundo -->
+    <color name="pt_green">#FF282A36</color>
+    <!-- fio de 2 px entre Bluetooth / Procurar e as listas (ImageView com @color/black no layout).
+         Os textos so ficam pretos com zysys.bg_white=1, que este aparelho nao usa (texto branco).
+         De fabrica #FF000000 -> linha (o preto sumia no fundo Dracula) -->
+    <color name="black">#FF44475A</color>
+</resources>

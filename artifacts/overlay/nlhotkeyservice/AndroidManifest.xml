@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula dos avisos de tecla de atalho (NLHotkeyService, bloco 18): o
+     MyDialog claro (painel e botoes). O pacote do app e com.newlink.hotkeysservices (com s), lido no
+     AndroidManifest do APK do firmware. So recursos, sem codigo.
+     Nao estatica: cmd overlay enable com.pfl7560.tema.nlhotkeyservice (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.nlhotkeyservice">
+    <overlay android:targetPackage="com.newlink.hotkeysservices" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>

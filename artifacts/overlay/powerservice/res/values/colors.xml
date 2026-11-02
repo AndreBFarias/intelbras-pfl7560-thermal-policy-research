@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Paleta Dracula (artifacts/tema/dracula.txt). Valores literais, sem referencia (doc 48).
+     Com rgtp_ui.style=1 o PowerActivity usa os seletores power_bg_img_pt (Desligar) e
+     power_bg_img_bt_pt (as outras opcoes): circulo parado cir_dcdcdc_pt, em foco
+     cir_dcdcdc_focus_pt_red / _pt_green. Icones brancos fixos por cima. -->
+<resources>
+    <!-- circulo em foco das opcoes (dormir, reiniciar, descanso...). De fabrica #FF00B26B -> rosa,
+         o foco do tema (icone branco 2,4:1: o foco fica pelo circulo, nao pelo icone) -->
+    <color name="pt_green">#FFFF79C6</color>
+    <!-- circulo parado. De fabrica #FF163134 -> linha (icone branco 9,2:1) -->
+    <color name="pt_green_black">#FF44475A</color>
+    <!-- circulo em foco de Desligar e o texto da contagem do ShutDownActivity.
+         De fabrica #FFED1C24 -> vermelho (icone branco 3,1:1) -->
+    <color name="pt_red">#FFFF5555</color>
+</resources>

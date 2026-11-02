@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sobreposicao (RRO) Dracula das entradas HDMI e USB-C do fabricante (com.newlink.nlsource, bloco
+     16A). So recursos, sem codigo. Nao estatica: cmd overlay enable com.pfl7560.tema.nlsource (doc 48). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.pfl7560.tema.nlsource">
+    <overlay android:targetPackage="com.newlink.nlsource" android:priority="1" />
+    <application android:hasCode="false" />
+</manifest>
