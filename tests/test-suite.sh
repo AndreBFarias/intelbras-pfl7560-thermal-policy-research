@@ -1932,6 +1932,13 @@ c_curvas_vent_laco(){
 70.0 1000
 TAB
 
+  cenario_curvas "curvas/laco: um laco velho que sai nao apaga o pid de um laco novo (o boot e o pedido nao ligam um segundo)"
+  curva_vent_arq; temp_led 58
+  stub sleep 'echo "sleep $*" >> "$T/calls.log"; echo 99999 > "$PFL_ROOT/dev/pfl7560-curvas.pid"; exit 0'
+  VOLTAS_T=2 roda_curvas laco
+  afirma '[ "$(cat "$R/dev/pfl7560-curvas.pid" 2>/dev/null)" = 99999 ]' "o laco velho apagou o pid do novo: '$(cat "$R/dev/pfl7560-curvas.pid" 2>/dev/null)'"
+  limpa
+
   cenario_curvas "curvas/laco: histerese = sobe na hora, so desce depois de 100 de folga, e nao passa de 50 em 50"
   curva_vent_arq; temp_led 58
   temps_por_ciclo 56 53 62
@@ -2202,6 +2209,13 @@ c_curvas_standby(){
   instala_suite; echo Awake > "$T/wakefulness"
   amb env PFL_STANDBY_AVISO=10 PFL_STANDBY_TOTAL=20 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
   afirma '[ "$(chamadas input)" = 0 ] && ! grep -q "standby aviso\|standby agora" "$T/calls.log" && [ ! -e "$R/dev/pfl7560-standby.pid" ] && grep -q "standby cancelado" "$S/curvas.log"' "mandou tecla sem o descanso na tela: $(grep -E '^(input|setprop vendor.pfl7560.standby)' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "standby/vigia: um vigia velho que sai nao apaga o pid de um vigia novo (o cancelar seguinte ainda acha o novo)"
+  instala_suite; echo Awake > "$T/wakefulness"
+  stub sleep 'echo "sleep $*" >> "$T/calls.log"; echo 99999 > "$PFL_ROOT/dev/pfl7560-standby.pid"; exit 0'
+  amb env PFL_STANDBY_AVISO=10 PFL_STANDBY_TOTAL=20 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(cat "$R/dev/pfl7560-standby.pid" 2>/dev/null)" = 99999 ] && [ "$(chamadas input)" = 0 ]' "o vigia velho apagou o pid do novo: '$(cat "$R/dev/pfl7560-standby.pid" 2>/dev/null)'"
   limpa
 
   novo_cenario "standby/vigia: o descanso sai entre o aviso e o fim = sem tecla, prop limpa"

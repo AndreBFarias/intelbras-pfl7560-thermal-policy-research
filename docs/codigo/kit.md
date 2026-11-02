@@ -215,6 +215,10 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   as duas `POLICY` instaladas e a canônica e devolve o menor; o laço mira em `min(curva, escada)` e solta na escada.
 - Por que o standby confere `dumpsys power`: o `descanso-fim` pode não chegar (app morto, pedido perdido). Só com
   `mWakefulness=Dreaming` o vigia avisa e manda o `KEYCODE_POWER`, que desliga o aparelho (doc 49 §4.4).
+- Por que `solta_pid` (conferente F3): o vigia do standby e o laço só apagam o arquivo de pid se ele ainda tiver o
+  próprio `$$`. Um vigia velho morto pelo `standby-inicio` seguinte só roda o `trap` depois do `sleep 5`, e a essa
+  altura o pid já é do vigia novo; apagar sem conferir deixava o novo sem dono, e o `descanso-fim` seguinte não o
+  achava para cancelar (o `KEYCODE_POWER` saía fora de hora). O mesmo vale para o laço e o `laco_ligar`.
 - Só `sfs`/`gfs` e `sbri`/`gbri` no `hidebug`; nunca `sbl`, `gtt` ou `stp`. A temperatura é a prop `zysys.env_temp`.
 - Entra na `SUITE_LISTA` e no `KIT_LISTA`/`KIT_EXEC`; o md5 vai embutido no `suite-pedido.sh` e no `suite-boot.sh`
   (`bash tests/atualizar-md5-kit.sh`). Ganchos de teste só com `PFL_TESTE=1`: `PFL_CURVAS_VOLTAS`,

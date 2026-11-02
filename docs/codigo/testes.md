@@ -102,6 +102,8 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
   54,7 °C com a curva gravada, 850 de 70 °C para cima e sem temperatura); mutações em `FW_SPEED_CURVE` e
   `DEFAULT_PWM_DUTY` derrubam o `ini-ok`; o `dumpsys power` de mentira lê `$T/wakefulness`: sem `Dreaming` não há
   aviso nem tecla, saindo entre o aviso e o fim não há tecla, e o `descanso-fim` cancela mesmo com a trava.
+- Conferente F3: um vigia ou laço velho que sai não apaga o pid de um novo (o `sleep` de mentira troca o pid no meio
+  e o arquivo tem de continuar com o do novo).
 - `test-kit-pendrive.sh`: `c_bloco23` (variante do LED no `.ini` aceita sem regravar nem reiniciar; `FW_SPEED_CURVE` mexido
   recusado; `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`; versionCode 6; `suite-curvas.sh` e a lista do debloat no
   `KIT_LISTA`/`KIT_EXEC`).

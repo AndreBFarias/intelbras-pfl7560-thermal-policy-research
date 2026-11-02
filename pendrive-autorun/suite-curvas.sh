@@ -60,6 +60,7 @@ arq_seguro(){
   [ "$3" = "$DONO_UID" ]
 }
 md5_de(){ md5sum "$1" 2>/dev/null | cut -d' ' -f1; }
+solta_pid(){ [ "$(head -n 1 "$1" 2>/dev/null | tr -cd '0-9')" = "$$" ] && rm -f "$1"; }
 num(){
   case "$1" in ''|*[!0-9]*|0?*) return 1 ;; esac
   [ "${#1}" -le 6 ]
@@ -399,7 +400,7 @@ estado_props(){
 
 # shellcheck disable=SC2317
 sai_laco(){
-  rm -f "$PID_LACO"
+  solta_pid "$PID_LACO"
   if [ -e "$VENT_ARQ" ]; then fans_segura; fi
   if [ -e "$LED_ARQ" ]; then led_solta; fi
 }
@@ -650,12 +651,12 @@ standby_cancelar(){
 sonhando(){ timeout 10 dumpsys power 2>/dev/null | grep -aq 'mWakefulness=Dreaming'; }
 standby_desiste(){
   LOG "o descanso nao esta mais na tela (dumpsys power sem Dreaming): standby cancelado, nada feito."
-  rm -f "$PID_STANDBY"; prop standby ""
+  solta_pid "$PID_STANDBY"; prop standby ""
   exit 0
 }
 standby_vigia(){
   echo "$$" > "$PID_STANDBY"
-  trap 'rm -f "$PID_STANDBY"; exit 0' INT TERM HUP
+  trap 'solta_pid "$PID_STANDBY"; exit 0' INT TERM HUP
   _s=0
   while [ "$_s" -lt "$STANDBY_AVISO" ]; do sleep 5; _s=$(( _s + 5 )); done
   sonhando || standby_desiste
@@ -664,14 +665,14 @@ standby_vigia(){
   while [ "$_s" -lt "$STANDBY_TOTAL" ]; do sleep 5; _s=$(( _s + 5 )); done
   if [ -d "$LOCK" ]; then
     LOG "a suite esta rodando (trava): standby adiado, nada feito."
-    rm -f "$PID_STANDBY"; prop standby ""
+    solta_pid "$PID_STANDBY"; prop standby ""
     exit 0
   fi
   sonhando || standby_desiste
   prop standby agora
   LOG "standby pelo descanso: KEYCODE_POWER, o mesmo do botao do controle (doc 49 sec. 4.4: desliga o aparelho)"
   input keyevent KEYCODE_POWER >/dev/null 2>&1
-  rm -f "$PID_STANDBY"
+  solta_pid "$PID_STANDBY"
   sleep 2
   prop standby ""
   exit 0

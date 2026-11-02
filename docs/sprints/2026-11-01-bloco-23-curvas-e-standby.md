@@ -61,7 +61,18 @@ Pedido do dono (2026-11-01), com as decisões tomadas na conversa:
 
 ## Estado
 
-- [ ] F1
-- [ ] F2
-- [ ] F3
+- [x] F1: as quatro features, em simulação (commit `886a131`).
+- [x] F2: os ventiladores não se gravam mais no `.ini` (`FW_SPEED_CURVE` é velocidade → duty, doc 49 §4.3); o LED
+  nunca fica acima da escada; o standby usa `KEYCODE_POWER` só com `mWakefulness=Dreaming` (commit `f03ecd4`).
+- [x] F3 (regressão no todo): **aprovado com uma correção**. Um vigia do standby ou um laço velho, ao sair, apagava
+  o pid do novo, e aí o `descanso-fim` seguinte não achava o vigia novo para cancelar. Agora cada um só apaga o pid
+  que ainda é dele (`solta_pid`). Há dois testes novos, as listas md5 foram regeneradas pelo script, e os APKs
+  recompilados saem iguais byte a byte. As prévias não mudaram.
+  - Provas, em verificações/falhas: `test-suite` 892/0, `test-kit-pendrive` 703/0, `test-camcheck` 197/0,
+    `test-tela` 94/0, `test-preparar-pendrive` 97/0, `test-processos` 35/0, `test-pc-marca-vlc` 72/0,
+    `test-qualidade` 42/0, `check-fix` 50/0, `check-bin` 324/0.
+  - Também passaram: `make check` (íntegro), `simula-padroes-kit`, `atualizar-md5-kit --check`, `shellcheck -s sh`
+    sem aviso e o kit em ASCII. O único arquivo não ASCII é o `ZYCustom.ini`, que é byte-exato de fábrica.
+  - Continua funcionando, pelos testes: botão Luz, luz a 10 % no descanso, suíte pelo boot, pelo ícone e pelo
+    pendrive, home como launcher, overlays e marca.
 - [ ] o coordenador instala no aparelho com o dono
