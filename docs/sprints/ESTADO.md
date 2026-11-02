@@ -43,6 +43,11 @@ o traria de volta: o workflow final cuida disso. Prop `chaves` = `1111111111` (o
 `wifi_pwr`, que pode derrubar o Wi-Fi; resgate `DESLIGAR-CHAVES.txt`). Bloco 26 integrado (`c8129b9`, branch
 `integracao`), bloco 28 em voo (`whj87oqgu`).
 
+**Backup feito (2026-11-02, antes da S5):** `backups-projetor/antes-s5-20261102-0201/` (ignorado pelo git):
+`pfl-backup.tar` (86 MB, 76 entradas, md5 `6a6e6bbf…` igual no aparelho e no PC) com `/data/vendor/pfl7560-logo`,
+`/data/vendor/pfl7560-suite`, prefs da home e dados do app; mais props, settings e lista de pacotes. Refazer só a
+parte pequena (suite) logo antes do flash, se passar muito tempo.
+
 ## Próximos passos
 
 1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
