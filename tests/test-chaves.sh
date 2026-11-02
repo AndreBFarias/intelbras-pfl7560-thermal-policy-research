@@ -526,13 +526,14 @@ c_integracao_boot(){
   afirma 'grep -q "nas chaves - nada a desligar" "$S/boot.log"' "o boot nao registrou o grupo fora: $(grep -c . "$S/boot.log")"
   limpa
 
-  novo_cenario "boot: sem a escolha o debloat de sempre segue (Office desligado pela lista; o VLC do dono fica)"
+  novo_cenario "boot: sem a escolha o debloat de sempre segue (Office desligado pela lista; o debloat nao desliga o VLC, quem o tira e o tirar_vlc)"
   instala
   stub dmesg 'exit 0'; stub inotifyd 'exit 0'
   mkdir -p "$R/data/system/users/0"; : > "$R/data/system/users/0/package-restrictions.xml"
   amb dash "$S/suite-boot.sh" > "$T/boot.out" 2>&1
   afirma 'desligado com.mobisystems.editor.office_registered && [ "$(car deb_vlc)" = 1 ]' "o padrao nao desligou o Office"
-  afirma '! desligado org.videolan.vlc && ! tem_chamada "org.videolan.vlc"' "o boot mexeu no VLC do dono"
+  afirma '! desligado org.videolan.vlc && ! tem_chamada "pm disable-user --user 0 org.videolan.vlc" && ! tem_chamada "pm enable --user 0 org.videolan.vlc"' "o debloat ou as chaves mexeram no VLC: $(grep videolan "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(grep -c "videolan" "$T/calls.log")" = 1 ] && tem_chamada "pm uninstall --user 0 org.videolan.vlc"' "o VLC nao foi tirado so pelo pm uninstall --user 0: $(grep videolan "$T/calls.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "boot: suite-chaves.sh adulterado nao roda no boot"
