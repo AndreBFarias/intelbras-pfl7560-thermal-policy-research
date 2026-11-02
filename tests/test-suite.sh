@@ -185,6 +185,7 @@ case "$1 $2" in
     else echo "$l" >> "$PFL_ROOT/data/system/users/0/package-restrictions.xml"; fi
     exit 0 ;;
   "enable --user") sed -i "/^$4\$/d" "$T/pm-desligados"; exit 0 ;;
+  "uninstall --user") [ -f "$T/pm-uninstall-falha" ] && exit 1; sed -i "/^$4\$/d" "$T/pm-instalados"; echo Success; exit 0 ;;
 esac
 exit 0'
   stub wm 'echo "Physical size: 1920x1080"'
@@ -600,7 +601,7 @@ c_overlays_boot(){
   limpa
 }
 
-# o VLC saiu da lista em 2026-11-02 (e do dono): fica instalado no cenario e ninguem mexe nele
+# o VLC saiu da lista de debloat em 2026-11-02: o debloat nao o desliga; quem o tira e o tirar_vlc (pm uninstall --user 0, uma vez)
 APPS14="com.mobisystems.editor.office_registered com.newlink.cast com.hisilicon.miracast"
 apps_cenario(){ local a; : > "$T/pm-instalados"; : > "$T/pm-desligados"; for a in $APPS14 org.videolan.vlc; do echo "$a" >> "$T/pm-instalados"; done; }
 restr_tem(){ grep -a "name=\"$1\"" "$R/data/system/users/0/package-restrictions.xml" 2>/dev/null | grep -aq 'enabled="3"'; }
@@ -611,7 +612,7 @@ c_apps_boot(){
   roda_boot
   afirma '[ "$RC" = 0 ] && [ "$(sort "$T/pm-desligados" | tr "\n" " ")" = "$(echo $APPS14 | tr " " "\n" | sort | tr "\n" " ")" ]' "desligados: $(tr '\n' ' ' < "$T/pm-desligados")"
   for a in $APPS14; do afirma 'restr_tem "$a"' "$a sem enabled=3 no package-restrictions.xml"; done
-  afirma 'grep -q "apps: estado gravado no package-restrictions.xml (enabled=3)" "$S/boot.log" && tem_chamada "pm disable-user --user 0 com.mobisystems.editor.office_registered" && ! tem_chamada "org.videolan.vlc"' "log, nao desligou o Office ou mexeu no VLC do dono: $(grep apps "$S/boot.log" | tr '\n' '|')"
+  afirma 'grep -q "apps: estado gravado no package-restrictions.xml (enabled=3)" "$S/boot.log" && tem_chamada "pm disable-user --user 0 com.mobisystems.editor.office_registered" && ! tem_chamada "pm disable-user --user 0 org.videolan.vlc"' "log, nao desligou o Office ou o debloat desligou o VLC: $(grep apps "$S/boot.log" | tr '\n' '|')"
   : > "$T/calls.log"
   roda_boot
   afirma '[ "$(chamadas "pm disable-user")" = 0 ] && [ "$(grep -c "apps: .* ja estava desligado" "$S/boot.log")" = 3 ]' "2o boot desligou de novo: $(grep '^pm disable' "$T/calls.log")"
@@ -651,6 +652,49 @@ c_apps_boot(){
   instala_suite; apps_cenario; echo nunca > "$S/gatilho"
   roda_boot
   afirma '[ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 3 ] && [ "$RC" = 0 ]' "gatilho nunca nao desligou: $(tr '\n' ' ' < "$T/pm-desligados")"
+  limpa
+}
+
+c_vlc_boot(){
+  novo_cenario "vlc: 1o boot = pm uninstall --user 0 org.videolan.vlc, marcador e o caminho de volta no log"
+  instala_suite; apps_cenario
+  roda_boot
+  afirma '[ "$RC" = 0 ] && [ "$(chamadas "pm uninstall")" = 1 ] && tem_chamada "pm uninstall --user 0 org.videolan.vlc"' "uninstall: $(grep '^pm uninstall' "$T/calls.log" | tr '\n' '|')"
+  afirma '! grep -qx org.videolan.vlc "$T/pm-instalados" && [ -f "$S/vlc-tirado" ]' "o vlc ficou no usuario 0 ou sem marcador"
+  afirma 'grep -q "vlc: org.videolan.vlc tirado do usuario 0" "$S/boot.log" && grep -q "cmd package install-existing org.videolan.vlc" "$S/boot.log"' "log: $(grep vlc "$S/boot.log" | tr '\n' '|')"
+  afirma '! tem_chamada "pm uninstall --user 0 com." && ! tem_chamada "pm disable-user --user 0 org.videolan.vlc"' "mexeu em outro pacote: $(grep '^pm uninstall' "$T/calls.log" | tr '\n' '|')"
+  : > "$T/calls.log"
+  roda_boot
+  afirma '[ "$(chamadas "pm uninstall")" = 0 ]' "2o boot tirou de novo"
+  limpa
+
+  novo_cenario "vlc: o dono o devolveu (install-existing) depois de tirado = o boot nao tira de novo"
+  instala_suite; apps_cenario
+  roda_boot
+  echo org.videolan.vlc >> "$T/pm-instalados"; : > "$T/calls.log"
+  roda_boot
+  afirma '[ "$(chamadas "pm uninstall")" = 0 ] && grep -qx org.videolan.vlc "$T/pm-instalados"' "tirou o VLC que o dono devolveu"
+  limpa
+
+  novo_cenario "vlc: o uninstall falha = aviso, sem marcador; o boot seguinte tenta de novo"
+  instala_suite; apps_cenario; : > "$T/pm-uninstall-falha"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && grep -q "AVISO.*vlc: nao consegui tirar org.videolan.vlc" "$S/boot.log" && [ ! -e "$S/vlc-tirado" ]' "rc=$RC; $(grep vlc "$S/boot.log" | tr '\n' '|')"
+  rm -f "$T/pm-uninstall-falha"; : > "$T/calls.log"
+  roda_boot
+  afirma 'tem_chamada "pm uninstall --user 0 org.videolan.vlc" && [ -f "$S/vlc-tirado" ]' "nao tentou de novo: $(grep '^pm uninstall' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "vlc: o pm nao responde = aviso, nada tirado, sem marcador"
+  instala_suite; apps_cenario; : > "$T/pm-fora"
+  roda_boot
+  afirma '[ "$RC" = 0 ] && grep -q "AVISO.*vlc: o pm nao respondeu em 6 consultas" "$S/boot.log" && [ "$(chamadas "pm uninstall")" = 0 ] && [ ! -e "$S/vlc-tirado" ]' "rc=$RC; $(grep vlc "$S/boot.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "vlc: ja fora do usuario 0 = nenhuma chamada, marcador gravado"
+  instala_suite; apps_cenario; sed -i '/^org.videolan.vlc$/d' "$T/pm-instalados"
+  roda_boot
+  afirma '[ "$(chamadas "pm uninstall")" = 0 ] && [ -f "$S/vlc-tirado" ] && grep -q "vlc: org.videolan.vlc ja nao esta no usuario 0" "$S/boot.log"' "$(grep vlc "$S/boot.log" | tr '\n' '|')"
   limpa
 }
 
@@ -2534,7 +2578,7 @@ c_estaticos(){
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
-for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot \
+for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot c_vlc_boot \
          c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente \
          c_curvas_vent_pedido c_curvas_led_pedido c_curvas_vent_laco c_curvas_led_laco c_curvas_boot \
          c_curvas_fio c_curvas_standby c_standby_escolha c_curvas_ini c_curvas_debloat c_logo_boot}; do

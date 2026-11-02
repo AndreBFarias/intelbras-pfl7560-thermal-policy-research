@@ -148,6 +148,7 @@ descanso_existe(){
   timeout 15 dumpsys package com.pfl7560.verificar 2>/dev/null | grep -q 'com\.pfl7560\.verificar/[.a-z0-9]*Descanso'
 }
 DESCANSO_TENTATIVAS=6
+VLC_TIRADO="$SUITE/vlc-tirado"
 DESCANSO_ESPERA=10
 [ -n "${PFL_RAPIDO:-}" ] && DESCANSO_ESPERA=0
 ligar_descanso(){
@@ -273,6 +274,26 @@ desligar_apps(){
   done
   LOG "[AVISO] apps: o package-restrictions.xml ainda nao mostra enabled=3 para:$_falta (o sistema grava com atraso; nao reinicie ja)."
 }
+tirar_vlc(){
+  [ -e "$VLC_TIRADO" ] && return 0
+  _vt=1
+  until timeout 15 pm list packages 2>/dev/null | grep -qx 'package:android'; do
+    if [ "$_vt" -ge "$DESCANSO_TENTATIVAS" ]; then LOG "[AVISO] vlc: o pm nao respondeu em $_vt consultas - tento no proximo boot."; return 0; fi
+    _vt=$(( _vt + 1 ))
+    sleep "$DESCANSO_ESPERA"
+  done
+  if timeout 15 pm list packages 2>/dev/null | grep -qx 'package:org.videolan.vlc'; then
+    if timeout 15 pm uninstall --user 0 org.videolan.vlc >/dev/null 2>&1; then
+      LOG "vlc: org.videolan.vlc tirado do usuario 0 (pm uninstall --user 0; o apk de fabrica fica em /vendor/app/VLC). Para voltar: cmd package install-existing org.videolan.vlc"
+    else
+      LOG "[AVISO] vlc: nao consegui tirar org.videolan.vlc - tento no proximo boot."
+      return 0
+    fi
+  else
+    LOG "vlc: org.videolan.vlc ja nao esta no usuario 0 - nada a tirar"
+  fi
+  ( umask 077; : > "$VLC_TIRADO" )
+}
 
 vigia_vivo(){
   _p=$(head -n 1 "$VIGIA_PID" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
@@ -369,7 +390,7 @@ ligar_curvas
 ligar_diario
 ligar_descanso &
 ligar_overlays &
-{ desligar_apps; aplicar_chaves; } &
+{ desligar_apps; aplicar_chaves; tirar_vlc; } &
 ligar_vigia
 
 if [ "$DECISAO" = "sim" ]; then

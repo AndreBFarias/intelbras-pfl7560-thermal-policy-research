@@ -39,7 +39,7 @@ SEMENTE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 047f2c46a6830016f040c5d147dd615b  suite.sh
-858ce0382d2e7ee8240b5bfa68a64562  suite-boot.sh
+a0b30b2137509c13dc811963b95b182e  suite-boot.sh
 0a25b9dccafea85f0969b2bd5c0d8523  suite-pedido.sh
 7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
 44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
