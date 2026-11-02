@@ -2248,6 +2248,82 @@ c_curvas_standby(){
   limpa
 }
 
+c_standby_escolha(){
+  local vp v w
+  novo_cenario "descanso/escolha: sem escolha gravada o boot publica standby_conf=1:10 e o vigia usa 600/660 s (o de antes)"
+  instala_suite
+  amb dash "$S/suite-curvas.sh" boot > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(prop_de standby_conf)" = "1:10" ]' "boot publicou '$(prop_de standby_conf)'"
+  : > "$PED/descanso-inicio"; roda_pedido w "$PED" descanso-inicio
+  afirma 'tem_chamada "setsid sh $S/suite-curvas.sh standby-vigia" && grep -q "aviso aos 600 s, standby aos 660 s" "$S/curvas.log"' "padrao: $(grep vigia "$S/curvas.log" | tail -1)"
+  afirma 'grep -q "^STANDBY_MINUTO=60$" "$KIT/suite-curvas.sh" && grep -q "^STANDBY_PADRAO=\"v1 ligado 10\"$" "$KIT/suite-curvas.sh"' "minuto real ou padrao do descanso mudou"
+  limpa
+
+  novo_cenario "descanso/escolha: pedido standby da home 'v1 ligado 30' = grava (600, dono root), publica 1:30, e o vigia seguinte usa 1800/1860 s"
+  instala_suite; printf 'v1 ligado 30' > "$PEDH/standby"
+  roda_pedido w "$PEDH" standby
+  afirma '[ ! -e "$PEDH/standby" ] && [ "$(cat "$S/standby-escolha" 2>/dev/null)" = "v1 ligado 30" ] && [ "$(stat -c %a "$S/standby-escolha")" = 600 ]' "nao gravou: '$(cat "$S/standby-escolha" 2>/dev/null)' $(stat -c %a "$S/standby-escolha" 2>/dev/null) / $(tail -2 "$S/vigia.log" | tr '\n' '|')"
+  afirma '[ "$(prop_de standby_conf)" = "1:30" ]' "standby_conf='$(prop_de standby_conf)'"
+  : > "$PED/descanso-inicio"; roda_pedido w "$PED" descanso-inicio
+  afirma 'tem_chamada "setsid sh $S/suite-curvas.sh standby-vigia" && grep -q "aviso aos 1800 s, standby aos 1860 s" "$S/curvas.log"' "tempos: $(grep vigia "$S/curvas.log" | tail -1)"
+  limpa
+
+  novo_cenario "descanso/vigia: escolha ligado 20 = o aviso sai aos 20 minutos e a tecla 1 minuto depois (minuto de teste = 1 s)"
+  instala_suite; echo Dreaming > "$T/wakefulness"; printf 'v1 ligado 20\n' > "$S/standby-escolha"; chmod 600 "$S/standby-escolha"
+  amb env PFL_STANDBY_MINUTO=1 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
+  v=$(awk '/^sleep/{n++} /^setprop vendor.pfl7560.standby aviso/{print n; exit}' "$T/calls.log")
+  w=$(awk '/^sleep/{n++} /^input keyevent KEYCODE_POWER/{print n; exit}' "$T/calls.log")
+  afirma '[ "$v" = 4 ] && [ "$w" = 5 ] && grep -q "descanso ativo ha 20 s" "$S/curvas.log" && [ "$(grep -c "^input keyevent KEYCODE_POWER" "$T/calls.log")" = 1 ]' "aviso depois de $v sleeps de 5, tecla depois de $w / $(grep 'descanso ativo' "$S/curvas.log")"
+  limpa
+
+  novo_cenario "descanso/escolha: desligar cancela o vigia em curso; com desligado o descanso nao liga o vigia e um vigia solto nao faz nada"
+  instala_suite
+  bash -c 'exec -a pfl7560-standby-teste /bin/sleep 30' &
+  vp=$!
+  echo "$vp" > "$R/dev/pfl7560-standby.pid"; printf 'vendor.pfl7560.standby=aviso\n' >> "$T/props"
+  printf 'v1 desligado 20' > "$PEDH/standby"
+  roda_pedido w "$PEDH" standby
+  sleep 0.3
+  afirma '! kill -0 "$vp" 2>/dev/null && [ ! -e "$R/dev/pfl7560-standby.pid" ] && [ -z "$(prop_de standby)" ] && [ "$(prop_de standby_conf)" = "0:20" ]' "desligar nao cancelou: pid=$vp conf='$(prop_de standby_conf)'"
+  kill "$vp" 2>/dev/null; wait "$vp" 2>/dev/null
+  : > "$PED/descanso-inicio"; roda_pedido w "$PED" descanso-inicio
+  afirma '[ "$(chamadas setsid)" = 0 ] && [ ! -e "$R/dev/pfl7560-standby.pid" ] && grep -q "vigia nao ligado" "$S/curvas.log"' "ligou o vigia desligado: $(grep setsid "$T/calls.log")"
+  echo Dreaming > "$T/wakefulness"
+  amb env PFL_STANDBY_MINUTO=1 dash "$S/suite-curvas.sh" standby-vigia > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(chamadas input)" = 0 ] && ! grep -q "standby aviso\|standby agora" "$T/calls.log" && [ ! -e "$R/dev/pfl7560-standby.pid" ]' "vigia com desligado agiu: $(grep -E '^(input|setprop vendor.pfl7560.standby )' "$T/calls.log" | tr '\n' '|')"
+  limpa
+
+  novo_cenario "descanso/escolha: fora da lista fechada = recusado, a escolha gravada fica e a prop mostra a atual"
+  instala_suite; printf 'v1 ligado 60\n' > "$S/standby-escolha"; chmod 600 "$S/standby-escolha"
+  for v in 'v1 ligado 15' 'v1 ligado 10; reboot' 'v1 ligar' 'ligado 10' 'v1 desligado' '' 'v1 ligado 10                            x'; do
+    printf '%s' "$v" > "$PEDH/standby"
+    roda_pedido w "$PEDH" standby
+    afirma '[ ! -e "$PEDH/standby" ] && [ "$(cat "$S/standby-escolha")" = "v1 ligado 60" ] && [ "$(prop_de standby_conf)" = "1:60" ]' "aceitou '$v': '$(cat "$S/standby-escolha")' conf='$(prop_de standby_conf)'"
+  done
+  afirma '[ "$(grep -c "escolha do descanso recusada" "$S/curvas.log")" = 7 ]' "recusas no log: $(grep -c 'escolha do descanso recusada' "$S/curvas.log")"
+  printf 'v1 ler' > "$PEDH/standby"; printf 'vendor.pfl7560.standby_conf=\n' >> "$T/props"
+  roda_pedido w "$PEDH" standby
+  afirma '[ "$(prop_de standby_conf)" = "1:60" ] && [ "$(cat "$S/standby-escolha")" = "v1 ligado 60" ]' "v1 ler: conf='$(prop_de standby_conf)'"
+  limpa
+
+  novo_cenario "descanso/escolha: escolha gravada como link ou com conteudo estranho = vale o padrao; o pedido seguinte troca o link por arquivo sem tocar no alvo"
+  instala_suite; printf 'v1 desligado 60\n' > "$T/alvo"; ln -s "$T/alvo" "$S/standby-escolha"
+  amb dash "$S/suite-curvas.sh" boot > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(prop_de standby_conf)" = "1:10" ]' "seguiu o link: '$(prop_de standby_conf)'"
+  printf 'v1 ligado 20' > "$PEDH/standby"; roda_pedido w "$PEDH" standby
+  afirma '[ ! -L "$S/standby-escolha" ] && [ "$(cat "$S/standby-escolha")" = "v1 ligado 20" ] && [ "$(cat "$T/alvo")" = "v1 desligado 60" ] && [ "$(prop_de standby_conf)" = "1:20" ]' "link: $(ls -l "$S/standby-escolha") alvo='$(cat "$T/alvo")'"
+  rm -f "$S/standby-escolha"; printf 'v1 desligado 45\n' > "$S/standby-escolha"; chmod 600 "$S/standby-escolha"
+  amb dash "$S/suite-curvas.sh" boot > "$T/sv.out" 2>&1 < /dev/null
+  afirma '[ "$(prop_de standby_conf)" = "1:10" ]' "conteudo fora da lista valeu: '$(prop_de standby_conf)'"
+  limpa
+
+  novo_cenario "descanso/fio: pedido standby que ficou na pasta com o aparelho desligado = o boot trata"
+  instala_suite; printf 'v1 desligado 30' > "$PEDH/standby"
+  roda_boot
+  afirma '[ ! -e "$PEDH/standby" ] && [ "$(cat "$S/standby-escolha" 2>/dev/null)" = "v1 desligado 30" ] && [ "$(prop_de standby_conf)" = "0:30" ]' "pendente nao tratado: $(ls "$PEDH") / conf='$(prop_de standby_conf)'"
+  limpa
+}
+
 c_logo_boot(){
   local L
   novo_cenario "logo/boot: suite-boot.sh roda o suite-logo.sh conferido por md5, em segundo plano, uma vez"
@@ -2461,7 +2537,7 @@ echo "== cenarios sob dash =="
 for c in ${CASOS:-c_gatilho_matriz c_gatilho_bloqueios c_gatilho_seguranca c_vigia c_descanso c_pedido c_luz c_instalacao c_desinstalar c_desinstalar14 c_overlays_boot c_apps_boot \
          c_etapas_cor c_etapas_geometria c_etapas_foco c_etapas_temperatura c_etapas_rampa c_telas c_ambiente c_conferente \
          c_curvas_vent_pedido c_curvas_led_pedido c_curvas_vent_laco c_curvas_led_laco c_curvas_boot \
-         c_curvas_fio c_curvas_standby c_curvas_ini c_curvas_debloat c_logo_boot}; do
+         c_curvas_fio c_curvas_standby c_standby_escolha c_curvas_ini c_curvas_debloat c_logo_boot}; do
   echo "  $c"
   "$c"
 done

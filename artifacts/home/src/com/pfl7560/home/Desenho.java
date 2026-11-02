@@ -479,9 +479,31 @@ public final class Desenho {
             float ex = temChave(c) ? AJ_ESTADO_X : AJ_CHAVE_X;
             p.texto(a.rotuloServico(i), ex, y + 37, Pintor.SANS, 28, corEstado(c, ec), Pintor.ESQ);
         }
+        linhaDescanso(p, a, AJ_LINHA_Y + Ajustes.VISIVEIS.length * AJ_LINHA_H);
         if (a.zona == Ajustes.ZONA_LINHAS) {
-            float ty = AJ_LINHA_Y + Ajustes.VISIVEIS.length * AJ_LINHA_H + 40;
-            p.texto(reticencias(p, Ajustes.FAZ[a.indice()], Pintor.SANS, 28, CONTEUDO), MX, ty, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+            float ty = AJ_LINHA_Y + (Ajustes.VISIVEIS.length + 1) * AJ_LINHA_H + 40;
+            String faz = a.naLinhaDescanso() ? Ajustes.DESCANSO_FAZ : Ajustes.FAZ[a.indice()];
+            p.texto(reticencias(p, faz, Pintor.SANS, 28, CONTEUDO), MX, ty, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        }
+        // a unica linha em que esquerda/direita nao troca a aba: o rodape diz o que as teclas fazem nela
+        if (a.naLinhaDescanso()) {
+            p.texto(Ajustes.DESCANSO_TECLAS, MX, 1030, Pintor.SANS, 28, Tema.TEXTO_2, Pintor.ESQ);
+        }
+    }
+
+    /** "Desligar no descanso": interruptor como os servicos e o tempo encostado na direita. */
+    private static void linhaDescanso(Pintor p, Ajustes a, float y) {
+        boolean f = a.naLinhaDescanso();
+        char c = a.estadoDescanso();
+        boolean ec = a.descansoAplicando != null;
+        fundoLinha(p, y, f);
+        p.texto(Ajustes.DESCANSO_ROTULO, MX + 24, y + 38, Pintor.SANS_SEMI, 30, Tema.TEXTO, Pintor.ESQ);
+        if (temChave(c)) chave(p, AJ_CHAVE_X, y + 7, c, f, ec);
+        float ex = temChave(c) ? AJ_ESTADO_X : AJ_CHAVE_X;
+        p.texto(a.rotuloDescanso(), ex, y + 37, Pintor.SANS, 28, corEstado(c, ec), Pintor.ESQ);
+        if (c != '?') {
+            p.texto(a.minutosDescanso() + " min", DIREITA - 24, y + 38, Pintor.MONO_SEMI, 30,
+                    ec ? Tema.AMARELO : c == '1' ? Tema.TEXTO : Tema.TEXTO_2, Pintor.DIR);
         }
     }
 

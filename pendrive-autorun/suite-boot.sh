@@ -22,9 +22,9 @@ DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="161de76dfe93aeee13654e417e55e3bd"
-PEDIDO_MD5="a26f157e50426d950ecb824a5dff14a0"
-CURVAS_MD5="bd4da978560a5c41802d400ba186dda3"
+SUITE_MD5="047f2c46a6830016f040c5d147dd615b"
+PEDIDO_MD5="0a25b9dccafea85f0969b2bd5c0d8523"
+CURVAS_MD5="7dd0b18e1dfb44edd998ee99a7faad24"
 CHAVES_MD5="44e528d3e05e92cb9b0a847f5121fa01"
 DIARIO_MD5="90caa1f05da00c43a29dd364ed3afb69"
 LOGO_MD5="d1b0b118aa713b541c0514687eab1609"
@@ -287,7 +287,7 @@ vigia_laco(){
     if [ -f "$HOME_DIR/luz" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz
     fi
-    for _cn in curva-vent curva-led chave diario logo-auto; do
+    for _cn in curva-vent curva-led chave diario logo-auto standby; do
       if [ -f "$HOME_DIR/$_cn" ] && confere "$SUITE/suite-pedido.sh" "$PEDIDO_MD5"; then
         sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn"
       fi
@@ -326,7 +326,7 @@ ligar_vigia(){
     LOG "pedido de luz pendente de antes do vigia: tratando agora"
     sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" luz >>"$SUITE/vigia.log" 2>&1 </dev/null
   fi
-  for _cn in curva-vent curva-led chave diario logo-auto; do
+  for _cn in curva-vent curva-led chave diario logo-auto standby; do
     if [ -f "$HOME_DIR/$_cn" ]; then
       LOG "pedido de $_cn pendente de antes do vigia: tratando agora"
       sh "$SUITE/suite-pedido.sh" w "$HOME_DIR" "$_cn" >>"$SUITE/vigia.log" 2>&1 </dev/null

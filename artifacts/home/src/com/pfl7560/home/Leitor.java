@@ -206,6 +206,17 @@ final class Leitor {
         }
     }
 
+    static boolean pedirDescanso(Context c, String pedido) {
+        if (!Ajustes.pedidoDescansoValido(pedido)) return false;
+        try (FileOutputStream out = new FileOutputStream(new File(c.getDataDir(), "standby"))) {
+            out.write(pedido.getBytes("US-ASCII"));
+            return true;
+        } catch (IOException | RuntimeException e) {
+            Guarda.anotar(c, "pedir standby", e);
+            return false;
+        }
+    }
+
     static String propRoot(String nome) {
         Process p = null;
         try {

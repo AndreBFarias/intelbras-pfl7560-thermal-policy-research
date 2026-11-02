@@ -15,6 +15,10 @@ final class HomeView extends View {
         void aplicarCurva();
 
         void aplicarChave();
+
+        /** Seta na linha "Desligar no descanso": o tempo ja mudou na tela; manda o pedido. */
+        void pedirDescanso();
+
         void alternarLogo();
     }
 
@@ -144,9 +148,11 @@ final class HomeView extends View {
         switch (codigo) {
             case KeyEvent.KEYCODE_DPAD_LEFT:
                 mudou = a.mover(-1, 0);
+                if (mudou && a.naLinhaDescanso()) ouvinte.pedirDescanso();
                 break;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
                 mudou = a.mover(1, 0);
+                if (mudou && a.naLinhaDescanso()) ouvinte.pedirDescanso();
                 break;
             case KeyEvent.KEYCODE_DPAD_UP:
                 mudou = a.mover(0, -1);

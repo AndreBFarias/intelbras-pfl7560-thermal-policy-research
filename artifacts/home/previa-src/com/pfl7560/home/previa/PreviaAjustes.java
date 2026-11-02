@@ -77,6 +77,13 @@ public final class PreviaAjustes {
         e.ajustes.mover(0, 1);
         salvar(e, fontes, new File(saida, "home-ajustes-diario-pedido.png"));
 
+        Modelo ds = painel();
+        ds.ajustes.estado = PADRAO;
+        ds.ajustes.descanso = "1:10";
+        for (int i = 0; i < Ajustes.VISIVEIS.length; i++) ds.ajustes.mover(0, 1);
+        ds.ajustes.mover(1, 0);
+        salvar(ds, fontes, new File(saida, "home-ajustes-descanso.png"));
+
         checar();
         System.out.println("ajustes: conferencias ok");
     }
@@ -191,6 +198,8 @@ public final class PreviaAjustes {
         la.estado = PADRAO;
         verdade(la.lido() && !la.rotuloServico(0).equals("Lendo…") && la.precisaLer(), "lido Servicos; falta o Diario");
         la.diario = "0:0:0";
+        verdade(la.precisaLer(), "lido o Diario; falta o descanso");
+        la.descanso = "1:10";
         verdade(!la.precisaLer(), "tudo lido: para de reler");
         verdade(la.estadoDe(11) == '-', "kit antigo sem o id: nao existe aqui");
         la.estado = "1111000000";
@@ -236,6 +245,7 @@ public final class PreviaAjustes {
         }
         checarSetas();
         checarDiario();
+        checarDescanso();
         checarVoltar();
         // o acesso e um item da fileira Apps, nao um atalho
         verdade(Acoes.AJUSTES.equals("ajustes"), "acao ajustes");
@@ -309,7 +319,67 @@ public final class PreviaAjustes {
         verdade(a.mover(0, 1) && a.zona == Ajustes.ZONA_LINHAS && a.linha == 0, "baixo desce para as linhas");
         a.mover(-1, 0);
         for (int i = 0; i < Ajustes.VISIVEIS.length - 1; i++) verdade(a.mover(0, 1), "desce " + i);
-        verdade(a.linha == Ajustes.VISIVEIS.length - 1 && a.indice() == 10 && !a.mover(0, 1), "termina no aviso de dispositivo");
+        verdade(a.linha == Ajustes.VISIVEIS.length - 1 && a.indice() == 10, "o ultimo servico e o aviso de dispositivo");
+        verdade(a.mover(0, 1) && a.naLinhaDescanso() && !a.mover(0, 1), "termina em Desligar no descanso");
+        verdade(a.mover(0, -1) && a.linha == Ajustes.VISIVEIS.length - 1 && !a.naLinhaDescanso(), "sobe do descanso ao aviso");
+        verdade(a.mover(1, 0) && a.aba == Ajustes.ABA_DIARIO, "fora da linha do descanso, direita ainda troca a aba");
+    }
+
+    /** "Desligar no descanso" (tarefa 2026-11-02): ultima linha de Servicos; OK liga/desliga, setas trocam o tempo. */
+    private static void checarDescanso() {
+        Modelo m = painel();
+        Ajustes a = m.ajustes;
+        a.estado = PADRAO;
+        verdade(a.linhas() == Ajustes.VISIVEIS.length + 1, "Servicos tem uma linha a mais");
+        a.linha = Ajustes.VISIVEIS.length;
+        verdade(a.naLinhaDescanso() && a.idEmFoco().equals("descanso"), "a linha do descanso");
+        verdade(a.estadoDescanso() == '?' && a.rotuloDescanso().equals("Lendo…") && a.minutosDescanso() == 10, "sem leitura: Lendo…, 10 min");
+        verdade(a.ok() == Ajustes.NADA && !a.mover(1, 0) && a.aba == Ajustes.ABA_SERVICOS && a.descansoAplicando == null,
+                "sem leitura OK e setas nao pedem nada, e a seta nao foge da aba");
+        verdade(a.precisaLer(), "sem a leitura do descanso a tela tenta ler de novo");
+        a.descanso = "lixo";
+        verdade(!a.descansoLido() && a.ok() == Ajustes.NADA, "leitura fora do formato nao vale");
+        a.descanso = "1:15";
+        verdade(!a.descansoLido(), "so 10, 20, 30 ou 60 minutos");
+        a.descanso = "1:10";
+        verdade(a.descansoLido() && a.descansoLigado() && a.estadoDescanso() == '1' && a.rotuloDescanso().equals("Ligado"),
+                "o padrao do projetor: ligado, 10 min");
+        verdade(a.ok() == Ajustes.PEDIR && a.pedido().equals("v1 desligado 10"), "ligado, OK desliga");
+        verdade(a.marcarAplicando().equals("v1 desligado 10") && a.estadoDescanso() == '0' && a.rotuloDescanso().equals("Aplicando…")
+                && a.algumEmCurso() && a.pedidoDescanso().equals("v1 desligado 10"), "OK muda a tela na hora");
+        int n = a.descansoPedidos;
+        a.confirmarDescanso(n, "0:10");
+        verdade(a.descansoAplicando == null && a.descanso.equals("0:10") && a.rotuloDescanso().equals("Desligado") && !a.algumEmCurso(),
+                "o projetor confirmou o desligado");
+        verdade(a.ok() == Ajustes.PEDIR && a.pedido().equals("v1 ligado 10"), "desligado, OK liga");
+        // setas: o tempo anda sem dar a volta e manda o pedido; a aba fica
+        verdade(!a.mover(-1, 0) && a.aba == Ajustes.ABA_SERVICOS && a.descansoAplicando == null, "nada abaixo de 10 min");
+        verdade(a.mover(1, 0) && a.aba == Ajustes.ABA_SERVICOS && a.minutosDescanso() == 20 && a.pedidoDescanso().equals("v1 desligado 20"),
+                "direita: 20 min, mantendo desligado");
+        verdade(a.mover(1, 0) && a.mover(1, 0) && a.minutosDescanso() == 60 && !a.mover(1, 0) && a.minutosDescanso() == 60,
+                "30, 60 e para em 60");
+        int ultimo = a.descansoPedidos;
+        a.confirmarDescanso(ultimo - 1, "0:30");
+        verdade(a.descansoAplicando != null && a.minutosDescanso() == 60, "a resposta de um pedido velho nao tira o Aplicando…");
+        a.confirmarDescanso(ultimo, "0:60");
+        verdade(a.descansoAplicando == null && a.descanso.equals("0:60"), "a do ultimo tira");
+        verdade(a.mover(-1, 0) && a.minutosDescanso() == 30, "esquerda volta a 30");
+        a.confirmarDescanso(a.descansoPedidos, "");
+        verdade(a.descansoAplicando == null && a.descanso.equals("0:60") && a.minutosDescanso() == 60,
+                "sem resposta, a tela volta ao que o projetor tinha");
+        for (String v : new String[] {"v1 ligado 10", "v1 ligado 20", "v1 ligado 30", "v1 ligado 60",
+                "v1 desligado 10", "v1 desligado 20", "v1 desligado 30", "v1 desligado 60", "v1 ler"}) {
+            verdade(Ajustes.pedidoDescansoValido(v) && v.length() <= 32, "pedido valido " + v);
+        }
+        verdade(!Ajustes.pedidoDescansoValido("v1 ligado 15") && !Ajustes.pedidoDescansoValido("v1 ligado 10; reboot")
+                && !Ajustes.pedidoDescansoValido("ligado 10") && !Ajustes.pedidoDescansoValido(null)
+                && !Ajustes.pedidoDescansoValido("v1 ligar") && !Ajustes.pedidoDescansoValido(""), "pedidos do descanso invalidos");
+        verdade(!Ajustes.pedidoValido("v1 ligado 10") && !Ajustes.pedidoDiarioValido("v1 ligado 10"),
+                "o pedido do descanso nao passa pelos servicos nem pelo diario");
+        verdade(Ajustes.alvoDescanso(true, 30).equals("1:30") && Ajustes.pedidoDescanso("1:30").equals("v1 ligado 30"), "alvo e pedido");
+        a.estado = "";
+        a.descanso = "1:10";
+        verdade(!a.lido() && a.ok() == Ajustes.PEDIR, "o descanso nao depende da leitura dos servicos");
     }
 
     private static void checarDiario() {

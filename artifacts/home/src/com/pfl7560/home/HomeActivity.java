@@ -265,6 +265,11 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
      */
     public void aplicarChave() {
         final Ajustes aj = modelo.ajustes;
+        if (aj.naLinhaDescanso()) {
+            aj.marcarAplicando();
+            pedirDescanso();
+            return;
+        }
         final boolean diario = aj.aba == Ajustes.ABA_DIARIO;
         final String id = aj.idEmFoco();
         final String pedido = aj.marcarAplicando();
@@ -316,6 +321,58 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                 vista.invalidate();
                 principal.removeCallbacks(apagarAviso);
                 if (modelo.aviso != null) principal.postDelayed(apagarAviso, AVISO_MS);
+            }
+        });
+    }
+
+    /**
+     * Desligar no descanso: a tela ja mostra o alvo (OK ou seta na linha); o pedido entra na mesma fila dos outros.
+     * Cada pedido leva o seu numero: so a resposta do ultimo tira o "Aplicando…".
+     */
+    @Override
+    public void pedirDescanso() {
+        final Ajustes aj = modelo.ajustes;
+        final String pedido = aj.pedidoDescanso();
+        final String alvo = aj.descansoAplicando;
+        final int n = aj.descansoPedidos;
+        if (pedido == null) return;
+        modelo.aviso = null;
+        vista.invalidate();
+        final Context app = getApplicationContext();
+        fila.execute(new Runnable() {
+            @Override
+            public void run() {
+                final boolean ok = Leitor.pedirDescanso(app, pedido);
+                String lido = Leitor.propRoot("standby_conf");
+                if (ok) {
+                    for (int i = 0; i < CHAVE_TENTATIVAS && !alvo.equals(lido); i++) {
+                        try {
+                            Thread.sleep(CHAVE_ESPERA_MS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        lido = Leitor.propRoot("standby_conf");
+                    }
+                }
+                final String fim = lido;
+                principal.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isDestroyed()) return;
+                        modelo.ajustes.confirmarDescanso(n, fim);
+                        if (!ok) {
+                            modelo.aviso = "Não consegui pedir ao projetor";
+                        } else if (!alvo.equals(fim)) {
+                            modelo.aviso = "O projetor não respondeu ao pedido";
+                        } else {
+                            modelo.aviso = null;
+                        }
+                        vista.invalidate();
+                        principal.removeCallbacks(apagarAviso);
+                        if (modelo.aviso != null) principal.postDelayed(apagarAviso, AVISO_MS);
+                    }
+                });
             }
         });
     }
@@ -390,7 +447,9 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                     // a propriedade so muda quando o projetor publica: pede uma leitura nova
                     Leitor.pedirChave(app, Ajustes.PEDIDO_LER);
                     Leitor.pedirDiario(app, Ajustes.PEDIDO_DIARIO_LER);
+                    Leitor.pedirDescanso(app, Ajustes.PEDIDO_DESCANSO_LER);
                 }
+                final String descanso = Leitor.propRoot("standby_conf");
                 final String chaves = Leitor.propRoot("chaves");
                 final String diario = Leitor.propRoot("diario");
                 final String envio = Leitor.propRoot("diario_envio");
@@ -404,6 +463,7 @@ public class HomeActivity extends Activity implements HomeView.Ouvinte {
                             a.diario = diario;
                             a.diarioEnvio = envio;
                         }
+                        if (!descanso.isEmpty() && a.descansoAplicando == null) a.descanso = descanso;
                         vista.invalidate();
                         principal.removeCallbacks(relerAjustes);
                         // a primeira volta sempre rele (o "v1 ler" acabou de sair); depois, so enquanto faltar ler

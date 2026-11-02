@@ -2,7 +2,7 @@
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
   PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
-  unset PFL_ROOT PFL_RAPIDO PFL_DONO PFL_TESTE PFL_CURVAS_VOLTAS PFL_STANDBY_AVISO PFL_STANDBY_TOTAL
+  unset PFL_ROOT PFL_RAPIDO PFL_DONO PFL_TESTE PFL_CURVAS_VOLTAS PFL_STANDBY_AVISO PFL_STANDBY_TOTAL PFL_STANDBY_MINUTO
 fi
 LC_ALL=C; export LC_ALL
 R="${PFL_ROOT:-}"
@@ -13,6 +13,7 @@ LOCK="$R/dev/pfl7560-suite.lock"
 CTRAVA="$R/dev/pfl7560-curvas.trava"
 PID_LACO="$R/dev/pfl7560-curvas.pid"
 PID_STANDBY="$R/dev/pfl7560-standby.pid"
+STANDBY_ESCOLHA="$SUITE/standby-escolha"
 VENT_ARQ="$SUITE/curva-vent"
 LED_ARQ="$SUITE/curva-led"
 VENT_DESISTIU="$SUITE/curva-vent.desistiu"
@@ -37,10 +38,14 @@ LED_LIM_CANON="66000, 67500, 69000, 70000, 71500, 73000"
 LED_BRI_CANON="1000,  950,  900,  850,  850,  850"
 STANDBY_AVISO=600
 STANDBY_TOTAL=660
+STANDBY_MINUTO=60
+STANDBY_PADRAO="v1 ligado 10"
+STANDBY_FIXO=0
 VOLTAS=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_CURVAS_VOLTAS:-}" ] && VOLTAS="$PFL_CURVAS_VOLTAS"
-[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_STANDBY_AVISO:-}" ] && STANDBY_AVISO="$PFL_STANDBY_AVISO"
-[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_STANDBY_TOTAL:-}" ] && STANDBY_TOTAL="$PFL_STANDBY_TOTAL"
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_STANDBY_AVISO:-}" ] && STANDBY_AVISO="$PFL_STANDBY_AVISO" && STANDBY_FIXO=1
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_STANDBY_TOTAL:-}" ] && STANDBY_TOTAL="$PFL_STANDBY_TOTAL" && STANDBY_FIXO=1
+[ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_STANDBY_MINUTO:-}" ] && STANDBY_MINUTO="$PFL_STANDBY_MINUTO"
 
 LOG(){ echo "[PFL7560-curvas] $*"; }
 limpo(){ printf '%s' "$1" | tr -cd ' -~' | cut -c1-"${2:-40}"; }
@@ -642,6 +647,50 @@ modo_pedido_led(){
   exit 0
 }
 
+standby_escolha_valida(){
+  case "$1" in
+    "v1 ligado 10"|"v1 ligado 20"|"v1 ligado 30"|"v1 ligado 60") return 0 ;;
+    "v1 desligado 10"|"v1 desligado 20"|"v1 desligado 30"|"v1 desligado 60") return 0 ;;
+  esac
+  return 1
+}
+standby_escolha(){
+  _e=""
+  arq_seguro "$STANDBY_ESCOLHA" && _e=$(head -c 32 "$STANDBY_ESCOLHA" 2>/dev/null | tr -d '\r\n')
+  standby_escolha_valida "$_e" || _e="$STANDBY_PADRAO"
+  printf '%s' "$_e"
+}
+standby_conf(){
+  # shellcheck disable=SC2046
+  set -- $(standby_escolha)
+  if [ "$2" = "ligado" ]; then printf '1:%s' "$3"; else printf '0:%s' "$3"; fi
+}
+standby_tempos(){
+  [ "$STANDBY_FIXO" = "1" ] && return 0
+  STANDBY_AVISO=$(( $1 * STANDBY_MINUTO ))
+  STANDBY_TOTAL=$(( STANDBY_AVISO + STANDBY_MINUTO ))
+}
+standby_escolher(){
+  if [ "$1" = "v1 ler" ]; then prop standby_conf "$(standby_conf)"; return 0; fi
+  if ! standby_escolha_valida "$1"; then
+    LOG "[AVISO] escolha do descanso recusada (conteudo '$(limpo "$1" 32)': so ligado/desligado e 10, 20, 30 ou 60)."
+    prop standby_conf "$(standby_conf)"
+    return 0
+  fi
+  if ! ( umask 077; printf '%s\n' "$1" > "$STANDBY_ESCOLHA.novo" ) || ! mv -f "$STANDBY_ESCOLHA.novo" "$STANDBY_ESCOLHA"; then
+    rm -f "$STANDBY_ESCOLHA.novo"
+    LOG "[AVISO] nao consegui gravar a escolha do descanso."
+    prop standby_conf "$(standby_conf)"
+    return 0
+  fi
+  case "$1" in
+    "v1 desligado "*)
+      if [ -e "$PID_STANDBY" ]; then standby_cancelar; LOG "Desligar no descanso desligado: o vigia em curso foi cancelado."; fi ;;
+  esac
+  LOG "Desligar no descanso: $(standby_conf) (vale a partir do proximo descanso)"
+  prop standby_conf "$(standby_conf)"
+}
+
 standby_cancelar(){
   _p=$(head -n 1 "$PID_STANDBY" 2>/dev/null | tr -cd '0-9' | cut -c1-10)
   if [ -n "$_p" ] && grep -aq 'pfl7560' "/proc/$_p/cmdline" 2>/dev/null; then kill "$_p" 2>/dev/null; fi
@@ -657,6 +706,13 @@ standby_desiste(){
 standby_vigia(){
   echo "$$" > "$PID_STANDBY"
   trap 'solta_pid "$PID_STANDBY"; exit 0' INT TERM HUP
+  # shellcheck disable=SC2046
+  set -- $(standby_escolha)
+  if [ "$2" != "ligado" ]; then
+    LOG "Desligar no descanso esta desligado: vigia sai sem fazer nada."
+    solta_pid "$PID_STANDBY"; exit 0
+  fi
+  standby_tempos "$3"
   _s=0
   while [ "$_s" -lt "$STANDBY_AVISO" ]; do sleep 5; _s=$(( _s + 5 )); done
   sonhando || standby_desiste
@@ -679,6 +735,10 @@ standby_vigia(){
 }
 standby_inicio(){
   standby_cancelar
+  # shellcheck disable=SC2046
+  set -- $(standby_escolha)
+  if [ "$2" != "ligado" ]; then LOG "descanso na tela, mas Desligar no descanso esta desligado: vigia nao ligado."; return 0; fi
+  standby_tempos "$3"
   if command -v setsid >/dev/null 2>&1; then
     setsid sh "$SUITE/suite-curvas.sh" standby-vigia >>"$SUITE/curvas.log" 2>&1 </dev/null &
   else
@@ -723,6 +783,7 @@ case "${1:-}" in
     exit 0 ;;
   boot)
     prop standby ""
+    prop standby_conf "$(standby_conf)"
     rm -f "$PID_STANDBY"
     estado_props
     if ativo; then laco_ligar; fi
@@ -734,6 +795,7 @@ case "${1:-}" in
     exit 0 ;;
   standby-inicio) standby_inicio; exit 0 ;;
   standby-cancelar) standby_cancelar; exit 0 ;;
+  standby-escolha) standby_escolher "${2:-}"; exit 0 ;;
   standby-vigia) standby_vigia ;;
 esac
 exit 0

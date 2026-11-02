@@ -64,6 +64,18 @@ public final class Ajustes {
         "O PC busca o diário a cada 2 minutos.",
     };
     public static final long DIARIO_MAX_BYTES = 512L * 1024L;
+
+    /*
+     * "Desligar no descanso" (tarefa 2026-11-02): a ultima linha da aba Servicos. Nao e uma medida do
+     * suite-chaves.sh (fora dos IDS): o vigia do standby (suite-curvas.sh) le a escolha. O projetor publica
+     * vendor.pfl7560.standby_conf = "<1|0>:<minutos>"; a home pede "v1 ligado|desligado <minutos>" ou "v1 ler".
+     * OK liga/desliga; esquerda/direita NESTA linha trocam o tempo (nas outras, a aba).
+     */
+    public static final String DESCANSO_ROTULO = "Desligar no descanso";
+    public static final String DESCANSO_FAZ = "Desliga o projetor depois desse tempo no descanso de tela.";
+    public static final String DESCANSO_TECLAS = "Esquerda e direita: tempo    OK: liga ou desliga";
+    public static final int[] DESCANSO_MINUTOS = {10, 20, 30, 60};
+    public static final String PEDIDO_DESCANSO_LER = "v1 ler";
     public static final String PEDIDO_DIARIO_LER = "v1 ler";
     public static final String PEDIDO_DIARIO_ENVIAR = "v1 enviar";
 
@@ -81,6 +93,12 @@ public final class Ajustes {
     public final char[] aplicando = new char[IDS.length];
     /** Diario: '1'/'0' gravar pedido, 'e' envio pedido, 0 nada em curso. */
     public char diarioAplicando;
+    /** vendor.pfl7560.standby_conf: "<1|0>:<minutos>"; "" enquanto nao li. */
+    public String descanso = "";
+    /** Desligar no descanso: o alvo pedido e ainda nao confirmado ("1:20"), ou null. A tela ja mostra o alvo. */
+    public String descansoAplicando;
+    /** Conta os pedidos do descanso: so a resposta do ultimo tira o "Aplicando…" (as setas podem mandar varios). */
+    public int descansoPedidos;
 
     public void abrir() {
         aba = ABA_SERVICOS;
@@ -94,7 +112,12 @@ public final class Ajustes {
     }
 
     public int linhas() {
-        return aba == ABA_DIARIO ? DIARIO_ROTULOS.length : VISIVEIS.length;
+        return aba == ABA_DIARIO ? DIARIO_ROTULOS.length : VISIVEIS.length + 1;
+    }
+
+    /** O foco esta na linha "Desligar no descanso" (a ultima da aba Servicos)? */
+    public boolean naLinhaDescanso() {
+        return aba == ABA_SERVICOS && zona == ZONA_LINHAS && linha == VISIVEIS.length;
     }
 
     /** O indice em IDS da linha em foco (so na aba Servicos). */
@@ -102,8 +125,13 @@ public final class Ajustes {
         return VISIVEIS[Math.max(0, Math.min(linha, VISIVEIS.length - 1))];
     }
 
+    /**
+     * Setas. Esquerda/direita trocam a aba, menos na linha "Desligar no descanso", onde trocam o tempo: ai o
+     * retorno diz se o tempo mudou, e a home manda o pedido ({@link #pedidoDescanso}).
+     */
     public boolean mover(int dx, int dy) {
         confirmando = -1;
+        if (dx != 0 && dy == 0 && naLinhaDescanso()) return trocarMinutos(dx);
         if (dx != 0 && dy == 0) return trocarAba(aba + dx);
         if (zona == ZONA_ABA) {
             if (dy > 0) {
@@ -197,6 +225,10 @@ public final class Ajustes {
     /** OK na linha em foco: o que a tela deve fazer. */
     public int ok() {
         if (zona != ZONA_LINHAS) return NADA;
+        if (naLinhaDescanso()) {
+            confirmando = -1;
+            return descansoLido() ? PEDIR : NADA;
+        }
         if (aba == ABA_DIARIO) {
             if (!diarioLido() || diarioAplicando != 0) return NADA;
             if (linha == 1 && diarioPedido()) return NADA;
@@ -216,6 +248,7 @@ public final class Ajustes {
     }
 
     public String idEmFoco() {
+        if (naLinhaDescanso()) return "descanso";
         return aba == ABA_DIARIO ? "diario" : IDS[indice()];
     }
 
@@ -225,6 +258,7 @@ public final class Ajustes {
             if (linha == 1) return PEDIDO_DIARIO_ENVIAR;
             return diarioLigado() ? "v1 desligar" : "v1 ligar";
         }
+        if (naLinhaDescanso()) return pedidoDescanso(alvoDescanso(!descansoLigado(), minutosDescanso()));
         int i = indice();
         return "v1 " + IDS[i] + (ligada(i) ? " desligar" : " ligar");
     }
@@ -235,6 +269,11 @@ public final class Ajustes {
      */
     public String marcarAplicando() {
         String p = pedido();
+        if (naLinhaDescanso()) {
+            descansoAplicando = alvoDescanso(!descansoLigado(), minutosDescanso());
+            descansoPedidos++;
+            return p;
+        }
         if (aba == ABA_DIARIO) {
             diarioAplicando = linha == 1 ? 'e' : diarioLigado() ? '0' : '1';
         } else {
@@ -257,14 +296,14 @@ public final class Ajustes {
 
     /** Algum pedido desta tela ainda espera a resposta do projetor? */
     public boolean algumEmCurso() {
-        if (diarioAplicando != 0) return true;
+        if (diarioAplicando != 0 || descansoAplicando != null) return true;
         for (char c : aplicando) if (c != 0) return true;
         return false;
     }
 
     /** Falta ler algo desta tela? Enquanto faltar, a home tenta de novo a cada 2,5 s. */
     public boolean precisaLer() {
-        return !lido() || !diarioLido();
+        return !lido() || !diarioLido() || !descansoLido();
     }
 
     public static final String PEDIDO_LER = "v1 ler";
@@ -280,6 +319,89 @@ public final class Ajustes {
 
     public static boolean pedidoDiarioValido(String s) {
         return "v1 ligar".equals(s) || "v1 desligar".equals(s) || "v1 enviar".equals(s) || PEDIDO_DIARIO_LER.equals(s);
+    }
+
+    /** "v1 ligado 10" ... "v1 desligado 60" ou "v1 ler": a lista fechada que o suite-curvas.sh aceita. */
+    public static boolean pedidoDescansoValido(String s) {
+        if (PEDIDO_DESCANSO_LER.equals(s)) return true;
+        for (int m : DESCANSO_MINUTOS) {
+            if (("v1 ligado " + m).equals(s) || ("v1 desligado " + m).equals(s)) return true;
+        }
+        return false;
+    }
+
+    private static boolean descansoValido(String v) {
+        if (v == null) return false;
+        for (int m : DESCANSO_MINUTOS) {
+            if (("1:" + m).equals(v) || ("0:" + m).equals(v)) return true;
+        }
+        return false;
+    }
+
+    /** O projetor publicou a escolha do descanso no formato esperado? */
+    public boolean descansoLido() {
+        return descansoValido(descanso);
+    }
+
+    /** O que a tela mostra: o alvo em curso, se houver, senao o lido. */
+    private String descansoMostrado() {
+        return descansoAplicando != null ? descansoAplicando : descanso;
+    }
+
+    public boolean descansoLigado() {
+        String v = descansoMostrado();
+        return descansoValido(v) && v.charAt(0) == '1';
+    }
+
+    /** Os minutos mostrados; 10 (o padrao) enquanto nao li. */
+    public int minutosDescanso() {
+        String v = descansoMostrado();
+        return descansoValido(v) ? Integer.parseInt(v.substring(2)) : DESCANSO_MINUTOS[0];
+    }
+
+    /** Estado do servico da linha: '1' ligado, '0' desligado, '?' nao li; ja no alvo se o pedido esta em curso. */
+    public char estadoDescanso() {
+        if (!descansoValido(descansoMostrado())) return '?';
+        return descansoLigado() ? '1' : '0';
+    }
+
+    public String rotuloDescanso() {
+        if (descansoAplicando != null) return "Aplicando…";
+        char c = estadoDescanso();
+        return c == '1' ? "Ligado" : c == '0' ? "Desligado" : "Lendo…";
+    }
+
+    public static String alvoDescanso(boolean ligado, int minutos) {
+        return (ligado ? "1:" : "0:") + minutos;
+    }
+
+    /** O pedido que leva ao alvo "<1|0>:<min>". */
+    public static String pedidoDescanso(String alvo) {
+        return "v1 " + (alvo.charAt(0) == '1' ? "ligado " : "desligado ") + alvo.substring(2);
+    }
+
+    /** O pedido do alvo em curso (depois de {@link #marcarAplicando} ou de uma seta na linha). */
+    public String pedidoDescanso() {
+        return descansoAplicando == null ? null : pedidoDescanso(descansoAplicando);
+    }
+
+    /** Esquerda/direita na linha do descanso: o tempo anda na lista, sem dar a volta; a tela ja mostra o alvo. */
+    private boolean trocarMinutos(int dx) {
+        if (!descansoLido()) return false;
+        int atual = minutosDescanso();
+        int k = 0;
+        for (int i = 0; i < DESCANSO_MINUTOS.length; i++) if (DESCANSO_MINUTOS[i] == atual) k = i;
+        int n = k + (dx > 0 ? 1 : -1);
+        if (n < 0 || n >= DESCANSO_MINUTOS.length) return false;
+        descansoAplicando = alvoDescanso(descansoLigado(), DESCANSO_MINUTOS[n]);
+        descansoPedidos++;
+        return true;
+    }
+
+    /** A resposta do projetor ao pedido numero n: o lido manda; so a do ultimo pedido tira o "Aplicando…". */
+    public void confirmarDescanso(int n, String lidoAgora) {
+        if (n == descansoPedidos) descansoAplicando = null;
+        if (descansoValido(lidoAgora)) descanso = lidoAgora;
     }
 
     /** O projetor publicou o estado do diario no formato esperado? */

@@ -38,10 +38,10 @@ SEMENTE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-161de76dfe93aeee13654e417e55e3bd  suite.sh
-1418c175a7340ae31b200c73cbef19cf  suite-boot.sh
-a26f157e50426d950ecb824a5dff14a0  suite-pedido.sh
-bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
+047f2c46a6830016f040c5d147dd615b  suite.sh
+858ce0382d2e7ee8240b5bfa68a64562  suite-boot.sh
+0a25b9dccafea85f0969b2bd5c0d8523  suite-pedido.sh
+7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
 44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 2760b4c77e6639632f63a156859520bc  nl_logo

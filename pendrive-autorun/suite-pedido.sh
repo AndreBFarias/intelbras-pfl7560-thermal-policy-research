@@ -24,8 +24,8 @@ APP_UID_MIN=10000
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
 
 # SUITE_MD5_INICIO
-SUITE_MD5="161de76dfe93aeee13654e417e55e3bd"
-CURVAS_MD5="bd4da978560a5c41802d400ba186dda3"
+SUITE_MD5="047f2c46a6830016f040c5d147dd615b"
+CURVAS_MD5="7dd0b18e1dfb44edd998ee99a7faad24"
 CHAVES_MD5="44e528d3e05e92cb9b0a847f5121fa01"
 DIARIO_MD5="90caa1f05da00c43a29dd364ed3afb69"
 LOGO_MD5="d1b0b118aa713b541c0514687eab1609"
@@ -218,7 +218,7 @@ tratar_descanso(){
 NOME="${3:-}"
 case "$NOME" in
   pedir-verificacao|descanso-inicio|descanso-fim) PEDIDO_DIR="$VERIF_DIR" ;;
-  luz|curva-vent|curva-led|chave|diario|logo-auto) PEDIDO_DIR="$HOME_DIR" ;;
+  luz|curva-vent|curva-led|chave|diario|logo-auto|standby) PEDIDO_DIR="$HOME_DIR" ;;
   *) exit 0 ;;
 esac
 [ "${2%/}" = "$PEDIDO_DIR" ] || exit 0
@@ -233,6 +233,7 @@ if [ "$DO_APP" = "1" ]; then
     curva-vent|curva-led) ler_pedido_app "$NOME" 200 || DO_APP=0 ;;
     chave) ler_pedido_app chave 64 || DO_APP=0 ;;
     diario) ler_pedido_app diario 32 || DO_APP=0 ;;
+    standby) ler_pedido_app standby 32 || DO_APP=0 ;;
   esac
 fi
 rm -f "$PEDIDO_DIR/$NOME"
@@ -251,6 +252,7 @@ if [ "$NOME" = "luz" ]; then tratar_luz "$LUZ_BRUTO"; exit 0; fi
 if [ "$NOME" = "chave" ]; then tratar_chave "$LUZ_BRUTO"; exit 0; fi
 if [ "$NOME" = "diario" ]; then tratar_diario "$LUZ_BRUTO"; exit 0; fi
 if [ "$NOME" = "logo-auto" ]; then tratar_logo "$LUZ_BRUTO"; exit 0; fi
+if [ "$NOME" = "standby" ]; then curvas_chamar standby-escolha "$LUZ_BRUTO"; exit 0; fi
 case "$NOME" in curva-*) tratar_curva "$NOME" "$LUZ_BRUTO"; exit 0 ;; esac
 case "$NOME" in descanso-*) tratar_descanso "${NOME#descanso-}"; exit 0 ;; esac
 if [ -d "$LOCK" ]; then LOG "a suite ja esta rodando (trava) - pedido ignorado."; exit 0; fi

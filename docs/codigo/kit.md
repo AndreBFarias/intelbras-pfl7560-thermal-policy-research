@@ -206,7 +206,7 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 ## `suite-curvas.sh` (bloco 23: curvas, standby, debloat)
 
 - Um só despachante: `ini-ok`, `ini-base`, `ini-norm` (variantes do `.ini`), `pedido vent|led`, `laco`, `boot`,
-  `parar`, `standby-inicio|cancelar|vigia`, `debloat-lista|reverter`. O `suite-pedido.sh` chama `pedido` quando
+  `parar`, `standby-inicio|cancelar|vigia|escolha`, `debloat-lista|reverter`. O `suite-pedido.sh` chama `pedido` quando
   encontra `curva-vent`/`curva-led` (até 200 bytes, dono = UID de app, movido para a pasta do root antes de ler).
 - Respostas por prop: `vent`/`led` = `perfil:modo` (`vivo`, `gravada`, `ambos`, `desistiu`); `vent_aviso`/`led_aviso`
   em `firmware`, `temperatura`, `pedido`, `hidebug`, `ini`, `suite`, e `gravar` (só ventiladores: a curva não se
@@ -223,10 +223,16 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
   próprio `$$`. Um vigia velho morto pelo `standby-inicio` seguinte só roda o `trap` depois do `sleep 5`, e a essa
   altura o pid já é do vigia novo; apagar sem conferir deixava o novo sem dono, e o `descanso-fim` seguinte não o
   achava para cancelar (o `KEYCODE_POWER` saía fora de hora). O mesmo vale para o laço e o `laco_ligar`.
+- "Desligar no descanso" (tarefa 2026-11-02): a home grava o pedido `standby` (até 32 bytes, lista fechada
+  `v1 ligado|desligado 10|20|30|60` ou `v1 ler`); o `suite-pedido.sh` passa a `standby-escolha`, que grava
+  `standby-escolha` na pasta da suite (umask 077) e publica `standby_conf` = `<1|0>:<min>` (também no `boot`).
+  O vigia lê a escolha ao começar: aviso = min × 60 s, standby 60 s depois; desligado, o `standby-inicio` não liga
+  o vigia e a escolha de desligar cancela o que estiver em curso. Sem escolha, insegura ou fora da lista: ligado,
+  10 min (as constantes 600/660 de antes).
 - Só `sfs`/`gfs` e `sbri`/`gbri` no `hidebug`; nunca `sbl`, `gtt` ou `stp`. A temperatura é a prop `zysys.env_temp`.
 - Entra na `SUITE_LISTA` e no `KIT_LISTA`/`KIT_EXEC`; o md5 vai embutido no `suite-pedido.sh` e no `suite-boot.sh`
   (`bash tests/atualizar-md5-kit.sh`). Ganchos de teste só com `PFL_TESTE=1`: `PFL_CURVAS_VOLTAS`,
-  `PFL_STANDBY_AVISO`, `PFL_STANDBY_TOTAL`.
+  `PFL_STANDBY_AVISO`, `PFL_STANDBY_TOTAL` (fixam os tempos, acima da escolha), `PFL_STANDBY_MINUTO`.
 - `newlink_update.sh`: `term_ok` aceita o `.ini` do kit ou uma variante só nos degraus da `BacklightPolicy`
   (`ini_variante_ok`); `debloat_pendrive` lê `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`.
 - Detalhes, formatos e o PROVISÓRIO: [44 §17](../research/44-suite-de-boot.md).
