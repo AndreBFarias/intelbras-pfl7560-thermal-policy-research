@@ -85,11 +85,16 @@ quando há um aparelho ligado na porta; sem cabo, nenhum aparece. (Revê o bloco
 
 - Feito e commitado na `bloco-30`: home com HDMI só com cabo (C3 = HDMI 1, C2 = HDMI 2, já era a conta do
   código); contador de apps fora e "MeowCast" no canto inferior direito; prévias; doc 45 §14.4 e §14.5; APK
-  versionCode 10 no kit (md5 `c47111dbad9ce3903cfedd9ba3d348b8`).
+  versionCode 10 no kit (md5 `f25b21910bb164c408af36c7e1258406`).
 - Provas verdes: `gerar-previas.sh` (navegação, entradas, ajustes), `make check`, `make check-kit` (todos os
   `tests/test-*.sh` do kit, md5 do kit em dia), `test-fix-modelo.sh`, `test-builder-bin.py`,
   `shellcheck -S warning` nos `.sh` tocados.
-- **Em aberto: o USB-C.** Nenhum sinal achado (doc 45 §14.4). Hoje o código mostra o USB-C sempre que o C1 lê 0,
-  isto é, sempre. Pedido ao coordenador: medição com uma fonte de vídeo no USB-C; se nada mudar, decisão do
-  dono entre "USB-C sempre visível" e "USB-C fora da home". As duas são uma linha em `Cabos.lerAgora` (`uc`).
-- Depois da decisão: ajustar `Cabos`/`Entradas` e o teste de modelo, refazer prévias, APK e md5 do kit; E2 confere.
+- **USB-C decidido (dono, 2026-11-02): sempre visível**, HDMI 1/2 só com cabo. Medição com notebook ligado no
+  USB-C, sem trocar de entrada: `tv_input`, `OffLineDetStatus` do hdmirx, `/sys/bus/usb/devices` e `getprop`
+  idênticos ao vazio; só o `dmesg` mudou (reconexão do port2, HDMI 1). Doc 45 §14.4.
+- Feito: `Entradas.comCabo` recebe só "o firmware tem USB-C"; teste de modelo (sem cabo HDMI, só o USB-C; ligar e
+  tirar HDMI com o foco nele cai no USB-C); prévias `home-sem-cabo`/`home-cabo-hdmi2` no estado novo; APK e md5.
+- Provas depois da decisão: `gerar-previas.sh`, `make check`, `make check-kit`, `test-fix-modelo.sh`,
+  `test-builder-bin.py` verdes (16 suítes, 0 falha); o `test-suite.sh` falhou uma vez em "luz: a verificação
+  continua funcionando" e passou nas três rodadas seguintes (intermitente, fora da home).
+- Próximo: E2 confere; o dono confere na mão pelo pendrive do kit.
