@@ -24,8 +24,11 @@ public final class PreviaAjustes {
     private PreviaAjustes() {
     }
 
-    /** A medida como o kit deixa de fabrica: debloat aplicado, o resto livre (servicos ligados). */
-    private static final String PADRAO = "11110000000";
+    /**
+     * A medida como o kit instala (padrao_de do suite-chaves.sh): os cinco grupos de debloat, o log do vplugin e o
+     * aviso de dispositivo conectado aplicados (servicos desligados); porta de rede, chip Wi-Fi, web e keystone livres.
+     */
+    private static final String PADRAO = "11111100001";
 
     public static void main(String[] a) throws Exception {
         File fontes = new File(a[0]);
@@ -41,7 +44,7 @@ public final class PreviaAjustes {
 
         Modelo ap = painel();
         ap.ajustes.estado = PADRAO;
-        for (int i = 0; i < 4; i++) ap.ajustes.mover(0, 1);
+        for (int i = 0; i < 7; i++) ap.ajustes.mover(0, 1);
         ap.ajustes.ok();
         ap.ajustes.marcarAplicando();
         salvar(ap, fontes, new File(saida, "home-ajustes-aplicando.png"));
@@ -97,6 +100,12 @@ public final class PreviaAjustes {
         System.out.println("previa: " + png);
     }
 
+    /** A linha da tela que mostra o id i; -1 se ele fica escondido. */
+    private static int linhaDe(int i) {
+        for (int l = 0; l < Ajustes.VISIVEIS.length; l++) if (Ajustes.VISIVEIS[l] == i) return l;
+        return -1;
+    }
+
     private static void verdade(boolean ok, String msg) {
         if (!ok) throw new IllegalStateException("FALHOU: " + msg);
     }
@@ -136,6 +145,29 @@ public final class PreviaAjustes {
             verdade(Ajustes.medidaDoServico(Ajustes.servicoDaMedida(c)) == c, "ida e volta de " + c);
         }
         verdade(Ajustes.servicoDaMedida('p') == 'p' && Ajustes.servicoDaMedida('-') == '-', "parcial e ausente passam iguais");
+        // a traducao vale para TODOS os ids: medida aplicada = servico desligado, e o OK pede o contrario do que se ve
+        for (int i = 0; i < n; i++) {
+            Ajustes t = painel().ajustes;
+            char[] cs = "00000000000".toCharArray();
+            cs[i] = '1';
+            t.estado = new String(cs);
+            verdade(t.servico(i) == '0' && t.rotuloServico(i).equals("Desligado") && t.servico(i == 0 ? 1 : 0) == '1',
+                    "medida 1 = desligado: " + Ajustes.IDS[i]);
+            t.linha = linhaDe(i);
+            if (t.linha < 0) continue;
+            verdade(t.indice() == i && t.pedido().equals("v1 " + Ajustes.IDS[i] + " desligar"),
+                    "desligado: OK liga o servico (desliga a medida): " + Ajustes.IDS[i]);
+            t.marcarAplicando();
+            verdade(t.servico(i) == '1' && t.aplicando[i] == '0', "aplicando mostra ligado: " + Ajustes.IDS[i]);
+            t.confirmar(Ajustes.IDS[i], "00000000000");
+            verdade(t.servico(i) == '1' && t.rotuloServico(i).equals("Ligado"), "confirmado ligado: " + Ajustes.IDS[i]);
+            verdade(t.pedido().equals("v1 " + Ajustes.IDS[i] + " ligar"), "ligado: OK desliga o servico: " + Ajustes.IDS[i]);
+            if (Ajustes.CONFIRMA[i]) verdade(t.ok() == Ajustes.CONFIRMAR, "desligar pede confirmacao: " + Ajustes.IDS[i]);
+            verdade(t.ok() == Ajustes.PEDIR, "OK pede: " + Ajustes.IDS[i]);
+            t.marcarAplicando();
+            verdade(t.servico(i) == '0' && t.aplicando[i] == '1' && t.rotuloServico(i).equals("Aplicando…"),
+                    "aplicando mostra desligado: " + Ajustes.IDS[i]);
+        }
         a.estado = "10000000000";
         verdade(a.servico(0) == '0' && a.rotuloServico(0).equals("Desligado") && a.ok() == Ajustes.PEDIR
                 && a.pedido().equals("v1 deb_seg desligar"), "servico desligado: OK liga (pede desligar a medida)");
