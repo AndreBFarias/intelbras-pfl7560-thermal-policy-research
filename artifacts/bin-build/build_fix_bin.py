@@ -42,6 +42,50 @@ RAIZ_REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 PREFIXO_VENDOR = '/vendor'
 ROTULO_RE = re.compile(r'^u:object_r:[a-z0-9_]+:s0$')
 DESTINO_RE = re.compile(r'^(/[A-Za-z0-9._@+-]+)+$')
+PROP_RE = re.compile(r'^([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)=([A-Za-z0-9._,:/-]+)$')
+
+def prop_da_linha(campos, onde):
+    """Linha 'prop chave=valor' do manifesto: uma linha que o /vendor/build.prop leva no fim,
+    como o kit grava (sed apaga a chave, echo acrescenta). Bloco 26 (S5)."""
+    if len(campos) != 2:
+        raise SystemExit(f"ERRO: {onde}: esperado 'prop chave=valor' - abortado.")
+    m = PROP_RE.match(campos[1])
+    if not m:
+        raise SystemExit(f"ERRO: {onde}: prop {campos[1]!r} fora do formato chave.com.pontos=valor - abortado.")
+    if 'wifi_disconnect_on_boot' in m.group(1):
+        raise SystemExit(f"ERRO: {onde}: {m.group(1)} e derivada do stock pelo proprio gerador - abortado.")
+    return m.group(1), campos[1]
+
+def ler_props(manifesto):
+    props, chaves = [], set()
+    for n, linha in enumerate(open(manifesto, encoding='utf-8'), 1):
+        campos = linha.split('#', 1)[0].split()
+        if not campos or campos[0] != 'prop':
+            continue
+        chave, texto = prop_da_linha(campos, f"{manifesto}:{n}")
+        if chave in chaves:
+            raise SystemExit(f"ERRO: {manifesto}:{n}: prop {chave} repetida - abortado.")
+        chaves.add(chave)
+        props.append(texto)
+    return props
+
+def com_props(texto, props):
+    for linha in props:
+        pre = linha.split('=', 1)[0] + '='
+        texto = ''.join(x for x in texto.splitlines(keepends=True) if not x.startswith(pre))
+        if texto and not texto.endswith('\n'):
+            texto += '\n'
+        texto += linha + '\n'
+    return texto
+
+def problemas_props(bp, props):
+    linhas = bp.split(b'\n')
+    p = []
+    for linha in props:
+        pre = linha.split('=', 1)[0].encode() + b'='
+        if linhas.count(linha.encode()) != 1 or sum(1 for x in linhas if x.startswith(pre)) != 1:
+            p.append(f"/build.prop: a linha {linha!r} do manifesto nao esta la exatamente uma vez")
+    return p
 
 def ler_conteudo(manifesto):
     entradas, vistos = [], set()
@@ -51,6 +95,9 @@ def ler_conteudo(manifesto):
             continue
         campos = linha.split()
         onde = f"{manifesto}:{n}"
+        if campos[0] == 'prop':
+            prop_da_linha(campos, onde)
+            continue
         if len(campos) != 6:
             raise SystemExit(f"ERRO: {onde}: esperado 'origem destino modo uid gid rotulo' - abortado.")
         origem, destino, modo, uid, gid, rotulo = campos
@@ -415,7 +462,7 @@ def arvore(raw, pasta):
         t[c] = (m.groups() if m else None, u.groups() if u else None, xa.group(1) if xa else '', cont)
     return t
 
-def verificar_bin(binario, stock, entradas=()):
+def verificar_bin(binario, stock, entradas=(), props=()):
     p = []
     with open(binario, 'rb') as o, open(stock, 'rb') as s:
         hdr, hlen, flen, recs = ler_cabecalho(o)
@@ -467,9 +514,11 @@ def verificar_bin(binario, stock, entradas=()):
             if fsck.returncode != 0:
                 p.append(f"e2fsck -fn do vendor da saida nao esta limpo (codigo {fsck.returncode})")
             ta, tb = arvore(f'{tmp}/stock.raw', f'{tmp}/stock'), arvore(f'{tmp}/saida.raw', f'{tmp}/saida')
+            bp_saida = open(f'{tmp}/saida/build.prop', 'rb').read() if os.path.isfile(f'{tmp}/saida/build.prop') else b''
         finally:
             subprocess.run(['chmod', '-R', 'u+rwX', tmp], capture_output=True)
             shutil.rmtree(tmp, ignore_errors=True)
+    p += problemas_props(bp_saida, props)
     manifesto = {e['img']: e for e in entradas}
     mudam = set(TARGET_PATHS) | set(manifesto)
     for c in sorted(set(ta) | set(tb)):
@@ -499,6 +548,7 @@ def main(stock, zy, out, manifesto=None, realocar=False):
         raise SystemExit("ERRO: --conteudo cria arquivos novos e so cabe com --realocar: sem FILL, o slot "
                          "do stock nao tem folga (doc 47 s10) - abortado, nada foi gravado.")
     entradas = ler_conteudo(manifesto) if manifesto else []
+    props = ler_props(manifesto) if manifesto else []
     tmp = tempfile.mkdtemp(prefix='pflbin_')
     parcial = out + '.tmp'
     try:
@@ -557,8 +607,8 @@ def main(stock, zy, out, manifesto=None, realocar=False):
 
         shutil.copyfile(zy, f'{tmp}/zy.novo')
         dump(f'{tmp}/orig.raw', '/build.prop', f'{tmp}/bp')
-        open(f'{tmp}/bp.mod', 'w').write(
-            open(f'{tmp}/bp').read().replace('wifi_disconnect_on_boot=1', 'wifi_disconnect_on_boot=0'))
+        open(f'{tmp}/bp.mod', 'w').write(com_props(
+            open(f'{tmp}/bp').read().replace('wifi_disconnect_on_boot=1', 'wifi_disconnect_on_boot=0'), props))
         dump(f'{tmp}/orig.raw', '/etc/init/hw/init.bigfish.rc', f'{tmp}/rc')
         rc = open(f'{tmp}/rc').read()
         marker = 'service xiriservice /system/bin/xiriservice\n'
@@ -599,6 +649,8 @@ def main(stock, zy, out, manifesto=None, realocar=False):
         bp_final = conteudo('/build.prop')
         if b'wifi_disconnect_on_boot=0' not in bp_final or b'wifi_disconnect_on_boot=1' in bp_final:
             raise SystemExit("ERRO: /build.prop final sem a troca wifi_disconnect_on_boot=0 - abortado.")
+        if problemas_props(bp_final, props):
+            raise SystemExit("ERRO: " + "; ".join(problemas_props(bp_final, props)) + " - abortado.")
         rc_final = conteudo('/etc/init/hw/init.bigfish.rc')
         if marker.encode() not in rc_final or b'disabled' not in rc_final.split(marker.encode(), 1)[1][:40]:
             raise SystemExit("ERRO: init.bigfish.rc final sem o 'disabled' do xiriservice - abortado.")
@@ -611,11 +663,12 @@ def main(stock, zy, out, manifesto=None, realocar=False):
               f"({novo_len - size:+d} B contra o stock)")
         montar(stock, parcial, f'{tmp}/vendor.new', newcrc)
 
-        problemas = verificar_bin(parcial, stock, entradas)
+        problemas = verificar_bin(parcial, stock, entradas, props)
         if problemas:
             raise SystemExit(f"[done] {out}  FALHOU, nada foi gravado:\n  " + "\n  ".join(problemas))
         os.replace(parcial, out)
         extra = f" + {len(entradas)} entradas do manifesto" if entradas else ''
+        extra += f" + {len(props)} linhas no build.prop" if props else ''
         modo = 'realocado' if realocar else 'nos mesmos blocos do stock'
         print("[8] verificar_bin: cabecalho, 19 records, sparse so RAW/DONTCARE no img_length e arvore do vendor OK")
         print(f"[done] {out}  VALIDO ({modo}; conteudo + metadados stock nos 3 arquivos{extra})")
@@ -702,7 +755,8 @@ if __name__ == '__main__':
     if realocar:
         args.remove('--realocar')
     if args[:1] == ['--verificar'] and len(args) == 3 and not realocar:
-        problemas = verificar_bin(args[1], args[2], ler_conteudo(manifesto) if manifesto else ())
+        problemas = verificar_bin(args[1], args[2], ler_conteudo(manifesto) if manifesto else (),
+                                  ler_props(manifesto) if manifesto else ())
         print('\n'.join(f"  {x}" for x in problemas) or "  nenhum problema")
         print(f"[verificar] {args[1]}  {'FALHOU' if problemas else 'APROVADO'}")
         sys.exit(1 if problemas else 0)

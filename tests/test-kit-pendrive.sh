@@ -1499,6 +1499,45 @@ c_bloco14(){
   limpa
 }
 
+# Bloco 26 (build S5): o .rc da S5 e outro arquivo (roda a semente do /vendor). O kit o aceita no
+# lugar do dele so com a semente presente, e nao abre o /vendor por causa dele.
+S5RC(){ echo "$ROOT/artifacts/bin-build/s5/pfl7560-suite.rc"; }
+VRC(){ echo "$T/root/vendor/etc/init/pfl7560-suite.rc"; }
+poe_s5(){
+  cp "$(S5RC)" "$(VRC)"; chmod 644 "$(VRC)"
+  if [ "${1:-}" = semente ]; then
+    mkdir -p "$T/root/vendor/etc/pfl7560-suite"
+    cp "$ROOT/artifacts/bin-build/s5/suite-semente.sh" "$T/root/vendor/etc/pfl7560-suite/suite-semente.sh"
+  fi
+}
+c_bloco26(){
+  novo_cenario "S5: .rc da build S5 com a semente no /vendor = servico ja instalado, o /vendor nao abre"; aparelho_ok
+  poe_s5 semente
+  roda nokey
+  afirma '[ "$RC" = 0 ] && ! tem_chamada "^mount -o rw,remount /vendor" && cmp -s "$(S5RC)" "$(VRC)"' "rc=$RC; abriu o /vendor ou trocou o .rc da S5"
+  afirma 'log_tudo | grep -q "suite: servico de boot ja estava instalado (o da build S5"' "log: $(log_tudo | grep "servico de boot" | cut -c1-100 | tr '\n' '|')"
+  afirma '[ "$(telas)" = "aguarde escada-1 calibracao pronto " ] && [ -f "$T/root/data/vendor/pfl7560-suite/suite-boot.sh" ]' "o .rc da S5 mudou o fluxo do kit: telas '$(telas)'"
+  limpa
+
+  novo_cenario "S5: .rc da S5 sem a semente no /vendor = o kit poe o dele"; aparelho_ok
+  poe_s5
+  roda nokey
+  afirma '[ "$RC" = 0 ] && cmp -s "$KIT/pfl7560-suite.rc" "$(VRC)" && tem_chamada "^mount -o rw,remount /vendor"' "rc=$RC; ficou o .rc da S5 sem a semente"
+  limpa
+
+  novo_cenario "S5: .rc da S5 adulterado (com a semente) = o kit poe o dele"; aparelho_ok
+  poe_s5 semente; echo "# outro" >> "$(VRC)"
+  roda nokey
+  afirma '[ "$RC" = 0 ] && cmp -s "$KIT/pfl7560-suite.rc" "$(VRC)"' "rc=$RC; aceitou o .rc da S5 adulterado"
+  limpa
+
+  novo_cenario "S5: DESINSTALAR-SUITE tira o .rc da S5 (a semente para junto)"; aparelho_ok
+  poe_s5 semente; : > "$T/root/mnt/media_rw/USB1/DESINSTALAR-SUITE.txt"
+  roda nokey
+  afirma '[ ! -e "$(VRC)" ] && [ ! -e "$T/root/data/vendor/pfl7560-suite" ]' "o .rc da S5 ou a suite ficaram: $(ls "$T/root/vendor/etc/init" | tr '\n' ' ')"
+  limpa
+}
+
 c_estaticos(){
   CASO="estaticos"; SHELL_NOME="-"
   local f
@@ -1580,7 +1619,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
-           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23 c_bloco25}; do
+           c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23 c_bloco25 c_bloco26}; do
     echo "  $c"
     "$c"
   done

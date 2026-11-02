@@ -1,0 +1,12 @@
+# pfl7560-suite (build S5, bloco 26): o mesmo servico de boot do kit, gravado no /vendor pelo
+# firmware. Roda a semente, que copia a suite de /vendor/etc/pfl7560-suite para o /data quando
+# ele chega vazio (1o boot depois da gravacao) e depois roda o suite-boot.sh do /data.
+service pfl7560_suite /vendor/bin/sh /vendor/etc/pfl7560-suite/suite-semente.sh
+    user root
+    group root
+    seclabel u:r:vendor_shell:s0
+    oneshot
+    disabled
+
+on property:sys.boot_completed=1
+    start pfl7560_suite

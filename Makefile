@@ -9,6 +9,7 @@ check-kit:
 	bash tests/test-tela.sh
 	bash tests/atualizar-md5-kit.sh --check
 	bash tests/test-kit-pendrive.sh
+	bash tests/test-semente-s5.sh
 	bash tests/test-suite.sh
 	bash tests/test-chaves.sh
 	bash tests/test-diario.sh

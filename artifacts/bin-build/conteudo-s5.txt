@@ -1,0 +1,107 @@
+# conteudo-s5.txt - a build S5 (bloco 26, doc 47 s12): tudo o que o conteudo.txt grava, e mais a
+# suite inteira no /vendor, para o aparelho sair da gravacao com tudo nativo, sem pendrive.
+#
+# Uso: python3 build_fix_bin.py <stock.bin> <ZYCustom.ini> <saida.bin> --realocar --conteudo conteudo-s5.txt
+#
+# Formato: o do conteudo.txt (origem destino modo uid gid rotulo), e mais a diretiva
+#   prop chave=valor
+# que poe a linha no fim do /vendor/build.prop como o kit faz (apaga a chave, acrescenta a linha).
+#
+# Diferencas para o conteudo.txt (o teste tests/test-semente-s5.sh confere as tres):
+#  1. o servico de boot e o pfl7560-suite.rc da S5 (artifacts/bin-build/s5/): roda a semente,
+#     que copia a suite de /vendor/etc/pfl7560-suite para o /data vazio no 1o boot e passa a vez
+#     ao suite-boot.sh do /data. O kit aceita este .rc no lugar do dele (rc_s5 no newlink_update.sh);
+#  2. a suite: os mesmos arquivos que o kit poe em /data/vendor/pfl7560-suite (SEMENTE_LISTA do
+#     suite-semente.sh, gerada por tests/atualizar-md5-kit.sh), so leitura, metadados de
+#     /vendor/etc do stock (pastas 0755 root:shell, arquivos 0644 root:root, vendor_configs_file);
+#     a semente acerta os modos ao copiar;
+#  3. as 2 linhas do build.prop que o kit grava (home e gerenciador de arquivos), para o kit nao
+#     abrir o /vendor depois da gravacao por causa delas.
+# Ficam de fora (vivem fora do /vendor ou no /data): a marca (bootanimation em /atv), o painel
+# JEIDA, as escolhas e o estado da suite, o debloat. A suite faz isso no 1o boot, como no kit.
+
+artifacts/bin-build/s5/pfl7560-suite.rc  /vendor/etc/init/pfl7560-suite.rc  0644  0  0  u:object_r:vendor_configs_file:s0
+# Apps e tema: as mesmas linhas do conteudo.txt.
+-  /vendor/app/PFL7560  0755  0  0  u:object_r:vendor_app_file:s0
+pendrive-autorun/pfl7560.apk  /vendor/app/PFL7560/PFL7560.apk  0644  0  0  u:object_r:vendor_app_file:s0
+-  /vendor/app/PFL7560Home  0755  0  0  u:object_r:vendor_app_file:s0
+pendrive-autorun/pfl7560-home.apk  /vendor/app/PFL7560Home/PFL7560Home.apk  0644  0  0  u:object_r:vendor_app_file:s0
+-  /vendor/overlay/PFL7560TemaAutoFocus  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaAutoFocus.apk  /vendor/overlay/PFL7560TemaAutoFocus/PFL7560TemaAutoFocus.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaHiGallery  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaHiGallery.apk  /vendor/overlay/PFL7560TemaHiGallery/PFL7560TemaHiGallery.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaHiMusic  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaHiMusic.apk  /vendor/overlay/PFL7560TemaHiMusic/PFL7560TemaHiMusic.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaHiPinyinIME  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaHiPinyinIME.apk  /vendor/overlay/PFL7560TemaHiPinyinIME/PFL7560TemaHiPinyinIME.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaHiTvSetting  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaHiTvSetting.apk  /vendor/overlay/PFL7560TemaHiTvSetting/PFL7560TemaHiTvSetting.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaHiVideoPlayer  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaHiVideoPlayer.apk  /vendor/overlay/PFL7560TemaHiVideoPlayer/PFL7560TemaHiVideoPlayer.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaIjkPlayer  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaIjkPlayer.apk  /vendor/overlay/PFL7560TemaIjkPlayer/PFL7560TemaIjkPlayer.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaNLHotkeyService  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaNLHotkeyService.apk  /vendor/overlay/PFL7560TemaNLHotkeyService/PFL7560TemaNLHotkeyService.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaNLProvision  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaNLProvision.apk  /vendor/overlay/PFL7560TemaNLProvision/PFL7560TemaNLProvision.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaNLSource  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaNLSource.apk  /vendor/overlay/PFL7560TemaNLSource/PFL7560TemaNLSource.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaNewLinkService  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaNewLinkService.apk  /vendor/overlay/PFL7560TemaNewLinkService/PFL7560TemaNewLinkService.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaPackageInstaller  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaPackageInstaller.apk  /vendor/overlay/PFL7560TemaPackageInstaller/PFL7560TemaPackageInstaller.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaPowerService  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaPowerService.apk  /vendor/overlay/PFL7560TemaPowerService/PFL7560TemaPowerService.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaTvSettings  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaTvSettings.apk  /vendor/overlay/PFL7560TemaTvSettings/PFL7560TemaTvSettings.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaZYBluetooth  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaZYBluetooth.apk  /vendor/overlay/PFL7560TemaZYBluetooth/PFL7560TemaZYBluetooth.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaZYCustomUI  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaZYCustomUI.apk  /vendor/overlay/PFL7560TemaZYCustomUI/PFL7560TemaZYCustomUI.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaZYFileManager  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaZYFileManager.apk  /vendor/overlay/PFL7560TemaZYFileManager/PFL7560TemaZYFileManager.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaZYSetting  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaZYSetting.apk  /vendor/overlay/PFL7560TemaZYSetting/PFL7560TemaZYSetting.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaZYSpeakerModel  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaZYSpeakerModel.apk  /vendor/overlay/PFL7560TemaZYSpeakerModel/PFL7560TemaZYSpeakerModel.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+-  /vendor/overlay/PFL7560TemaAndroid  0755  0  0  u:object_r:vendor_overlay_file:s0
+pendrive-autorun/overlay/PFL7560TemaAndroid.apk  /vendor/overlay/PFL7560TemaAndroid/PFL7560TemaAndroid.apk  0644  0  0  u:object_r:vendor_overlay_file:s0
+
+# A suite (pastas e arquivos) e a semente.
+-  /vendor/etc/pfl7560-suite  0755  0  2000  u:object_r:vendor_configs_file:s0
+-  /vendor/etc/pfl7560-suite/fontes  0755  0  2000  u:object_r:vendor_configs_file:s0
+-  /vendor/etc/pfl7560-suite/kit  0755  0  2000  u:object_r:vendor_configs_file:s0
+-  /vendor/etc/pfl7560-suite/marca  0755  0  2000  u:object_r:vendor_configs_file:s0
+pendrive-autorun/cor.sh  /vendor/etc/pfl7560-suite/cor.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/lvdsctl  /vendor/etc/pfl7560-suite/lvdsctl  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/nl_camcheck  /vendor/etc/pfl7560-suite/nl_camcheck  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/nl_tela  /vendor/etc/pfl7560-suite/nl_tela  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite.sh  /vendor/etc/pfl7560-suite/suite.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite-boot.sh  /vendor/etc/pfl7560-suite/suite-boot.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite-pedido.sh  /vendor/etc/pfl7560-suite/suite-pedido.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite-curvas.sh  /vendor/etc/pfl7560-suite/suite-curvas.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite-chaves.sh  /vendor/etc/pfl7560-suite/suite-chaves.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite-diario.sh  /vendor/etc/pfl7560-suite/suite-diario.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/nl_logo  /vendor/etc/pfl7560-suite/nl_logo  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/suite-logo.sh  /vendor/etc/pfl7560-suite/suite-logo.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/debloat-aprovados.txt  /vendor/etc/pfl7560-suite/debloat-aprovados.txt  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/aguarde.png  /vendor/etc/pfl7560-suite/kit/aguarde.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/calibracao.png  /vendor/etc/pfl7560-suite/kit/calibracao.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/corrigida.png  /vendor/etc/pfl7560-suite/kit/corrigida.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/erro.png  /vendor/etc/pfl7560-suite/kit/erro.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/escada-1.png  /vendor/etc/pfl7560-suite/kit/escada-1.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/escada-2.png  /vendor/etc/pfl7560-suite/kit/escada-2.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/pronto.png  /vendor/etc/pfl7560-suite/kit/pronto.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/kit/reiniciando.png  /vendor/etc/pfl7560-suite/kit/reiniciando.png  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/fontes/IBMPlexMono-Regular.ttf  /vendor/etc/pfl7560-suite/fontes/IBMPlexMono-Regular.ttf  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/fontes/IBMPlexMono-SemiBold.ttf  /vendor/etc/pfl7560-suite/fontes/IBMPlexMono-SemiBold.ttf  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/fontes/IBMPlexSansCondensed-Bold.ttf  /vendor/etc/pfl7560-suite/fontes/IBMPlexSansCondensed-Bold.ttf  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/fontes/IBMPlexSansCondensed-Regular.ttf  /vendor/etc/pfl7560-suite/fontes/IBMPlexSansCondensed-Regular.ttf  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/fontes/IBMPlexSansCondensed-SemiBold.ttf  /vendor/etc/pfl7560-suite/fontes/IBMPlexSansCondensed-SemiBold.ttf  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/fontes/OFL.txt  /vendor/etc/pfl7560-suite/fontes/OFL.txt  0644  0  0  u:object_r:vendor_configs_file:s0
+pendrive-autorun/marca/logo.jpg  /vendor/etc/pfl7560-suite/marca/logo.jpg  0644  0  0  u:object_r:vendor_configs_file:s0
+artifacts/bin-build/s5/suite-semente.sh  /vendor/etc/pfl7560-suite/suite-semente.sh  0644  0  0  u:object_r:vendor_configs_file:s0
+
+# As linhas do build.prop que o kit grava (newlink_update.sh).
+prop vendor.newlink.launcher.package=com.pfl7560.home
+prop vendor.nl.filemanage_file=1

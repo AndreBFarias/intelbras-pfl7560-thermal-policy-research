@@ -15,6 +15,10 @@ JOURNAL="$WORK/journal"
 SUITE="$R/data/vendor/pfl7560-suite"
 RC_SUITE="$R/vendor/etc/init/pfl7560-suite.rc"
 RC_SUITE_NOVO="$R/vendor/etc/pfl7560-suite.rc.new"
+SEMENTE_S5="$R/vendor/etc/pfl7560-suite/suite-semente.sh"
+# RC_S5_INICIO
+RC_S5_MD5="8596084ac54cc48eb7589106d20a2677"
+# RC_S5_FIM
 ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034
 APP_PKG="com.pfl7560.verificar"
@@ -286,9 +290,14 @@ instalar_suite_arquivos(){
 # shellcheck disable=SC2012
 rotulo_de(){ ls -Z "$1" 2>/dev/null | tr ' ' '\n' | grep '^u:object_r:[a-z0-9_]*:s0$' | head -1; }
 rotulo_alvo(){ _ra=$(rotulo_de "$RC"); if [ -n "$_ra" ]; then echo "$_ra"; else echo "$ROTULO_PADRAO"; fi; }
+rc_s5(){
+  [ "$1" = "$RC_SUITE" ] && [ -f "$SEMENTE_S5" ] && [ ! -L "$SEMENTE_S5" ] \
+    && [ "$(md5sum "$1" 2>/dev/null | cut -d' ' -f1)" = "$RC_S5_MD5" ]
+}
 rc_conforme(){
   _rcf="$1"
-  [ -f "$_rcf" ] && [ ! -L "$_rcf" ] && cmp -s "$WORK/pfl7560-suite.rc" "$_rcf" || return 1
+  [ -f "$_rcf" ] && [ ! -L "$_rcf" ] || return 1
+  cmp -s "$WORK/pfl7560-suite.rc" "$_rcf" || rc_s5 "$_rcf" || return 1
   # shellcheck disable=SC2046
   set -- $(ls -ln "$_rcf" 2>/dev/null)
   case "$1" in -rw-r--r--|-rw-r--r--[.+]) ;; *) return 1 ;; esac
@@ -701,7 +710,11 @@ fi
 
 if [ "$SUITE_OK" = "1" ]; then
   if [ "$SUITE_RC_PEND" = "0" ]; then
-    LOG "suite: servico de boot ja estava instalado"
+    if rc_s5 "$RC_SUITE"; then
+      LOG "suite: servico de boot ja estava instalado (o da build S5, que semeia a suite do /vendor)"
+    else
+      LOG "suite: servico de boot ja estava instalado"
+    fi
   elif [ "$VENDOR_RW" = "1" ]; then
     instalar_rc
   fi
