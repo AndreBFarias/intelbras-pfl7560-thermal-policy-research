@@ -1117,7 +1117,7 @@ modo_desinstalar(){
     if [ -e "$_dd" ] || [ -L "$_dd" ]; then LOG "[ERRO] nao consegui remover $_dd."; _drc=1; fi
   done
   [ -L "$PEDIDO_DIR" ] || rm -f "$PEDIDO_DIR/pedir-verificacao" "$PEDIDO_DIR/descanso-inicio" "$PEDIDO_DIR/descanso-fim" 2>/dev/null
-  [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" "$R/data/data/com.pfl7560.home/curva-vent" "$R/data/data/com.pfl7560.home/curva-led" "$R/data/data/com.pfl7560.home/chave" 2>/dev/null
+  [ -L "$R/data/data/com.pfl7560.home" ] || rm -f "$R/data/data/com.pfl7560.home/luz" "$R/data/data/com.pfl7560.home/curva-vent" "$R/data/data/com.pfl7560.home/curva-led" "$R/data/data/com.pfl7560.home/chave" "$R/data/data/com.pfl7560.home/diario" 2>/dev/null
   [ "$_drc" = "0" ] && LOG "[OK] suite removida (servico, pasta, pedido e vigia)"
   exit "$_drc"
 }
