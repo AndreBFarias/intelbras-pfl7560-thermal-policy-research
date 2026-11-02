@@ -695,3 +695,76 @@ o MEMC, o DCI e o overscan, e pelas props e `wm size` a saída para o painel, e 
    pontos zerados (doc 46 §7, passo 2).
 5. O formato da saída do `hidebug` no módulo `picture` (o `pfl7560-qualidade.sh` lê o último número de cada
    resposta) e se o `s...` persiste e relê igual.
+
+
+## 17. Curvas dos ventiladores e do LED, standby pelo descanso e debloat reversível (bloco 23, 2026-11-01)
+
+Tudo em `pendrive-autorun/suite-curvas.sh` (sh do Android, ASCII, sem `gtt`, sem `stp`). A temperatura vem só da
+prop `zysys.env_temp` (doc 37). Nada disto foi ligado ao projetor: só simulação (`tests/test-suite.sh`,
+`tests/test-kit-pendrive.sh`, prévias da home).
+
+### 17.1 Curva dos ventiladores (tela Curvas da home)
+
+- **Formato do pedido** (arquivo `curva-vent` na pasta privada da home, até 200 bytes): `v1 <perfil> <modo> t:v x5`.
+  Perfis `silencioso`, `balanceado`, `agressivo`, `manual`; modos `vivo`, `gravar`, `ambos`. Faixa: temperatura de 25
+  a 66 °C, estritamente crescente; velocidade de 30 a 100 % em passos de 5, não decrescente, e o **último ponto é
+  100 % a 66 °C** (trava do dono). A tela prende a bolinha na faixa; o root recusa o que sair dela.
+- **Ao vivo:** o laço lê `zysys.env_temp` a cada 5 s, interpola a curva, aplica `sfs 0 N` e `sfs 1 N` (N de 300 a
+  1000) com histerese (sobe na hora; só desce quando a queda passa de 100) e relê com `gfs`. Se o firmware reescrever
+  3 vezes seguidas, o laço desiste, grava a marca `curva-vent.desistiu` e avisa a home pela prop `vent_aviso`.
+  Falha do laço, do `hidebug` ou pedido inválido = ventiladores em 1000.
+- **Gravada:** vira `FW_SPEED_CURVE`/`DEFAULT_PWM_DUTY` nas duas seções `CoolingFan_*` do `ZYCustom.ini`, com
+  escrita atômica (`.new`, md5, `sync`, `mv`), remontagem rw/ro do `/vendor` e cópia em `ini-antes-curva`. O
+  `DEFAULT_PWM_DUTY` nunca fica abaixo de 500 (partida do boot).
+- **O kit aceita variantes do `.ini`** que só diferem nessas chaves: o md5 normalizado (sem as linhas de curva do
+  ventilador e do LED) tem de bater com o do `ZYCustom.ini` do kit (USB-C ou NOTYPEC), e os valores têm de passar na
+  conferência (`ini-ok`). Sem isso o `newlink_update.sh` trataria a curva gravada como "ini desconhecido".
+  Gravar a canônica de volta restaura o md5 byte a byte (provado para as duas bases).
+- Silencioso é "silêncio primeiro": o piso é baixo e o brilho pode cair mais cedo pela escada de 66 °C.
+
+### 17.2 Curva do LED
+
+- Arquivo `curva-led`: `v1 <perfil> <modo> t:b x3`, perfis `padrao` (sem pontos), `silencioso`, `manual`. Temperatura
+  de 40 a 69 °C estritamente crescente; brilho de 850 a 1000 em passos de 10, **não crescente**. WARNING 70000 e
+  EMERGENCY 75000 do `.ini` ficam intocados; acima de 69 °C a escada do firmware manda.
+- **Ao vivo:** `sbri 0 N` pelo `hidebug` (módulo `custom`), relido com `gbri 0`. Se o firmware devolver outro valor 3
+  vezes seguidas, o laço desiste e avisa (`led_aviso=firmware`). De 70 °C para cima o laço não escreve nada.
+- **Gravada:** nos degraus da `BacklightPolicy` (`POLICY_*_THRESHOLD`/`POLICY_*_BRIGHTNESS`), mesma escrita atômica.
+- **Como combina com o botão Luz (`sbl`):** o `suite-curvas.sh` nunca chama `sbl`/`gbl` (módulo `picture`). O
+  doc 44 §13 só mediu que o `sbl` deixa o brilho do módulo `custom` em 1000. A hipótese de trabalho é que os dois
+  se multiplicam (a Luz escala a imagem; `sbri` e a escada escalam o LED). PROVISÓRIO até uma medição com o
+  projetor.
+
+### 17.3 Descanso de tela por mais de 10 minutos = standby
+
+- O `Descanso` grava `descanso-inicio`; o vigia liga `standby-vigia` (pid em `/dev/pfl7560-standby.pid`). Aos 600 s
+  põe a prop `vendor.pfl7560.standby=aviso`; o app (versionCode 6) consulta a prop a cada 5 s a partir do minuto 9 e
+  mostra o aviso de 60 s na tela. **Qualquer tecla** acorda o descanso (é um `DreamService` não interativo), o que
+  grava `descanso-fim`, mata o vigia e limpa a prop. Aos 660 s a prop vai para `agora` e o root manda
+  `input keyevent KEYCODE_SLEEP`.
+- Com a suíte rodando (trava ocupada) o standby é adiado e nada é feito.
+- PROVISÓRIO: o que o POWER do controle faz de fato (doc 49 não diz); `KEYCODE_SLEEP` é o caminho mais seguro e
+  reversível por tecla. Os tempos 600/660 s também.
+
+### 17.4 Debloat reversível
+
+- `debloat-aprovados.txt` (no kit e na pasta da suíte): uma linha por pacote; aprovados em 2026-11-01: Office
+  (`com.mobisystems.editor.office_registered`) e VLC (`org.videolan.vlc`), mais `com.newlink.cast` e
+  `com.hisilicon.miracast`, que já eram desligados. O `suite-boot.sh` usa `pm disable-user --user 0`, só para
+  pacotes da lista, e nunca para `android.*`, `com.android.*`, GMS/GSF, `com.pfl7560.*` e `com.zhiying.*`.
+- **Reverter:** arquivo vazio `REVERTER-DEBLOAT.txt` na raiz do pendrive; o kit liga de volta (`pm enable --user 0`)
+  os pacotes da lista que estiverem desligados e deixa a marca `debloat-revertido`, que impede o boot de desligar de
+  novo. `REAPLICAR-DEBLOAT.txt` tira a marca.
+
+### 17.5 O que ficou PROVISÓRIO neste bloco
+
+| Item | Onde |
+|---|---|
+| `FW_SPEED_CURVE` não é lido pelo firmware como esta curva (o caminho real é `[ThermalPolicy]`, plano em 1000): a gravada é só a intenção | `suite-curvas.sh` |
+| Piso de 30 % e os valores dos perfis Silencioso/Balanceado | `suite-curvas.sh`, `Curvas.java` |
+| Mínimo 500 do `DEFAULT_PWM_DUTY` e piso de brilho 850 | `suite-curvas.sh` |
+| Soma multiplicativa de `sbl` com `sbri`/escada | §17.2 |
+| `KEYCODE_SLEEP` igual ao POWER do controle; 600 s de aviso e 660 s de total | §17.3 |
+| Pedido durante a suíte é recusado com `*_aviso=suite` | `suite-pedido.sh` |
+| O laço pode tocar os ventiladores no boot antes de a suíte pegar a trava | `suite-boot.sh` |
+| A marca `.desistiu` persiste entre boots até um pedido novo | `suite-curvas.sh` |

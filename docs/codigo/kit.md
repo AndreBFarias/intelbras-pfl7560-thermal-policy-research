@@ -199,6 +199,21 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 - Descanso de tela: luz a 10 % enquanto ele estiver na tela (pedido do dono, 2026-10-31); não mexe no nível
   guardado e não age com a suíte rodando.
 
+## `suite-curvas.sh` (bloco 23: curvas, standby, debloat)
+
+- Um só despachante: `ini-ok`, `ini-base`, `ini-norm` (variantes do `.ini`), `pedido vent|led`, `laco`, `boot`,
+  `parar`, `standby-inicio|cancelar|vigia`, `debloat-lista|reverter`. O `suite-pedido.sh` chama `pedido` quando
+  encontra `curva-vent`/`curva-led` (até 200 bytes, dono = UID de app, movido para a pasta do root antes de ler).
+- Respostas por prop: `vent`/`led` = `perfil:modo` (`vivo`, `gravada`, `ambos`, `desistiu`); `vent_aviso`/`led_aviso`
+  em `firmware`, `temperatura`, `pedido`, `hidebug`, `ini`, `suite`; `standby` em `aviso`/`agora`.
+- Só `sfs`/`gfs` e `sbri`/`gbri` no `hidebug`; nunca `sbl`, `gtt` ou `stp`. A temperatura é a prop `zysys.env_temp`.
+- Entra na `SUITE_LISTA` e no `KIT_LISTA`/`KIT_EXEC`; o md5 vai embutido no `suite-pedido.sh` e no `suite-boot.sh`
+  (`bash tests/atualizar-md5-kit.sh`). Ganchos de teste só com `PFL_TESTE=1`: `PFL_CURVAS_VOLTAS`,
+  `PFL_STANDBY_AVISO`, `PFL_STANDBY_TOTAL`.
+- `newlink_update.sh`: `term_ok` aceita o `.ini` do kit ou uma variante só nas chaves de curva
+  (`ini_variante_ok`); `debloat_pendrive` lê `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`.
+- Detalhes, formatos e o PROVISÓRIO: [44 §17](../research/44-suite-de-boot.md).
+
 ## Provisório (o aparelho confirma)
 
 | Arquivo | Constante ou função | O que falta | Doc |
@@ -215,4 +230,5 @@ docs [41](../research/41-auto-pareamento-camera-e-kit-universal.md) (kit e cor) 
 | `cor.sh` | `preparar_tela` | E1-e: a galeria abre PNG fora de `/sdcard` | 41 |
 | `cor.sh` | `esperar_tecla` | E1-d: `getevent -ql` sem bufferização num pipe | 41 |
 | `cor.sh` | gancho `nlsu` | E1-c: o init executa o `update_after_boot.sh` | 41 |
+| `suite-curvas.sh` | piso 300, `FAN_BOOT_MIN=500`, `LED_MIN=850`, standby 600/660 s, `KEYCODE_SLEEP`, `sbl` x `sbri` | 44 §17 |
 | `newlink_update.sh` | lançamento destacado | o `exec` do init é bloqueante e não mata o grupo no fim | 41 |

@@ -18,6 +18,17 @@ boot (`suite-boot.sh`). Doc 44 (vigia) e doc 45 (home).
 
 ![painel de luz](previa/home-painel-luz.png)
 
+## Curvas (bloco 23)
+
+O atalho **Curvas** (sétimo, antes de Configurações) abre a tela de curvas: abas Ventiladores e LED, perfis
+(Silencioso, Balanceado, Agressivo e Manual nos ventiladores; Padrão, Silencioso e Manual no LED), o gráfico com 5
+bolinhas (3 no LED) e o modo de aplicar (ao vivo, gravar no .ini ou os dois). Setas movem a bolinha pegada, OK pega
+e solta, BACK solta e depois fecha. Os ventiladores têm 100 % obrigatório a partir de 66 C e piso de 30 %
+(PROVISÓRIO); o LED só edita abaixo de 70 C. A home grava o pedido na pasta dela e o root (`suite-curvas.sh`)
+aplica. Formatos e limites: [doc 44 §17](../../docs/research/44-suite-de-boot.md).
+
+![curva dos ventiladores](previa/home-curvas-vent-silencioso.png)
+
 ## Sem Espelhamento nem os apps desligados (bloco 16B)
 
 O atalho Espelhamento saiu e a fileira Apps nunca mostra o Office, o iOSCast nem o Espelhamento (`Modelo.OCULTOS`),

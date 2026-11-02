@@ -40,7 +40,8 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `cor.sh` | cor pela câmera (VESA/JEIDA), backup, journal, gancho | autorun, `suite.sh`, gancho | `test-kit-pendrive.sh` | 41 |
 | `suite.sh` | a suíte: cor, ângulo, foco, nitidez, temperatura, rampa, resumo; `--desinstalar` | autorun, `suite-boot.sh`, `suite-pedido.sh` | `test-suite.sh` | 44 |
 | `suite-boot.sh` | gatilho do boot, luz, descanso, sobreposições, apps desligados, vigia | serviço de boot | `test-suite.sh` | 44 |
-| `suite-pedido.sh` | pedidos do app e da home (verificação, luz, descanso) | vigia | `test-suite.sh` | 44 §13, §14 |
+| `suite-pedido.sh` | pedidos do app e da home (verificação, luz, descanso, curvas) | vigia | `test-suite.sh` | 44 §13, §14, §17 |
+| `suite-curvas.sh` | curva dos ventiladores e do LED (ao vivo e no `.ini`), standby pelo descanso, debloat reversível, variantes do `.ini` | `suite-pedido.sh`, `suite-boot.sh`, `newlink_update.sh` | `test-suite.sh`, `test-kit-pendrive.sh` | 44 §17 |
 | `pfl7560-suite.rc` | o serviço de boot | autorun copia para `/vendor/etc/init` | `test-suite.sh` | 44 §2 |
 | `ZYCustom.ini` | a correção térmica (md5 `252ab7a7…`) | autorun | `make check` | 08, 34 |
 | `lvdsctl`, `nl_camcheck`, `nl_tela` | binários ARM (cópias de `artifacts/`) | `cor.sh`, `suite.sh` | `test-camcheck.sh`, `test-tela.sh` | 28, 41, 44 |
@@ -105,6 +106,9 @@ decisão está nas **notas do código** (`docs/codigo/`), uma por área.
 | `/data/data/com.pfl7560.verificar/pedir-verificacao`, `descanso-inicio`, `descanso-fim` | app | `suite-pedido.sh` | pedidos do app |
 | `/data/data/com.pfl7560.home/luz` | home | `suite-pedido.sh` (move para a pasta do root) | pedido de luz (10 a 100) |
 | prop `vendor.pfl7560.luz` | `suite-pedido.sh` | home | a luz aplicada, de volta ao app |
+| `/data/data/com.pfl7560.home/curva-vent`, `curva-led` | home | `suite-pedido.sh` (move para a pasta do root) | pedidos de curva (44 §17) |
+| props `vendor.pfl7560.vent`, `led`, `vent_aviso`, `led_aviso`, `standby` | `suite-curvas.sh` | home, `Descanso` | estado das curvas e aviso de standby |
+| `/data/vendor/pfl7560-suite/curva-vent`, `curva-led`, `*.desistiu`, `ini-antes-curva`, `debloat-revertido` | `suite-curvas.sh` | `suite-curvas.sh` | curva guardada, marca de desistência, cópia do `.ini`, marca do debloat revertido |
 | prop `vendor.newlink.launcher.package`, `vendor.nl.filemanage_file` (no `/vendor/build.prop`) | autorun | `nlprovision`, gerenciador de arquivos | home nova; gerenciador abrindo na lista |
 | prop `persist.sys.boot.reason` = `pfl7560,ligado` | `suite-boot.sh` | `suite-boot.sh` no boot seguinte | marca de "energia caiu ligado" |
 | prop `vendor.zy.power.tm.temp` | rampa da suíte, `--vivacidade` | laço térmico | override de 71000 m°C, limpo no fim |

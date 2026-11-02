@@ -112,7 +112,9 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
 - `Descanso`: a cada minuto o conjunto desliza para outro lugar (transição de 3 s, 80 % da folga) para não ficar
   parado; um `Handler` de 1 tick por minuto; nome a 160 px em 1920, como na imagem de boot. Pede luz a 10 %
   (`descanso-inicio`) e a volta (`descanso-fim`) numa thread só, para o início chegar sempre antes do fim; sem o
-  pedido, a luz só não muda.
+  pedido, a luz só não muda. Desde o bloco 23 (versionCode 6) consulta a prop `vendor.pfl7560.standby` a cada 5 s a
+  partir do minuto 9 e, em `aviso`/`agora`, mostra no rodapé a contagem de 60 s para o standby; qualquer tecla acorda
+  o descanso e cancela (doc 44 §17.3).
 
 ## Home `com.pfl7560.home` (Java)
 
@@ -141,6 +143,13 @@ Mapa geral: [`../MAPA.md`](../MAPA.md).
 - **Luz:** a home grava só os dígitos no arquivo `luz` da pasta dela; o root aplica e publica o valor em
   `vendor.pfl7560.luz`, que a home relê depois de um tempo. O root não escreve na pasta do app (revisão de
   segurança). Sem aviso no OK: o nível marcado no painel já mostra (pedido do dono).
+- **Curvas (bloco 23):** sétimo atalho, com ícone próprio. `Curvas` (Java puro, sem Android) guarda o modelo: 5
+  bolinhas de ventilador (25 a 66 °C, 30 a 100 %, passo 5, a última presa em 66 °C/100 %) ou 3 do LED (40 a 69 °C,
+  850 a 1000, não crescente), perfis e modo (ao vivo, gravar, ambos). Setas movem a bolinha pegada, OK pega e solta,
+  BACK solta antes de fechar. Mexer numa bolinha vira Manual (cópia guardada). `Desenho.painelCurvas` desenha o
+  gráfico em 1920x1080. A home grava o pedido (`curva-vent`/`curva-led`) na pasta privada, espera 2,5 s e relê as
+  props `vent`, `led`, `vent_aviso`, `led_aviso` numa thread à parte. Formatos: doc 44 §17. `Previa` confere ~40
+  casos das curvas e gera cinco prévias.
 - `Modelo`: hora em 24 h e data em português sem depender do idioma do aparelho; `comUsbC = false` mostra só as
   duas HDMI.
 - `Tema`: os 11 valores da paleta; dois derivados por contraste (texto secundário `#BEBEBD`: o comentário puro dá

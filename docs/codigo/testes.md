@@ -19,8 +19,8 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
 
 - Ordem fixa, cada lista depende da anterior: 0) regrava `pendrive-autorun/overlay/` (uma cópia de cada APK de
   `artifacts/overlay/apk/`, sem lista fixa: um APK novo entra sozinho) e `pendrive-autorun/marca/`; 1)
-  `SUITE_LISTA` no `suite.sh`; 2) o md5 do `suite.sh` novo no `suite-boot.sh` e no `suite-pedido.sh` (e o do
-  `suite-pedido.sh` no `suite-boot.sh`); 3) `KIT_OVERLAYS` (a do `android` sempre por último) e `KIT_LISTA` no
+  `SUITE_LISTA` no `suite.sh` (inclui o `suite-curvas.sh`); 2) o md5 do `suite.sh` novo no `suite-boot.sh` e no
+  `suite-pedido.sh` (e o do `suite-pedido.sh` no `suite-boot.sh`; o do `suite-curvas.sh` nos dois); 3) `KIT_OVERLAYS` (a do `android` sempre por último) e `KIT_LISTA` no
   `newlink_update.sh`.
 - Troca só o miolo entre as linhas `# NOME_INICIO` e `# NOME_FIM`. `LC_ALL=C` para a ordem do glob ser igual em
   qualquer máquina. Grava com `cat` para preservar modo e atributos.
@@ -90,3 +90,14 @@ O porquê do desenho dos harnesses. Os alvos do `make`, o que cada teste prova e
 - O md5 dos PNG depende da fonte instalada na máquina: os PNG versionados valem; o gerador existe para reproduzir.
 - O simulador aplica as duas rotações e uma curva monótona aleatória (gamma 0,6 a 1,6, offset −10 a +10) e exige 0
   inversões no formato certo e no mínimo 3 no errado, com o critério do `nl_camcheck`.
+
+## Bloco 23: curvas, standby e debloat
+
+- `test-suite.sh` ganhou os casos `c_curvas_*` (pedido e laço de ventilador e de LED, boot, fio, standby, ini,
+  debloat). O `hidebug` de mentira é com estado (`curvas_hidebug`): `sfs`/`sbri` gravam, `gfs`/`gbri` leem, e um
+  modo "firmware reescreve" prova a desistência. O tempo é falso (`sleep` não faz nada, `PFL_CURVAS_VOLTAS` limita as
+  voltas do laço, `PFL_STANDBY_*` encurta o standby). Estáticos: ASCII puro, sem `gtt`/`stp`/`sbl`, `shellcheck -s sh`.
+- `test-kit-pendrive.sh`: `c_bloco23` (variante do `.ini` aceita sem regravar nem reiniciar; piso fora da faixa
+  recusado; `REVERTER-DEBLOAT.txt`/`REAPLICAR-DEBLOAT.txt`; versionCode 6; `suite-curvas.sh` e a lista do debloat no
+  `KIT_LISTA`/`KIT_EXEC`).
+- Home: `Previa.java` confere o modelo das curvas e a navegação (`gerar-previas.sh`).

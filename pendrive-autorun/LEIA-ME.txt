@@ -27,7 +27,8 @@ COMO USAR (5 passos)
   1. Formate um pendrive em FAT32 (MBR). Copie TUDO o que esta nesta pasta para
      a RAIZ do pendrive (nao deixe dentro de outra pasta):
         newlink_update.sh   cor.sh   lvdsctl   nl_camcheck   nl_tela   ZYCustom.ini
-        suite.sh   suite-boot.sh   suite-pedido.sh   pfl7560-suite.rc   pfl7560.apk
+        suite.sh   suite-boot.sh   suite-pedido.sh   suite-curvas.sh   debloat-aprovados.txt
+        pfl7560-suite.rc   pfl7560.apk
         pfl7560-home.apk   pasta kit   pasta fontes   pasta overlay   pasta marca
      (a pasta "kit" tem as telas .png e a pasta "fontes" as letras das telas geradas;
      "overlay" tem o tema do sistema e "marca" o logo e a animacao de boot;
@@ -240,3 +241,23 @@ OBSERVACOES
     deste pendrive ou a copia no PC).
   - Detalhes do resgate: docs/guide/16-recuperacao-brick.md
 ========================================================================
+
+CURVAS, STANDBY E DEBLOAT (bloco 23)
+  - Curvas: o atalho "Curvas" da tela inicial edita a curva dos ventiladores
+    (temperatura x velocidade, 100% obrigatorio a partir de 66 C, piso 30%) e a
+    do LED (temperatura x brilho, so abaixo de 70 C). Pode valer ao vivo (o
+    projetor aplica enquanto estiver ligado), gravada no ZYCustom.ini (vale pelo
+    firmware depois de reiniciar) ou nos dois. Qualquer falha ou pedido invalido
+    deixa os ventiladores em 100%. O kit aceita o ZYCustom.ini com essas curvas
+    gravadas (nao trata como arquivo desconhecido). Piso de 30% e perfis sao
+    PROVISORIOS ate a medicao no projetor.
+  - Standby: com o descanso de tela ativo por mais de 10 minutos aparece um aviso
+    de 60 segundos; qualquer tecla cancela, senao o projetor entra em standby
+    (KEYCODE_SLEEP; PROVISORIO ate se confirmar que e igual ao POWER do controle).
+  - Debloat: o kit desliga (pm disable-user, reversivel) so os apps de
+    debloat-aprovados.txt (Office, VLC, cast e miracast). Para religar tudo, crie
+    um arquivo VAZIO REVERTER-DEBLOAT.txt na raiz do pendrive e ligue o projetor.
+    REAPLICAR-DEBLOAT.txt (vazio) volta a desligar no boot seguinte.
+  - O pendrive agora leva tambem: suite-curvas.sh e debloat-aprovados.txt (copie
+    junto com os outros arquivos da raiz). Detalhes: docs/research/44-suite-de-boot.md,
+    secao 17.
