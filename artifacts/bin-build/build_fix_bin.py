@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import hashlib
+import io
 import re
 import sys
 import os
@@ -14,6 +15,7 @@ TABLE_OFF = 0x40
 TABLE_ENTRY = 32
 IMG_OFF = TABLE_OFF + 0x14
 VENDOR_REC = 14
+LOGO_REC = 6
 N_RECORDS = 19
 CRC_POLY = 0x04C11DB7
 
@@ -43,6 +45,79 @@ PREFIXO_VENDOR = '/vendor'
 ROTULO_RE = re.compile(r'^u:object_r:[a-z0-9_]+:s0$')
 DESTINO_RE = re.compile(r'^(/[A-Za-z0-9._@+-]+)+$')
 PROP_RE = re.compile(r'^([a-z][a-z0-9_]*(?:\.[a-z0-9_]+)+)=([A-Za-z0-9._,:/-]+)$')
+
+# Particao logo = record 6 do container (bloco 28, doc 47 s12): o payload de fabrica (106496 B) e a LOGO_TABLE
+# (os 0x78 bytes abaixo, iguais aos do nl_logo e do pfl7560-marca.sh), o LOGO_KEY_LEN (u32 LE em 0x78), zeros ate
+# o 8192, o JPEG (1920x1080 baseline) no 8192 e zeros ate o fim. O carregador le LOGO_KEY_LEN bytes a partir do
+# 8192. A build troca so o JPEG e o LOGO_KEY_LEN, no mesmo tamanho do record, e recalcula o CRC do prefixo.
+LOGO_KEYLEN_OFF = 0x78
+LOGO_JPEG_OFF = 8192
+LOGO_TABELA = bytes(bytearray(b'###\0\x7c').ljust(8, b'\0') + b'LOGO_TABLE'.ljust(0x20, b'\0')
+                    + b'\x50\0\0\0' + b'LOGO_KEY_FLAG'.ljust(0x20, b'\0') + b'\x04\0\0\0\x01\0\0\0'
+                    + b'LOGO_KEY_LEN'.ljust(0x20, b'\0') + b'\x04\0\0\0')
+
+def jpeg_do_logo(dados, onde):
+    """Confere que o JPEG e o que o carregador ja le: SOI/EOI, baseline (SOF0), 1920x1080, 3 componentes."""
+    if dados[:2] != b'\xff\xd8' or dados[-2:] != b'\xff\xd9':
+        raise SystemExit(f"ERRO: {onde}: nao e um JPEG com SOI/EOI - abortado.")
+    i, sof = 2, None
+    while i + 4 <= len(dados) and dados[i] == 0xff:
+        m = dados[i + 1]
+        tam = struct.unpack('>H', dados[i + 2:i + 4])[0]
+        if 0xc0 <= m <= 0xcf and m not in (0xc4, 0xc8, 0xcc):
+            sof = (m, dados[i + 5:i + 10])
+        if m == 0xda:
+            break
+        i += 2 + tam
+    if not sof or sof[0] != 0xc0:
+        raise SystemExit(f"ERRO: {onde}: o JPEG nao e baseline (SOF0), a forma do logo de fabrica - abortado.")
+    a, l, nc = struct.unpack('>HHB', sof[1])
+    if (l, a, nc) != (1920, 1080, 3):
+        raise SystemExit(f"ERRO: {onde}: JPEG {l}x{a} com {nc} componentes (esperado 1920x1080, 3) - abortado.")
+    return dados
+
+def payload_logo(stock_pl, jpeg, onde='record 6'):
+    """O payload novo do record 6: o de fabrica com o JPEG e o LOGO_KEY_LEN trocados, no mesmo tamanho."""
+    n_st = len(stock_pl)
+    if n_st <= LOGO_JPEG_OFF or stock_pl[:LOGO_KEYLEN_OFF] != LOGO_TABELA \
+            or stock_pl[LOGO_KEYLEN_OFF + 4:LOGO_JPEG_OFF].count(0) != LOGO_JPEG_OFF - LOGO_KEYLEN_OFF - 4:
+        raise SystemExit(f"ERRO: {onde} do stock nao tem a LOGO_TABLE conhecida - abortado.")
+    k = struct.unpack('<I', stock_pl[LOGO_KEYLEN_OFF:LOGO_KEYLEN_OFF + 4])[0]
+    if not 4 <= k <= n_st - LOGO_JPEG_OFF or stock_pl[LOGO_JPEG_OFF + k:].count(0) != n_st - LOGO_JPEG_OFF - k:
+        raise SystemExit(f"ERRO: {onde} do stock: LOGO_KEY_LEN {k} ou cauda fora da forma de fabrica - abortado.")
+    jpeg_do_logo(stock_pl[LOGO_JPEG_OFF:LOGO_JPEG_OFF + k], f"{onde} do stock")
+    jpeg_do_logo(jpeg, onde)
+    if LOGO_JPEG_OFF + len(jpeg) > n_st:
+        raise SystemExit(f"ERRO: {onde}: JPEG de {len(jpeg)} B nao cabe no record ({n_st} B, JPEG no "
+                         f"{LOGO_JPEG_OFF}) - abortado.")
+    return (stock_pl[:LOGO_KEYLEN_OFF] + struct.pack('<I', len(jpeg)) + stock_pl[LOGO_KEYLEN_OFF + 4:LOGO_JPEG_OFF]
+            + jpeg + b'\0' * (n_st - LOGO_JPEG_OFF - len(jpeg)))
+
+def ler_logo(manifesto):
+    """Linha 'logo <arte.jpg>' do manifesto: o JPEG que vai no record 6 (particao logo). No maximo uma."""
+    achado = None
+    for n, linha in enumerate(open(manifesto, encoding='utf-8'), 1):
+        campos = linha.split('#', 1)[0].split()
+        if not campos or campos[0] != 'logo':
+            continue
+        onde = f"{manifesto}:{n}"
+        if len(campos) != 2:
+            raise SystemExit(f"ERRO: {onde}: esperado 'logo <arte.jpg>' - abortado.")
+        if achado:
+            raise SystemExit(f"ERRO: {onde}: logo repetido - abortado.")
+        origem = campos[1] if os.path.isabs(campos[1]) else os.path.join(RAIZ_REPO, campos[1])
+        if not os.path.isfile(origem):
+            raise SystemExit(f"ERRO: {onde}: origem {origem} nao e um arquivo - abortado.")
+        achado = origem
+    return achado
+
+def ler_record(f, recs, i):
+    ln, off = recs[i]
+    f.seek(off + 8)
+    dados = f.read(ln)
+    if len(dados) != ln:
+        raise SystemExit(f"ERRO: record {i} curto no arquivo - abortado.")
+    return dados
 
 def prop_da_linha(campos, onde):
     """Linha 'prop chave=valor' do manifesto: uma linha que o /vendor/build.prop leva no fim,
@@ -98,6 +173,8 @@ def ler_conteudo(manifesto):
         if campos[0] == 'prop':
             prop_da_linha(campos, onde)
             continue
+        if campos[0] == 'logo':
+            continue   # ler_logo
         if len(campos) != 6:
             raise SystemExit(f"ERRO: {onde}: esperado 'origem destino modo uid gid rotulo' - abortado.")
         origem, destino, modo, uid, gid, rotulo = campos
@@ -462,7 +539,10 @@ def arvore(raw, pasta):
         t[c] = (m.groups() if m else None, u.groups() if u else None, xa.group(1) if xa else '', cont)
     return t
 
-def verificar_bin(binario, stock, entradas=(), props=()):
+def verificar_bin(binario, stock, entradas=(), props=(), logo=None):
+    """Fora do record 14 so o record 6 pode diferir do stock, e so com 'logo' no manifesto: entao ele tem de ser
+    exatamente o payload_logo do stock com aquele JPEG, com o CRC do prefixo recalculado. Sem 'logo', o record 6
+    tem de ser o do stock byte a byte, como os outros 17."""
     p = []
     with open(binario, 'rb') as o, open(stock, 'rb') as s:
         hdr, hlen, flen, recs = ler_cabecalho(o)
@@ -489,6 +569,14 @@ def verificar_bin(binario, stock, entradas=(), props=()):
                 p.append(f"record {i}: prefixo {plen} != img_length {ln}")
             if i == VENDOR_REC:
                 if crc_faixa(o, off + 8, ln) != pcrc:
+                    p.append(f"record {i}: CRC gravado 0x{pcrc:08x} nao confere com o payload")
+            elif i == LOGO_REC and logo:
+                esperado_pl = payload_logo(ler_record(s, recs_s, i), jpeg_do_logo(open(logo, 'rb').read(), logo))
+                if ln != recs_s[i][0]:
+                    p.append(f"record {i}: tamanho {ln} != {recs_s[i][0]} do stock")
+                elif ler_record(o, recs, i) != esperado_pl:
+                    p.append(f"record {i}: payload difere do logo de fabrica com o JPEG do manifesto")
+                elif crc_faixa(o, off + 8, ln) != pcrc:
                     p.append(f"record {i}: CRC gravado 0x{pcrc:08x} nao confere com o payload")
             elif ln != recs_s[i][0] or not iguais_faixas(o, off, s, recs_s[i][1], 8 + ln):
                 p.append(f"record {i}: difere do stock")
@@ -549,6 +637,7 @@ def main(stock, zy, out, manifesto=None, realocar=False):
                          "do stock nao tem folga (doc 47 s10) - abortado, nada foi gravado.")
     entradas = ler_conteudo(manifesto) if manifesto else []
     props = ler_props(manifesto) if manifesto else []
+    logo = ler_logo(manifesto) if manifesto else None
     tmp = tempfile.mkdtemp(prefix='pflbin_')
     parcial = out + '.tmp'
     try:
@@ -557,6 +646,16 @@ def main(stock, zy, out, manifesto=None, realocar=False):
                 e['copia'] = f'{tmp}/manifesto_{i}'
                 shutil.copyfile(e['origem'], e['copia'])
         PFX, size = vendor_slot(stock)
+        logo_pl = None
+        if logo:
+            with open(stock, 'rb') as f:
+                _h, _hl, _fl, recs_st = ler_cabecalho(f)
+                stock_logo = ler_record(f, recs_st, LOGO_REC)
+            logo_pl = payload_logo(stock_logo, jpeg_do_logo(open(logo, 'rb').read(), logo))
+            logo_crc = crc_faixa(io.BytesIO(logo_pl), 0, len(logo_pl))
+            print(f"[1b] record {LOGO_REC} (particao logo): {len(logo_pl)} B como o do stock, JPEG de "
+                  f"{struct.unpack('<I', logo_pl[LOGO_KEYLEN_OFF:LOGO_KEYLEN_OFF + 4])[0]} B no {LOGO_JPEG_OFF} "
+                  f"({os.path.relpath(logo, RAIZ_REPO)}), CRC 0x{logo_crc:08x}")
         with open(stock, 'rb') as f:
             f.seek(PFX + 8)
             open(f'{tmp}/vendor.img', 'wb').write(f.read(size))
@@ -662,15 +761,27 @@ def main(stock, zy, out, manifesto=None, realocar=False):
         print(f"[6] CRC vendor novo: 0x{newcrc:08x}; record {VENDOR_REC} com {novo_len} B "
               f"({novo_len - size:+d} B contra o stock)")
         montar(stock, parcial, f'{tmp}/vendor.new', newcrc)
+        if logo_pl:
+            with open(parcial, 'r+b') as o:
+                _h, _hl, _fl, recs_o = ler_cabecalho(o)
+                ln, off = recs_o[LOGO_REC]
+                o.seek(off)
+                if struct.unpack('>I', o.read(4))[0] != ln or ln != len(logo_pl):
+                    raise SystemExit(f"ERRO: record {LOGO_REC} da saida com tamanho inesperado - abortado.")
+                o.write(struct.pack('>I', logo_crc))
+                o.write(logo_pl)
+            print(f"[7] record {LOGO_REC} trocado no mesmo lugar e tamanho (cabecalho e checksum1 nao mudam)")
 
-        problemas = verificar_bin(parcial, stock, entradas, props)
+        problemas = verificar_bin(parcial, stock, entradas, props, logo)
         if problemas:
             raise SystemExit(f"[done] {out}  FALHOU, nada foi gravado:\n  " + "\n  ".join(problemas))
         os.replace(parcial, out)
         extra = f" + {len(entradas)} entradas do manifesto" if entradas else ''
         extra += f" + {len(props)} linhas no build.prop" if props else ''
+        extra += f" + logo no record {LOGO_REC}" if logo else ''
         modo = 'realocado' if realocar else 'nos mesmos blocos do stock'
-        print("[8] verificar_bin: cabecalho, 19 records, sparse so RAW/DONTCARE no img_length e arvore do vendor OK")
+        print("[8] verificar_bin: cabecalho, 19 records, sparse so RAW/DONTCARE no img_length e arvore do vendor OK"
+              + (f"; record {LOGO_REC} = logo de fabrica com o JPEG do manifesto" if logo else ''))
         print(f"[done] {out}  VALIDO ({modo}; conteudo + metadados stock nos 3 arquivos{extra})")
         print("       AVISO: ainda teste em hardware com pendrive de resgate oficial ao lado.")
     finally:
@@ -756,7 +867,8 @@ if __name__ == '__main__':
         args.remove('--realocar')
     if args[:1] == ['--verificar'] and len(args) == 3 and not realocar:
         problemas = verificar_bin(args[1], args[2], ler_conteudo(manifesto) if manifesto else (),
-                                  ler_props(manifesto) if manifesto else ())
+                                  ler_props(manifesto) if manifesto else (),
+                                  ler_logo(manifesto) if manifesto else None)
         print('\n'.join(f"  {x}" for x in problemas) or "  nenhum problema")
         print(f"[verificar] {args[1]}  {'FALHOU' if problemas else 'APROVADO'}")
         sys.exit(1 if problemas else 0)

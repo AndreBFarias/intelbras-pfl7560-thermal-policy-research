@@ -19,6 +19,7 @@ check-kit:
 	bash tests/test-logo.sh
 	bash tests/test-qualidade.sh
 	bash tests/test-pc-diario.sh
+	bash tests/test-preflight-flash.sh
 
 check-bin:
 	python3 tests/test-builder-bin.py

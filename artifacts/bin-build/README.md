@@ -94,6 +94,23 @@ do manifesto). O gerador recusa prop fora do formato `chave.com.pontos=valor`, c
 `build.prop` exatamente uma vez. O `tests/test-semente-s5.sh` confere o manifesto contra o kit (a suíte é a
 `SEMENTE_LISTA`, as props são as `HOME_LINHA`/`FM_LINHA` do `newlink_update.sh`).
 
+### A diretiva `logo` e o record 6 (bloco 28)
+
+```
+logo pendrive-autorun/marca/logo.jpg
+```
+
+põe a arte no **record 6** do container, que o atualizador grava cru no começo da partição `logo` (`flash_begin`
+`0x3e00000`, os 40 MiB da `logo` no `blkdevparts` do próprio stock). O payload novo é o de fábrica (106496 B) com só
+o JPEG no byte 8192 e o `LOGO_KEY_LEN` (u32 LE em `0x78`) trocados, zeros até o fim, no mesmo tamanho: a tabela, o
+`checksum1` e os offsets não mudam, só o CRC do prefixo do record 6. O gerador recusa um stock cujo record 6 não
+tenha a `LOGO_TABLE` conhecida, a cauda de zeros e um JPEG 1920x1080 baseline, e uma arte que não seja JPEG
+1920x1080 baseline (SOF0) ou que não caiba no record. No máximo uma linha `logo`.
+
+O `verificar_bin` aceita diferença do stock **só nos records 6 e 14**: o 6 só com `logo` no manifesto e só se for
+exatamente o payload derivado do stock com aquela arte e o CRC recalculado; sem `logo`, o 6 tem de ser o do stock
+byte a byte, como os outros 17. Só o `conteudo-s5.txt` usa a diretiva.
+
 ## Metadados (obrigatório — causa do brick antigo)
 
 No modo padrão nenhum inode é reescrito (só o `i_size`). Com `--realocar`, após cada `debugfs write`, o script

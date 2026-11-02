@@ -51,8 +51,10 @@ def ext4_com_os_3_arquivos(d, ini, bp, rc):
     B.dfs(raw, os.path.join(d, 'cmds'))
     return raw
 
-def monta_load(d, payload, pfx, nome='stock.bin', crc_errado=(5,)):
+def monta_load(d, payload, pfx, nome='stock.bin', crc_errado=(5,), rec6=None):
     outros = {i: bytes([0x30 + i]) * (16 + 4 * i) for i in range(N_RECORDS) if i != VENDOR_REC}
+    if rec6 is not None:
+        outros[B.LOGO_REC] = rec6
     blob_len = pfx - 0x2bc - sum(8 + len(outros[i]) for i in range(VENDOR_REC))
     assert blob_len >= 0, "pfx pequeno demais para os 14 records antes do vendor"
     blob = b'\x3e\x18\x00\xea' + b'\xee' * blob_len
@@ -80,12 +82,12 @@ def monta_load(d, payload, pfx, nome='stock.bin', crc_errado=(5,)):
     assert tabela[VENDOR_REC][1] == pfx
     return out, size
 
-def monta_stock(d, raw, pfx, folga=0, nome='stock.bin'):
+def monta_stock(d, raw, pfx, folga=0, nome='stock.bin', rec6=None):
     payload = os.path.join(d, 'vendor.sparse')
     sparse.pack(raw, payload)
     with open(payload, 'ab') as f:
         f.write(b'\x00' * folga)
-    return monta_load(d, payload, pfx, nome)
+    return monta_load(d, payload, pfx, nome, rec6=rec6)
 
 def tabela(path):
     with open(path, 'rb') as f:
@@ -408,7 +410,7 @@ ROTULO_CFG = 'u:object_r:vendor_configs_file:s0'
 ROTULO_APP = 'u:object_r:vendor_app_file:s0'
 CONTEUDO = os.path.join(BB, 'conteudo.txt')
 
-def stock_com_app(d, pfx):
+def stock_com_app(d, pfx, rec6=None):
     raw = ext4_com_os_3_arquivos(d, ANTIGO_INI, os.path.join(ART, 'build.prop.STOCK'),
                                  os.path.join(ART, 'init.bigfish.rc.STOCK'))
     ex = os.path.join(d, 'existente.txt')
@@ -418,14 +420,21 @@ def stock_com_app(d, pfx):
                 'mode': '0644', 'uid': '0', 'gid': '0', 'selinux': ROTULO_CFG}))
     open(os.path.join(d, 'cmds2'), 'w').write(cmds)
     B.dfs(raw, os.path.join(d, 'cmds2'))
-    return monta_stock(d, raw, pfx)
+    return monta_stock(d, raw, pfx, rec6=rec6)
 
 def apk_falso(d, tamanho):
     p = os.path.join(d, 'app falso.apk')
     open(p, 'wb').write(hashlib.sha256(b'pfl').digest() * (tamanho // 32))
     return p
 
-def confere_realocado(stock, out):
+def record(path, i):
+    recs, _ = tabela(path)
+    ln, off = recs[i]
+    with open(path, 'rb') as f:
+        f.seek(off)
+        return f.read(8 + ln)
+
+def confere_realocado(stock, out, logo=None):
     rs, fs = tabela(stock)
     ro, fo = tabela(out)
     delta = ro[VENDOR_REC][0] - rs[VENDOR_REC][0]
@@ -435,7 +444,12 @@ def confere_realocado(stock, out):
            "offsets dos records 15 a 18 nao andaram o delta")
     s, o = ler(stock), ler(out)
     for i in range(N_RECORDS):
-        if i != VENDOR_REC:
+        if i == B.LOGO_REC and logo:
+            pl = B.payload_logo(s[rs[i][1] + 8:rs[i][1] + 8 + rs[i][0]], ler(logo))
+            afirma(ro[i][0] == rs[i][0] and o[ro[i][1]:ro[i][1] + 8 + ro[i][0]]
+                   == struct.pack('>II', len(pl), B.crc_header(pl)) + pl,
+                   f"record {i} nao e o logo de fabrica com o JPEG {logo} e o CRC (bit a bit) recalculado")
+        elif i != VENDOR_REC:
             afirma(s[rs[i][1]:rs[i][1] + 8 + rs[i][0]] == o[ro[i][1]:ro[i][1] + 8 + ro[i][0]],
                    f"record {i} difere do stock")
     afirma(s[0x2b4:rs[0][1]] == o[0x2b4:ro[0][1]], "blob do loader mudou")
@@ -577,6 +591,13 @@ def caso_manifesto_e_kit(rotulo, manifesto=CONTEUDO):
             afirma(esperado == ('regular', '0644', '0', '0', f'u:object_r:{rotulo_kit}:s0\\000'),
                    f"{rel}: metadados {esperado} diferentes dos do kit")
     afirma(vistos == set(pastas), f"{os.path.basename(manifesto)} sem {sorted(set(pastas) - vistos)}")
+    logo = B.ler_logo(manifesto)
+    if logo:
+        arte = re.search(r'(?m)^ARTE_MD5="([0-9a-f]{32})"$',
+                         open(os.path.join(ROOT, 'pendrive-autorun', 'suite-logo.sh'), encoding='ascii').read())
+        afirma(os.path.relpath(logo, ROOT) == os.path.join('pendrive-autorun', 'marca', 'logo.jpg')
+               and lista.get('marca/logo.jpg') == md5(logo) and arte and arte.group(1) == md5(logo),
+               f"logo do manifesto {logo} nao e a arte do kit (KIT_LISTA e ARTE_MD5 do suite-logo.sh)")
 
 print("== builder: manifesto --conteudo com --realocar (containers sinteticos) ==")
 caso_conteudo("manifesto com .rc, pasta e app novos, troca de conteudo e pastas aninhadas")
@@ -608,6 +629,102 @@ caso_recusa_conteudo("prop do wi-fi (derivada pelo gerador)", 'prop vendor.newli
 caso_recusa_conteudo("prop repetida", 'prop vendor.a.b=1\nprop vendor.a.b=2\n', "repetida")
 caso_recusa_conteudo("prop com espaco ou sem chave", 'prop vendor.a.b=1 2\n', "'prop chave=valor'")
 caso_recusa_conteudo("prop fora do formato", 'prop Vendor.a=$(x)\n', "fora do formato")
+ARTE = os.path.join(ROOT, 'artifacts', 'tema', 'marca', 'logo.jpg')
+ARTE_FABRICA = os.path.join(ROOT, 'artifacts', 'tema', 'marca', 'logo-boot.jpg')   # faz as vezes do JPEG de fabrica
+
+def rec6_fabrica(jpeg=None, tam=8192 + 102400):
+    j = ler(jpeg or ARTE_FABRICA)
+    return (B.LOGO_TABELA + struct.pack('<I', len(j)) + b'\0' * (8192 - 0x7c) + j
+            + b'\0' * (tam - 8192 - len(j)))
+
+def caso_logo(rotulo):
+    global CASO
+    CASO = rotulo
+    d = tempfile.mkdtemp(prefix='testbin_')
+    try:
+        stock, _size = stock_com_app(d, 0x40000, rec6_fabrica())
+        man = os.path.join(d, 'conteudo.txt')
+        open(man, 'w').write(f'logo {ARTE}\n- /vendor/etc/pfl7560 0755 0 2000 {ROTULO_CFG}\n')
+        out = os.path.join(d, 'saida.bin')
+        rc, log = roda_builder(stock, FIX_ANTIGO, out, '--realocar', '--conteudo', man)
+        afirma(rc == 0 and 'VALIDO' in log and 'logo no record 6' in log,
+               f"builder com logo falhou (rc={rc}): {log.strip().splitlines()[-2:]}")
+        if rc != 0:
+            return
+        confere_realocado(stock, out, ARTE)
+        r6s, r6o = record(stock, 6), record(out, 6)
+        afirma(len(r6s) == len(r6o) and r6o[8:8 + 0x78] == r6s[8:8 + 0x78]
+               and struct.unpack('<I', r6o[8 + 0x78:8 + 0x7c])[0] == len(ler(ARTE))
+               and r6o[8 + 8192:8 + 8192 + len(ler(ARTE))] == ler(ARTE)
+               and r6o[8 + 8192 + len(ler(ARTE)):].count(0) == len(r6o) - 8 - 8192 - len(ler(ARTE)),
+               "record 6: LOGO_TABLE, LOGO_KEY_LEN, JPEG no 8192 ou cauda de zeros errados")
+        afirma(tabela(stock)[0][6] == tabela(out)[0][6],
+               "o record 6 mudou de lugar ou de tamanho na tabela")
+        rc, vlog = verificar(out, stock, '--conteudo', man)
+        afirma(rc == 0 and 'APROVADO' in vlog, f"--verificar com o logo reprovou: {vlog.strip().splitlines()[-3:]}")
+        sem = os.path.join(d, 'sem-logo.txt')
+        open(sem, 'w').write(f'- /vendor/etc/pfl7560 0755 0 2000 {ROTULO_CFG}\n')
+        rc, vlog = verificar(out, stock, '--conteudo', sem)
+        afirma(rc != 0 and 'record 6: difere do stock' in vlog, "--verificar sem o logo no manifesto devia reprovar o record 6")
+        outro = os.path.join(d, 'outro-logo.txt')
+        open(outro, 'w').write(f'logo {ARTE_FABRICA}\n- /vendor/etc/pfl7560 0755 0 2000 {ROTULO_CFG}\n')
+        rc, vlog = verificar(out, stock, '--conteudo', outro)
+        afirma(rc != 0 and 'record 6: payload difere' in vlog, "--verificar com outra arte devia reprovar o record 6")
+        off6 = tabela(out)[0][6][1]
+        for nome, pos, dado, trecho in (("CRC do record 6", off6 + 4, b'\0\0\0\0', "record 6: CRC gravado"),
+                                         ("byte no JPEG do record 6", off6 + 8 + 9000, bytes([record(out, 6)[8 + 9000] ^ 0xff]), "record 6: payload difere"),
+                                         ("byte na cauda do record 6", off6 + 8 + 106000, b'\x01', "record 6: payload difere"),
+                                         ("LOGO_KEY_LEN mexido", off6 + 8 + 0x78, b'\x00', "record 6: payload difere"),
+                                         ("byte no record 7", tabela(out)[0][7][1] + 9, b'\x00', "record 7: difere do stock")):
+            ruim = copia_mexida(out, pos, dado)
+            rc, vlog = verificar(ruim, stock, '--conteudo', man)
+            afirma(rc != 0 and trecho in vlog, f"{nome}: o gate nao pegou ('{trecho}'): {vlog.strip().splitlines()[-2:]}")
+            os.remove(ruim)
+        rc2, _ = roda_builder(stock, FIX_ANTIGO, out + '.2', '--realocar', '--conteudo', man)
+        afirma(rc2 == 0 and md5(out) == md5(out + '.2'), "saida com logo nao e deterministica")
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+def caso_recusa_logo(rotulo, trecho, linhas='logo {arte}\n', rec6=None, arte=None):
+    global CASO
+    CASO = rotulo
+    d = tempfile.mkdtemp(prefix='testbin_')
+    try:
+        stock, _size = stock_com_app(d, 0x40000, rec6_fabrica() if rec6 is None else rec6)
+        a = os.path.join(d, 'arte.jpg')
+        open(a, 'wb').write(ler(ARTE) if arte is None else arte)
+        man = os.path.join(d, 'conteudo.txt')
+        open(man, 'w').write(linhas.format(arte=a))
+        out = os.path.join(d, 'saida.bin')
+        rc, log = roda_builder(stock, FIX_ANTIGO, out, '--realocar', '--conteudo', man)
+        afirma(rc != 0 and trecho in log, f"nao recusou com '{trecho}' (rc={rc}): {log.strip().splitlines()[-1:]}")
+        afirma(not os.path.exists(out) and not os.path.exists(out + '.tmp'), "gerou o .bin apesar da recusa")
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+def jpeg_mexido(sof_novo=None, largura=None):
+    j = bytearray(ler(ARTE))
+    i = 2
+    while j[i + 1] != 0xc0:
+        i += 2 + struct.unpack('>H', j[i + 2:i + 4])[0]
+    if sof_novo:
+        j[i + 1] = sof_novo
+    if largura:
+        struct.pack_into('>H', j, i + 7, largura)
+    return bytes(j)
+
+print("== record 6 (particao logo) pela diretiva 'logo' (containers sinteticos) ==")
+caso_logo("logo no record 6: mesmo tamanho, LOGO_KEY_LEN, CRC, gate e determinismo")
+caso_recusa_logo("stock sem LOGO_TABLE no record 6", "nao tem a LOGO_TABLE conhecida", rec6=b'\x36' * 40)
+caso_recusa_logo("LOGO_KEY_LEN do stock maior que o record", "LOGO_KEY_LEN",
+                 rec6=rec6_fabrica()[:0x78] + struct.pack('<I', 999999) + rec6_fabrica()[0x7c:])
+caso_recusa_logo("JPEG que nao cabe no record", "nao cabe no record", arte=ler(ARTE)[:-2] + b'\0' * 20000 + b'\xff\xd9')
+caso_recusa_logo("JPEG progressivo", "nao e baseline", arte=jpeg_mexido(sof_novo=0xc2))
+caso_recusa_logo("JPEG de outro tamanho", "1280x1080", arte=jpeg_mexido(largura=1280))
+caso_recusa_logo("arte que nao e JPEG", "SOI/EOI", arte=b'GIF89a' + b'\0' * 100)
+caso_recusa_logo("logo repetido", "logo repetido", linhas='logo {arte}\nlogo {arte}\n')
+caso_recusa_logo("logo sem arte", "'logo <arte.jpg>'", linhas='logo\n')
+caso_recusa_logo("arte ausente", "nao e um arquivo", linhas='logo /nao/existe.jpg\n')
 print("== conteudo.txt contra o kit (sem stock) ==")
 caso_manifesto_e_kit("conteudo.txt: md5 da KIT_LISTA e pastas do kit")
 CONTEUDO_S5 = os.path.join(BB, 'conteudo-s5.txt')
@@ -625,7 +742,7 @@ def caso_real_conteudo(rotulo, stock, ini, manifesto, md5_arq=None):
         afirma(rc == 0 and 'VALIDO' in log, f"builder falhou: {log.strip().splitlines()[-2:]}")
         if rc != 0:
             return
-        pl = confere_realocado(stock, out)
+        pl = confere_realocado(stock, out, B.ler_logo(manifesto))
         raw = pl + '.raw'
         sparse.expand(pl, raw)
         os.remove(pl)

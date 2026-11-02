@@ -11,9 +11,12 @@ theme". Contrato em `docs/sprints/2026-10-31-bloco-10-home-e-tema-dracula.md`. A
 | `fundo-dracula.png` | o plano de fundo: gradiente sutil `fundo` → `linha` com um arco fino em `roxo`, sem texto |
 | `gerar-previa.py` | gera `previa/telas.png` (Pillow), a folha de contato das telas da suíte e do fundo |
 | `previa/telas.png` | as 9 telas de exemplo da suíte e o fundo, lado a lado, para o dono olhar |
+| `gerar-marca.py` | gera `marca/` (logo reto, logo distorcido e `bootanimation.zip`): "Meow" em `#9D7AD0` e "Cast" em `#50FA7B` (verde Dracula, bloco 28) sobre `#120B1A`, o texto inteiro centrado |
+| `previa-marca.py` | gera `previa/marca-*.png` a partir de `marca/` (o logo reto, o distorcido e cada quadro da animação, que tem 1) |
 
     python3 -I artifacts/tema/gerar-fundo.py
     bash tests/test-tela.sh && python3 -I artifacts/tema/gerar-previa.py
+    python3 -I artifacts/tema/gerar-marca.py && python3 -I artifacts/tema/previa-marca.py && bash tests/atualizar-md5-kit.sh
 
 Fontes: IBM Plex Sans Condensed (títulos e rótulos) e IBM Plex Mono (valores), as de
 `pendrive-autorun/fontes/` (OFL). Nenhuma fonte nova. Texto com maiúscula no início de frase e de

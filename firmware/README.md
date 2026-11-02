@@ -17,7 +17,7 @@ deles é versionado (`*.bin.md5`). O estado da build, o que ela leva e o roteiro
 |---|---|---|
 | `PFL7560-S4a-NAO-GRADUADO.bin` | `a6e5da14cb3f53b42a457eb92bd91814` | **atual, gate BIN-S4a.** Escada, Wi-Fi e xiri **nos mesmos blocos do stock** (só o `i_size` dos 3 inodes muda; chunks, slot, cabeçalho e `checksum1` do stock). CRC do vendor `0x883b40d6`. É a que o `install.sh --com-firmware` põe na raiz do pendrive como `usb_update.bin` |
 | `PFL7560-S4b-COMPLETO-NAO-GRADUADO.bin` | `31702b647ba9b2bca98e6da625231e69` | **atual, BIN-S4b, só depois de a S4a subir.** O mesmo, mais o `.rc` da suíte, o app, a home e as 20 sobreposições (`artifacts/bin-build/conteudo.txt`), com o record 14 realocado (+3407872 B). CRC do vendor `0xd8e4e78b`. Muda de md5 sempre que um APK do kit ou o `.rc` mudar |
-| `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` | `81bb9885581356d5e46a5f612a29ae8a` | **bloco 26, só depois de a S4a e a S4b subirem.** A S4b mais a suíte inteira em `/vendor/etc/pfl7560-suite`, com uma semente que a copia para o `/data` vazio no 1º boot, e as 2 linhas do `build.prop` da home e do gerenciador (`artifacts/bin-build/conteudo-s5.txt`). Record 14 com +5132288 B, CRC do vendor `0xa9f3457a`, 1398890684 B. Não traz a marca do `/atv` nem o JEIDA ([doc 47 §12](../docs/research/47-build-completa.md)) |
+| `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin` | `253b01c95b2dd121408fc3c0817bf219` | **blocos 26 e 28, só depois de a S4a e a S4b subirem.** A S4b mais a suíte inteira em `/vendor/etc/pfl7560-suite`, com uma semente que a copia para o `/data` vazio no 1º boot, as 2 linhas do `build.prop` da home e do gerenciador e a arte reta com o "Cast" verde na partição `logo` (record 6, mesmo tamanho, CRC `0x9c066411`), tudo em `artifacts/bin-build/conteudo-s5.txt`. Record 14 com +5136384 B, CRC do vendor `0xe0263cf7`, 1398894780 B. Não traz a marca do `/atv` nem o JEIDA ([doc 47 §12](../docs/research/47-build-completa.md)). A do bloco 26 (`81bb9885…`, sem o record 6) foi superada |
 | `PFL7560-COMPLETO-NAO-GRADUADO.bin` | `397698b9…` | aposentada (bloco 21): chunks FILL e 44832 B de zeros soltos no slot, forma que o loader nunca gravou; `build_fix_bin.py --verificar` a reprova |
 | `PFL7560-FIX-escada-NAO-GRADUADO.bin` | `eae3a83d…` | aposentada (bloco 21): só a escada, com 8 chunks FILL e 53024 B de zeros soltos; `--verificar` a reprova |
 | `PFL7560-FIX-com-metadados.bin` | `16a4b42a…` | superada em 2026-07-29 (limiares de brilho de antes da escada); removida do disco |
@@ -34,7 +34,27 @@ python3 artifacts/bin-build/build_fix_bin.py /tmp/PFL7560.bin artifacts/ZYCustom
 ```
 
 As três saem reprodutíveis (o mesmo stock e o mesmo `.ini` dão o mesmo md5) e só ganham o nome final depois do
-`verificar_bin` (doc 47 §10). `build_fix_bin.py --verificar <bin> <stock>` repete a conferência.
+`verificar_bin` (doc 47 §10). `build_fix_bin.py --verificar <bin> <stock>` repete a conferência. Ele aceita só os
+records 6 (com a diretiva `logo` do manifesto) e 14 diferentes do stock.
+
+## Pré-voo do flash da S5
+
+```bash
+sh firmware/preflight-flash.sh <pendrive> --backup <pasta do backup no PC> --resgate <PFL7560.bin do stock>
+```
+
+Só lê. Sai 0 com `PRE-VOO APROVADO` e 1 se qualquer item falhar:
+
+1. o `usb_update.bin` da raiz do pendrive é a S5 do `PFL7560-S5-COMPLETO-NAO-GRADUADO.bin.md5`;
+2. o `--verificar` dele contra o stock, com o `conteudo-s5.txt`, sai APROVADO;
+3. o kit do pendrive está inteiro (a `KIT_LISTA` do `newlink_update.sh` dele), aceita o `.rc` desta S5
+   (`RC_S5_MD5`) e não há `DESINSTALAR-SUITE.txt`;
+4. o backup do aparelho está no PC, fora do pendrive: arquivos de `/data/vendor/pfl7560-*` e a pasta
+   `/data/data/com.pfl7560.home/shared_prefs`, soltos ou no `pfl-backup.tar`;
+5. o stock de resgate (md5 `28a2f280…`) está fora do pendrive do flash.
+
+O `install.sh --com-firmware` ainda põe a S4a no pendrive. Esse pendrive é recusado para a S5. Teste:
+`tests/test-preflight-flash.sh`.
 
 ## Avisos
 

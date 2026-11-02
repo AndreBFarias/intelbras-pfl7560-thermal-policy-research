@@ -43,13 +43,13 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 161de76dfe93aeee13654e417e55e3bd  suite.sh
-fdaaf4185839750f62e8eb1490d63158  suite-boot.sh
-dd035e2d4a67994edc3bdb5459bd2c5c  suite-pedido.sh
+1418c175a7340ae31b200c73cbef19cf  suite-boot.sh
+a26f157e50426d950ecb824a5dff14a0  suite-pedido.sh
 bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
 44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 2760b4c77e6639632f63a156859520bc  nl_logo
-2e9220bb030f2a6ed045eb60e79defad  suite-logo.sh
+d1b0b118aa713b541c0514687eab1609  suite-logo.sh
 127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 6c43460eb4d234436541ffded0113c69  pfl7560.apk
@@ -88,8 +88,8 @@ b55ae3ac05c47c796b0be4850825d63a  overlay/PFL7560TemaPackageInstaller.apk
 e3d36ef64f492794af92f7ccd1ca993a  overlay/PFL7560TemaZYSetting.apk
 93fa43136f60237a758fcd5e2bad433a  overlay/PFL7560TemaZYSpeakerModel.apk
 463a24b47859e15aaecd477c3a99540a  overlay/PFL7560TemaAndroid.apk
-3f33a5898aaaff385d9e6cf42762677a  marca/logo.jpg
-85256535f156d25e65af2752de3fb90d  marca/bootanimation.zip
+78b23ececb6a42622424e11d4098fdbe  marca/logo.jpg
+a349d47043ccbed8e5feec3b66838c75  marca/bootanimation.zip
 "
 # KIT_LISTA_FIM
 

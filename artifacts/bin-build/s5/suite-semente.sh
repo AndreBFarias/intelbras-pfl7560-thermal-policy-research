@@ -39,13 +39,13 @@ SEMENTE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 161de76dfe93aeee13654e417e55e3bd  suite.sh
-fdaaf4185839750f62e8eb1490d63158  suite-boot.sh
-dd035e2d4a67994edc3bdb5459bd2c5c  suite-pedido.sh
+1418c175a7340ae31b200c73cbef19cf  suite-boot.sh
+a26f157e50426d950ecb824a5dff14a0  suite-pedido.sh
 bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
 44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 2760b4c77e6639632f63a156859520bc  nl_logo
-2e9220bb030f2a6ed045eb60e79defad  suite-logo.sh
+d1b0b118aa713b541c0514687eab1609  suite-logo.sh
 127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png
@@ -61,7 +61,7 @@ f7c622dca16e1da365a328894f74cbac  fontes/IBMPlexSansCondensed-Bold.ttf
 c90afb82696a6873464b6cc8f315f0eb  fontes/IBMPlexSansCondensed-Regular.ttf
 9f4dbd7c74436d0d895ccc3689c42490  fontes/IBMPlexSansCondensed-SemiBold.ttf
 160cec49299e5d622c5150977bfe188c  fontes/OFL.txt
-3f33a5898aaaff385d9e6cf42762677a  marca/logo.jpg
+78b23ececb6a42622424e11d4098fdbe  marca/logo.jpg
 "
 # SEMENTE_LISTA_FIM
 
