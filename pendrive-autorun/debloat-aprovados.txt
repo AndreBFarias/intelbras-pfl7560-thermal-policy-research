@@ -1,8 +1,8 @@
 # Pacotes que o kit desliga por boot com pm disable-user --user 0 (reversivel).
-# Uma linha por pacote. Lista aprovada pela dona em 2026-11-01: Office e VLC;
+# Uma linha por pacote. Lista aprovada pela dona em 2026-11-01: Office (o VLC
+# saiu em 2026-11-02: e dela, instalado e removido por ela);
 # cast e miracast ja eram desligados desde antes.
 # Para voltar tudo: arquivo REVERTER-DEBLOAT.txt na raiz do pendrive.
 com.mobisystems.editor.office_registered
 com.newlink.cast
 com.hisilicon.miracast
-org.videolan.vlc

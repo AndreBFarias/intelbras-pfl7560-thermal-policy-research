@@ -600,26 +600,27 @@ c_overlays_boot(){
   limpa
 }
 
-APPS14="com.mobisystems.editor.office_registered com.newlink.cast com.hisilicon.miracast org.videolan.vlc"
-apps_cenario(){ local a; : > "$T/pm-instalados"; : > "$T/pm-desligados"; for a in $APPS14; do echo "$a" >> "$T/pm-instalados"; done; }
+# o VLC saiu da lista em 2026-11-02 (e do dono): fica instalado no cenario e ninguem mexe nele
+APPS14="com.mobisystems.editor.office_registered com.newlink.cast com.hisilicon.miracast"
+apps_cenario(){ local a; : > "$T/pm-instalados"; : > "$T/pm-desligados"; for a in $APPS14 org.videolan.vlc; do echo "$a" >> "$T/pm-instalados"; done; }
 restr_tem(){ grep -a "name=\"$1\"" "$R/data/system/users/0/package-restrictions.xml" 2>/dev/null | grep -aq 'enabled="3"'; }
 c_apps_boot(){
   local a
-  novo_cenario "apps: ligados = o boot desliga os quatro da lista e confere o enabled=3; 2o boot nao mexe"
+  novo_cenario "apps: ligados = o boot desliga os tres da lista e confere o enabled=3; 2o boot nao mexe"
   instala_suite; apps_cenario
   roda_boot
   afirma '[ "$RC" = 0 ] && [ "$(sort "$T/pm-desligados" | tr "\n" " ")" = "$(echo $APPS14 | tr " " "\n" | sort | tr "\n" " ")" ]' "desligados: $(tr '\n' ' ' < "$T/pm-desligados")"
   for a in $APPS14; do afirma 'restr_tem "$a"' "$a sem enabled=3 no package-restrictions.xml"; done
-  afirma 'grep -q "apps: estado gravado no package-restrictions.xml (enabled=3)" "$S/boot.log" && tem_chamada "pm disable-user --user 0 org.videolan.vlc"' "log ou nao desligou o VLC: $(grep apps "$S/boot.log" | tr '\n' '|')"
+  afirma 'grep -q "apps: estado gravado no package-restrictions.xml (enabled=3)" "$S/boot.log" && tem_chamada "pm disable-user --user 0 com.mobisystems.editor.office_registered" && ! tem_chamada "org.videolan.vlc"' "log, nao desligou o Office ou mexeu no VLC do dono: $(grep apps "$S/boot.log" | tr '\n' '|')"
   : > "$T/calls.log"
   roda_boot
-  afirma '[ "$(chamadas "pm disable-user")" = 0 ] && [ "$(grep -c "apps: .* ja estava desligado" "$S/boot.log")" = 4 ]' "2o boot desligou de novo: $(grep '^pm disable' "$T/calls.log")"
+  afirma '[ "$(chamadas "pm disable-user")" = 0 ] && [ "$(grep -c "apps: .* ja estava desligado" "$S/boot.log")" = 3 ]' "2o boot desligou de novo: $(grep '^pm disable' "$T/calls.log")"
   limpa
 
   novo_cenario "apps: um nao instalado = pulado, os outros desligados"
   instala_suite; apps_cenario; sed -i '/com.newlink.cast/d' "$T/pm-instalados"
   roda_boot
-  afirma 'grep -q "apps: com.newlink.cast nao esta instalado" "$S/boot.log" && [ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 3 ]' "desligados: $(tr '\n' ' ' < "$T/pm-desligados"); $(grep apps "$S/boot.log" | tr '\n' '|')"
+  afirma 'grep -q "apps: com.newlink.cast nao esta instalado" "$S/boot.log" && [ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 2 ]' "desligados: $(tr '\n' ' ' < "$T/pm-desligados"); $(grep apps "$S/boot.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "apps: o xml so e gravado depois de 2 esperas = o boot espera e confirma"
@@ -637,7 +638,7 @@ c_apps_boot(){
   novo_cenario "apps: o pm disable-user falha = aviso por app, o boot segue"
   instala_suite; apps_cenario; : > "$T/pm-disable-falha"
   roda_boot
-  afirma '[ "$RC" = 0 ] && [ "$(grep -c "AVISO.*apps: nao consegui desligar" "$S/boot.log")" = 4 ] && [ -z "$(cat "$T/pm-desligados")" ]' "rc=$RC; $(grep apps "$S/boot.log" | tr '\n' '|')"
+  afirma '[ "$RC" = 0 ] && [ "$(grep -c "AVISO.*apps: nao consegui desligar" "$S/boot.log")" = 3 ] && [ -z "$(cat "$T/pm-desligados")" ]' "rc=$RC; $(grep apps "$S/boot.log" | tr '\n' '|')"
   limpa
 
   novo_cenario "apps: o pm nao responde = 6 consultas, aviso, nada desligado"
@@ -649,7 +650,7 @@ c_apps_boot(){
   novo_cenario "apps: com o gatilho nunca o boot tambem desliga"
   instala_suite; apps_cenario; echo nunca > "$S/gatilho"
   roda_boot
-  afirma '[ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 4 ] && [ "$RC" = 0 ]' "gatilho nunca nao desligou: $(tr '\n' ' ' < "$T/pm-desligados")"
+  afirma '[ "$(wc -l < "$T/pm-desligados" | tr -d " ")" = 3 ] && [ "$RC" = 0 ]' "gatilho nunca nao desligou: $(tr '\n' ' ' < "$T/pm-desligados")"
   limpa
 }
 
@@ -1058,7 +1059,7 @@ c_desinstalar14(){
   afirma '! grep -q "\[x\]" "$T/overlay.db" && [ "$(grep "^cmd overlay disable" "$T/calls.log" | head -1)" = "cmd overlay disable com.pfl7560.tema.android" ]' "disable: $(grep '^cmd overlay' "$T/calls.log" | sed 's/.*tema\.//' | tr '\n' ' ')"
   afirma '[ -z "$(ls -d "$R"/vendor/overlay/PFL7560Tema* 2>/dev/null)" ] && grep -q "sobreposicoes de tema removidas" "$T/kit.out"' "sobrou pasta de sobreposicao: $(find "$R/vendor/overlay" -maxdepth 1 | tr '\n' ' ')"
   afirma '! grep -q "^vendor.nl.filemanage_file=" "$R/vendor/build.prop" && grep -q "wifi_disconnect_on_boot=0" "$R/vendor/build.prop"' "a prop do gerenciador ficou ou o fix do wi-fi saiu"
-  afirma '[ ! -s "$T/pm-desligados" ] && [ "$(grep -c "^pm enable --user 0 " "$T/calls.log")" = 4 ]' "apps nao religados: $(tr '\n' ' ' < "$T/pm-desligados")"
+  afirma '[ ! -s "$T/pm-desligados" ] && [ "$(grep -c "^pm enable --user 0 " "$T/calls.log")" = 3 ]' "apps nao religados: $(tr '\n' ' ' < "$T/pm-desligados")"
   afirma '[ "$(cat "$R/atv/bootvideo/logo.jpg")" = "logo de fabrica" ] && [ "$(cat "$R/atv/bootvideo/bootanimation.zip")" = "animacao de fabrica" ] && [ ! -e "$S" ]' "marca nao restaurada ou pasta da suite ficou"
   afirma 'grep -q "marca: logo.jpg de fabrica restaurado" "$T/kit.out"' "log sem a restauracao da marca"
   : > "$T/calls.log"
@@ -2385,17 +2386,17 @@ c_curvas_debloat(){
   instala_suite; apps_cenario; roda_boot
   echo com.outro.fora >> "$T/pm-desligados"; : > "$T/calls.log"
   roda_curvas debloat-reverter
-  afirma '[ "$(grep -c "^pm enable --user 0 " "$T/calls.log")" = 4 ] && [ "$(cat "$T/pm-desligados")" = com.outro.fora ]' "reverter: $(grep '^pm enable' "$T/calls.log" | tr '\n' '|') / sobrou: $(tr '\n' ' ' < "$T/pm-desligados")"
+  afirma '[ "$(grep -c "^pm enable --user 0 " "$T/calls.log")" = 3 ] && [ "$(cat "$T/pm-desligados")" = com.outro.fora ]' "reverter: $(grep '^pm enable' "$T/calls.log" | tr '\n' '|') / sobrou: $(tr '\n' ' ' < "$T/pm-desligados")"
   limpa
 
   novo_cenario "debloat/marcador: debloat-revertido no boot = religa tudo, nao desliga nada, e diz no log"
   instala_suite; apps_cenario; roda_boot
   : > "$S/debloat-revertido"; : > "$T/calls.log"
   roda_boot
-  afirma '[ "$(chamadas "pm disable-user")" = 0 ] && [ "$(chamadas "pm enable")" = 4 ] && grep -q "debloat" "$S/boot.log"' "marcador nao honrado: $(grep '^pm' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(chamadas "pm disable-user")" = 0 ] && [ "$(chamadas "pm enable")" = 3 ] && grep -q "debloat" "$S/boot.log"' "marcador nao honrado: $(grep '^pm' "$T/calls.log" | tr '\n' '|')"
   rm -f "$S/debloat-revertido"; : > "$T/calls.log"
   roda_boot
-  afirma '[ "$(chamadas "pm disable-user")" = 4 ]' "tirando o marcador o boot nao desligou de novo: $(grep '^pm' "$T/calls.log" | tr '\n' '|')"
+  afirma '[ "$(chamadas "pm disable-user")" = 3 ]' "tirando o marcador o boot nao desligou de novo: $(grep '^pm' "$T/calls.log" | tr '\n' '|')"
   limpa
 }
 

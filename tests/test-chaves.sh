@@ -15,10 +15,10 @@ falha(){ TESTES=$((TESTES+1)); FALHAS=$((FALHAS+1)); echo "  FALHA $CASO: $*"; }
 afirma(){ if eval "$1"; then ok; else falha "$2  (cond: $1)"; fi; }
 md5(){ md5sum "$1" | cut -d' ' -f1; }
 
-IDS="deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone"
-GRUPOS_PKG="com.newlink.autotest com.newlink.factorymenu com.newlink.tvtestingtools com.hikeymasterprovision com.newlink.isuperred.ijkplayerdemo com.android.location.fused com.newlink.service com.newlink.service2 com.hisilicon.android.music com.hisilicon.android.videoplayer com.hisilicon.tvui com.hisilicon.tv.menu com.newlink.hisilauncher org.videolan.vlc com.mobisystems.editor.office_registered"
-# pacotes que NENHUMA chave pode tocar, mesmo instalados
-INTOCAVEIS="com.hisilicon.higallery com.hisilicon.tvsetting com.newlink.screensaver com.newlink.nlprovision com.newlink.hotkeysservices com.pfl7560.verificar com.pfl7560.home com.android.systemui com.google.android.gms com.zhiying.settings com.newlink.filemanager"
+IDS="deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone pop_disp"
+GRUPOS_PKG="com.newlink.autotest com.newlink.factorymenu com.newlink.tvtestingtools com.hikeymasterprovision com.newlink.isuperred.ijkplayerdemo com.android.location.fused com.newlink.service com.newlink.service2 com.hisilicon.android.music com.hisilicon.android.videoplayer com.hisilicon.tvui com.hisilicon.tv.menu com.newlink.hisilauncher com.mobisystems.editor.office_registered"
+# pacotes que NENHUMA chave pode tocar, mesmo instalados (o VLC e do dono desde 2026-11-02)
+INTOCAVEIS="org.videolan.vlc com.hisilicon.higallery com.hisilicon.tvsetting com.newlink.screensaver com.newlink.nlprovision com.newlink.hotkeysservices com.pfl7560.verificar com.pfl7560.home com.android.systemui com.google.android.gms com.zhiying.settings com.newlink.filemanager"
 
 stub(){ printf '#!/bin/sh\n%s\n' "$2" > "$T/bin/$1"; chmod +x "$T/bin/$1"; }
 novo_cenario(){
@@ -29,6 +29,7 @@ novo_cenario(){
   mkdir -p "$R/dev" "$R/data/vendor" "$R/data/data" "$b" "$R/sys/class/net/eth0" "$R/sys/class/net/wlan0" \
            "$R/sys/bus/usb/devices/1-3/power" "$R/sys/bus/usb/devices/1-3:1.0/power" "$R/sys/bus/usb/devices/1-1/power"
   mkdir -p "$S"; chmod 700 "$S"
+  mkdir -p "$R/vendor"; printf '%s\n' persist.nl.usb_dialog.vis=false vendor.newlink.hisi.hdmiisdialog=1 > "$R/vendor/build.prop"
   echo 0x1003 > "$R/sys/class/net/eth0/flags"
   echo a69c > "$R/sys/bus/usb/devices/1-3/idVendor"; echo 8d81 > "$R/sys/bus/usb/devices/1-3/idProduct"
   echo on > "$R/sys/bus/usb/devices/1-3/power/control"
@@ -39,6 +40,7 @@ novo_cenario(){
   : > "$T/calls.log"; : > "$T/pm-desligados"; : > "$T/pm-instalados"
   for p in $GRUPOS_PKG $INTOCAVEIS; do echo "$p" >> "$T/pm-instalados"; done
   printf '%s\n' ro.product.model=PFL7560 init.svc.boa=running init.svc.cmdsrv=running persist.hisi.keystone.enable=true \
+    vendor.newlink.hisi.hdmiisdialog=1 \
     sys.boot.reason=shutdown,userrequested persist.sys.boot.reason=shutdown,userrequested ro.boot.bootreason=shutdown,userrequested > "$T/props"
   stub getprop 'awk -v k="$1" '"'"'index($0, k "=") == 1 { v = substr($0, length(k) + 2) } END { print v }'"'"' "$T/props"'
   stub setprop 'echo "setprop $1 ${2:-}" >> "$T/calls.log"
@@ -134,9 +136,9 @@ c_ler(){
   novo_cenario "ler: estado inicial lido do aparelho"
   instala
   ch estado
-  afirma '[ "$(estado)" = "0000000000" ]' "estado inicial: $(estado)"
+  afirma '[ "$(estado)" = "00000000000" ]' "estado inicial: $(estado)"
   ch ler
-  afirma '[ "$RC" = 0 ] && [ "$(prop_ vendor.pfl7560.chaves)" = "0000000000" ]' "prop chaves: '$(prop_ vendor.pfl7560.chaves)'"
+  afirma '[ "$RC" = 0 ] && [ "$(prop_ vendor.pfl7560.chaves)" = "00000000000" ]' "prop chaves: '$(prop_ vendor.pfl7560.chaves)'"
   # parcial, ligada e ausente
   echo com.newlink.autotest >> "$T/pm-desligados"
   afirma '[ "$(car deb_seg)" = p ]' "um pacote desligado de seis = p: $(estado)"
@@ -159,6 +161,9 @@ c_ler(){
   afirma '[ "$(car log_vplug)" = 1 ]' "log.tag.HI_VPLUGIN=S = 1"
   echo "persist.hisi.keystone.enable=false" >> "$T/props"
   afirma '[ "$(car keystone)" = 1 ]' "keystone false = 1"
+  afirma '[ "$(car pop_disp)" = 0 ]' "hdmiisdialog=1 (o de fabrica) = 0: $(estado)"
+  echo "vendor.newlink.hisi.hdmiisdialog=0" >> "$T/props"
+  afirma '[ "$(car pop_disp)" = 1 ]' "hdmiisdialog=0 = 1: $(estado)"
   : > "$T/pm-mudo"; sed -i '/^$/d' "$T/pm-instalados"
   # pm que nao responde ao 'list': estado ilegivel, nunca suposto
   stub pm 'exit 1'
@@ -178,16 +183,16 @@ c_aplicar(){
     afirma '[ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1,2)" = "$i:ok" ]' "aviso de $i: $(prop_ vendor.pfl7560.chaves_aviso)"
     afirma '[ "$(prop_ vendor.pfl7560.chaves | cut -c"$(pos "$i")")" = 1 ]' "prop chaves nao mostra $i ligada: $(prop_ vendor.pfl7560.chaves)"
   done
-  afirma '[ "$(estado)" = "1111111111" ]' "todas ligadas: $(estado)"
+  afirma '[ "$(estado)" = "11111111111" ]' "todas ligadas: $(estado)"
   for i in $IDS; do
     ch aplicar "$i" desligar
     afirma '[ "$(car "$i")" = 0 ]' "$i nao voltou: $(estado)"
     afirma '[ "$(escolha "$i")" = 0 ]' "escolha de $i nao virou 0"
   done
-  afirma '[ "$(estado)" = "0000000000" ]' "tudo de volta: $(estado)"
+  afirma '[ "$(estado)" = "00000000000" ]' "tudo de volta: $(estado)"
   afirma '[ ! -s "$T/pm-desligados" ]' "sobrou pacote desligado: $(tr '\n' ' ' < "$T/pm-desligados")"
   afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ] && [ "$(cat "$R/sys/class/net/eth0/flags")" = 0x1003 ]' "porta/chip nao voltaram"
-  afirma '[ "$(prop_ log.tag.HI_VPLUGIN)" = "" ] && [ "$(prop_ persist.hisi.keystone.enable)" = true ]' "props nao voltaram"
+  afirma '[ "$(prop_ log.tag.HI_VPLUGIN)" = "" ] && [ "$(prop_ persist.hisi.keystone.enable)" = true ] && [ "$(prop_ vendor.newlink.hisi.hdmiisdialog)" = 1 ]' "props nao voltaram"
   afirma 'tem_chamada "setprop log.tag.HI_VPLUGIN S" && tem_chamada "ip link set eth0 down" && tem_chamada "stop boa" && tem_chamada "stop cmdsrv" && tem_chamada "setprop persist.hisi.keystone.enable false"' "comandos esperados nao rodaram"
   afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3:1.0/power/control")" = on ] && [ "$(cat "$R/sys/bus/usb/devices/1-1/power/control")" = on ]' "tocou em interface ou em outro dispositivo USB"
   afirma '! grep -q "^GTT\|^logcat\|^reboot" "$T/calls.log"' "gtt/logcat/reboot chamado"
@@ -250,7 +255,7 @@ c_intocaveis(){
     afirma '! desligado "$p"' "$p ficou desligado"
   done
   afirma '! grep -E "^pm (disable|enable)" "$T/calls.log" | grep -q "higallery"' "mexeu no higallery (visor das telas da suite)"
-  afirma '[ "$(grep -c "^pm disable-user" "$T/calls.log")" -ge 15 ]' "poucos pm disable-user ($(grep -c '^pm disable-user' "$T/calls.log"))"
+  afirma '[ "$(grep -c "^pm disable-user" "$T/calls.log")" -ge 14 ]' "poucos pm disable-user ($(grep -c '^pm disable-user' "$T/calls.log"))"
   limpa
   # mesmo com a lista contaminada, a negacao segura
   novo_cenario "intocaveis: a lista de negacao vale sozinha"
@@ -270,7 +275,7 @@ c_pedido_cmd(){
   ch pedido "v1 eth0 desligar"
   afirma '[ "$(car eth0)" = 0 ]' "pedido de desligar nao aplicou"
   ch pedido "v1 ler"
-  afirma '[ "$(prop_ vendor.pfl7560.chaves)" = "0000000000" ]' "v1 ler nao publicou: $(prop_ vendor.pfl7560.chaves)"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves)" = "00000000000" ]' "v1 ler nao publicou: $(prop_ vendor.pfl7560.chaves)"
   : > "$T/calls.log"
   ch pedido "eth0 ligar"
   ch pedido "v2 eth0 ligar"
@@ -292,7 +297,7 @@ c_boot(){
   instala
   ch boot
   afirma '[ "$RC" = 0 ]' "boot saiu com $RC"
-  afirma '[ "$(estado)" = "1111110000" ]' "padroes: $(estado) (esperado 1111110000)"
+  afirma '[ "$(estado)" = "11111100001" ]' "padroes: $(estado) (esperado 11111100001)"
   afirma '! tem_chamada "ip link" && ! tem_chamada "stop " && ! tem_chamada "persist.hisi.keystone" && [ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ]' "o boot mexeu no que o dono nao ligou"
   limpa
 
@@ -309,7 +314,7 @@ c_boot(){
   awk '!/^init.svc/' "$T/props" > "$T/p"; printf '%s\n' init.svc.boa=running init.svc.cmdsrv=running >> "$T/p"; mv "$T/p" "$T/props"
   : > "$T/pm-desligados"; : > "$T/calls.log"
   ch boot
-  afirma '[ "$(estado)" = "1101101111" ]' "reaplicacao: $(estado) (esperado 1101101111)"
+  afirma '[ "$(estado)" = "11011011111" ]' "reaplicacao: $(estado) (esperado 11011011111)"
   afirma '! tem_chamada "pm disable-user --user 0 com.hisilicon.tvui"' "grupo desligado pelo dono foi desligado de novo no boot"
   afirma '! tem_chamada "setprop log.tag.HI_VPLUGIN S"' "log do vplugin voltou sozinho"
   limpa
@@ -317,18 +322,18 @@ c_boot(){
   novo_cenario "boot: escolha 0 explicita desfaz o que outro desligou"
   instala
   ch aplicar deb_vlc desligar
-  echo org.videolan.vlc >> "$T/pm-desligados"
+  echo com.mobisystems.editor.office_registered >> "$T/pm-desligados"
   ch boot
-  afirma '! desligado org.videolan.vlc && [ "$(car deb_vlc)" = 0 ]' "VLC ficou desligado apesar da escolha 0"
+  afirma '! desligado com.mobisystems.editor.office_registered && [ "$(car deb_vlc)" = 0 ]' "Office ficou desligado apesar da escolha 0"
   limpa
 
-  novo_cenario "boot: marca debloat-revertido segura so o grupo VLC/Office do padrao"
+  novo_cenario "boot: marca debloat-revertido segura so o grupo do Office do padrao"
   instala
   : > "$S/debloat-revertido"
   ch boot
-  afirma '[ "$(estado)" = "1111010000" ]' "com a marca: $(estado) (esperado 1111010000)"
+  afirma '[ "$(estado)" = "11110100001" ]' "com a marca: $(estado) (esperado 11110100001)"
   ch aplicar deb_vlc ligar
-  afirma '[ "$(car deb_vlc)" = 1 ]' "o dono liga o grupo VLC mesmo com a marca"
+  afirma '[ "$(car deb_vlc)" = 1 ]' "o dono liga o grupo do Office mesmo com a marca"
   limpa
 
   novo_cenario "boot: pm que nao sobe nao trava nem finge"
@@ -355,7 +360,7 @@ exit 0'
   stub sleep 'echo "sleep $*" >> "$T/calls.log"; rm -f "$T/pm-mudo"'
   ch boot
   afirma '! tem_chamada TRAVADA-NA-ESPERA' "o boot segurou a trava enquanto esperava o pm"
-  afirma '[ "$(estado)" = "1111110000" ]' "depois da espera: $(estado)"
+  afirma '[ "$(estado)" = "11111100001" ]' "depois da espera: $(estado)"
   limpa
 
   novo_cenario "boot: trava velha (processo morto) nao prende"
@@ -370,15 +375,15 @@ c_resgate(){
   novo_cenario "resgate: desliga todas, grava 0 em todas e o boot nao reaplica nada"
   instala
   tudo_ligado
-  afirma '[ "$(estado)" = "1111111111" ]' "preparo: $(estado)"
+  afirma '[ "$(estado)" = "11111111111" ]' "preparo: $(estado)"
   ch resgate
   afirma '[ "$RC" = 0 ]' "resgate saiu com $RC"
-  afirma '[ "$(estado)" = "0000000000" ]' "depois do resgate: $(estado)"
+  afirma '[ "$(estado)" = "00000000000" ]' "depois do resgate: $(estado)"
   for i in $IDS; do afirma '[ "$(escolha "$i")" = 0 ]' "escolha de $i nao ficou 0"; done
   afirma '[ ! -s "$T/pm-desligados" ] && [ "$(cat "$R/sys/class/net/eth0/flags")" = 0x1003 ] && [ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ]' "algo ficou desligado"
   : > "$T/calls.log"
   ch boot
-  afirma '[ "$(estado)" = "0000000000" ]' "o boot reaplicou depois do resgate: $(estado)"
+  afirma '[ "$(estado)" = "00000000000" ]' "o boot reaplicou depois do resgate: $(estado)"
   afirma '! tem_chamada "pm disable-user" && ! tem_chamada "setprop log.tag.HI_VPLUGIN S"' "o boot ligou algo depois do resgate"
   afirma '[ "$(ls -A "$S" | grep -c "revertido\|resgate")" = 0 ]' "o resgate deixou marca"
   limpa
@@ -394,7 +399,7 @@ c_resgate(){
   afirma '[ "$(grep -c "^sleep" "$T/calls.log")" -ge 179 ]' "o resgate desistiu da trava cedo demais"
   rm -rf "$R/dev/pfl7560-chaves.trava"
   ch boot
-  afirma '[ "$(estado)" = "0000000000" ]' "o boot seguinte nao desligou o que ficou: $(estado)"
+  afirma '[ "$(estado)" = "00000000000" ]' "o boot seguinte nao desligou o que ficou: $(estado)"
   limpa
 
   novo_cenario "resgate: chave que nao confere ainda fica com escolha 0"
@@ -426,6 +431,49 @@ c_resgate(){
   limpa
 }
 
+c_pop_disp(){
+  novo_cenario "pop_disp: o pop-up de dispositivo conectado vai e volta pelo valor do build.prop"
+  instala
+  ch aplicar pop_disp ligar
+  afirma '[ "$RC" = 0 ] && [ "$(prop_ vendor.newlink.hisi.hdmiisdialog)" = 0 ] && [ "$(car pop_disp)" = 1 ]' "ligar nao zerou a prop: $(prop_ vendor.newlink.hisi.hdmiisdialog)"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1,2)" = "pop_disp:ok" ]' "aviso: $(prop_ vendor.pfl7560.chaves_aviso)"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves | wc -c)" = 12 ] && [ "$(prop_ vendor.pfl7560.chaves | cut -c11)" = 1 ]' "a prop chaves nao ganhou a 11a posicao: $(prop_ vendor.pfl7560.chaves)"
+  # o valor de volta vem do build.prop do aparelho, nao de um numero fixo
+  sed -i 's/^vendor.newlink.hisi.hdmiisdialog=.*/vendor.newlink.hisi.hdmiisdialog=2/' "$R/vendor/build.prop"
+  ch aplicar pop_disp desligar
+  afirma '[ "$(prop_ vendor.newlink.hisi.hdmiisdialog)" = 2 ] && [ "$(car pop_disp)" = 0 ]' "desligar nao devolveu o valor do build.prop: $(prop_ vendor.newlink.hisi.hdmiisdialog)"
+  # build.prop sem a linha (ou com 0): volta ao 1 de fabrica, nunca fica preso em 0
+  : > "$R/vendor/build.prop"
+  ch aplicar pop_disp ligar
+  ch aplicar pop_disp desligar
+  afirma '[ "$(prop_ vendor.newlink.hisi.hdmiisdialog)" = 1 ]' "sem build.prop nao voltou a 1: $(prop_ vendor.newlink.hisi.hdmiisdialog)"
+  limpa
+
+  novo_cenario "pop_disp: a prop nao e persist, o boot reaplica o padrao (pop-up fora)"
+  instala
+  ch boot
+  afirma '[ "$(car pop_disp)" = 1 ] && tem_chamada "setprop vendor.newlink.hisi.hdmiisdialog 0"' "o boot nao tirou o pop-up: $(estado)"
+  # reboot de mentira: a prop volta ao build.prop e o boot tira de novo
+  awk '!/^vendor.newlink.hisi.hdmiisdialog=/' "$T/props" > "$T/p"; echo vendor.newlink.hisi.hdmiisdialog=1 >> "$T/p"; mv "$T/p" "$T/props"
+  ch boot
+  afirma '[ "$(car pop_disp)" = 1 ]' "o segundo boot nao reaplicou: $(estado)"
+  # o dono quer o pop-up: escolha 0 e o boot nao tira mais
+  ch aplicar pop_disp desligar
+  ch boot
+  afirma '[ "$(car pop_disp)" = 0 ] && [ "$(prop_ vendor.newlink.hisi.hdmiisdialog)" = 1 ]' "o boot tirou o pop-up que o dono quis: $(estado)"
+  limpa
+
+  novo_cenario "pop_disp: firmware sem a prop = ausente, sem setprop"
+  instala
+  awk '!/^vendor.newlink.hisi.hdmiisdialog=/' "$T/props" > "$T/p"; mv "$T/p" "$T/props"
+  afirma '[ "$(car pop_disp)" = - ]' "sem a prop devia ser -: $(estado)"
+  ch aplicar pop_disp ligar
+  afirma '! tem_chamada "setprop vendor.newlink.hisi.hdmiisdialog" && [ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1,2)" = "pop_disp:ausente" ]' "ausente mexeu na prop: $(prop_ vendor.pfl7560.chaves_aviso)"
+  ch boot
+  afirma '! tem_chamada "setprop vendor.newlink.hisi.hdmiisdialog"' "o boot criou a prop num firmware sem ela"
+  limpa
+}
+
 c_pacotes_fora(){
   novo_cenario "pacotes-fora: so os grupos que o dono desligou"
   instala
@@ -433,7 +481,7 @@ c_pacotes_fora(){
   afirma '[ ! -s "$T/ch.out" ]' "padrao nao tem grupo fora: $(cat "$T/ch.out")"
   ch aplicar deb_vlc desligar
   ch pacotes-fora
-  afirma 'grep -qx org.videolan.vlc "$T/ch.out" && grep -qx com.mobisystems.editor.office_registered "$T/ch.out" && [ "$(wc -l < "$T/ch.out")" = 2 ]' "pacotes-fora: $(tr '\n' ' ' < "$T/ch.out")"
+  afirma 'grep -qx com.mobisystems.editor.office_registered "$T/ch.out" && [ "$(wc -l < "$T/ch.out")" = 1 ]' "pacotes-fora: $(tr '\n' ' ' < "$T/ch.out")"
   limpa
 }
 
@@ -474,17 +522,17 @@ c_integracao_boot(){
   : > "$T/calls.log"
   amb dash "$S/suite-boot.sh" > "$T/boot.out" 2>&1
   afirma '[ "$(estado | cut -c1-6)" = "111101" ]' "depois do boot: $(estado)"
-  afirma '! tem_chamada "pm disable-user --user 0 org.videolan.vlc" && ! tem_chamada "pm disable-user --user 0 com.mobisystems"' "o debloat do boot desligou o VLC/Office que o dono pos fora"
+  afirma '! tem_chamada "pm disable-user --user 0 com.mobisystems"' "o debloat do boot desligou o Office que o dono pos fora"
   afirma 'grep -q "nas chaves - nada a desligar" "$S/boot.log"' "o boot nao registrou o grupo fora: $(grep -c . "$S/boot.log")"
   limpa
 
-  novo_cenario "boot: sem a escolha o debloat de sempre segue (VLC desligado pela lista)"
+  novo_cenario "boot: sem a escolha o debloat de sempre segue (Office desligado pela lista; o VLC do dono fica)"
   instala
   stub dmesg 'exit 0'; stub inotifyd 'exit 0'
   mkdir -p "$R/data/system/users/0"; : > "$R/data/system/users/0/package-restrictions.xml"
-  echo org.videolan.vlc >> "$T/pm-instalados"
   amb dash "$S/suite-boot.sh" > "$T/boot.out" 2>&1
-  afirma 'desligado org.videolan.vlc && [ "$(car deb_vlc)" = 1 ]' "o padrao nao desligou o VLC"
+  afirma 'desligado com.mobisystems.editor.office_registered && [ "$(car deb_vlc)" = 1 ]' "o padrao nao desligou o Office"
+  afirma '! desligado org.videolan.vlc && ! tem_chamada "org.videolan.vlc"' "o boot mexeu no VLC do dono"
   limpa
 
   novo_cenario "boot: suite-chaves.sh adulterado nao roda no boot"
@@ -515,21 +563,21 @@ c_pendrive(){
   } > "$fn"
   cp "$KIT/suite-chaves.sh" "$T/work/suite-chaves.sh"
   amb dash "$fn" > "$T/pend.out" 2>&1
-  afirma '[ "$(estado)" = "0000000000" ] && grep -q "DESLIGAR-CHAVES.txt" "$T/pend.out"' "o resgate do pendrive nao desligou: $(estado) / $(tail -2 "$T/pend.out")"
+  afirma '[ "$(estado)" = "00000000000" ] && grep -q "DESLIGAR-CHAVES.txt" "$T/pend.out"' "o resgate do pendrive nao desligou: $(estado) / $(tail -2 "$T/pend.out")"
   tudo_ligado
   echo "# adulterado" >> "$T/work/suite-chaves.sh"
   amb dash "$fn" > "$T/pend.out" 2>&1
-  afirma '[ "$(estado)" = "1111111111" ] && grep -q "ERRO" "$T/pend.out"' "rodou o script nao conferido"
+  afirma '[ "$(estado)" = "11111111111" ] && grep -q "ERRO" "$T/pend.out"' "rodou o script nao conferido"
   rm -f "$MP/DESLIGAR-CHAVES.txt"; cp "$KIT/suite-chaves.sh" "$T/work/suite-chaves.sh"
   amb dash "$fn" > "$T/pend.out" 2>&1
-  afirma '[ "$(estado)" = "1111111111" ]' "sem o arquivo no pendrive nao devia desligar"
+  afirma '[ "$(estado)" = "11111111111" ]' "sem o arquivo no pendrive nao devia desligar"
   limpa
 }
 
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
-for c in c_ler c_aplicar c_intocaveis c_pedido_cmd c_boot c_resgate c_pacotes_fora c_integracao_pedido c_integracao_boot c_pendrive; do
+for c in c_ler c_aplicar c_intocaveis c_pedido_cmd c_boot c_resgate c_pop_disp c_pacotes_fora c_integracao_pedido c_integracao_boot c_pendrive; do
   echo "  $c"
   "$c"
 done

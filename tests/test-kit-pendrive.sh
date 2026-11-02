@@ -1267,8 +1267,8 @@ exec "$T/bin/pm.orig" "$@"'
   printf 'package:org.videolan.vlc\npackage:com.mobisystems.editor.office_registered\npackage:com.outro.app\n' > "$T/desligados"
   : > "$T/root/mnt/media_rw/USB1/REVERTER-DEBLOAT.txt"
   roda nokey
-  afirma 'tem_chamada "^pm enable --user 0 org.videolan.vlc" && tem_chamada "^pm enable --user 0 com.mobisystems.editor.office_registered"' "nao religou VLC e Office: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
-  afirma '! tem_chamada "^pm enable --user 0 com.outro.app" && ! tem_chamada "^pm disable"' "religou pacote fora da lista ou desligou algo"
+  afirma 'tem_chamada "^pm enable --user 0 com.mobisystems.editor.office_registered"' "nao religou o Office: $(grep '^pm ' "$T/calls.log" | tr '\n' '|')"
+  afirma '! tem_chamada "^pm enable --user 0 com.outro.app" && ! tem_chamada "^pm enable --user 0 org.videolan.vlc" && ! tem_chamada "^pm disable"' "religou pacote fora da lista (o VLC e do dono desde 2026-11-02) ou desligou algo"
   afirma '[ -e "$(S14)/debloat-revertido" ] && [ -f "$(S14)/debloat-aprovados.txt" ]' "sem a marca de reversao ou sem a lista na pasta da suite"
   afirma 'log_tudo | grep -q "REVERTER-DEBLOAT.txt no pendrive"' "log sem o aviso da reversao"
   rm -f "$T/root/mnt/media_rw/USB1/REVERTER-DEBLOAT.txt"; : > "$T/root/mnt/media_rw/USB1/REAPLICAR-DEBLOAT.txt"
