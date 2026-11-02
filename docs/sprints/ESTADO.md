@@ -17,7 +17,8 @@ listas md5. Resolver refazendo os APKs e rodando `bash tests/atualizar-md5-kit.s
 1. Quando cada workflow voltar: rodada de AskUserQuestion com todas as decisões que os relatos abrirem.
    - Bloco 24: por que o `higallery` ficou fora do grupo HiSilicon (o dono aprovou o grupo inteiro).
 2. Integrar no `main` (merge do branch), refazer APKs, `versionCode` e md5, rodar todos os `tests/test-*.sh`.
-3. Instalar no aparelho os blocos 23 + 24 (+ 25 se pronto), **só com o sim do dono pelo AskUserQuestion**.
+3. Instalar no aparelho os blocos 23 + 24 + 25. O dono mandou em 2026-11-01: "Quero que você coordene e integre
+   e instale até o fim". As decisões que os relatos abrirem continuam indo pelo AskUserQuestion antes de instalar.
    Conferir no aparelho:
    - a leitura do `gfs` (velocidade ou duty);
    - se entra em `Dreaming` no descanso;
