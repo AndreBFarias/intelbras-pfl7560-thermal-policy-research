@@ -23,7 +23,7 @@ ROTULO_PADRAO="u:object_r:vendor_configs_file:s0"
 # shellcheck disable=SC2034
 APP_PKG="com.pfl7560.verificar"
 # shellcheck disable=SC2034
-APP_VERSION_CODE="8"
+APP_VERSION_CODE="9"
 ESPERA_REBOOT=8
 DONO_UID=0
 [ "${PFL_TESTE:-}" = "1" ] && [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
@@ -38,21 +38,21 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-0dbcf2861f96e24e728342732ce54340  cor.sh
+13fd41c554dea560277267cdb461b463  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-047f2c46a6830016f040c5d147dd615b  suite.sh
-a0b30b2137509c13dc811963b95b182e  suite-boot.sh
-0a25b9dccafea85f0969b2bd5c0d8523  suite-pedido.sh
+e0f46982cf6003bf159446bf0b232985  suite.sh
+d3eccfa3a6dc9aee4b27648a21f5a917  suite-boot.sh
+be9328964c163e6a521444be60e4f1b7  suite-pedido.sh
 7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
-44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
+ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 2760b4c77e6639632f63a156859520bc  nl_logo
 d1b0b118aa713b541c0514687eab1609  suite-logo.sh
 127353d6189874843b431b88baf1b290  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
-1cb9ab7a70651d91558924b89643e284  pfl7560.apk
+dd1aa6239eef55535f3ad17853595109  pfl7560.apk
 1bf673e89c8dd43fc43d6943cdb80437  pfl7560-home.apk
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png

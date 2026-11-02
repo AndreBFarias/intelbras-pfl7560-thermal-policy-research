@@ -17,4 +17,9 @@
         <item name="android:windowBackground">@color/fundo</item>
         <item name="android:windowFullscreen">true</item>
     </style>
+    <!-- visor das telas da suite (bloco 29): o fundo e o logo MeowCast da abertura
+         (artifacts/tema/marca/logo.jpg, 1920x1080, copiado para drawable-nodpi/visor_fundo.jpg) -->
+    <style name="TemaVisor" parent="Tema">
+        <item name="android:windowBackground">@drawable/visor_fundo</item>
+    </style>
 </resources>

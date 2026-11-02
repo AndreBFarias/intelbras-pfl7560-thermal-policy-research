@@ -41,6 +41,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Visor das telas da suite (bloco 29): quem abre e o suite.sh (root, "am start -n"), por
+             isso nao e exportado; tarefa propria (taskAffinity) para nao se misturar com o icone
+             Verificar; singleTask: cada tela nova chega por onNewIntent, sem fechar e abrir. -->
+        <activity
+            android:name=".Visor"
+            android:theme="@style/TemaVisor"
+            android:exported="false"
+            android:launchMode="singleTask"
+            android:taskAffinity="com.pfl7560.verificar.visor"
+            android:excludeFromRecents="true" />
+
         <!-- Descanso de tela MeowCast (bloco 16B). Quem aponta para ele e o suite-boot.sh, por
              screensaver_components. Sem atividade de configuracao. -->
         <service

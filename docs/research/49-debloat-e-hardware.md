@@ -23,6 +23,8 @@ O que exige experimento com o dono está na §5. O que ficou sem ler por falta d
    AIC8800 (Android) e um **módulo caixa de som** separado, por UART, que o firmware liga e desliga por comando (§2.1).
 4. **O Wi-Fi/BT AIC8800D80 é um dispositivo USB que nunca suspende** (`power/control = on`), e o **`eth0` está
    administrativamente ligado sem cabo** (`flags 0x1003`, `carrier 0`). A câmera e o hub USB já suspendem (§2).
+   **E não pode suspender:** com `power/control = auto` o driver derruba o kernel (§2.2.1, 2026-11-02); o
+   `wifi_pwr` saiu das chaves no bloco 29.
 5. **Não existe microfone:** a única placa de som tem só saída (`pcmC0D0p`) e a câmera USB não tem interface de
    áudio (§2.4).
 6. **O POWER do controle desliga de verdade, não é standby:** `persist.sys.suspend.mode = shutdown`, e o aparelho
@@ -254,6 +256,32 @@ transmitindo e um chip com 500 mA de orçamento USB. Reversível: o botão da ho
 **Driver sobrando:** `skw_usb` e `skw_bootcoms` (Seekwave, outro fornecedor de Wi-Fi/BT) estão carregados
 (`/proc/modules`) sem nenhum dispositivo Seekwave no USB. É a build servindo duas listas de peças. Custo:
 memória do kernel, não CPU. Tirar exige mexer no `.rc` (fora do escopo).
+
+#### 2.2.1 Autosuspend no chip Wi-Fi derruba o kernel (2026-11-02, bloco 29)
+
+**Medido no aparelho (só leitura, 2026-11-02 05:08).** O dono viu a suíte de testes "rodando sem parar". Os três
+últimos boots tinham `sys.boot.reason = kernel_panic,NULL`, e a suíte roda sozinha no modo `tomada
+desligamento_nao_limpo` a cada boot depois de um panic: cada panic virava uma suíte nova na tela.
+
+- `pstore/console-ramoops-0`: `Unable to handle kernel NULL pointer dereference` em **`aicwf_usb_bus_start`**
+  (módulo **`aic8800_fdrv`**), na workqueue **`usb_hub_wq`**, aos **1526 s** de uptime.
+- `chaves.escolhas` tinha `wifi_pwr=1`: o chip (USB `1-3`, `a69c:8d81`) estava com **`power/control = auto`**.
+- O `dmesg` mostra **suspend/resume do driver a cada ~4 s** com o `auto`. Cada resume passa pelo
+  `aicwf_usb_bus_start`; uma das voltas cai no NULL e derruba tudo. Com `on`, não há suspend e não há panic.
+- O padrão de instalação de `wifi_pwr` era 0 e a linha já tinha saído da home no bloco 27; não se sabe quem gravou 1.
+
+**Na hora (coordenador, com o pedido do dono de parar):** `kill` da suíte, `echo on >
+/sys/bus/usb/devices/1-3/power/control`, `suite-chaves.sh aplicar wifi_pwr desligar`.
+
+**Cura (bloco 29, decisão do dono: "só remove o gatilho das escolhas"):** `wifi_pwr` deixou de ser uma escolha do
+`suite-chaves.sh`. `aplicar`/`pedido` recusam o id (rc 2, "não é mais uma escolha" no log); o `boot` não reaplica,
+apaga a linha `wifi_pwr=` que estiver no `chaves.escolhas` e escreve `on` no `power/control` do chip (achado pelo id
+`a69c:8d80/8d81`, nunca pelo `1-3` fixo), antes de qualquer outra coisa; o `resgate` faz o mesmo. A posição 8 da prop
+`vendor.pfl7560.chaves` fica reservada e é **sempre `-`**, para não deslocar os ids seguintes. Prova:
+`tests/test-chaves.sh` (`c_wifi_retirado`).
+
+**Consequência para a §5:** o "ganho possível em autosuspend" do fim da §5.2 está descartado neste firmware. O
+`echo auto` no chip não é experimento seguro: derruba o kernel em minutos.
 
 ### 2.3 Ethernet que não tem conector
 
@@ -592,7 +620,8 @@ no fim. Os passos que derrubam o adb são feitos pelo dono no controle; o gravad
 
 A leitura que importa é **P0 × P4** (Wi-Fi) e **P0 × P2/P3** (apps). Se P4 der a maior parte dos 5 °C, conferir no
 arquivo se o `wifi_usb` continuou `active` com o Wi-Fi desligado: se sim, o chip não dorme e há ganho possível em
-autosuspend (precisa de root: `echo auto > /sys/bus/usb/devices/1-3/power/control`).
+autosuspend (precisa de root: `echo auto > /sys/bus/usb/devices/1-3/power/control`). **Descartado em 2026-11-02:**
+com `auto` o `aic8800_fdrv` derruba o kernel (§2.2.1); não fazer.
 
 ### 5.3 Experimentos de `sfs`/`sbri` ao vivo (só se o bloco 23 precisar confirmar a §4)
 

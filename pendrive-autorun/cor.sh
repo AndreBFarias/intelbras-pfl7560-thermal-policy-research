@@ -2,7 +2,7 @@
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
   PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
-  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE
+  unset PFL_ROOT PFL_LVDSCTL PFL_LVDSCTL_MD5 PFL_NLCAMCHECK PFL_NLCAMCHECK_MD5 PFL_MODO_AUTO PFL_RAPIDO PFL_DONO PFL_TESTE PFL_APP_UID_MIN
 fi
 R="${PFL_ROOT:-}"
 PP="$R/dev/block/by-name/panelparam"
@@ -17,9 +17,11 @@ VIDEO="$R/dev/video0"
 LVDSCTL_MD5="178d812872cb9306c0ae6faeed07184a"
 NLCAM_MD5="02bedd31ae0e82afd10c41daabf2bd56"
 DONO_UID=0
+APP_UID_MIN=10000
 MODO_AUTO=1
 if [ "${PFL_TESTE:-}" = "1" ]; then
   [ -n "${PFL_DONO:-}" ] && DONO_UID="$PFL_DONO"
+  [ -n "${PFL_APP_UID_MIN:-}" ] && APP_UID_MIN="$PFL_APP_UID_MIN"
   [ -n "${PFL_LVDSCTL_MD5:-}" ] && LVDSCTL_MD5="$PFL_LVDSCTL_MD5"
   [ -n "${PFL_NLCAMCHECK_MD5:-}" ] && NLCAM_MD5="$PFL_NLCAMCHECK_MD5"
   [ -n "${PFL_MODO_AUTO:-}" ] && MODO_AUTO="$PFL_MODO_AUTO"
@@ -32,6 +34,14 @@ LOGF="$WORK/cor.log"
 SUITE_DIR="$R/data/vendor/pfl7560-suite"
 SUITE_MODO=0
 COR_RES=erro
+# visor do app (bloco 29): o mesmo da suite.sh (pasta, nome e am start); so no modo suite, quando a
+# suite ja abriu o visor e passa "visor". Voltar/Sair no visor grava $CANCELAR_ARQ (dono = o app).
+PEDIDO_DIR="$R/data/data/com.pfl7560.verificar"
+VISOR_DIR="$PEDIDO_DIR/visor"
+CANCELAR_ARQ="$PEDIDO_DIR/cancelar-suite"
+VISOR_COMP="com.pfl7560.verificar/.Visor"
+VISOR=0
+GALERIA=""
 COR_FAIXAS="-"
 
 PERFIL_TAM=768
@@ -118,15 +128,29 @@ preparar_tela(){
   chmod 755 "$TELA_DIR" 2>/dev/null
   chmod 644 "$TELA_DIR"/*.png 2>/dev/null
 }
+visor_dir_ok(){
+  [ -d "$VISOR_DIR" ] && [ ! -L "$VISOR_DIR" ] || return 1
+  # shellcheck disable=SC2046
+  set -- $(ls -ldn "$VISOR_DIR" 2>/dev/null)
+  [ "${1:-}" = "drwxr-xr-x" ] || [ "${1:-}" = "drwxr-xr-x." ] || return 1
+  [ "${3:-}" = "$DONO_UID" ]
+}
+visor_mostrar(){
+  _vn="${1##*/}"
+  case "$_vn" in ''|*[!a-z0-9.-]*|[.-]*|*..*) return 1 ;; esac
+  case "$_vn" in *.png) ;; *) return 1 ;; esac
+  visor_dir_ok || return 1
+  rm -f "$VISOR_DIR"/* 2>/dev/null
+  cp "$1" "$VISOR_DIR/.n-$_vn" 2>/dev/null && chmod 644 "$VISOR_DIR/.n-$_vn" 2>/dev/null && mv -f "$VISOR_DIR/.n-$_vn" "$VISOR_DIR/$_vn" 2>/dev/null || return 1
+  _vo=$(am start -n "$VISOR_COMP" --es tela "$_vn" 2>&1)
+  case "$_vo" in *Error*|*Exception*) LOG "[AVISO] visor: am start falhou ($(echo "$_vo" | tr -cd 'A-Za-z0-9 ._/:{}-' | cut -c1-100))"; return 1 ;; esac
+  return 0
+}
 mostrar(){
   _f="$TELA_DIR/$1.png"
   [ -f "$_f" ] || { LOG "[AVISO] tela $1 ausente em $TELA_DIR"; return 1; }
+  checar_cancelar
   LOG "tela: $1"
-  _pk=$(cmd package resolve-activity --brief -a android.intent.action.VIEW -d "file://${_f#"$R"}" -t image/png 2>/dev/null | tail -1)
-  _pk="${_pk%%/*}"
-  case "$_pk" in
-    ''|android|*[!A-Za-z0-9._]*) _pk="com.hisilicon.higallery" ;;
-  esac
   _fa=0
   while [ "$_fa" -lt 3 ]; do
     _fp=$(dumpsys window 2>/dev/null | grep -a 'mCurrentFocus' | head -1 | sed -n 's/.* u0 \([^ }]*\)}.*/\1/p')
@@ -137,6 +161,17 @@ mostrar(){
     else input keyevent KEYCODE_BACK >/dev/null 2>&1; fi
     sleep 1; _fa=$(( _fa + 1 ))
   done
+  if [ "$VISOR" = "1" ]; then
+    if visor_mostrar "$_f"; then sleep "$TEMPO_TELA"; return 0; fi
+    VISOR=0
+    LOG "[AVISO] visor: a tela $1 nao abriu no visor - da aqui em diante pela galeria."
+  fi
+  _pk=$(cmd package resolve-activity --brief -a android.intent.action.VIEW -d "file://${_f#"$R"}" -t image/png 2>/dev/null | tail -1)
+  _pk="${_pk%%/*}"
+  case "$_pk" in
+    ''|android|*[!A-Za-z0-9._]*) _pk="com.hisilicon.higallery" ;;
+  esac
+  GALERIA="$_pk"
   am force-stop "$_pk" >/dev/null 2>&1
   am start -a android.intent.action.VIEW -d "file://${_f#"$R"}" -t image/png >/dev/null 2>&1
   sleep "$TEMPO_TELA"
@@ -157,8 +192,52 @@ aguardar_autofoco(){
   sleep "$AUTOFOCO_FOLGA"
 }
 
+# Cancelar (bloco 29): Voltar/Esc no controle (pelo nome da tecla que o leitor de eventos da) ou o pedido que o visor grava.
+# Nao e decisao da pessoa: se o lvds_fmt ja foi trocado (journal desta execucao), volta ao original
+# pelo mesmo reverter (que confere a particao com o backup) antes de sair; o resultado fica
+# "cancelado" e a suite para sem resumo. O pedido do visor so vale no modo suite e quem o apaga e a suite.
+app_uid(){
+  APP_UID=""
+  [ -d "$PEDIDO_DIR" ] && [ ! -L "$PEDIDO_DIR" ] || return 1
+  # shellcheck disable=SC2046
+  set -- $(ls -ldn "$PEDIDO_DIR" 2>/dev/null)
+  case "${3:-}" in ''|*[!0-9]*) return 1 ;; esac
+  [ "$3" -ge "$APP_UID_MIN" ] || return 1
+  APP_UID="$3"
+}
+cancelou(){
+  [ "$SUITE_MODO" = "1" ] || return 1
+  [ -f "$CANCELAR_ARQ" ] && [ ! -L "$CANCELAR_ARQ" ] || return 1
+  app_uid || return 1
+  # shellcheck disable=SC2046
+  set -- $(ls -ln "$CANCELAR_ARQ" 2>/dev/null)
+  [ "${3:-}" = "$APP_UID" ]
+}
+cancelar(){
+  LOG "cancelado pelo controle ($1): sem resultado da cor"
+  if [ -f "$JOURNAL" ]; then
+    LOG "o lvds_fmt ja foi trocado nesta execucao: revertendo para o original antes de sair"
+    if reverter; then
+      LOG "[OK] revertido no cancelar: lvds_fmt=$J_FMT e a particao confere com o backup"
+      [ "$VIVO_OK" = "1" ] || LOG "[AVISO] o lvdsctl nao confirmou a volta ao vivo: o formato original vale a partir do proximo boot."
+    else
+      LOG "[ERRO] a reversao nao conferiu; journal mantido: o proximo boot tenta de novo."
+    fi
+  else
+    LOG "nada foi escrito na panelparam"
+  fi
+  COR_RES=cancelado
+  finalizar cancelado
+}
+checar_cancelar(){ cancelou && cancelar "pedido do visor"; return 0; }
+# 0 = tecla (resposta da pessoa); 1 = nenhuma tecla no prazo. Voltar/Esc ou o pedido do visor nao voltam:
+# cancelam.
 esperar_tecla(){
-  timeout "$TEMPO_TECLA" getevent -qlc 3 2>/dev/null | grep -q 'EV_KEY.*DOWN'
+  checar_cancelar
+  _ev=$(timeout "$TEMPO_TECLA" getevent -qlc 3 2>/dev/null | grep 'EV_KEY.*DOWN')
+  if echo "$_ev" | grep -qE 'EV_KEY[[:space:]]+KEY_(BACK|ESC)[[:space:]]+DOWN'; then cancelar "tecla Voltar/Esc"; fi
+  checar_cancelar
+  [ -n "$_ev" ]
 }
 
 lvdsctl_confere(){
@@ -396,6 +475,9 @@ finalizar(){
   _t="$1"
   if [ "$SUITE_MODO" = "1" ]; then
     gravar_resultado "$_t"
+  elif [ "$_t" = "cancelado" ]; then
+    am force-stop "${GALERIA:-com.hisilicon.higallery}" >/dev/null 2>&1
+    input keyevent KEYCODE_HOME >/dev/null 2>&1
   else
     if [ "$_t" = "pronto" ] && [ -n "$AVISO" ]; then
       LOG "[AVISO] a fase termica nao ficou efetiva (ver o log): mostrando ERRO em vez de PRONTO."
@@ -472,6 +554,7 @@ decidir_por_camera(){
 
   LOG "escada FORA de ordem ($ESC_INV inversoes) com lvds_fmt=$CVAL: tentando lvds_fmt=$NOVO"
   vivo_disponivel || { LOG "[AVISO] lvdsctl ou libhitvservice ausente: nada foi escrito: a pessoa decide"; return 1; }
+  checar_cancelar
   preparar_backup || finalizar erro
   jornal_gravar "$CIDX" "$OFF" "$CVAL" "$BKP_MD5" || { LOG "[ERRO] nao consegui gravar o journal - NAO vou escrever."; finalizar erro; }
   instalar_gancho
@@ -551,6 +634,7 @@ modo_teste(){
   if [ "$4" = "suite" ]; then
     SUITE_MODO=1
     LOGF="$SUITE_DIR/cor.log"
+    [ "$5" = "visor" ] && VISOR=1
   fi
   if [ "${#COR_MD5}" != "32" ] || [ "$(md5_de "$0")" != "$COR_MD5" ]; then
     LOG "[ERRO] md5 de cor.sh ausente ou diferente do conferido pelo newlink_update.sh - NAO vou escrever."
@@ -612,6 +696,7 @@ modo_teste(){
     LOG "[ERRO] lvdsctl ou libhitvservice ausente: nao da para testar ao vivo. Nada foi escrito. Use o wizard do PC (pfl7560-lcd-color.sh wizard)."
     finalizar erro
   }
+  checar_cancelar
   preparar_backup || finalizar erro
   jornal_gravar "$CIDX" "$OFF" "$CVAL" "$BKP_MD5" || { LOG "[ERRO] nao consegui gravar o journal - NAO vou escrever."; finalizar erro; }
   instalar_gancho
@@ -652,5 +737,5 @@ modo_teste(){
 case "$1" in
   --restaurar) modo_restaurar ;;
   --tela) trabalho_ok || exit 1; preparar_tela; mostrar "$2"; exit 0 ;;
-  *) modo_teste "$1" "$2" "$3" "${4:-}" ;;
+  *) modo_teste "$1" "$2" "$3" "${4:-}" "${5:-}" ;;
 esac
