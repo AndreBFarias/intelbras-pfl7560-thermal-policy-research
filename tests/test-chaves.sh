@@ -93,7 +93,10 @@ prop_(){ awk -v k="$1" 'index($0, k "=") == 1 { v = substr($0, length(k) + 2) } 
 tem_chamada(){ grep -qF -- "$1" "$T/calls.log" 2>/dev/null; }
 desligado(){ grep -qx "$1" "$T/pm-desligados"; }
 escolha(){ sed -n "s/^$1=//p" "$S/chaves.escolhas" 2>/dev/null | tail -n 1; }
-tudo_ligado(){ local i; for i in $IDS; do ch aplicar "$i" ligar; done; }
+# wifi_pwr saiu das escolhas (bloco 29: o auto no chip Wi-Fi derrubava o kernel); a posicao 8 fica sempre '-'
+RETIRADOS="wifi_pwr"
+retirado(){ case " $RETIRADOS " in *" $1 "*) return 0 ;; esac; return 1; }
+tudo_ligado(){ local i; for i in $IDS; do retirado "$i" || ch aplicar "$i" ligar; done; }
 
 c_estaticos(){
   CASO="estaticos"
@@ -136,9 +139,9 @@ c_ler(){
   novo_cenario "ler: estado inicial lido do aparelho"
   instala
   ch estado
-  afirma '[ "$(estado)" = "00000000000" ]' "estado inicial: $(estado)"
+  afirma '[ "$(estado)" = "0000000-000" ]' "estado inicial: $(estado)"
   ch ler
-  afirma '[ "$RC" = 0 ] && [ "$(prop_ vendor.pfl7560.chaves)" = "00000000000" ]' "prop chaves: '$(prop_ vendor.pfl7560.chaves)'"
+  afirma '[ "$RC" = 0 ] && [ "$(prop_ vendor.pfl7560.chaves)" = "0000000-000" ]' "prop chaves: '$(prop_ vendor.pfl7560.chaves)'"
   # parcial, ligada e ausente
   echo com.newlink.autotest >> "$T/pm-desligados"
   afirma '[ "$(car deb_seg)" = p ]' "um pacote desligado de seis = p: $(estado)"
@@ -149,7 +152,8 @@ c_ler(){
   echo 0x1002 > "$R/sys/class/net/eth0/flags"
   afirma '[ "$(car eth0)" = 1 ]' "eth0 sem o bit UP = 1: $(estado)"
   echo auto > "$R/sys/bus/usb/devices/1-3/power/control"
-  afirma '[ "$(car wifi_pwr)" = 1 ]' "power/control=auto = 1"
+  afirma '[ "$(car wifi_pwr)" = - ]' "wifi_pwr retirado: power/control=auto ainda e '-'"
+  afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = auto ]' "ler/estado escreveu no chip"
   rm -rf "$R/sys/bus/usb/devices/1-3"
   afirma '[ "$(car wifi_pwr)" = - ]' "sem o USB do AIC8800 = -"
   afirma '[ "$(car web_cmd)" = 0 ]' "servicos rodando = 0"
@@ -176,6 +180,7 @@ c_aplicar(){
   novo_cenario "aplicar: cada chave liga, le o estado real e volta pela mesma chave"
   instala
   for i in $IDS; do
+    retirado "$i" && continue
     ch aplicar "$i" ligar
     afirma '[ "$RC" = 0 ]' "aplicar $i ligar saiu com $RC: $(tr '\n' '|' < "$T/ch.out")"
     afirma '[ "$(car "$i")" = 1 ]' "$i nao ficou ligada: $(estado)"
@@ -183,13 +188,14 @@ c_aplicar(){
     afirma '[ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1,2)" = "$i:ok" ]' "aviso de $i: $(prop_ vendor.pfl7560.chaves_aviso)"
     afirma '[ "$(prop_ vendor.pfl7560.chaves | cut -c"$(pos "$i")")" = 1 ]' "prop chaves nao mostra $i ligada: $(prop_ vendor.pfl7560.chaves)"
   done
-  afirma '[ "$(estado)" = "11111111111" ]' "todas ligadas: $(estado)"
+  afirma '[ "$(estado)" = "1111111-111" ]' "todas ligadas: $(estado)"
   for i in $IDS; do
+    retirado "$i" && continue
     ch aplicar "$i" desligar
     afirma '[ "$(car "$i")" = 0 ]' "$i nao voltou: $(estado)"
     afirma '[ "$(escolha "$i")" = 0 ]' "escolha de $i nao virou 0"
   done
-  afirma '[ "$(estado)" = "00000000000" ]' "tudo de volta: $(estado)"
+  afirma '[ "$(estado)" = "0000000-000" ]' "tudo de volta: $(estado)"
   afirma '[ ! -s "$T/pm-desligados" ]' "sobrou pacote desligado: $(tr '\n' ' ' < "$T/pm-desligados")"
   afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ] && [ "$(cat "$R/sys/class/net/eth0/flags")" = 0x1003 ]' "porta/chip nao voltaram"
   afirma '[ "$(prop_ log.tag.HI_VPLUGIN)" = "" ] && [ "$(prop_ persist.hisi.keystone.enable)" = true ] && [ "$(prop_ vendor.newlink.hisi.hdmiisdialog)" = 1 ]' "props nao voltaram"
@@ -197,15 +203,6 @@ c_aplicar(){
   afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3:1.0/power/control")" = on ] && [ "$(cat "$R/sys/bus/usb/devices/1-1/power/control")" = on ]' "tocou em interface ou em outro dispositivo USB"
   afirma '! grep -q "^GTT\|^logcat\|^reboot" "$T/calls.log"' "gtt/logcat/reboot chamado"
   afirma '[ ! -d "$R/dev/pfl7560-chaves.trava" ]' "a trava ficou"
-  # chip Wi-Fi achado pelo id, nao pelo 1-3
-  mv "$R/sys/bus/usb/devices/1-3" "$R/sys/bus/usb/devices/2-1"
-  ch aplicar wifi_pwr ligar
-  afirma '[ "$(cat "$R/sys/bus/usb/devices/2-1/power/control")" = auto ]' "nao achou o chip pelo id (2-1)"
-  echo 8d80 > "$R/sys/bus/usb/devices/2-1/idProduct"
-  afirma '[ "$(car wifi_pwr)" = 1 ]' "id a69c:8d80 tambem vale"
-  echo 1234 > "$R/sys/bus/usb/devices/2-1/idProduct"
-  ch aplicar wifi_pwr desligar
-  afirma '[ "$RC" = 2 ] && [ "$(cat "$R/sys/bus/usb/devices/2-1/power/control")" = auto ]' "id errado: nao devia ter mexido (rc=$RC)"
   limpa
 
   novo_cenario "aplicar: recusas e falhas nao mentem"
@@ -226,9 +223,6 @@ c_aplicar(){
   rm -rf "$R/sys/class/net/eth0"
   ch aplicar eth0 ligar
   afirma '[ "$RC" = 2 ] && [ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1,2)" = "eth0:ausente" ] && [ -z "$(escolha eth0)" ]' "eth0 ausente: rc=$RC aviso=$(prop_ vendor.pfl7560.chaves_aviso)"
-  rm -rf "$R/sys/bus/usb/devices/1-3"
-  ch aplicar wifi_pwr ligar
-  afirma '[ "$RC" = 2 ] && [ -z "$(escolha wifi_pwr)" ]' "chip ausente: rc=$RC"
   # o lancador de fabrica so sai se a home nova estiver de pe
   grep -v '^com.pfl7560.home$' "$T/pm-instalados" > "$T/x"; mv "$T/x" "$T/pm-instalados"
   ch aplicar deb_lnch ligar
@@ -275,7 +269,7 @@ c_pedido_cmd(){
   ch pedido "v1 eth0 desligar"
   afirma '[ "$(car eth0)" = 0 ]' "pedido de desligar nao aplicou"
   ch pedido "v1 ler"
-  afirma '[ "$(prop_ vendor.pfl7560.chaves)" = "00000000000" ]' "v1 ler nao publicou: $(prop_ vendor.pfl7560.chaves)"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves)" = "0000000-000" ]' "v1 ler nao publicou: $(prop_ vendor.pfl7560.chaves)"
   : > "$T/calls.log"
   ch pedido "eth0 ligar"
   ch pedido "v2 eth0 ligar"
@@ -297,14 +291,13 @@ c_boot(){
   instala
   ch boot
   afirma '[ "$RC" = 0 ]' "boot saiu com $RC"
-  afirma '[ "$(estado)" = "11111100001" ]' "padroes: $(estado) (esperado 11111100001)"
+  afirma '[ "$(estado)" = "1111110-001" ]' "padroes: $(estado) (esperado 1111110-001)"
   afirma '! tem_chamada "ip link" && ! tem_chamada "stop " && ! tem_chamada "persist.hisi.keystone" && [ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ]' "o boot mexeu no que o dono nao ligou"
   limpa
 
   novo_cenario "boot: escolha do dono vence o padrao e e reaplicada"
   instala
   ch aplicar eth0 ligar
-  ch aplicar wifi_pwr ligar
   ch aplicar web_cmd ligar
   ch aplicar keystone ligar
   ch aplicar log_vplug desligar
@@ -314,7 +307,7 @@ c_boot(){
   awk '!/^init.svc/' "$T/props" > "$T/p"; printf '%s\n' init.svc.boa=running init.svc.cmdsrv=running >> "$T/p"; mv "$T/p" "$T/props"
   : > "$T/pm-desligados"; : > "$T/calls.log"
   ch boot
-  afirma '[ "$(estado)" = "11011011111" ]' "reaplicacao: $(estado) (esperado 11011011111)"
+  afirma '[ "$(estado)" = "1101101-111" ]' "reaplicacao: $(estado) (esperado 1101101-111)"
   afirma '! tem_chamada "pm disable-user --user 0 com.hisilicon.tvui"' "grupo desligado pelo dono foi desligado de novo no boot"
   afirma '! tem_chamada "setprop log.tag.HI_VPLUGIN S"' "log do vplugin voltou sozinho"
   limpa
@@ -331,7 +324,7 @@ c_boot(){
   instala
   : > "$S/debloat-revertido"
   ch boot
-  afirma '[ "$(estado)" = "11110100001" ]' "com a marca: $(estado) (esperado 11110100001)"
+  afirma '[ "$(estado)" = "1111010-001" ]' "com a marca: $(estado) (esperado 1111010-001)"
   ch aplicar deb_vlc ligar
   afirma '[ "$(car deb_vlc)" = 1 ]' "o dono liga o grupo do Office mesmo com a marca"
   limpa
@@ -360,7 +353,7 @@ exit 0'
   stub sleep 'echo "sleep $*" >> "$T/calls.log"; rm -f "$T/pm-mudo"'
   ch boot
   afirma '! tem_chamada TRAVADA-NA-ESPERA' "o boot segurou a trava enquanto esperava o pm"
-  afirma '[ "$(estado)" = "11111100001" ]' "depois da espera: $(estado)"
+  afirma '[ "$(estado)" = "1111110-001" ]' "depois da espera: $(estado)"
   limpa
 
   novo_cenario "boot: trava velha (processo morto) nao prende"
@@ -375,15 +368,16 @@ c_resgate(){
   novo_cenario "resgate: desliga todas, grava 0 em todas e o boot nao reaplica nada"
   instala
   tudo_ligado
-  afirma '[ "$(estado)" = "11111111111" ]' "preparo: $(estado)"
+  afirma '[ "$(estado)" = "1111111-111" ]' "preparo: $(estado)"
   ch resgate
   afirma '[ "$RC" = 0 ]' "resgate saiu com $RC"
-  afirma '[ "$(estado)" = "00000000000" ]' "depois do resgate: $(estado)"
-  for i in $IDS; do afirma '[ "$(escolha "$i")" = 0 ]' "escolha de $i nao ficou 0"; done
+  afirma '[ "$(estado)" = "0000000-000" ]' "depois do resgate: $(estado)"
+  for i in $IDS; do retirado "$i" || afirma '[ "$(escolha "$i")" = 0 ]' "escolha de $i nao ficou 0"; done
+  afirma '! grep -q "^wifi_pwr=" "$S/chaves.escolhas"' "o resgate gravou escolha para o wifi_pwr retirado"
   afirma '[ ! -s "$T/pm-desligados" ] && [ "$(cat "$R/sys/class/net/eth0/flags")" = 0x1003 ] && [ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ]' "algo ficou desligado"
   : > "$T/calls.log"
   ch boot
-  afirma '[ "$(estado)" = "00000000000" ]' "o boot reaplicou depois do resgate: $(estado)"
+  afirma '[ "$(estado)" = "0000000-000" ]' "o boot reaplicou depois do resgate: $(estado)"
   afirma '! tem_chamada "pm disable-user" && ! tem_chamada "setprop log.tag.HI_VPLUGIN S"' "o boot ligou algo depois do resgate"
   afirma '[ "$(ls -A "$S" | grep -c "revertido\|resgate")" = 0 ]' "o resgate deixou marca"
   limpa
@@ -395,11 +389,11 @@ c_resgate(){
   : > "$T/calls.log"
   ch resgate
   afirma '[ "$RC" != 0 ] && grep -q "escolhas gravadas em 0" "$T/ch.out"' "resgate sem trava nao avisou: $(tail -1 "$T/ch.out")"
-  for i in $IDS; do afirma '[ "$(escolha "$i")" = 0 ]' "sem a trava, a escolha de $i nao ficou 0"; done
+  for i in $IDS; do retirado "$i" || afirma '[ "$(escolha "$i")" = 0 ]' "sem a trava, a escolha de $i nao ficou 0"; done
   afirma '[ "$(grep -c "^sleep" "$T/calls.log")" -ge 179 ]' "o resgate desistiu da trava cedo demais"
   rm -rf "$R/dev/pfl7560-chaves.trava"
   ch boot
-  afirma '[ "$(estado)" = "00000000000" ]' "o boot seguinte nao desligou o que ficou: $(estado)"
+  afirma '[ "$(estado)" = "0000000-000" ]' "o boot seguinte nao desligou o que ficou: $(estado)"
   limpa
 
   novo_cenario "resgate: chave que nao confere ainda fica com escolha 0"
@@ -410,17 +404,13 @@ c_resgate(){
   afirma '[ "$(escolha eth0)" = 0 ]' "eth0 nao confirmou e a escolha ficou '$(escolha eth0)' (o boot religaria)"
   limpa
 
-  novo_cenario "wifi: o chip que some ao dormir nao fica escolhido (o boot nao repete)"
+  novo_cenario "resgate: wifi_pwr retirado nao ganha escolha e o chip fica acordado"
   instala
-  ch aplicar wifi_pwr ligar
-  afirma '[ "$(escolha wifi_pwr)" = 1 ]' "preparo: escolha '$(escolha wifi_pwr)'"
-  ch aplicar wifi_pwr desligar
-  # o power/control aponta para o idVendor: gravar "auto" faz o chip sumir da lista do USB
-  rm -f "$R/sys/bus/usb/devices/1-3/power/control"; ln -s ../idVendor "$R/sys/bus/usb/devices/1-3/power/control"
-  ch aplicar wifi_pwr ligar
-  afirma '[ "$RC" != 0 ] && [ "$(escolha wifi_pwr)" = 0 ]' "o chip sumiu e a escolha ficou '$(escolha wifi_pwr)' (rc=$RC)"
-  afirma '[ "$(prop_ vendor.pfl7560.chaves_aviso | cut -d: -f1-2)" = "wifi_pwr:sumiu" ]' "aviso: '$(prop_ vendor.pfl7560.chaves_aviso)'"
-  afirma 'grep -q " wifi_pwr ligar sumiu$" "$S/diario.fila"' "a fila do diario nao registrou o sumico"
+  printf '%s\n' eth0=1 wifi_pwr=1 > "$S/chaves.escolhas"; chmod 600 "$S/chaves.escolhas"
+  echo auto > "$R/sys/bus/usb/devices/1-3/power/control"
+  ch resgate
+  afirma '[ "$RC" = 0 ] && [ -z "$(escolha wifi_pwr)" ] && [ "$(escolha eth0)" = 0 ]' "resgate: wifi_pwr='$(escolha wifi_pwr)' eth0='$(escolha eth0)' rc=$RC"
+  afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ]' "resgate deixou o chip em auto"
   limpa
 
   novo_cenario "resgate: aparelho sem eth0 e sem chip nao quebra"
@@ -428,6 +418,58 @@ c_resgate(){
   rm -rf "$R/sys/class/net/eth0" "$R/sys/bus/usb/devices/1-3"
   ch resgate
   afirma '[ "$RC" = 0 ]' "resgate saiu com $RC"
+  limpa
+}
+
+c_wifi_retirado(){
+  novo_cenario "wifi_pwr retirado: aplicar e pedido recusam, nada escreve auto"
+  instala
+  ch aplicar wifi_pwr ligar
+  afirma '[ "$RC" = 2 ] && [ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ] && [ -z "$(escolha wifi_pwr)" ]' "aplicar wifi_pwr ligar: rc=$RC, chip=$(cat "$R/sys/bus/usb/devices/1-3/power/control"), escolha='$(escolha wifi_pwr)'"
+  afirma 'grep -q "wifi_pwr nao e mais uma escolha" "$T/ch.out"' "a recusa nao foi registrada: $(tr '\n' '|' < "$T/ch.out")"
+  ch aplicar wifi_pwr desligar
+  afirma '[ "$RC" = 2 ] && [ -z "$(escolha wifi_pwr)" ]' "aplicar wifi_pwr desligar: rc=$RC"
+  ch pedido "v1 wifi_pwr ligar"
+  afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ] && [ -z "$(escolha wifi_pwr)" ]' "o pedido da home ligou o wifi_pwr"
+  afirma 'grep -q "wifi_pwr nao e mais uma escolha" "$S/chaves.log"' "o pedido recusado nao foi para o chaves.log"
+  # pelo caminho da home inteiro (suite-pedido -> suite-chaves)
+  printf 'v1 wifi_pwr ligar\n' > "$PEDH/chave"
+  amb dash "$S/suite-pedido.sh" w "$PEDH" chave > "$T/pedido.out" 2>&1
+  afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = on ] && [ ! -e "$PEDH/chave" ]' "a home ligou o wifi_pwr pelo suite-pedido"
+  afirma '! grep -q "auto" "$R/sys/bus/usb/devices"/*/power/control' "alguem escreveu auto"
+  ch pedido "v1 ler"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves | cut -c8)" = - ]' "a prop nao mostra '-' na posicao 8: $(prop_ vendor.pfl7560.chaves)"
+  limpa
+
+  novo_cenario "wifi_pwr retirado: boot apaga a escolha velha e escreve on no chip"
+  instala
+  printf '%s\n' log_vplug=0 wifi_pwr=1 keystone=1 > "$S/chaves.escolhas"; chmod 600 "$S/chaves.escolhas"
+  # o chip achado pelo id (a69c:8d80 tambem), nao pelo 1-3
+  mv "$R/sys/bus/usb/devices/1-3" "$R/sys/bus/usb/devices/2-1"
+  echo auto > "$R/sys/bus/usb/devices/2-1/power/control"
+  echo 8d80 > "$R/sys/bus/usb/devices/2-1/idProduct"
+  ch boot
+  afirma '[ "$RC" = 0 ]' "boot saiu com $RC"
+  afirma '[ "$(cat "$R/sys/bus/usb/devices/2-1/power/control")" = on ]' "o boot deixou o chip em '$(cat "$R/sys/bus/usb/devices/2-1/power/control")'"
+  afirma '! grep -q "^wifi_pwr=" "$S/chaves.escolhas" && [ "$(escolha log_vplug)" = 0 ] && [ "$(escolha keystone)" = 1 ]' "escolhas depois do boot: $(tr '\n' ' ' < "$S/chaves.escolhas")"
+  afirma '[ "$(stat -c %a "$S/chaves.escolhas")" = 600 ]' "o chaves.escolhas reescrito nao ficou 600"
+  afirma '[ "$(cat "$R/sys/bus/usb/devices/1-3:1.0/power/control")" = on ] && [ "$(cat "$R/sys/bus/usb/devices/1-1/power/control")" = on ]' "tocou em interface ou em outro dispositivo USB"
+  afirma '[ "$(prop_ vendor.pfl7560.chaves)" = "1111100-011" ]' "prop depois do boot: $(prop_ vendor.pfl7560.chaves)"
+  afirma 'grep -q "power/control .auto. -> on" "$T/ch.out"' "o boot nao registrou a troca: $(tr '\n' '|' < "$T/ch.out")"
+  # o boot seguinte nao mexe de novo
+  cp "$S/chaves.escolhas" "$T/esc.antes"
+  ch boot
+  afirma 'cmp -s "$T/esc.antes" "$S/chaves.escolhas" && ! grep -q "power/control" "$T/ch.out"' "segundo boot mexeu de novo"
+  limpa
+
+  novo_cenario "wifi_pwr retirado: id errado nao e tocado; sem chip nao quebra"
+  instala
+  echo auto > "$R/sys/bus/usb/devices/1-3/power/control"; echo 1234 > "$R/sys/bus/usb/devices/1-3/idProduct"
+  ch boot
+  afirma '[ "$RC" = 0 ] && [ "$(cat "$R/sys/bus/usb/devices/1-3/power/control")" = auto ]' "id errado: o boot mexeu (rc=$RC)"
+  rm -rf "$R/sys/bus/usb/devices/1-3"
+  ch boot
+  afirma '[ "$RC" = 0 ]' "sem o chip: rc=$RC"
   limpa
 }
 
@@ -564,21 +606,21 @@ c_pendrive(){
   } > "$fn"
   cp "$KIT/suite-chaves.sh" "$T/work/suite-chaves.sh"
   amb dash "$fn" > "$T/pend.out" 2>&1
-  afirma '[ "$(estado)" = "00000000000" ] && grep -q "DESLIGAR-CHAVES.txt" "$T/pend.out"' "o resgate do pendrive nao desligou: $(estado) / $(tail -2 "$T/pend.out")"
+  afirma '[ "$(estado)" = "0000000-000" ] && grep -q "DESLIGAR-CHAVES.txt" "$T/pend.out"' "o resgate do pendrive nao desligou: $(estado) / $(tail -2 "$T/pend.out")"
   tudo_ligado
   echo "# adulterado" >> "$T/work/suite-chaves.sh"
   amb dash "$fn" > "$T/pend.out" 2>&1
-  afirma '[ "$(estado)" = "11111111111" ] && grep -q "ERRO" "$T/pend.out"' "rodou o script nao conferido"
+  afirma '[ "$(estado)" = "1111111-111" ] && grep -q "ERRO" "$T/pend.out"' "rodou o script nao conferido"
   rm -f "$MP/DESLIGAR-CHAVES.txt"; cp "$KIT/suite-chaves.sh" "$T/work/suite-chaves.sh"
   amb dash "$fn" > "$T/pend.out" 2>&1
-  afirma '[ "$(estado)" = "11111111111" ]' "sem o arquivo no pendrive nao devia desligar"
+  afirma '[ "$(estado)" = "1111111-111" ]' "sem o arquivo no pendrive nao devia desligar"
   limpa
 }
 
 echo "== estaticos =="
 c_estaticos
 echo "== cenarios sob dash =="
-for c in c_ler c_aplicar c_intocaveis c_pedido_cmd c_boot c_resgate c_pop_disp c_pacotes_fora c_integracao_pedido c_integracao_boot c_pendrive; do
+for c in c_ler c_aplicar c_intocaveis c_pedido_cmd c_boot c_resgate c_wifi_retirado c_pop_disp c_pacotes_fora c_integracao_pedido c_integracao_boot c_pendrive; do
   echo "  $c"
   "$c"
 done

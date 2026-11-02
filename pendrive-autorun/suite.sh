@@ -35,7 +35,7 @@ SUITE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
-44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
+ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 acaaefb249632298e6af03c73dbc1c8d  kit/aguarde.png
 cedac2a713b8b29dd1b64d77a587b49f  kit/calibracao.png

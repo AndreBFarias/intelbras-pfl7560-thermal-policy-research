@@ -42,11 +42,11 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-047f2c46a6830016f040c5d147dd615b  suite.sh
-a0b30b2137509c13dc811963b95b182e  suite-boot.sh
-0a25b9dccafea85f0969b2bd5c0d8523  suite-pedido.sh
+e8f7948153b78854673c5536ab20ba30  suite.sh
+368b9057a2d4666760f0c2ac9fef8b73  suite-boot.sh
+794858512c34b592e496293ac1ef535d  suite-pedido.sh
 7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
-44e528d3e05e92cb9b0a847f5121fa01  suite-chaves.sh
+ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh
 2760b4c77e6639632f63a156859520bc  nl_logo
 d1b0b118aa713b541c0514687eab1609  suite-logo.sh

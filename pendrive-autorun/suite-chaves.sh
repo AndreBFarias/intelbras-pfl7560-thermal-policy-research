@@ -17,6 +17,13 @@
 #
 # Caracteres do estado: 1 ligada, 0 desligada, p parcial, - ausente neste
 # aparelho, ? ilegivel agora.
+#
+# wifi_pwr saiu das escolhas em 2026-11-02 (bloco 29): power/control=auto no
+# chip Wi-Fi (AIC8800, USB) faz o driver suspender e voltar a cada ~4 s, e uma
+# volta cai num NULL em aicwf_usb_bus_start (aic8800_fdrv) e derruba o kernel
+# (doc 49). O id fica na lista so para guardar a posicao na prop (sempre '-');
+# aplicar/pedido recusam, e o boot e o resgate apagam a linha velha do
+# chaves.escolhas e deixam o chip em power/control=on.
 
 if [ "${PFL_TESTE:-}" != "1" ]; then
   PATH="/system/bin:/system/xbin:/vendor/bin:/vendor/xbin"; export PATH
@@ -41,6 +48,8 @@ PM_ESPERA=3
 FILA_MAX=60
 
 IDS="deb_seg deb_ota deb_hisi deb_lnch deb_vlc log_vplug eth0 wifi_pwr web_cmd keystone pop_disp"
+# ids que nao sao mais escolha: so guardam a posicao (estado sempre '-')
+RETIRADOS="wifi_pwr"
 # o pop-up "Dispositivo conectado" (HDMI/USB-C) e do com.zhiying.settings: o
 # receptor dele so mostra a janela se vendor.newlink.hisi.hdmiisdialog != 0
 POP_PROP="vendor.newlink.hisi.hdmiisdialog"
@@ -67,6 +76,10 @@ prop(){ setprop "vendor.pfl7560.$1" "$2" 2>/dev/null; }
 
 id_valido(){
   for _iv in $IDS; do [ "$_iv" = "$1" ] && return 0; done
+  return 1
+}
+id_retirado(){
+  for _ir in $RETIRADOS; do [ "$_ir" = "$1" ] && return 0; done
   return 1
 }
 # padrao ao instalar: 1 = ligada. So o que o dono aprovou na rodada 1.
@@ -108,12 +121,28 @@ escolha_de(){
   sed -n "s/^$1=\\([01]\\)\$/\\1/p" "$ESCOLHAS" 2>/dev/null | tail -n 1
 }
 gravar_escolha(){
+  id_retirado "$1" && return 0
   dir_seguro "$SUITE" || return 1
   [ -L "$ESCOLHAS" ] && rm -f "$ESCOLHAS"
   (
     umask 077
     { grep -v "^$1=" "$ESCOLHAS" 2>/dev/null; printf '%s=%s\n' "$1" "$2"; } > "$ESCOLHAS.novo"
   ) && mv -f "$ESCOLHAS.novo" "$ESCOLHAS"
+}
+# apaga do chaves.escolhas a linha dos ids retirados (wifi_pwr=1 de antes do bloco 29)
+apagar_retirados(){
+  arq_seguro "$ESCOLHAS" || return 0
+  dir_seguro "$SUITE" || return 0
+  _ar=0
+  for _i in $RETIRADOS; do grep -q "^$_i=" "$ESCOLHAS" 2>/dev/null && _ar=1; done
+  [ "$_ar" = 1 ] || return 0
+  _er=""
+  for _i in $RETIRADOS; do _er="$_er${_er:+|}^$_i="; done
+  (
+    umask 077
+    grep -vE "$_er" "$ESCOLHAS" > "$ESCOLHAS.novo"
+    [ -f "$ESCOLHAS.novo" ]
+  ) && mv -f "$ESCOLHAS.novo" "$ESCOLHAS" && LOG "escolha retirada apagada: $RETIRADOS"
 }
 # 1 se o boot deve deixar a chave ligada, 0 se nao
 quer_ligado(){
@@ -184,14 +213,16 @@ achar_wifi(){
   done
   return 1
 }
-estado_wifi(){
-  achar_wifi || { echo '-'; return 0; }
+# o chip sempre acordado: desfaz um power/control=auto velho (a escolha antiga)
+wifi_acordado(){
+  achar_wifi || return 0
   _pc=$(head -n 1 "$WIFI_DEV/power/control" 2>/dev/null | tr -cd '[:lower:]')
-  case "$_pc" in
-    auto) echo 1 ;;
-    on) echo 0 ;;
-    *) echo '?' ;;
-  esac
+  [ "$_pc" = "on" ] && return 0
+  if printf 'on' > "$WIFI_DEV/power/control" 2>/dev/null; then
+    LOG "chip Wi-Fi ${WIFI_DEV##*/}: power/control '$_pc' -> on (wifi_pwr nao e mais escolha)"
+  else
+    LOG "[AVISO] chip Wi-Fi ${WIFI_DEV##*/}: nao consegui escrever on em power/control (estava '$_pc')"
+  fi
 }
 estado_web(){
   _na=0; _ns=0
@@ -215,7 +246,7 @@ estado_de(){
       _lt=$(getprop log.tag.HI_VPLUGIN 2>/dev/null | tr -cd '[:upper:]')
       if [ "$_lt" = "S" ]; then echo 1; else echo 0; fi ;;
     eth0) estado_eth0 ;;
-    wifi_pwr) estado_wifi ;;
+    wifi_pwr) echo '-' ;;
     web_cmd) estado_web ;;
     keystone)
       _ks=$(getprop persist.hisi.keystone.enable 2>/dev/null | tr -cd '[:lower:]')
@@ -290,11 +321,6 @@ aplicar_eth0(){
   fi
   return 0
 }
-aplicar_wifi(){
-  achar_wifi || { AVISO_COD="ausente"; return 2; }
-  if [ "$1" = "ligar" ]; then _pv=auto; else _pv=on; fi
-  printf '%s' "$_pv" > "$WIFI_DEV/power/control" 2>/dev/null
-}
 aplicar_web(){
   if [ "$1" = "ligar" ]; then _sa=stop; else _sa=start; fi
   _fw=0
@@ -311,7 +337,6 @@ aplicar_chave(){
     log_vplug)
       if [ "$2" = "ligar" ]; then setprop log.tag.HI_VPLUGIN S 2>/dev/null; else setprop log.tag.HI_VPLUGIN "" 2>/dev/null; fi ;;
     eth0) aplicar_eth0 "$2" ;;
-    wifi_pwr) aplicar_wifi "$2" ;;
     web_cmd) aplicar_web "$2" ;;
     keystone)
       if [ "$2" = "ligar" ]; then setprop persist.hisi.keystone.enable false 2>/dev/null; else setprop persist.hisi.keystone.enable true 2>/dev/null; fi ;;
@@ -337,7 +362,7 @@ fazer(){
     fila_anotar "$1" "$2" recusado
     return 2
   fi
-  # existia e sumiu com a mudanca (o chip Wi-Fi que cai do barramento ao dormir):
+  # existia e sumiu com a mudanca (como o chip Wi-Fi que caia do barramento ao dormir):
   # escolha 0, para o boot nao repetir; reiniciar devolve o aparelho
   if [ "$_lido" = "-" ] && [ "$_antes" != "-" ]; then
     gravar_escolha "$1" 0
@@ -378,7 +403,10 @@ destrava(){ rm -rf "$CTRAVA"; }
 
 # ---- comandos -------------------------------------------------------------
 cmd_boot(){
+  # antes de tudo (e mesmo sem a pasta): o auto no chip Wi-Fi derruba o kernel
+  wifi_acordado
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - chaves nao reaplicadas."; return 1; }
+  apagar_retirados
   _pm=0
   for _i in $IDS; do
     case "$_i" in deb_*) [ "$(quer_ligado "$_i")" = 1 ] || [ "$(escolha_de "$_i")" = 0 ] && _pm=1 ;; esac
@@ -407,6 +435,8 @@ cmd_resgate(){
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - resgate nao feito."; return 1; }
   # a escolha 0 vai antes da trava: o boot rele a escolha chave a chave e para de
   # ligar o que faltava, e o proximo boot desliga o que ja estava ligado
+  wifi_acordado
+  apagar_retirados
   for _i in $IDS; do gravar_escolha "$_i" 0; done
   trava 180 || { LOG "[ERRO] outra rodada das chaves esta em curso - escolhas gravadas em 0, mas nada desligado agora (o proximo boot desliga)."; return 1; }
   LOG "resgate: desligando todas as chaves"
@@ -420,6 +450,7 @@ cmd_resgate(){
 }
 cmd_aplicar(){
   id_valido "$1" || { LOG "[ERRO] chave desconhecida: '$(limpo "$1")'"; return 1; }
+  if id_retirado "$1"; then LOG "[AVISO] $1 nao e mais uma escolha (o auto no chip Wi-Fi derruba o kernel) - recusado."; return 2; fi
   case "$2" in ligar|desligar) ;; *) LOG "[ERRO] acao invalida: '$(limpo "$2")'"; return 1 ;; esac
   dir_seguro "$SUITE" || { LOG "[ERRO] $SUITE nao e uma pasta so do root - nada feito."; return 1; }
   trava || { LOG "[AVISO] outra rodada das chaves esta em curso - pedido adiado."; return 1; }
