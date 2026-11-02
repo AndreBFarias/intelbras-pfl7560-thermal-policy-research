@@ -4,6 +4,17 @@ Arquivo para abrir sessão nova sem depender da conversa.
 
 ## Em voo (2026-11-02)
 
+**Bloco 30 FECHADO E INTEGRADO (2026-11-02 tarde):** branch `integracao` em `e76a93e` (fast-forward do `main` +
+merge do `bloco-30`), `make check-kit` 135/0. Entrega: HDMI 1/2 na home só com cabo (`TvInputManager`, C3 = HDMI 1,
+C2 = HDMI 2, medido no aparelho); **USB-C sempre visível** (decisão do dono: não há sinal de presença, nem com
+notebook ligado; doc 45 §14.4); contador "N apps" fora; "MeowCast" no canto inferior direito (sai enquanto o aviso
+amarelo não cabe). Home versionCode 10, APK no kit `c0ce997a381628fa20893a3c2cb49e18`. E2 aprovou com correções
+(`7a0b29f`, `91e840d`). Em aberto: provar que o USB-C dá imagem (abrir pela fonte do controle com aparelho que tenha
+vídeo pelo USB-C); se não der, tirar o botão é uma linha em `Cabos.lerAgora`. Fora do escopo: `test-suite.sh`
+"luz: a verificação continua" é corrida do teste (`setsid … &` sem espera, linhas ~451 e 496).
+**Próximo:** levar a `integracao` ao `main`, montar a S6 (mesmo roteiro da S5, doc 47 §13), pré-voo, backup com
+`id -u` = 0, flash com o dono.
+
 **S5 GRAVADA E FUNCIONANDO (2026-11-02 ~11:20):** primeira build nossa gravada no aparelho; subiu limpa
 (`reboot,factory_reset`, sem panic no pstore), home e app versionCode 9, `ZYCustom.ini` `252ab7a7…`,
 `wifi_disconnect_on_boot=0`, `.rc` da suíte no `/vendor`, chip Wi-Fi em `on`, VLC fora. O pendrive ficou plugado
