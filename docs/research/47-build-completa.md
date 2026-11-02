@@ -1,8 +1,8 @@
 # 47 — Build completa: o que a nova build leva por padrão, e o que não cabe nela (2026-10-31)
 
-**Estado: gerador parametrizado pronto e provado só no PC. Nada foi gravado no aparelho.** Gravar o `.bin` é o
-gate BIN-S4a: só com a palavra do dono naquele momento, com o pendrive de resgate na mão, e **nunca** no modelo
-sem USB-C com esta base. Spec: [bloco 12](../sprints/2026-10-31-bloco-12-build-completa.md).
+**Estado (2026-11-02): a S5 `3f3023b0…` foi GRAVADA no aparelho e subiu funcionando (§13).** As S4a e S4b seguem
+só provadas no PC. Gravar um `.bin` é o gate BIN-S4a: só com a palavra do dono naquele momento, com o pendrive de
+resgate na mão, e **nunca** no modelo sem USB-C com esta base. Spec: [bloco 12](../sprints/2026-10-31-bloco-12-build-completa.md).
 
 > **Bloco 21 (2026-10-31): leia a §10 primeiro.** A folga de 65312 bytes das seções 2 e 6 vinha toda de chunks
 > FILL que o re-pack criava, forma que o loader nunca gravou; as builds `eae3a83d` e `397698b9` saíram de uso. O
@@ -409,7 +409,7 @@ abaixo).
 
 | Build | md5 | Tamanho | CRC do vendor | Record 14 | Record 6 |
 |---|---|---|---|---|---|
-| **S5 final** (o kit depois do conferente final: app 8, home 9, "Desligar no descanso", VLC no boot) | **a conferir**: sai na montagem final (roteiro abaixo, passo 2) e entra aqui, no `firmware/README.md` e no `.md5` no mesmo commit | a conferir | a conferir | a conferir | 106496 B (= stock), arte `78b23ece…` (o `ARTE_MD5` não mudou) |
+| **S5 final, gravada em 2026-11-02** (blocos 26 a 29: app 9, home 9, visor dos testes, `wifi_pwr` fora das escolhas; §13) | **`3f3023b06e500e354fa6d4ca4e236f5f`** | 1399009468 B | `0x7ccdb8eb` | 85844116 B (+5251072 B contra o stock) | 106496 B (= stock), arte `78b23ece…` (o `ARTE_MD5` não mudou) |
 | a do bloco 28 (superada pelo conferente final; o `.md5` ainda a traz até a montagem final) | `253b01c95b2dd121408fc3c0817bf219` | 1398894780 B | `0xe0263cf7` | 85729428 B (+5136384 B contra o stock) | 106496 B (= stock), CRC `0x9c066411` |
 | a do bloco 26 (superada) | `81bb9885581356d5e46a5f612a29ae8a` | 1398890684 B | `0xa9f3457a` | 85725332 B (+5132288 B) | = stock |
 
@@ -523,3 +523,101 @@ na raiz de **outro** pendrive, ligando segurando o POWER (§8, [guia 16](../guid
    kit. O log deve trazer `servico de boot ja estava instalado (o da build S5…)`, e os apps e as sobreposições
    como "ja estava".
 7. Se travar na logo, o resgate é o da §8.
+
+O que aconteceu de verdade na primeira vez que este roteiro foi seguido, com os desvios e o que se mediu depois,
+está na §13.
+
+---
+
+## 13. Gravação real da S5 (2026-11-02)
+
+**Veredito: a S5 `3f3023b06e500e354fa6d4ca4e236f5f` foi gravada no aparelho com USB-C e subiu inteira**, sem
+travar na logo (o que a de julho fez), sem panic e com a suíte rodando. É a primeira build nossa a ser gravada;
+resolve de uma vez o que a §12 deixava como risco (container realocado, record 6, `.rc` e semente juntos). O que
+segue é o roteiro como foi provado, na ordem em que o dono o viu, para repetir na próxima gravação (a S6, que
+leva o bloco 30).
+
+### 13.1 Antes, no PC
+
+- **Montagem.** A S5 foi gerada **duas vezes** em `build-s5/` da árvore `integracao`, com `TMPDIR` apontado para
+  dentro dela (`build-s5/tmp`): o `/tmp` é um tmpfs de 4 GB e não comporta o stock aberto (1,3 GB) mais uma build
+  (1,4 GB). As duas deram o mesmo md5, `3f3023b06e500e354fa6d4ca4e236f5f`, 1399009468 B, record 14 com
+  +5251072 B contra o stock e CRC do vendor `0x7ccdb8eb`. `build_fix_bin.py --verificar` com o `conteudo-s5.txt`
+  APROVADO; `test-semente-s5.sh` com o vendor real, 66 verificações, 0 falhas.
+- **Regressão inteira verde, com uma exceção que não é defeito.** O `test-preparar-pendrive.sh` **precisa do
+  `/tmp` de verdade**: o snapshot que o teste faz só é feito sob `/tmp`. Com o `TMPDIR` fora dele, o teste falha
+  de mentira. Rode a regressão com o `TMPDIR` padrão, e só a montagem da build com o `TMPDIR` em `build-s5/tmp`.
+- **O pendrive** (FAT32, rótulo `PFL7560`) saiu de `./install.sh --pendrive <ponto> --com-firmware`: a S5 na raiz
+  como `usb_update.bin`, o stock `28a2f280…` em `resgate-oficial/`, o kit com 55 arquivos.
+- **Pré-voo:** `sh firmware/preflight-flash.sh <ponto> --backup <pasta> --resgate <stock .bin fora do pendrive>`:
+  os 5 itens OK, `PRE-VOO APROVADO`.
+- **Backup no PC, logo antes** (`backups-projetor/antes-s5-20261102-1100`, um tar com 76 entradas, md5 igual no
+  aparelho e no PC). **Armadilha:** o `adb` sobe como uid 2000 e só vira root cerca de 2 minutos depois do boot.
+  Um backup feito antes disso sai **incompleto** (`permission denied` nos arquivos de `/data/vendor`). Confira
+  `adb shell id -u` = `0` antes de tirar o backup, e o md5 do tar nos dois lados depois.
+- **Contexto do dia:** o kit tinha a escolha `wifi_pwr=1` (autosuspend do chip AIC8800), que causava kernel panic
+  (NULL em `aicwf_usb_bus_start`) e fazia a suíte rodar a cada boot depois de um panic. O bloco 29 a tirou das
+  escolhas (doc 49); a S5 gravada já é a que não a tem.
+
+### 13.2 Gravar
+
+Projetor desligado normal, pendrive plugado, **ligar segurando o POWER**. A ordem dos eventos que o dono viu:
+
+1. **Tela azul do gravador da placa:** "Do not power off the device during the upgrade", "UPGRADING", "download
+   progress" e "burn progress". É o loader: não muda de build para build.
+2. **Animação de boot da Intelbras, de cabeça para baixo e com a cor esverdeada.** É esperado no 1º boot: a
+   gravação repõe o `/atv/bootvideo` de fábrica e apaga o formato de cor e o espelhamento (o guia 16, passo 7, já
+   avisava). O kit repõe a marca MeowCast depois.
+3. **Tela do kit "Pendrive do kit encontrado. Conferindo o projetor."** com as 4 etapas: cor do painel,
+   ângulo/foco/nitidez, temperatura e teste da proteção térmica. O pendrive ficou plugado, então **o kit rodou
+   já no 1º boot**.
+4. **Assistente "Pareamento do Controle Remoto" da Intelbras** (`com.newlink.nlprovision`), que só aparece na
+   primeira configuração depois do reset. Depois disso a cor voltou ao normal sozinha, e o dono reconfigurou o
+   Wi-Fi (o `/data` foi formatado).
+
+### 13.3 O que se leu depois, por adb
+
+| O que | Valor | Lê-se como |
+|---|---|---|
+| `sys.boot.reason` | `reboot,factory_reset` | a gravação formatou o `/data`, como previsto |
+| pstore | sem panic | o `wifi_pwr` fora das escolhas resolveu |
+| home e app | versionCode 9 | os APKs da S5 |
+| `/vendor/etc/ZYCustom.ini` | md5 `252ab7a7…` | a escada de brilho está no `/vendor` |
+| `vendor.newlink.wifi_disconnect_on_boot` | `0` | o fix do Wi-Fi do `build.prop` |
+| `/vendor/etc/init/pfl7560-suite.rc` | `root root`, rótulo `vendor_configs_file` | o `.rc` da S5 com os metadados que o init exige (a lição do guia 16) |
+| chip Wi-Fi `power/control` | `on` | sem autosuspend |
+| VLC | ausente | como o `suite-boot.sh` deixa |
+| `vendor.pfl7560.semente` | `data_vence` | ver abaixo |
+| `/atv/bootvideo` | o `bootanimation` e o logo do kit | o kit repôs a marca |
+
+**A semente do `/vendor` ainda não está provada no aparelho.** Com o pendrive plugado, o kit instalou a suíte no
+`/data` primeiro, e a semente fez o que a tabela da §12 manda nesse caso: `data_vence`, sem copiar nada. A cópia
+`copiada` (1º boot de `/data` vazio, sem pendrive) e depois `em_dia` só se provam num boot **sem pendrive**.
+
+**A suíte no modo pendrive** terminou com o resumo de 19 itens, 0 correções e 0 atenções: o visor no app com o
+fundo MeowCast; a cor VESA para JEIDA corrigida (a escada de cor em ordem; a partição só mudou o byte `0x5c`); a
+câmera ok; temperatura do LED 63,4 °C e da placa 31,9 °C; a rampa térmica reagiu (alerta em 39, desceu a 20, voltou
+a 17 e a limpeza fechou). Os dois avisos "o alerta do sistema nao fechou depois de 4 teclas" são o assistente de
+pareamento do `nlprovision` na frente da tela: esperados no 1º boot depois do reset, não defeito.
+
+### 13.4 O que isto prova, e o que não
+
+Provado no aparelho: o container realocado da S5 é aceito pelo loader e grava (inclusive o record 14 com +5 MB);
+os metadados do `/vendor` (modo, dono e rótulo) deixam o init subir e o `.rc` da S5 ser lido; a escada de brilho e o
+fix do Wi-Fi estão no aparelho; o record 6 não atrapalhou o boot; o kit do pendrive roda por cima da S5 no 1º boot.
+
+**Continua provisório:** a cópia da semente para um `/data` vazio sem pendrive (`copiada`, depois `em_dia`); que o
+carregador desenha certa a arte 4:4:4 do record 6 (só o olho do dono confirma, §12); e o tempo do 1º boot sem o
+kit.
+
+### 13.5 Para a próxima gravação (a S6, com o bloco 30)
+
+1. Siga o roteiro da §12 como está; a §13.1 só acrescenta o `TMPDIR` em `build-s5/tmp` **só na montagem**, a
+   regressão no `/tmp` normal e o `id -u` = 0 antes do backup.
+2. **Decida antes se o pendrive fica plugado no 1º boot.** Plugado é o prático: o kit corrige a cor e repõe a marca
+   na hora, e o assistente de pareamento da Intelbras aparece de qualquer jeito. Sem pendrive prova a semente do
+   `/vendor` (`copiada`, depois `em_dia`), mas a cor fica errada e a marca é a de fábrica até a verificação ou o
+   pedido pela home. Se a S6 for a que deve provar a semente, **tire o pendrive** quando o gravador terminar
+   (o passo 6 do guia 16 vale: com ele plugado, um novo power-hold regrava).
+3. Resgate, se travar: o mesmo da §8, com o stock `28a2f280…` como `usb_update.bin` na raiz de **outro** pendrive.
+   Desta vez ele não foi preciso.
