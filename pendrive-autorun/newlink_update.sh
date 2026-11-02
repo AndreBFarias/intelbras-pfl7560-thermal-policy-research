@@ -38,13 +38,13 @@ TERM_SECOES="Thermal BacklightPolicy ThermalPolicy Thermistor_0 Thermistor_1 Coo
 
 # KIT_LISTA_INICIO
 KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
-0dbcf2861f96e24e728342732ce54340  cor.sh
+13fd41c554dea560277267cdb461b463  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
-1b1dddcbbcedae24465f557547b08747  suite.sh
-6556a35d530655b415a67dd4c65a08bb  suite-boot.sh
-22b6fda9ad46ebee3b42fc4a20caa0bb  suite-pedido.sh
+e0f46982cf6003bf159446bf0b232985  suite.sh
+d3eccfa3a6dc9aee4b27648a21f5a917  suite-boot.sh
+be9328964c163e6a521444be60e4f1b7  suite-pedido.sh
 7dd0b18e1dfb44edd998ee99a7faad24  suite-curvas.sh
 ed4179886e1c028c3f8a8f423036e5e9  suite-chaves.sh
 90caa1f05da00c43a29dd364ed3afb69  suite-diario.sh

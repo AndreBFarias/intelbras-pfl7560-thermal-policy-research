@@ -122,3 +122,44 @@ tela velha. Uma tecla que cair na virada da janela de 5 s da câmera pode se per
   -n` de activity não exportada vale porque a suíte roda como root (UID 0 passa no `checkComponentPermission`);
   `wifi_pwr` sem caminho que escreva `auto` (aplicar, pedido, boot, resgate; a semente da S5 só copia o
   `suite-chaves.sh` novo); md5 do kit, `SEMENTE_LISTA` e `RC_S5_MD5` em dia; APK v9 refeito com o mesmo md5.
+
+## Feito (T3, bloco 29): a etapa de cor no visor e Voltar/Esc no cor.sh = cancelar
+
+- **Visor no `cor.sh`:** com o visor aberto, a suíte chama `cor.sh ... suite visor`; o `mostrar()` do `cor.sh` usa a
+  mesma pasta (`/data/data/com.pfl7560.verificar/visor/NOME.png`, root `0755`, `.n-NOME` + `mv`, `0644`) e o mesmo
+  `am start -n com.pfl7560.verificar/.Visor --es tela NOME.png` da suíte. Se a pasta não confere ou o `am start` dá
+  `Error`, aquela tela e as seguintes vão pela galeria, com `[AVISO] visor: ...` no `cor.log` (igual à suíte). Fora da
+  suíte (kit de pendrive sozinho) segue a galeria.
+- **Voltar/Esc = cancelar:** o `esperar_tecla` lê o nome da tecla no `getevent -qlc 3`: `KEY_BACK` ou `KEY_ESC` (e,
+  só no modo suíte, o `cancelar-suite` gravado pelo visor, conferido antes de cada tela, antes de escrever e em cada
+  espera de tecla) cancelam; outra tecla é resposta como antes. Ao cancelar: sem journal desta execução, sai sem
+  escrever ("nada foi escrito na panelparam"); com journal (lvds_fmt trocado ao vivo), `reverter` (o mesmo caminho:
+  `lvdsctl fmt` original, byte da partição, confere com o backup, apaga journal e gancho) e loga "revertido no
+  cancelar". O resultado da cor fica `cancelado`; o `cor.sh` não apaga o pedido (quem apaga é a suíte). Na suíte,
+  `checar_cancelar` logo depois do `cor.sh` (pedido do visor) e, sem pedido (Voltar na galeria de reserva),
+  `cor_resultado=cancelado` também para a suíte sem resumo e sem resultado. No kit sozinho: sem tela de resultado,
+  galeria fechada e `HOME`.
+- **Sair do controle:** não há prova no repositório de outro código (o `Vendor_0001_Product_0001.kl` foi lido no doc 43
+  mas não está guardado, e nenhum dump de `getevent` traz o Sair). Ficaram só `KEY_BACK`/`KEY_ESC`, os mesmos do
+  `VisorModelo.cancela`. Se o Sair mandar outro código, ele conta como "outra tecla" (resposta) no `cor.sh` e não cancela
+  no visor: acrescentar nos dois lugares.
+- **Limites:** se a reversão de um cancelar não conferir, o journal fica e o gancho restaura no próximo boot (como em
+  todo outro caminho de reversão), com `[ERRO]` no log; a suíte para do mesmo jeito. Na galeria de reserva, um Voltar
+  fora de uma espera de tecla (durante a leitura da câmera) só fecha a galeria; o cancelar vale na próxima espera.
+- **Provas:** `tests/test-suite.sh` caso novo `c_cor_cancelar` (telas do cor.sh no visor sem galeria; galeria de
+  reserva com aviso; Voltar no visor antes de escrever; Voltar e Esc na galeria antes de escrever; Voltar depois da
+  troca ao vivo, revertido e conferido; Voltar na tela corrigida; pedido do visor durante a medição; outra tecla na
+  corrigida desfaz como antes) e `tests/test-kit-pendrive.sh` caso `c_tecla_voltar` (kit sozinho: Voltar antes de
+  escrever e depois da troca). Todos falham sem a correção. As expectativas de `telas_visor` do `c_visor_cancelar`
+  passaram a incluir as telas do cor.sh.
+
+**Conferir no aparelho (T3):**
+1. Suíte pelo ícone, lente livre, painel já em ordem: entre a calibração e a escada aparece o fundo MeowCast, nunca a
+   home; `cor.log` sem `[AVISO] visor`.
+2. Etapa 1 com a escada na tela (fluxo manual: tampar a lente para cair nele ou rodar com o modo automático
+   desligado): Voltar uma vez volta à home, `cor.log` termina em "cancelado pelo controle (tecla Voltar/Esc)" e
+   "nada foi escrito", `ultimo.log` em "cancelado pelo controle", `resultados.txt` da suíte anterior.
+3. Fluxo manual com OK na escada (troca ao vivo) e Voltar na escada-2: a imagem volta ao formato de antes,
+   `cor.log` com "revertido no cancelar: ... confere com o backup", sem `journal` em `/data/vendor/pfl7560-kit`.
+4. Qual código o Sair manda (`getevent -l` como root): se não for `KEY_BACK`/`KEY_ESC`, acrescentar no `cor.sh` e no
+   `VisorModelo.cancela`.

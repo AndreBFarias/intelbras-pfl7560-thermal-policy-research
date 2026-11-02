@@ -64,6 +64,7 @@ n=$(cat "$T/n-getevent" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$T/n-gete
 [ -f "$T/linka-lvdsctl-$n" ] && { cp "$T/bin/lvdsctl" "$T/lvdsctl.copia"; rm -f "$T/bin/lvdsctl"; ln -s "$T/lvdsctl.copia" "$T/bin/lvdsctl"; }
 k=$(head -1 "$T/keys"); sed -i 1d "$T/keys"
 [ "$k" = "key" ] && echo "/dev/input/event2: EV_KEY       KEY_OK                DOWN"
+[ "$k" = "voltar" ] && echo "/dev/input/event2: EV_KEY       KEY_BACK              DOWN"
 exit 0'
   stub am 'echo "am $*" >> "$T/calls.log"
 [ "$1" = "force-stop" ] && exit 0
@@ -266,6 +267,25 @@ c_tecla_tecla(){
   local pp1; pp1="$(pp_md5)"; : > "$T/calls.log"
   roda nokey
   afirma '[ "$(pp_md5)" = "$pp1" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ "$(chamadas reboot)" = 0 ]' "2a execucao mexeu em algo"
+  limpa
+}
+
+# bloco 29: Voltar/Esc nas telas do cor.sh = cancelar (nao e resposta): desfaz o que escreveu, sem tela de resultado
+c_tecla_voltar(){
+  novo_cenario "Voltar na 1a espera = nada escrito, sem tela de resultado, home"; aparelho_ok
+  roda voltar
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(chamadas lvdsctl)" = 0 ] && [ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ] && [ ! -e "$T/root/mnt/media_rw/USB1/panelparam-backup-SER123.img" ]' "escreveu com Voltar: lvdsctl=$(chamadas lvdsctl)"
+  afirma 'log_tudo | grep -q "cancelado pelo controle (tecla Voltar/Esc)" && log_tudo | grep -q "nada foi escrito na panelparam"' "log sem o cancelar"
+  afirma '! grep -q "pfl7560-kit/pronto.png\|pfl7560-kit/erro.png\|pfl7560-kit/escada-2.png" "$T/calls.log" && tem_chamada "input keyevent KEYCODE_HOME"' "tela de resultado ou sem HOME: $(telas)"
+  limpa
+
+  novo_cenario "tecla + Voltar = reverte o lvds_fmt e confere, sem tela de resultado"; aparelho_ok
+  roda key voltar
+  afirma '[ "$(pp_md5)" = "$PP0" ] && [ "$(pp_byte)" = 0 ]' "a particao nao voltou ao original"
+  afirma 'tem_chamada "lvdsctl fmt 1" && [ "$(grep "^lvdsctl" "$T/calls.log" | tail -1)" = "lvdsctl fmt 0" ]' "esperava fmt 1 (teste) e fmt 0 (reversao): $(grep "^lvdsctl" "$T/calls.log" | tr '\n' '|')"
+  afirma '[ ! -e "$T/root/data/vendor/pfl7560-kit/journal" ] && [ ! -e "$T/root/data/local/nlsu/update_after_boot.sh" ]' "journal ou gancho sobraram"
+  afirma 'log_tudo | grep -q "revertido no cancelar: lvds_fmt=0 e a particao confere com o backup" && ! log_tudo | grep -q "segunda tecla"' "log sem a reversao do cancelar"
+  afirma '! grep -q "pfl7560-kit/pronto.png\|pfl7560-kit/erro.png" "$T/calls.log" && tem_chamada "input keyevent KEYCODE_HOME"' "tela de resultado ou sem HOME: $(telas)"
   limpa
 }
 
@@ -1628,7 +1648,7 @@ for SHELL_NOME in ${SHELLS:-dash}; do
   esac
   command -v "$SHELL_BIN" >/dev/null 2>&1 || { echo "(sem $SHELL_BIN: pulado)"; continue; }
   echo "== cenarios sob $SHELL_NOME =="
-  for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_idempotencia c_ini_anterior c_ini_desconhecido \
+  for c in ${CASOS:-c_sem_tecla c_tecla_timeout c_tecla_tecla c_tecla_voltar c_idempotencia c_ini_anterior c_ini_desconhecido \
            c_atv_override c_adulterado c_journal_no_boot c_gancho_gerado c_trabalho_inseguro c_troca_apos_copia c_troca_no_pendrive c_lvdsctl_na_hora c_backup_adulterado c_gancho_adulterado c_ambiente_sem_teste c_falhas_seguras c_sem_hidebug \
            c_modelo_antigo_secoes c_modelo_novo_secoes c_modelo_novo_desconhecido c_secoes_resultado_errado \
            c_auto_certo c_auto_errado c_auto_duvida c_auto_nlcam_adulterado c_troca_de_tela c_modo_auto_ambiente c_sem_suite_legado c_app c_bloco14 c_bloco23 c_bloco25 c_bloco26}; do

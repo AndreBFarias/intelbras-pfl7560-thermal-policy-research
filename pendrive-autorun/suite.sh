@@ -34,7 +34,7 @@ DONO_UID=0
 APP_UID_MIN=10000
 
 # SUITE_LISTA_INICIO
-SUITE_LISTA="0dbcf2861f96e24e728342732ce54340  cor.sh
+SUITE_LISTA="13fd41c554dea560277267cdb461b463  cor.sh
 178d812872cb9306c0ae6faeed07184a  lvdsctl
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
@@ -532,15 +532,25 @@ etapa_cor(){
     fechar_alertas
     LOG "cor: rodando cor.sh no modo suite"
     : > "$SUITE/cor.log"
-    sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" suite >>"$SUITE/cor.log" 2>&1 </dev/null
+    # com o visor aberto, o cor.sh mostra as telas dele no mesmo visor (galeria so de reserva)
+    _cv=""; [ "$VISOR" = "1" ] && { _cv=visor; VISOR_ABERTO=1; }
+    sh "$WORK/cor.sh" "$MP" "$AVISO_ARG" "$COR_MD5" suite ${_cv:+"$_cv"} >>"$SUITE/cor.log" 2>&1 </dev/null
     cat "$SUITE/cor.log"
     if [ "$VISOR" = "1" ]; then galeria_pacote "$TELA_DIR/x.png"; am force-stop "$GALERIA" >/dev/null 2>&1; fi
+    checar_cancelar
     if arq_seguro "$SUITE/cor-resultado.txt"; then
       COR_RES=$(ler_cor cor_resultado)
       COR_ANTES=$(ler_cor cor_formato_antes)
       COR_DEPOIS=$(ler_cor cor_formato_depois)
       COR_FAIXAS=$(ler_cor cor_faixas)
       COR_PAINEL=$(ler_cor cor_painel)
+      # Voltar/Esc numa tela do cor.sh pela galeria (sem o pedido do visor): o cor.sh ja desfez o que
+      # tinha escrito; a suite para do mesmo jeito, sem resumo e sem resultado
+      if [ "$COR_RES" = "cancelado" ]; then
+        LOG "cancelado pelo controle (Voltar na tela do cor.sh): suite parada sem resumo e sem gravar resultado"
+        CANCELADO=1
+        exit 0
+      fi
     else
       LOG "[ERRO] cor: o cor.sh nao deixou resultado."
     fi
