@@ -35,6 +35,12 @@ o POWER, com o pendrive no PC (nada foi gravado). Pendrive agora: `usb_update.bi
 para `.fw-guardado/S4a-usb_update.bin` e o `newlink_update.sh` para `.kit-guardado/` (o kit não roda no boot). Para
 voltar ao normal: devolver o `newlink_update.sh` à raiz e tirar o `usb_update.bin` (ou o pendrive da S5 final).
 
+**Medido em 2026-11-02 ~03:00:** o VLC é de fábrica (`/vendor/app/VLC`), não do dono. Feito, com o sim dele:
+`pm uninstall --user 0 org.videolan.vlc` (volta com `cmd package install-existing org.videolan.vlc`). O flash da S5
+o traria de volta: o workflow final cuida disso. Prop `chaves` = `1111111111` (o dono ligou todas, inclusive
+`wifi_pwr`, que pode derrubar o Wi-Fi; resgate `DESLIGAR-CHAVES.txt`). Bloco 26 integrado (`c8129b9`, branch
+`integracao`), bloco 28 em voo (`whj87oqgu`).
+
 ## Próximos passos
 
 1. Instalar: `./install.sh --pendrive <ponto>` (sem firmware), o dono pluga o pendrive no projetor.
