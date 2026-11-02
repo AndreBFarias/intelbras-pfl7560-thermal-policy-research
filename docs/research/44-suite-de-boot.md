@@ -821,7 +821,9 @@ muda os cantos, o logo antigo sai torto. Agora o próprio aparelho regera e regr
 2. Uma vez por boot (`mkdir /dev/pfl7560-logo.boot`). Pendrive com `DESLIGAR-LOGO-AUTO.txt`: desliga a chave.
    Chave desligada: só publica o estado.
 3. Espera 60 s e a trava da suíte (`/dev/pfl7560-suite.lock`, até 40 x 30 s): o logo nunca é gravado com a suíte
-   rodando. Ainda ocupada: `suite_rodando`, tenta no boot seguinte.
+   rodando. Ainda ocupada: `suite_rodando`, tenta no boot seguinte. Depois da espera, e de novo logo antes do
+   `dd`, confere outra vez a chave e o pendrive (`segue_ligada`): a home ou o `newlink_update.sh` podem desligar a
+   chave durante esses 60 s ou mais, e o pendrive pode montar depois do começo do boot. Desligada: nada gravado.
 4. Lê `persist.sys.keystone.lt/rt/lb/rb`; `nl_logo cantos` recusa o que estiver fora da tela, não for convexo,
    tiver um canto no quadrante de outro ou cobrir menos de 25 % da tela.
 5. Confere modelo (`PFL7560`), md5 do `nl_logo` e da arte (`marca/logo.jpg` da suíte), tamanho da partição

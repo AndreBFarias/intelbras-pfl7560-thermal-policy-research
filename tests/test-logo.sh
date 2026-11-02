@@ -364,6 +364,30 @@ roda_logo boot
 afirma '[ "$(escritas)" = 0 ] && intacta && [ -e "$L/desligado" ] && [ "$(cat "$L/motivo")" = pendrive ] && [ "$(prop_de logo_motivo)" = pendrive ]' "o arquivo de resgate nao desligou"
 limpa
 
+novo_cenario "chave desligada pela home durante a espera de 60 s = nada gravado"
+# shellcheck disable=SC2086
+cantos $DONO
+stub sleep ': > "$L/desligado"; exit 0'
+roda_logo boot
+afirma '[ "$(escritas)" = 0 ] && intacta && [ "$(prop_de logo)" = desligado ] && [ ! -e "$L/ultimo.img" ] && [ ! -e "$L/trabalho" ] && grep -q "chave desligada durante o preparo (depois da espera)" "$L/logo.log"' "gravou com a chave desligada durante a espera: $(tail -2 "$L/logo.log" | tr '\n' '|')"
+limpa
+
+novo_cenario "pendrive com DESLIGAR-LOGO-AUTO.txt montado durante a espera = chave desligada, nada gravado"
+# shellcheck disable=SC2086
+cantos $DONO
+stub sleep 'mkdir -p "$PFL_ROOT/mnt/media_rw/USB9"; : > "$PFL_ROOT/mnt/media_rw/USB9/DESLIGAR-LOGO-AUTO.txt"; exit 0'
+roda_logo boot
+afirma '[ "$(escritas)" = 0 ] && intacta && [ -e "$L/desligado" ] && [ "$(cat "$L/motivo")" = pendrive ] && [ ! -e "$L/ultimo.img" ]' "gravou com o pendrive de resgate montado durante a espera: $(tail -2 "$L/logo.log" | tr '\n' '|')"
+limpa
+
+novo_cenario "chave desligada entre o backup e o dd = nada gravado"
+# shellcheck disable=SC2086
+cantos $DONO
+stub blockdev 'echo "blockdev $*" >> "$T/calls.log"; [ -e "$L/ultimo.img" ] && : > "$L/desligado"; [ "$1" = --getsize64 ] && wc -c < "$2"'
+roda_logo boot
+afirma '[ "$(escritas)" = 0 ] && intacta && [ -e "$L/ultimo.img" ] && [ ! -e "$L/trabalho" ] && grep -q "chave desligada durante o preparo (antes do dd)" "$L/logo.log"' "gravou com a chave desligada antes do dd: $(tail -2 "$L/logo.log" | tr '\n' '|')"
+limpa
+
 novo_cenario "pasta do logo aberta a outros ou link = nada feito"
 mkdir -p "$L"; chmod 755 "$L"
 # shellcheck disable=SC2086

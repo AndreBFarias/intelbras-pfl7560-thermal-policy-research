@@ -126,6 +126,11 @@ pendrive_desliga(){
   done
   return 1
 }
+segue_ligada(){
+  if ! ligada; then LOG "chave desligada durante o preparo ($1) - nada gravado"; rm -rf "$TRAB"; publicar; return 1; fi
+  if pendrive_desliga; then LOG "DESLIGAR-LOGO-AUTO.txt no pendrive ($1): chave desligada - nada gravado"; rm -rf "$TRAB"; desligar pendrive; return 1; fi
+  return 0
+}
 
 gravar(){
   _jn=$(tam_de "$TRAB/novo.jpg")
@@ -157,6 +162,7 @@ gravar(){
   [ -n "$_me" ] || { recusa montar "sem md5 da imagem montada"; return 0; }
   [ "$(md5_de "$PART")" = "$_mb" ] || { recusa mudou "a particao mudou depois do backup"; return 0; }
   [ "$(blockdev --getsize64 "$PART" 2>/dev/null | tr -dc '0-9')" = "$TAM_PART" ] || { recusa particao "a particao nao tem $TAM_PART bytes"; return 0; }
+  segue_ligada "antes do dd" || return 0
   LOG "gravando o logo novo ($_jn bytes no byte 8192 e LOGO_KEY_LEN no 120) para os cantos $CANTOS"
   dd if="$TRAB/novo.jpg" of="$PART" bs=4096 seek=2 2>/dev/null
   dd if="$TRAB/keylen.bin" of="$PART" bs=1 seek=120 2>/dev/null
@@ -188,6 +194,7 @@ modo_boot(){
   if ! ligada; then LOG "chave desligada (home ou pendrive) - nada a fazer"; return 0; fi
   if pendrive_desliga; then LOG "DESLIGAR-LOGO-AUTO.txt no pendrive: chave desligada"; desligar pendrive; return 0; fi
   esperar_suite || { recusa suite_rodando "a suite ainda roda depois da espera"; return 0; }
+  segue_ligada "depois da espera" || return 0
   [ "$(getprop ro.product.model 2>/dev/null)" = "PFL7560" ] || { recusa modelo "o aparelho nao e um PFL7560"; return 0; }
   confere "$NL" "$NL_LOGO_MD5" || { recusa programa "nl_logo ausente, link, de outro dono ou com md5 diferente"; return 0; }
   confere "$ARTE" "$ARTE_MD5" || { recusa arte "marca/logo.jpg ausente, link, de outro dono ou com md5 diferente"; return 0; }

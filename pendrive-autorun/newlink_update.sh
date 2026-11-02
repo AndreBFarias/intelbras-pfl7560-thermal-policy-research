@@ -39,11 +39,11 @@ KIT_LISTA="252ab7a72a007a8b79b3fc86bd5c0d19  ZYCustom.ini
 02bedd31ae0e82afd10c41daabf2bd56  nl_camcheck
 662acb7ac307699a389e892047f0d883  nl_tela
 40a977bb67192e9123757669206a81e6  suite.sh
-38d7936880c83a2cd36acceec9453e3e  suite-boot.sh
-95f4840a63a2ad3481034a51946314fa  suite-pedido.sh
+6cd1f05481430207a9f8283b95bd1d61  suite-boot.sh
+2e03664e098edd537e8c6600d343006a  suite-pedido.sh
 bd4da978560a5c41802d400ba186dda3  suite-curvas.sh
 2760b4c77e6639632f63a156859520bc  nl_logo
-369401051bca7b7c42e379dba54bfd96  suite-logo.sh
+2e9220bb030f2a6ed045eb60e79defad  suite-logo.sh
 1ffa4bc6d4d36cd5671c6fef64896398  debloat-aprovados.txt
 cb9360471adcfcc3cc1e24998afbede4  pfl7560-suite.rc
 6c43460eb4d234436541ffded0113c69  pfl7560.apk
