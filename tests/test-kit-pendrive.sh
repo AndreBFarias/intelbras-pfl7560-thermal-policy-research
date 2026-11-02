@@ -206,9 +206,12 @@ roda(){
   amb $SHELL_BIN_RUN "$T/root/mnt/media_rw/USB1/newlink_update.sh" USB1 > "$T/out.log" 2>&1
   RC=$?
   local i=0
-  while [ -z "${SEM_ESPERA:-}" ] && grep -q "lancando a " "$T/out.log" && [ ! -f "$T/setsid.done" ] && [ "$i" -lt 100 ]; do
+  while [ -z "${SEM_ESPERA:-}" ] && grep -q "lancando a " "$T/out.log" && [ ! -f "$T/setsid.done" ] && [ "$i" -lt 1800 ]; do
     sleep 0.1; i=$((i+1))
   done
+  if [ -z "${SEM_ESPERA:-}" ] && grep -q "lancando a " "$T/out.log" && [ ! -f "$T/setsid.done" ]; then
+    falha "a fase destacada (setsid) nao terminou em 180 s: o cenario seria lido pela metade"
+  fi
   [ -f "$T/root/data/vendor/pfl7560-kit/cor.log" ] && cp "$T/root/data/vendor/pfl7560-kit/cor.log" "$T/cor.log.copia" 2>/dev/null
   return 0
 }
