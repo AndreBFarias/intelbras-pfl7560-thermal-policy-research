@@ -67,3 +67,6 @@ STATE.md
 # ===== Temporarios das builds S5 (bloco 26) e S6 =====
 build-s5/
 build-s6/
+
+# ===== Ambiente Python local (se refaz no PC) =====
+venv/
